@@ -53,7 +53,7 @@ namespace Db
 			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.Mlbid,f.Modelidx,f.Year,f.Month});
 			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.Teamid,f.Year});
 			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.Teamid,f.Year,f.Leagueid});
-			modelBuilder.Entity<Player>().HasKey(f => new {f.Mlbid,f.Position});
+			modelBuilder.Entity<Player>().HasKey(f => new {f.Mlbid});
 			modelBuilder.Entity<Player_CareerStatus>().HasKey(f => new {f.Mlbid});
 			modelBuilder.Entity<Player_Hitter_GameLog>().HasKey(f => new {f.Gamelogid});
 			modelBuilder.Entity<Player_Hitter_MonthAdvanced>().HasKey(f => new {f.Mlbid,f.Levelid,f.Year,f.Month,f.Teamid,f.Leagueid});

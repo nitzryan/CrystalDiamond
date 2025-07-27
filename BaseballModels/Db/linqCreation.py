@@ -29,14 +29,21 @@ for table, in tables:
             if pk > 0:
                 modelBuilderString += f"f.{name},"
             # Convert SQLite type to C# type
+            
             if type == "INTEGER":
-                classFile.write(f"\t\tpublic int {name} {{get; set;}}\n")
+                csharp_type = "int"
             elif type == "REAL":
-                classFile.write(f"\t\tpublic float {name} {{get; set;}}\n")
+                csharp_type = "float"
             elif type == "TEXT":
-                classFile.write(f"\t\tpublic required string {name} {{get; set;}}\n")
+                csharp_type = "string"
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
+        
+            if notnull == 0:
+                csharp_type += '?'
+            else:
+                csharp_type = "required " + csharp_type
+            classFile.write(f"\t\tpublic {csharp_type} {name} {{get; set;}}\n")
         
         modelBuilderString = modelBuilderString[:-1]
         modelBuilderString += "})"

@@ -5,4 +5,5 @@ IF EXIST %DB_FILE% (
 	DEL /Q %DB_FILE%
 )
 sqlite3 BaseballStats.db < creation.sql
+python linqCreation.py
 PAUSE

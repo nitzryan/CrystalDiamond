@@ -2,18 +2,18 @@ namespace Db
 {
 	public class Level_PitcherStats
 	{
-		public int Level {get; set;}
-		public int Year {get; set;}
-		public int Month {get; set;}
-		public float Era {get; set;}
-		public float Ra {get; set;}
-		public float Fipconstant {get; set;}
-		public float Woba {get; set;}
-		public float Hrperc {get; set;}
-		public float Bbperc {get; set;}
-		public float Kperc {get; set;}
-		public float Goperc {get; set;}
-		public float Avg {get; set;}
-		public float Iso {get; set;}
+		public required int Level {get; set;}
+		public required int Year {get; set;}
+		public required int Month {get; set;}
+		public required float Era {get; set;}
+		public required float Ra {get; set;}
+		public required float Fipconstant {get; set;}
+		public required float Woba {get; set;}
+		public required float Hrperc {get; set;}
+		public required float Bbperc {get; set;}
+		public required float Kperc {get; set;}
+		public required float Goperc {get; set;}
+		public required float Avg {get; set;}
+		public required float Iso {get; set;}
 	}
 }

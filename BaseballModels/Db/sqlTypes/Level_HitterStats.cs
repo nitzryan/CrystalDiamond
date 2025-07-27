@@ -2,18 +2,18 @@ namespace Db
 {
 	public class Level_HitterStats
 	{
-		public int Levelid {get; set;}
-		public int Year {get; set;}
-		public int Month {get; set;}
-		public float Avg {get; set;}
-		public float Obp {get; set;}
-		public float Slg {get; set;}
-		public float Iso {get; set;}
-		public float Woba {get; set;}
-		public float Hrperc {get; set;}
-		public float Bbperc {get; set;}
-		public float Kperc {get; set;}
-		public float Sbrate {get; set;}
-		public float Sbperc {get; set;}
+		public required int Levelid {get; set;}
+		public required int Year {get; set;}
+		public required int Month {get; set;}
+		public required float Avg {get; set;}
+		public required float Obp {get; set;}
+		public required float Slg {get; set;}
+		public required float Iso {get; set;}
+		public required float Woba {get; set;}
+		public required float Hrperc {get; set;}
+		public required float Bbperc {get; set;}
+		public required float Kperc {get; set;}
+		public required float Sbrate {get; set;}
+		public required float Sbperc {get; set;}
 	}
 }

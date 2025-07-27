@@ -2,8 +2,8 @@ namespace Db
 {
 	public class Team_OrganizationMap
 	{
-		public int Teamid {get; set;}
-		public int Year {get; set;}
-		public int Parentorgid {get; set;}
+		public required int Teamid {get; set;}
+		public required int Year {get; set;}
+		public required int Parentorgid {get; set;}
 	}
 }

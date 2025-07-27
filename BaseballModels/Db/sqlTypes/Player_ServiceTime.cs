@@ -2,9 +2,9 @@ namespace Db
 {
 	public class Player_ServiceTime
 	{
-		public int Mlbid {get; set;}
-		public int Year {get; set;}
-		public int Serviceyear {get; set;}
-		public int Servicedays {get; set;}
+		public required int Mlbid {get; set;}
+		public required int Year {get; set;}
+		public required int Serviceyear {get; set;}
+		public required int Servicedays {get; set;}
 	}
 }

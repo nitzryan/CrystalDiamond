@@ -2,7 +2,7 @@ namespace Db
 {
 	public class Pre05_Players
 	{
-		public int Mlbid {get; set;}
-		public int Careerstartyear {get; set;}
+		public required int Mlbid {get; set;}
+		public required int Careerstartyear {get; set;}
 	}
 }

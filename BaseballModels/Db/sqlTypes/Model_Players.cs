@@ -2,12 +2,12 @@ namespace Db
 {
 	public class Model_Players
 	{
-		public int Mlbid {get; set;}
-		public int Ishitter {get; set;}
-		public int Ispitcher {get; set;}
-		public int Lastprospectyear {get; set;}
-		public int Lastprospectmonth {get; set;}
-		public int Lastmlbseason {get; set;}
-		public float Ageatsigningyear {get; set;}
+		public required int Mlbid {get; set;}
+		public required int Ishitter {get; set;}
+		public required int Ispitcher {get; set;}
+		public required int Lastprospectyear {get; set;}
+		public required int Lastprospectmonth {get; set;}
+		public required int Lastmlbseason {get; set;}
+		public required float Ageatsigningyear {get; set;}
 	}
 }

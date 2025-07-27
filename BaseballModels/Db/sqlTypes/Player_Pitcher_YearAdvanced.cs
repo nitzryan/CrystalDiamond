@@ -2,19 +2,19 @@ namespace Db
 {
 	public class Player_Pitcher_YearAdvanced
 	{
-		public int Mlbid {get; set;}
-		public int Levelid {get; set;}
-		public int Year {get; set;}
-		public int Teamid {get; set;}
-		public int Leagueid {get; set;}
-		public int Bf {get; set;}
-		public int Outs {get; set;}
-		public float Gbratio {get; set;}
-		public float Era {get; set;}
-		public float Fip {get; set;}
-		public float Kperc {get; set;}
-		public float Bbperc {get; set;}
-		public int Hr {get; set;}
-		public float Woba {get; set;}
+		public required int Mlbid {get; set;}
+		public required int Levelid {get; set;}
+		public required int Year {get; set;}
+		public required int Teamid {get; set;}
+		public required int Leagueid {get; set;}
+		public required int Bf {get; set;}
+		public required int Outs {get; set;}
+		public required float Gbratio {get; set;}
+		public required float Era {get; set;}
+		public required float Fip {get; set;}
+		public required float Kperc {get; set;}
+		public required float Bbperc {get; set;}
+		public required int Hr {get; set;}
+		public required float Woba {get; set;}
 	}
 }

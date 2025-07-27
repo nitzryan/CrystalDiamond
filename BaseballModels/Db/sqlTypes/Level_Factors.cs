@@ -2,9 +2,9 @@ namespace Db
 {
 	public class Level_Factors
 	{
-		public int Levelid {get; set;}
-		public int Year {get; set;}
-		public float Runfactor {get; set;}
-		public float Hrfactor {get; set;}
+		public required int Levelid {get; set;}
+		public required int Year {get; set;}
+		public required float Runfactor {get; set;}
+		public required float Hrfactor {get; set;}
 	}
 }
