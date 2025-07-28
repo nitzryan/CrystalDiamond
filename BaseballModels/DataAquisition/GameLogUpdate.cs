@@ -1,11 +1,40 @@
 ﻿using Db;
 using ShellProgressBar;
+using System;
+using System.Reflection.Emit;
 using System.Text.Json;
 
 namespace DataAquisition
 {
     internal class GameLogUpdate
     {
+        private const int NUM_THREADS = 16;
+        private static int progress_bar_thread = 0;
+        private static List<int> thread_counts;
+
+        private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int startMonth, int endMonth, int year, int thread_idx, ProgressBar progressBar, int progressSum)
+        {
+            HttpClient httpClient = new();
+            List<Player_Hitter_GameLog> logs = new();
+            IProgress<float> progress = progressBar.AsProgress<float>();
+
+            foreach (int id in ids)
+            {
+                var gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                logs.AddRange(gameLogs);
+
+                thread_counts[thread_idx]++; // Allows for tracking progress
+
+                if (thread_idx == progress_bar_thread) // Only update from single thread
+                {
+                    int count = thread_counts.Sum();
+                    progress.Report(Convert.ToSingle(count) / progressSum);
+                }
+            }
+
+            return logs;
+        }
+
         private static async Task<List<Player_Hitter_GameLog>> GetPlayer_Hitter_GameLogsAsync(int id, HttpClient httpClient, int startMonth, int endMonth, int year)
         {
             List<Player_Hitter_GameLog> log = new();
@@ -19,7 +48,12 @@ namespace DataAquisition
             string responseBody = await response.Content.ReadAsStringAsync();
             JsonDocument json = JsonDocument.Parse(responseBody);
             try {
-                var games = json.RootElement.GetProperty("stats").EnumerateArray().First().GetProperty("splits").EnumerateArray();
+                var stat = json.RootElement.GetProperty("stats");
+                var statArray = stat.EnumerateArray();
+                var statFirst = statArray.First();
+                var splits = statFirst.GetProperty("splits");
+                //var games = json.RootElement.GetProperty("stat").EnumerateArray().First().GetProperty("splits").EnumerateArray();
+                var games = splits.EnumerateArray();
 
                 // Go through each game
                 foreach (var game in games)
@@ -34,12 +68,12 @@ namespace DataAquisition
                     if (gameMonth < startMonth || gameMonth > endMonth)
                         continue;
 
-                    var stats = game.GetProperty("stats");
+                    var stats = game.GetProperty("stat");
                     var positions = game.GetProperty("positionsPlayed").EnumerateArray();
 
                     Player_Hitter_GameLog gl = new()
                     {
-                        GameId = 0,
+                        GameId = game.GetProperty("game").GetProperty("gamePk").GetInt32(),
                         MlbId = id,
                         Day = Convert.ToInt32(gamedate[2]),
                         Month = gameMonth,
@@ -47,24 +81,24 @@ namespace DataAquisition
                         AB = stats.GetProperty("atBats").GetInt32(),
                         H = stats.GetProperty("hits").GetInt32(),
                         Hit2B = stats.GetProperty("doubles").GetInt32(),
-                        Hit3B = stats.GetProperty("tripes").GetInt32(),
+                        Hit3B = stats.GetProperty("triples").GetInt32(),
                         HR = stats.GetProperty("homeRuns").GetInt32(),
                         K = stats.GetProperty("strikeOuts").GetInt32(),
                         BB = stats.GetProperty("baseOnBalls").GetInt32(),
                         SB = stats.GetProperty("stolenBases").GetInt32(),
                         CS = stats.GetProperty("caughtStealing").GetInt32(),
                         HBP = stats.GetProperty("hitByPitch").GetInt32(),
-                        Position = positions.Any() ? positions.First().GetProperty("code").GetInt32() : 10,
+                        Position = positions.Any() ? Convert.ToInt32(positions.First().GetProperty("code").ToString()) : 10,
                         Level = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
                         LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
-                        HomeTeamId = game.GetProperty("idHome").GetBoolean() ? 
+                        HomeTeamId = game.GetProperty("isHome").GetBoolean() ?
                             game.GetProperty("team").GetProperty("id").GetInt32() :
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
                     log.Add(gl);
                 }
-            } catch (Exception) // No games, so exit
+            } catch (Exception e) // No games, so exit
             {
                 return log;
             }
@@ -72,10 +106,10 @@ namespace DataAquisition
             return log;
         }
 
-        private static async Task<bool> GetPlayerLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, int month)
+        private static async Task<bool> GetPlayerLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, int startMonth, int endMonth)
         {
             // Get stats for each level
-            ProgressBar mainProgressBar = new(Constants.SPORT_IDS.Count, "Hitter Game Log Levels");
+            int sport_id_idx = 0;
             foreach(int sportId in Constants.SPORT_IDS)
             {
                 // Get hitters that have stats at level
@@ -88,52 +122,55 @@ namespace DataAquisition
                 // Parse JSON to get player Ids
                 string responseBody = await response.Content.ReadAsStringAsync();
                 JsonDocument json = JsonDocument.Parse(responseBody);
-                var stats = json.RootElement.GetProperty("stats").EnumerateArray();
+                var stats = json.RootElement.GetProperty("stats");
+                var statsArray = stats.EnumerateArray();
+                IEnumerable<int> ids = statsArray.Select(f => f.GetProperty("playerId").GetInt32());
 
-                // Loop through each id, getting stats
-                using (ChildProgressBar childProgressBar = mainProgressBar.Spawn(stats.Count(), "Hitters at level"))
+                // Split ids into groups for tasks
+                int j = 0;
+                IEnumerable<IEnumerable<int>> id_partitions = from item in ids
+                                            group item by j++ % NUM_THREADS into part
+                                            select part.AsEnumerable();
+
+                // Distribute tasks out into threads
+                List<Task<List<Player_Hitter_GameLog>>> tasks = new(NUM_THREADS);
+                using (ProgressBar progressBar = new(ids.Count(), $"Getting Hitter Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]}"))
                 {
-                    foreach (var stat in stats)
+                    progress_bar_thread = 0;
+                    thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+
+                    for (int i = 0; i < NUM_THREADS; i++)
                     {
-                        int id = stat.GetProperty("id").GetInt32();
-                        // Make sure player data hasn't been entered already
-                        if (db.Player_Hitter_GameLog.Any(f => f.MlbId == id && f.Year == year && f.Month == month))
-                        {
-                            childProgressBar.Tick();
-                            continue;
-                        }
+                        int idx = i;
+                        Task<List<Player_Hitter_GameLog>> task = Get_Hitter_GameLogs_ThreadFunction(id_partitions.ElementAt(i), startMonth, endMonth, year, idx, progressBar, ids.Count());
+                        tasks.Add(task);
+                    }
 
-                        try
-                        {
-                            int startMonth = month == 4 ? 0 : month;
-                            int endMonth = month == 9 ? 12 : month;
-                            List<Player_Hitter_GameLog> gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
-                            db.Player_Hitter_GameLog.AddRange(gameLogs);
-                        }
-                        catch (Exception)
-                        {
-                            // TODO: Write errors to file, could just be network misses
-                            Console.WriteLine("Hello");
-                        }
-
-                        childProgressBar.Tick();
+                    foreach (var task in tasks)
+                    {
+                        var games = await task;
+                        db.Player_Hitter_GameLog.AddRange(games);
+                        progress_bar_thread++; // If thread N completes, move updating progress bar to thread N+1
                     }
                 }
+
                 db.SaveChanges();
+                sport_id_idx++;
             }
 
             return true;
         }
 
-        public static async Task<bool> Main(SqliteDbContext db, int year, int month)
+        public static async Task<bool> Main(SqliteDbContext db, int year, int startMonth, int endMonth)
         {
             HttpClient httpClient = new();
             try {
-                await GetPlayerLogsAsync(db, httpClient, year, month);
+                await GetPlayerLogsAsync(db, httpClient, year, startMonth, endMonth);
             } catch (Exception e)
             {
                 Console.WriteLine("Error getting hitter game logs");
                 Console.WriteLine(e.Message);
+                Console.Write(e.StackTrace);
                 return false;
             }
 

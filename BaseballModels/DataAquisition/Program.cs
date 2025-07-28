@@ -14,8 +14,8 @@ namespace DataAquisition
 
             using (var db = new SqliteDbContext(options))
             {
-                var result = await PlayerUpdate.Main(db, Constants.START_YEAR);
-                result = await GameLogUpdate.Main(db, 2005, 4);
+                //var result = await PlayerUpdate.Main(db, Constants.START_YEAR);
+                var result = await GameLogUpdate.Main(db, 2005, 4, 5);
             }
         }
     }
