@@ -2,11 +2,11 @@ namespace Db
 {
 	public class Player_Pitcher_MonthStats
 	{
-		public required int Mlbid {get; set;}
+		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int Level {get; set;}
-		public required int Battersfaced {get; set;}
+		public required int BattersFaced {get; set;}
 		public required int Outs {get; set;}
 		public required int Go {get; set;}
 		public required int Ao {get; set;}
@@ -16,10 +16,10 @@ namespace Db
 		public required int K {get; set;}
 		public required int Bb {get; set;}
 		public required int Hbp {get; set;}
-		public required int Hit2b {get; set;}
-		public required int Hit3b {get; set;}
-		public required int Hr {get; set;}
-		public required int Runfactor {get; set;}
-		public required int Hrfactor {get; set;}
+		public required int Hit2B {get; set;}
+		public required int Hit3B {get; set;}
+		public required int HR {get; set;}
+		public required int RunFactor {get; set;}
+		public required int HRFactor {get; set;}
 	}
 }

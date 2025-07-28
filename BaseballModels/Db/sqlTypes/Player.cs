@@ -2,21 +2,21 @@ namespace Db
 {
 	public class Player
 	{
-		public required int Mlbid {get; set;}
-		public int? Fangraphsid {get; set;}
-		public required int Birthyear {get; set;}
-		public required int Birthmonth {get; set;}
-		public required int Birthdate {get; set;}
-		public int? Draftpick {get; set;}
-		public int? Draftbonus {get; set;}
-		public int? Signingyear {get; set;}
-		public int? Signingmonth {get; set;}
-		public int? Signingdate {get; set;}
-		public int? Signingbonus {get; set;}
+		public required int MlbId {get; set;}
+		public int? FangraphsId {get; set;}
+		public required int BirthYear {get; set;}
+		public required int BirthMonth {get; set;}
+		public required int BirthDate {get; set;}
+		public int? DraftPick {get; set;}
+		public int? DraftBonus {get; set;}
+		public int? SigningYear {get; set;}
+		public int? SigningMonth {get; set;}
+		public int? SigningDate {get; set;}
+		public int? SigningBonus {get; set;}
 		public required string Bats {get; set;}
 		public required string Throws {get; set;}
-		public int? Isretired {get; set;}
-		public required string Usefirstname {get; set;}
-		public required string Uselastname {get; set;}
+		public int? IsRetired {get; set;}
+		public required string UseFirstName {get; set;}
+		public required string UseLastName {get; set;}
 	}
 }

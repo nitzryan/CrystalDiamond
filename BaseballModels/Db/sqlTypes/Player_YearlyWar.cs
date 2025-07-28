@@ -2,7 +2,7 @@ namespace Db
 {
 	public class Player_YearlyWar
 	{
-		public required int Mlbid {get; set;}
+		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Position {get; set;}
 		public required int Pa {get; set;}

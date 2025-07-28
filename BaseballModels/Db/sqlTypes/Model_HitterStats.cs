@@ -2,31 +2,31 @@ namespace Db
 {
 	public class Model_HitterStats
 	{
-		public required int Mlbid {get; set;}
+		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Age {get; set;}
-		public required int Pa {get; set;}
+		public required int PA {get; set;}
 		public required int Level {get; set;}
-		public required float Parkrunfactor {get; set;}
-		public required float Parkhrfactor {get; set;}
-		public required float Avgratio {get; set;}
-		public required float Obpratio {get; set;}
-		public required float Isoratio {get; set;}
-		public required float Wobaratio {get; set;}
-		public required float Sbrateratio {get; set;}
-		public required float Sbpercratio {get; set;}
-		public required float Hrpercratio {get; set;}
-		public required float Bbpercratio {get; set;}
-		public required float Kpercratio {get; set;}
-		public required float Percc {get; set;}
-		public required float Perc1b {get; set;}
-		public required float Perc2b {get; set;}
-		public required float Perc3b {get; set;}
-		public required float Percss {get; set;}
-		public required float Perclf {get; set;}
-		public required float Perccf {get; set;}
-		public required float Percrf {get; set;}
-		public required float Percdh {get; set;}
+		public required float ParkRunFactor {get; set;}
+		public required float ParkHRFactor {get; set;}
+		public required float AvgRatio {get; set;}
+		public required float ObpRatio {get; set;}
+		public required float IsoRatio {get; set;}
+		public required float WOBARatio {get; set;}
+		public required float SbRateRatio {get; set;}
+		public required float SbPercRatio {get; set;}
+		public required float HrPercRatio {get; set;}
+		public required float BbPercRatio {get; set;}
+		public required float KPercRatio {get; set;}
+		public required float PercC {get; set;}
+		public required float Perc1B {get; set;}
+		public required float Perc2B {get; set;}
+		public required float Perc3B {get; set;}
+		public required float PercSS {get; set;}
+		public required float PercLF {get; set;}
+		public required float PercCF {get; set;}
+		public required float PercRF {get; set;}
+		public required float PercDH {get; set;}
 	}
 }

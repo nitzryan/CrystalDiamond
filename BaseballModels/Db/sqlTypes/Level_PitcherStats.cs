@@ -5,14 +5,14 @@ namespace Db
 		public required int Level {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
-		public required float Era {get; set;}
-		public required float Ra {get; set;}
-		public required float Fipconstant {get; set;}
-		public required float Woba {get; set;}
-		public required float Hrperc {get; set;}
-		public required float Bbperc {get; set;}
-		public required float Kperc {get; set;}
-		public required float Goperc {get; set;}
+		public required float ERA {get; set;}
+		public required float RA {get; set;}
+		public required float FipConstant {get; set;}
+		public required float WOBA {get; set;}
+		public required float HrPerc {get; set;}
+		public required float BbPerc {get; set;}
+		public required float KPerc {get; set;}
+		public required float GoPerc {get; set;}
 		public required float Avg {get; set;}
 		public required float Iso {get; set;}
 	}

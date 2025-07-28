@@ -19,14 +19,14 @@ namespace DataAquisition
 
             Player player = new()
             {
-                Mlbid = id,
-                Birthyear = Convert.ToInt32(birthdate[0]),
-                Birthmonth = Convert.ToInt32(birthdate[1]),
-                Birthdate = Convert.ToInt32(birthdate[2]),
+                MlbId = id,
+                BirthYear = Convert.ToInt32(birthdate[0]),
+                BirthMonth = Convert.ToInt32(birthdate[1]),
+                BirthDate = Convert.ToInt32(birthdate[2]),
                 Bats = bats,
                 Throws = throws,
-                Usefirstname = useFirstName,
-                Uselastname = useLastName
+                UseFirstName = useFirstName,
+                UseLastName = useLastName
             };
 
             return player;
@@ -58,14 +58,14 @@ namespace DataAquisition
                     JsonElement person = pick.GetProperty("person");
                     int id = person.GetProperty("id").GetInt32();
                     try { // Works if player already exists
-                        Player p = db.Player.Single(f => f.Mlbid == id);
-                        p.Draftpick = pick.GetProperty("pickNumber").GetInt32();
+                        Player p = db.Player.Single(f => f.MlbId == id);
+                        p.DraftPick = pick.GetProperty("pickNumber").GetInt32();
                     } catch (Exception) // Player doesn't exist (Single() fails) so add player
                     {
                         try
                         {
                             Player player = GetPlayerFromJson(person);
-                            player.Draftpick = pick.GetProperty("pickNumber").GetInt32();
+                            player.DraftPick = pick.GetProperty("pickNumber").GetInt32();
                             db.Player.Add(player);
                         }
                         catch (Exception) { } // Some players dont have data and should just be ignored
@@ -115,7 +115,7 @@ namespace DataAquisition
 
                         int playerId = player.GetProperty("playerId").GetInt32();
                         // Make sure database doesn't contain player, and that hasn't already been added (has hitting and pitching stats this year)
-                        if (!db.Player.Any(f => f.Mlbid == playerId) && !playersToInsert.Contains(playerId))
+                        if (!db.Player.Any(f => f.MlbId == playerId) && !playersToInsert.Contains(playerId))
                             playersToInsert.Add(playerId);
                     }
                 }

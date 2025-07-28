@@ -2,9 +2,9 @@ namespace Db
 {
 	public class Model_PlayerWar
 	{
-		public required int Mlbid {get; set;}
+		public required int MlbId {get; set;}
 		public required int Year {get; set;}
-		public required int Ishitter {get; set;}
+		public required int IsHitter {get; set;}
 		public required int Pa {get; set;}
 		public required float War {get; set;}
 		public required float Off {get; set;}

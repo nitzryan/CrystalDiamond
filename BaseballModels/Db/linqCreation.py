@@ -9,13 +9,14 @@ cursor = db.cursor()
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 tables = cursor.fetchall()
 
+# For columns that will be created by insertion to be primary key, and value itself doesn't matter
+# Allows for not being required to create column, but not being nullable
+autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), ("Player_Pitcher_GameLog", "GameLogId")]
+
 for table, in tables:
     # Get table data
     cursor.execute(f"PRAGMA table_info({table})")
     vals = cursor.fetchall()
-    # print(table)
-    # print([description[0] for description in cursor.description])
-    # print(vals)
     #Setup DbContext string
     dbSetStrings.append(f"public DbSet<{table}> {table} {{get; set;}}")
     modelBuilderString = f"modelBuilder.Entity<{table}>().HasKey(f => new " + "{"
@@ -24,7 +25,7 @@ for table, in tables:
         classFile.write("namespace Db\n{\n")
         classFile.write(f"\tpublic class {table}\n" + '\t{\n')
         for _, name, type, notnull, _, pk in vals:
-            name = name.capitalize()
+            name = name[0].capitalize() + name[1:]
             # Need to write primary keys
             if pk > 0:
                 modelBuilderString += f"f.{name},"
@@ -41,7 +42,7 @@ for table, in tables:
         
             if notnull == 0:
                 csharp_type += '?'
-            else:
+            elif not (table, name) in autoincrement_pairs:
                 csharp_type = "required " + csharp_type
             classFile.write(f"\t\tpublic {csharp_type} {name} {{get; set;}}\n")
         

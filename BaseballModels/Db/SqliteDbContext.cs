@@ -41,37 +41,37 @@ namespace Db
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
-			modelBuilder.Entity<League_Factors>().HasKey(f => new {f.Leagueid,f.Year});
-			modelBuilder.Entity<Level_Factors>().HasKey(f => new {f.Levelid,f.Year});
-			modelBuilder.Entity<Level_HitterStats>().HasKey(f => new {f.Levelid,f.Year,f.Month});
+			modelBuilder.Entity<League_Factors>().HasKey(f => new {f.LeagueId,f.Year});
+			modelBuilder.Entity<Level_Factors>().HasKey(f => new {f.LevelId,f.Year});
+			modelBuilder.Entity<Level_HitterStats>().HasKey(f => new {f.LevelId,f.Year,f.Month});
 			modelBuilder.Entity<Level_PitcherStats>().HasKey(f => new {f.Level,f.Year,f.Month});
-			modelBuilder.Entity<Model_HitterStats>().HasKey(f => new {f.Mlbid,f.Year,f.Month});
-			modelBuilder.Entity<Model_PitcherStats>().HasKey(f => new {f.Mlbid,f.Year,f.Month});
-			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.Mlbid,f.Year,f.Ishitter});
-			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.Mlbid});
-			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.Modelname,f.Year,f.Ishitter});
-			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.Mlbid,f.Modelidx,f.Year,f.Month});
-			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.Teamid,f.Year});
-			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.Teamid,f.Year,f.Leagueid});
-			modelBuilder.Entity<Player>().HasKey(f => new {f.Mlbid});
-			modelBuilder.Entity<Player_CareerStatus>().HasKey(f => new {f.Mlbid});
-			modelBuilder.Entity<Player_Hitter_GameLog>().HasKey(f => new {f.Gamelogid});
-			modelBuilder.Entity<Player_Hitter_MonthAdvanced>().HasKey(f => new {f.Mlbid,f.Levelid,f.Year,f.Month,f.Teamid,f.Leagueid});
-			modelBuilder.Entity<Player_Hitter_MonthStats>().HasKey(f => new {f.Mlbid,f.Year,f.Month,f.Levelid});
-			modelBuilder.Entity<Player_Hitter_MonthlyRatios>().HasKey(f => new {f.Mlbid,f.Year,f.Month,f.Level});
-			modelBuilder.Entity<Player_Hitter_YearAdvanced>().HasKey(f => new {f.Mlbid,f.Levelid,f.Year,f.Teamid,f.Leagueid});
-			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.Mlbid,f.Year,f.Month});
-			modelBuilder.Entity<Player_Pitcher_GameLog>().HasKey(f => new {f.Gamelogid});
-			modelBuilder.Entity<Player_Pitcher_MonthAdvanced>().HasKey(f => new {f.Mlbid,f.Levelid,f.Year,f.Month,f.Teamid,f.Leagueid});
-			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.Mlbid,f.Year,f.Month,f.Level});
-			modelBuilder.Entity<Player_Pitcher_MonthlyRatios>().HasKey(f => new {f.Mlbid,f.Year,f.Month,f.Level});
-			modelBuilder.Entity<Player_Pitcher_YearAdvanced>().HasKey(f => new {f.Mlbid,f.Levelid,f.Year,f.Teamid,f.Leagueid});
-			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.Mlbid});
-			modelBuilder.Entity<Player_ServiceTime>().HasKey(f => new {f.Mlbid,f.Year});
-			modelBuilder.Entity<Player_YearlyWar>().HasKey(f => new {f.Mlbid,f.Year,f.Position});
-			modelBuilder.Entity<Pre05_Players>().HasKey(f => new {f.Mlbid});
-			modelBuilder.Entity<Team_League_Map>().HasKey(f => new {f.Teamid,f.Leagueid,f.Year});
-			modelBuilder.Entity<Team_OrganizationMap>().HasKey(f => new {f.Teamid,f.Year});
+			modelBuilder.Entity<Model_HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
+			modelBuilder.Entity<Model_PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
+			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
+			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.Year,f.IsHitter});
+			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.MlbId,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.TeamId,f.Year});
+			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.TeamId,f.Year,f.LeagueId});
+			modelBuilder.Entity<Player>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Player_CareerStatus>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Player_Hitter_GameLog>().HasKey(f => new {f.GameLogId});
+			modelBuilder.Entity<Player_Hitter_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
+			modelBuilder.Entity<Player_Hitter_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
+			modelBuilder.Entity<Player_Hitter_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Level});
+			modelBuilder.Entity<Player_Hitter_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
+			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.MlbId,f.Year,f.Month});
+			modelBuilder.Entity<Player_Pitcher_GameLog>().HasKey(f => new {f.GameLogId});
+			modelBuilder.Entity<Player_Pitcher_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
+			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Level});
+			modelBuilder.Entity<Player_Pitcher_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Level});
+			modelBuilder.Entity<Player_Pitcher_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
+			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Player_ServiceTime>().HasKey(f => new {f.MlbId,f.Year});
+			modelBuilder.Entity<Player_YearlyWar>().HasKey(f => new {f.MlbId,f.Year,f.Position});
+			modelBuilder.Entity<Pre05_Players>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Team_League_Map>().HasKey(f => new {f.TeamId,f.LeagueId,f.Year});
+			modelBuilder.Entity<Team_OrganizationMap>().HasKey(f => new {f.TeamId,f.Year});
 			modelBuilder.Entity<Team_Parents>().HasKey(f => new {f.Id});
 		}
 	}

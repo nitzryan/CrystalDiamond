@@ -2,12 +2,12 @@ namespace Db
 {
 	public class Model_TrainingHistory
 	{
-		public required string Modelname {get; set;}
+		public required string ModelName {get; set;}
 		public required int Year {get; set;}
-		public required int Ishitter {get; set;}
-		public required float Testloss {get; set;}
-		public required int Numlayers {get; set;}
-		public required int Hiddensize {get; set;}
-		public required int Modelidx {get; set;}
+		public required int IsHitter {get; set;}
+		public required float TestLoss {get; set;}
+		public required int NumLayers {get; set;}
+		public required int HiddenSize {get; set;}
+		public required int ModelIdx {get; set;}
 	}
 }

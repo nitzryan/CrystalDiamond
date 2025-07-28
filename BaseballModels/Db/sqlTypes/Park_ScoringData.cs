@@ -2,17 +2,17 @@ namespace Db
 {
 	public class Park_ScoringData
 	{
-		public required int Teamid {get; set;}
+		public required int TeamId {get; set;}
 		public required int Year {get; set;}
-		public required int Leagueid {get; set;}
-		public required int Levelid {get; set;}
-		public required int Homepa {get; set;}
-		public required int Homeouts {get; set;}
-		public required int Homeruns {get; set;}
-		public required int Homehrs {get; set;}
-		public required int Awaypa {get; set;}
-		public required int Awayouts {get; set;}
-		public required int Awayruns {get; set;}
-		public required int Awayhrs {get; set;}
+		public required int LeagueId {get; set;}
+		public required int LevelId {get; set;}
+		public required int HomePa {get; set;}
+		public required int HomeOuts {get; set;}
+		public required int HomeRuns {get; set;}
+		public required int HomeHRs {get; set;}
+		public required int AwayPa {get; set;}
+		public required int AwayOuts {get; set;}
+		public required int AwayRuns {get; set;}
+		public required int AwayHRs {get; set;}
 	}
 }

@@ -2,8 +2,8 @@ namespace Db
 {
 	public class Output_PlayerWar
 	{
-		public required int Mlbid {get; set;}
-		public required int Modelidx {get; set;}
+		public required int MlbId {get; set;}
+		public required int ModelIdx {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Prob0 {get; set;}
