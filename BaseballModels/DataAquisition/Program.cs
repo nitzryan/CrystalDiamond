@@ -15,7 +15,9 @@ namespace DataAquisition
             {
                 //var result = await PlayerUpdate.Main(db, Constants.START_YEAR);
                 //var result = await GameLogUpdate.Main(db, 2005, 4, 5);
-                var res = ParkFactorUpdate.Main(db, 2005);
+                //var res = ParkFactorUpdate.Main(db, 2005);
+                var res = CalculateLevelStats.Main(db, 2005, 4);
+                res = CalculateLevelStats.Main(db, 2005, 5);
             }
         }
     }
