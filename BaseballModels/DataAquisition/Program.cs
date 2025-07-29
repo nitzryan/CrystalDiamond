@@ -1,6 +1,5 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
 namespace DataAquisition
 {
@@ -15,7 +14,8 @@ namespace DataAquisition
             using (var db = new SqliteDbContext(options))
             {
                 //var result = await PlayerUpdate.Main(db, Constants.START_YEAR);
-                var result = await GameLogUpdate.Main(db, 2005, 4, 5);
+                //var result = await GameLogUpdate.Main(db, 2005, 4, 5);
+                var res = ParkFactorUpdate.Main(db, 2005);
             }
         }
     }
