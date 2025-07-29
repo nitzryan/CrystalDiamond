@@ -6,7 +6,7 @@ namespace Db
 		public required int LeagueId {get; set;}
 		public required int LevelId {get; set;}
 		public required int Year {get; set;}
-		public required int RunFactor {get; set;}
-		public required int HRFactor {get; set;}
+		public required float RunFactor {get; set;}
+		public required float HRFactor {get; set;}
 	}
 }

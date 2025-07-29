@@ -151,8 +151,8 @@ CREATE TABLE "Park_Factors" (
 	"LeagueId"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
-	"RunFactor"	INTEGER NOT NULL,
-	"HRFactor"	INTEGER NOT NULL,
+	"RunFactor"	REAL NOT NULL,
+	"HRFactor"	REAL NOT NULL,
 	PRIMARY KEY("TeamId","Year")
 );
 
