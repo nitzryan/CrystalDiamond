@@ -7,29 +7,24 @@ namespace DataAquisition
     {
         static async Task Main(string[] args)
         {
-            var options = new DbContextOptionsBuilder<SqliteDbContext>()
-                .UseSqlite("Data Source=../../../../Db/BaseballStats.db")
-                .Options;
-
-            using (var db = new SqliteDbContext(options))
+            for (int year = 2005; year <= 2006; year++)
             {
-                for (int year = 2005; year <= 2006; year++)
+                //if (!await PlayerUpdate.Main(year))
+                //    return;
+
+                //if (!await GameLogUpdate.Main(year, 3, 10))
+                //    return;
+
+                if (!ParkFactorUpdate.Main(year))
+                    return;
+
+                for (int month = 4; month <= 9; month++)
                 {
-                    //var result = await PlayerUpdate.Main(db, year);
-                    //result = await GameLogUpdate.Main(db, year, 3, 10);
-                    //var res = ParkFactorUpdate.Main(db, year);
-                    for (int month = 4; month <= 9; month++)
-                    {
-                        //res = CalculateLevelStats.Main(db, year, month);
-                        var res = CalculateMonthStats.Main(db, year, month);
-                    }
-                    //res = CalculateLevelStats.Main(db, year, 4);
-                    //res = CalculateLevelStats.Main(db, year, 5);
-                    //res = CalculateLevelStats.Main(db, year, 6);
-                    //res = CalculateLevelStats.Main(db, year, 7);
-                    //res = CalculateLevelStats.Main(db, year, 8);
-                    //res = CalculateLevelStats.Main(db, year, 9);
-                    
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
+
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
                 }
             }
         }

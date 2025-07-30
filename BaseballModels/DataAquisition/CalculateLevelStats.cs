@@ -151,13 +151,32 @@ namespace DataAquisition
             return true;
         }
 
-        public static bool Main(SqliteDbContext db, int year, int month)
+        public static bool Main(int year, int month)
         {
-            if (!LevelHitterStats(db, year, month))
-                return false;
-
-            if (!LevelPitcherStats(db, year, month))
-                return false;
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            try {
+                if (!LevelHitterStats(db, year, month))
+                {
+                    Console.WriteLine("failed LevelHitterStats");
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("failed LevelHitterStats");
+                Console.WriteLine(e.Message);
+            }
+            try {
+                if (!LevelPitcherStats(db, year, month)){
+                    Console.WriteLine("failed LevelPitcherStats");
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("failed LevelPitcherStats");
+                Console.WriteLine(e.Message);
+            }
 
             return true;
         }

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataAquisition
 {
@@ -14,5 +11,9 @@ namespace DataAquisition
         public static ReadOnlyCollection<string> SPORT_ID_NAMES = new(["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"]);
         public const int MEXICAN_LEAGUE_ID = 125;
         public const int DSL_LEAGUE_ID = 130;
+
+        public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
+                .UseSqlite("Data Source=../../../../Db/BaseballStats.db")
+                .Options;
     }
 }

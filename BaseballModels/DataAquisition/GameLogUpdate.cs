@@ -1,6 +1,7 @@
 ﻿using Db;
 using ShellProgressBar;
 using System;
+using System.Linq;
 using System.Reflection.Emit;
 using System.Text.Json;
 
@@ -15,12 +16,33 @@ namespace DataAquisition
         private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int startMonth, int endMonth, int year, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             HttpClient httpClient = new();
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
             List<Player_Hitter_GameLog> logs = new();
             IProgress<float> progress = progressBar.AsProgress<float>();
 
             foreach (int id in ids)
             {
-                var gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                // Get games during selected timeframe
+                List<Player_Hitter_GameLog>? gameLogs = null;
+                for (var i = 0; i < 3; i++)
+                {
+                    try
+                    {
+                        gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                        break;
+                    }
+                    catch (Exception)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+                if (gameLogs == null)
+                    throw new Exception($"Failed 3 times to get Pitcher game logs for {id} in Year={year}");
+
+                // Make sure that existing games aren't added
+                var gamesInDb = db.Player_Hitter_GameLog.Where(f => f.MlbId == id && f.Year == year).Select(f => f.GameId);
+                //var monthsInDb = db.Player_Hitter_GameLog.Where(f => f.MlbId == id && f.Year == year).Select(f => f.Month).Distinct();
+                gameLogs = gameLogs.Where(f => !gamesInDb.Contains(f.GameId)).ToList();
                 logs.AddRange(gameLogs);
 
                 thread_counts[thread_idx]++; // Allows for tracking progress
@@ -39,11 +61,29 @@ namespace DataAquisition
         {
             HttpClient httpClient = new();
             List<Player_Pitcher_GameLog> logs = new();
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
             IProgress<float> progress = progressBar.AsProgress<float>();
 
             foreach (int id in ids)
             {
-                var gameLogs = await GetPlayer_Pitcher_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                // Get games during selected timeframe
+                List<Player_Pitcher_GameLog>? gameLogs = null;
+                for (var i = 0; i < 3; i++)
+                {
+                    try {
+                        gameLogs = await GetPlayer_Pitcher_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                        break;
+                    } catch(Exception)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+                if (gameLogs == null)
+                    throw new Exception($"Failed 3 times to get Pitcher game logs for {id} in Year={year}");
+
+                // Make sure that existing games aren't added
+                var gamesInDb = db.Player_Pitcher_GameLog.Where(f => f.MlbId == id && f.Year == year).Select(f => f.GameId).Distinct();
+                gameLogs = gameLogs.Where(f => !gamesInDb.Contains(f.GameId)).ToList();
                 logs.AddRange(gameLogs);
 
                 thread_counts[thread_idx]++; // Allows for tracking progress
@@ -239,7 +279,7 @@ namespace DataAquisition
 
                 // Distribute tasks out into threads
                 List<Task<List<Player_Hitter_GameLog>>> tasks = new(NUM_THREADS);
-                using (ProgressBar progressBar = new(ids.Count(), $"Getting Hitter Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]}"))
+                using (ProgressBar progressBar = new(ids.Count(), $"Getting Hitter Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]} {year}"))
                 {
                     progress_bar_thread = 0;
                     thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
@@ -294,7 +334,7 @@ namespace DataAquisition
 
                 // Distribute tasks out into threads
                 List<Task<List<Player_Pitcher_GameLog>>> tasks = new(NUM_THREADS);
-                using (ProgressBar progressBar = new(ids.Count(), $"Getting Pitcher Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]}"))
+                using (ProgressBar progressBar = new(ids.Count(), $"Getting Pitcher Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]} {year}"))
                 {
                     progress_bar_thread = 0;
                     thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
@@ -321,12 +361,16 @@ namespace DataAquisition
             return true;
         }
 
-        public static async Task<bool> Main(SqliteDbContext db, int year, int startMonth, int endMonth)
+        public static async Task<bool> Main(int year, int startMonth, int endMonth)
         {
             HttpClient httpClient = new();
-            try {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            try
+            {
                 await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 Console.WriteLine("Error getting hitter game logs");
                 Console.WriteLine(e.Message);

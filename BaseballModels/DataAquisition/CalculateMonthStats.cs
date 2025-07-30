@@ -198,7 +198,7 @@ namespace DataAquisition
                     else if (month == 9) // Group October into September
                         gameLogs = db.Player_Hitter_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month >= 9);
                     else // Single month
-                        gameLogs = db.Player_Hitter_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month >= month);
+                        gameLogs = db.Player_Hitter_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month == month);
 
                     if (!gameLogs.Any())
                         continue;
@@ -210,6 +210,7 @@ namespace DataAquisition
             }
             
             db.SaveChanges();
+            db.ChangeTracker.Clear();
 
             return true;
         }
@@ -239,7 +240,7 @@ namespace DataAquisition
                     else if (month == 9) // Group October into September
                         gameLogs = db.Player_Pitcher_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month >= 9);
                     else // Single month
-                        gameLogs = db.Player_Pitcher_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month >= month);
+                        gameLogs = db.Player_Pitcher_GameLog.Where(f => f.MlbId == idlvl.MlbId && f.LevelId == idlvl.LevelId && f.Year == year && f.Month == month);
 
                     if (!gameLogs.Any())
                         continue;
@@ -251,18 +252,41 @@ namespace DataAquisition
             }
 
             db.SaveChanges();
+            db.ChangeTracker.Clear();
 
             return true;
         }
 
-        public static bool Main(SqliteDbContext db, int year, int month)
+        public static bool Main(int year, int month)
         {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
             Dictionary<int, (float, float)> adjustedParkFactors = GetParkFactors(db, year);
 
-            if (!CalculateHitterMonthStats(db, adjustedParkFactors, year, month))
+            try {
+                if (!CalculateHitterMonthStats(db, adjustedParkFactors, year, month))
+                {
+                    Console.WriteLine("Error in CalculateHitterMonthStats");
+                    return false;
+                }
+            } catch (Exception e)
+            {
+                Console.WriteLine("Error in CalculateHitterMonthStats");
+                Console.WriteLine(e.Message);
                 return false;
-            if (!CalculatePitcherMonthStats(db, adjustedParkFactors, year, month))
+            }
+
+            try {
+                if (!CalculatePitcherMonthStats(db, adjustedParkFactors, year, month))
+                {
+                    Console.WriteLine("Error in CalculatePitcherMonthStats");
+                    return false;
+                }
+            } catch (Exception e)
+            {
+                Console.WriteLine("Error in CalculatePitcherMonthStats");
+                Console.WriteLine(e.Message);
                 return false;
+            }
 
             return true;
         }

@@ -49,7 +49,7 @@ namespace DataAquisition
             JsonElement.ArrayEnumerator rounds = json.RootElement.GetProperty("drafts").GetProperty("rounds").EnumerateArray();
 
             // Add/modify pick by pick
-            using (ProgressBar progressBar = new(rounds.Count(), "Adding players from draft, assigning draft pick values"))
+            using (ProgressBar progressBar = new(rounds.Count(), $"Adding players from {year} draft, assigning draft pick values"))
             {
                 foreach (JsonElement round in rounds)
                 {
@@ -161,17 +161,18 @@ namespace DataAquisition
                     progressBar.Tick();
                 }
 
-
                 db.SaveChanges();
+                db.ChangeTracker.Clear();
 
                 return true;
             }
         }
 
         // Calls all necessary subfuncttions
-        public static async Task<bool> Main(SqliteDbContext db, int year)
+        public static async Task<bool> Main(int year)
         {
             HttpClient httpClient = new();
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             // Look at current years draft
             try
