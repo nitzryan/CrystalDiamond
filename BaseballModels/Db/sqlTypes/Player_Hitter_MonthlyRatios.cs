@@ -5,7 +5,7 @@ namespace Db
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
-		public required int Level {get; set;}
+		public required int LevelId {get; set;}
 		public required float AVGRatio {get; set;}
 		public required float OBPRatio {get; set;}
 		public required float ISORatio {get; set;}

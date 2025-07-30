@@ -130,7 +130,7 @@ namespace DataAquisition
 
                 Level_PitcherStats lps = new Level_PitcherStats
                 {
-                    Level = level,
+                    LevelId = level,
                     Year = year,
                     Month = month,
                     ERA = era,

@@ -1,7 +1,4 @@
-﻿using Db;
-using Microsoft.EntityFrameworkCore;
-
-namespace DataAquisition
+﻿namespace DataAquisition
 {
     internal class Program
     {
@@ -15,15 +12,18 @@ namespace DataAquisition
                 //if (!await GameLogUpdate.Main(year, 3, 10))
                 //    return;
 
-                if (!ParkFactorUpdate.Main(year))
-                    return;
+                //if (!ParkFactorUpdate.Main(year))
+                //    return;
 
                 for (int month = 4; month <= 9; month++)
                 {
-                    if (!CalculateLevelStats.Main(year, month))
-                        return;
+                    //if (!CalculateLevelStats.Main(year, month))
+                    //    return;
 
-                    if (!CalculateMonthStats.Main(year, month))
+                    //if (!CalculateMonthStats.Main(year, month))
+                    //    return;
+
+                    if (!CalculateMonthRatios.Main(year, month))
                         return;
                 }
             }

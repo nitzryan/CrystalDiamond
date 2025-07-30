@@ -2,7 +2,7 @@ namespace Db
 {
 	public class Level_PitcherStats
 	{
-		public required int Level {get; set;}
+		public required int LevelId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float ERA {get; set;}

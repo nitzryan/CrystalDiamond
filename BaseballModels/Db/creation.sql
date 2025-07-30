@@ -32,7 +32,7 @@ CREATE TABLE "Level_HitterStats" (
 );
 
 CREATE TABLE "Level_PitcherStats" (
-	"Level"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"ERA"	REAL NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE "Level_PitcherStats" (
 	"GOPerc"	REAL NOT NULL,
 	"avg"	REAL NOT NULL,
 	"iso"	REAL NOT NULL,
-	PRIMARY KEY("Level","Year","Month")
+	PRIMARY KEY("LevelId","Year","Month")
 );
 
 CREATE TABLE "Model_HitterStats" (
@@ -290,7 +290,7 @@ CREATE TABLE "Player_Hitter_MonthlyRatios" (
 	"mlbId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
-	"Level"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
 	"AVGRatio"	REAL NOT NULL,
 	"OBPRatio"	REAL NOT NULL,
 	"ISORatio"	REAL NOT NULL,
@@ -309,7 +309,7 @@ CREATE TABLE "Player_Hitter_MonthlyRatios" (
 	"PercCF"	REAL NOT NULL,
 	"PercRF"	REAL NOT NULL,
 	"PercDH"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","Year","Month","Level")
+	PRIMARY KEY("mlbId","Year","Month","LevelId")
 );
 
 CREATE TABLE "Player_Hitter_YearAdvanced" (
