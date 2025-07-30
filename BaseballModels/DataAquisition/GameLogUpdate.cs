@@ -112,7 +112,7 @@ namespace DataAquisition
                         CS = stats.GetProperty("caughtStealing").GetInt32(),
                         HBP = stats.GetProperty("hitByPitch").GetInt32(),
                         Position = positions.Any() ? Convert.ToInt32(positions.First().GetProperty("code").ToString()) : 10,
-                        Level = game.GetProperty("sport").GetProperty("id").GetInt32(),
+                        LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
                         LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
                         HomeTeamId = game.GetProperty("isHome").GetBoolean() ?
@@ -122,7 +122,7 @@ namespace DataAquisition
                     
                     // Map DSL to seperate league
                     if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
-                        gl.Level = Constants.SPORT_IDS.Last();
+                        gl.LevelId = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
             } catch (Exception) // No games, so exit

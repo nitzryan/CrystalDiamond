@@ -13,7 +13,7 @@ namespace DataAquisition
 
             foreach (int level in Constants.SPORT_IDS)
             {
-                var levelStats = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month && f.Level == level).AsEnumerable();
+                var levelStats = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month && f.LevelId == level).AsEnumerable();
                 if (!levelStats.Any()) // Skip empty
                     continue;
 
@@ -37,7 +37,7 @@ namespace DataAquisition
                     CS = a.CS + b.CS,
                     HBP = a.HBP + b.HBP,
                     Position = 0,
-                    Level = 0,
+                    LevelId = 0,
                     HomeTeamId = 0,
                     TeamId = 0,
                     LeagueId = 0

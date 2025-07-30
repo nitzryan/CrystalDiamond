@@ -19,7 +19,7 @@ namespace Db
 		public required int CS {get; set;}
 		public required int HBP {get; set;}
 		public required int Position {get; set;}
-		public required int Level {get; set;}
+		public required int LevelId {get; set;}
 		public required int HomeTeamId {get; set;}
 		public required int TeamId {get; set;}
 		public required int LeagueId {get; set;}
