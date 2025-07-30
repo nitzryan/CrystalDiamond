@@ -63,8 +63,8 @@ namespace Db
 			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Player_Pitcher_GameLog>().HasKey(f => new {f.GameLogId});
 			modelBuilder.Entity<Player_Pitcher_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
-			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Level});
-			modelBuilder.Entity<Player_Pitcher_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Level});
+			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
+			modelBuilder.Entity<Player_Pitcher_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Player_Pitcher_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Player_ServiceTime>().HasKey(f => new {f.MlbId,f.Year});

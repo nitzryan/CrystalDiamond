@@ -7,7 +7,7 @@ namespace Db
 		public required int Month {get; set;}
 		public required float Age {get; set;}
 		public required int PA {get; set;}
-		public required int Level {get; set;}
+		public required int LevelId {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float ParkHRFactor {get; set;}
 		public required float AvgRatio {get; set;}

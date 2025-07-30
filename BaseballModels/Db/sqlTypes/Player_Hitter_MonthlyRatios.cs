@@ -6,14 +6,14 @@ namespace Db
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int Level {get; set;}
-		public required float AvgRatio {get; set;}
-		public required float ObpRatio {get; set;}
-		public required float IsoRatio {get; set;}
+		public required float AVGRatio {get; set;}
+		public required float OBPRatio {get; set;}
+		public required float ISORatio {get; set;}
 		public required float WOBARatio {get; set;}
-		public required float SbRateRatio {get; set;}
-		public required float SbPercRatio {get; set;}
-		public required float HrPercRatio {get; set;}
-		public required float BbPercRatio {get; set;}
+		public required float SBRateRatio {get; set;}
+		public required float SBPercRatio {get; set;}
+		public required float HRPercRatio {get; set;}
+		public required float BBPercRatio {get; set;}
 		public required float KPercRatio {get; set;}
 		public required float PercC {get; set;}
 		public required float Perc1B {get; set;}

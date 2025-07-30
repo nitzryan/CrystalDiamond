@@ -179,17 +179,17 @@ namespace DataAquisition
                         BattersFaced = stats.GetProperty("battersFaced").GetInt32(),
                         Outs = stats.GetProperty("outs").GetInt32(),
                         R = stats.GetProperty("runs").GetInt32(),
-                        Er = stats.GetProperty("earnedRuns").GetInt32(),
+                        ER = stats.GetProperty("earnedRuns").GetInt32(),
                         H = stats.GetProperty("hits").GetInt32(),
                         Hit2B = stats.GetProperty("doubles").GetInt32(),
                         Hit3B = stats.GetProperty("triples").GetInt32(),
                         HR = stats.GetProperty("homeRuns").GetInt32(),
                         K = stats.GetProperty("strikeOuts").GetInt32(),
-                        Bb = stats.GetProperty("baseOnBalls").GetInt32(),
-                        Hbp = stats.GetProperty("hitByPitch").GetInt32(),
-                        Go = stats.GetProperty("groundOuts").GetInt32(),
-                        Ao = stats.GetProperty("airOuts").GetInt32(),
-                        Level = game.GetProperty("sport").GetProperty("id").GetInt32(),
+                        BB = stats.GetProperty("baseOnBalls").GetInt32(),
+                        HBP = stats.GetProperty("hitByPitch").GetInt32(),
+                        GO = stats.GetProperty("groundOuts").GetInt32(),
+                        AO = stats.GetProperty("airOuts").GetInt32(),
+                        LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
                         LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
                         HomeTeamId = game.GetProperty("isHome").GetBoolean() ?
@@ -199,7 +199,7 @@ namespace DataAquisition
 
                     // Map DSL to seperate league
                     if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
-                        gl.Level = Constants.SPORT_IDS.Last();
+                        gl.LevelId = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
             }

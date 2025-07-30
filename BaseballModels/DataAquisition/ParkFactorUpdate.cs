@@ -75,7 +75,7 @@ namespace DataAquisition
                         HomeTeamId = log.HomeTeamId,
                         AwayTeamId = 0,
                         LeagueId = log.LeagueId,
-                        LevelId = log.Level
+                        LevelId = log.LevelId
                     });
                 }
 

@@ -82,7 +82,7 @@ namespace DataAquisition
 
             foreach (int level in Constants.SPORT_IDS)
             {
-                var levelStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month == month && f.Level == level).AsEnumerable(); ;
+                var levelStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month == month && f.LevelId == level).AsEnumerable(); ;
                 if (!levelStats.Any()) // Skip empty
                     continue;
 
@@ -101,31 +101,31 @@ namespace DataAquisition
                     Hit3B = a.Hit3B + b.Hit3B,
                     HR = a.HR + b.HR,
                     K = a.K + b.K,
-                    Bb = a.Bb + b.Bb,
-                    Hbp = a.Hbp + b.Hbp,
+                    BB = a.BB + b.BB,
+                    HBP = a.HBP + b.HBP,
                     R = a.R + b.R,
-                    Er = a.Er + b.Er,
+                    ER = a.ER + b.ER,
                     Outs = a.Outs + b.Outs,
-                    Go = a.Go + b.Go,
-                    Ao = a.Ao + b.Ao,
-                    Level = 0,
+                    GO = a.GO + b.GO,
+                    AO = a.AO + b.AO,
+                    LevelId = 0,
                     HomeTeamId = 0,
                     TeamId = 0,
                     LeagueId = 0
                 });
 
                 // Transform to get desired stats
-                int ab = summedStats.BattersFaced - summedStats.Bb + summedStats.Hbp;
+                int ab = summedStats.BattersFaced - summedStats.BB + summedStats.HBP;
                 float avg = (float)summedStats.H / ab;
                 int singles = summedStats.H - summedStats.HR - summedStats.Hit2B - summedStats.Hit3B;
                 float iso = (float)(summedStats.Hit2B + (2 * summedStats.Hit3B) + (3 * summedStats.HR)) / ab;
                 float pa = summedStats.BattersFaced;
-                float woba = ((0.69f * summedStats.Bb) + (0.72f * summedStats.Hbp) + (0.89f * singles) + (1.27f * summedStats.Hit2B) + (1.62f * summedStats.Hit3B) + (2.10f * summedStats.HR)) / pa;
-                float era = (float)summedStats.Er / ((float)summedStats.Outs / 27);
+                float woba = ((0.69f * summedStats.BB) + (0.72f * summedStats.HBP) + (0.89f * singles) + (1.27f * summedStats.Hit2B) + (1.62f * summedStats.Hit3B) + (2.10f * summedStats.HR)) / pa;
+                float era = (float)summedStats.ER / ((float)summedStats.Outs / 27);
                 float ra = (float)summedStats.R / ((float)summedStats.Outs / 27);
 
                 // Calculate fip constant
-                float fipNoConstant = (float)((13 * summedStats.HR) + (3 * (summedStats.Hbp + summedStats.Bb)) - (2 * summedStats.K)) / ((float)summedStats.Outs / 3);
+                float fipNoConstant = (float)((13 * summedStats.HR) + (3 * (summedStats.HBP + summedStats.BB)) - (2 * summedStats.K)) / ((float)summedStats.Outs / 3);
                 float fipConstant = era - fipNoConstant;
 
                 Level_PitcherStats lps = new Level_PitcherStats
@@ -137,10 +137,10 @@ namespace DataAquisition
                     RA = ra,
                     FipConstant = fipConstant,
                     WOBA = woba,
-                    HrPerc = summedStats.HR / pa,
-                    BbPerc = summedStats.Bb / pa,
+                    HRPerc = summedStats.HR / pa,
+                    BBPerc = summedStats.BB / pa,
                     KPerc = summedStats.K / pa,
-                    GoPerc = (float)summedStats.Go / (summedStats.Go + summedStats.Ao),
+                    GOPerc = (float)summedStats.GO / (summedStats.GO + summedStats.AO),
                     Avg = avg,
                     Iso = iso
                 };

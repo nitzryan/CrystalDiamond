@@ -16,8 +16,8 @@ namespace Db
 		public required int SB {get; set;}
 		public required int CS {get; set;}
 		public required int HBP {get; set;}
-		public required int ParkRunFactor {get; set;}
-		public required int ParkHRFactor {get; set;}
+		public required float ParkRunFactor {get; set;}
+		public required float ParkHRFactor {get; set;}
 		public required int GamesC {get; set;}
 		public required int Games1B {get; set;}
 		public required int Games2B {get; set;}
