@@ -119,6 +119,10 @@ namespace DataAquisition
                             game.GetProperty("team").GetProperty("id").GetInt32() :
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
+                    
+                    // Map DSL to seperate league
+                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
+                        gl.Level = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
             } catch (Exception) // No games, so exit
@@ -192,6 +196,10 @@ namespace DataAquisition
                             game.GetProperty("team").GetProperty("id").GetInt32() :
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
+
+                    // Map DSL to seperate league
+                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
+                        gl.Level = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
             }

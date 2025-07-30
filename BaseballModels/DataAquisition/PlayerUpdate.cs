@@ -47,33 +47,37 @@ namespace DataAquisition
             string responseBody = await response.Content.ReadAsStringAsync();
             JsonDocument json = JsonDocument.Parse(responseBody);
             JsonElement.ArrayEnumerator rounds = json.RootElement.GetProperty("drafts").GetProperty("rounds").EnumerateArray();
-            
-            // Add/modify pick by pick
-            ProgressBar progressBar = new(rounds.Count(), "Adding players from draft, assigning draft pick values");
-            foreach (JsonElement round in rounds)
-            {
-                JsonElement.ArrayEnumerator picks = round.GetProperty("picks").EnumerateArray();
-                foreach(JsonElement pick in picks)
-                {
-                    JsonElement person = pick.GetProperty("person");
-                    int id = person.GetProperty("id").GetInt32();
-                    try { // Works if player already exists
-                        Player p = db.Player.Single(f => f.MlbId == id);
-                        p.DraftPick = pick.GetProperty("pickNumber").GetInt32();
-                    } catch (Exception) // Player doesn't exist (Single() fails) so add player
-                    {
-                        try
-                        {
-                            Player player = GetPlayerFromJson(person);
-                            player.DraftPick = pick.GetProperty("pickNumber").GetInt32();
-                            db.Player.Add(player);
-                        }
-                        catch (Exception) { } // Some players dont have data and should just be ignored
-                                                // Often these players didn't sign and only have their name known
-                    }
-                }
 
-                progressBar.Tick();
+            // Add/modify pick by pick
+            using (ProgressBar progressBar = new(rounds.Count(), "Adding players from draft, assigning draft pick values"))
+            {
+                foreach (JsonElement round in rounds)
+                {
+                    JsonElement.ArrayEnumerator picks = round.GetProperty("picks").EnumerateArray();
+                    foreach (JsonElement pick in picks)
+                    {
+                        JsonElement person = pick.GetProperty("person");
+                        int id = person.GetProperty("id").GetInt32();
+                        try
+                        { // Works if player already exists
+                            Player p = db.Player.Single(f => f.MlbId == id);
+                            p.DraftPick = pick.GetProperty("pickNumber").GetInt32();
+                        }
+                        catch (Exception) // Player doesn't exist (Single() fails) so add player
+                        {
+                            try
+                            {
+                                Player player = GetPlayerFromJson(person);
+                                player.DraftPick = pick.GetProperty("pickNumber").GetInt32();
+                                db.Player.Add(player);
+                            }
+                            catch (Exception) { } // Some players dont have data and should just be ignored
+                                                  // Often these players didn't sign and only have their name known
+                        }
+                    }
+
+                    progressBar.Tick();
+                }
             }
 
             db.SaveChanges();
@@ -87,14 +91,13 @@ namespace DataAquisition
             db.ChangeTracker.Clear();
             List<int> playersToInsert = new List<int>();
 
-            ProgressBar progressBar = new ProgressBar(Constants.SPORT_IDS.Count, "Getting Players with stats at different levels");
             for (int i = 0; i < Constants.SPORT_IDS.Count; i++) // Different levels
             {
                 int sportId = Constants.SPORT_IDS.ElementAt(i);
 
                 // Seperate stats for hitting and pithcing
                 List<string> positions = new(["hitting", "pitching"]);
-                foreach (string position in positions) 
+                foreach (string position in positions)
                 {
                     // Get all stats this level/year
                     HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group={position}&gameType=R&limit=5000&offset=0&sortStat=homeRuns&order=desc");
@@ -107,7 +110,7 @@ namespace DataAquisition
                     string responseBody = await response.Content.ReadAsStringAsync();
                     JsonDocument json = JsonDocument.Parse(responseBody);
                     JsonElement jsonPlayers = json.RootElement.GetProperty("stats");
-                    foreach(JsonElement player in jsonPlayers.EnumerateArray())
+                    foreach (JsonElement player in jsonPlayers.EnumerateArray())
                     {
                         int leagueId = player.GetProperty("leagueId").GetInt32();
                         if (leagueId == Constants.MEXICAN_LEAGUE_ID) // Found in some years AAA stats, but not affiliated ball
@@ -119,8 +122,6 @@ namespace DataAquisition
                             playersToInsert.Add(playerId);
                     }
                 }
-
-                progressBar.Tick();
                 break;
             }
             
@@ -131,38 +132,40 @@ namespace DataAquisition
         // Assumes ids not in db, and that no duplicate ids in list
         static private async Task<bool> CreatePlayersAsync(SqliteDbContext db, HttpClient httpClient, List<int> playersToInsert)
         {
-            ProgressBar progressBar = new ProgressBar(playersToInsert.Count, "Retrieving Player Data");
-            foreach (var id in playersToInsert)
+            using (ProgressBar progressBar = new ProgressBar(playersToInsert.Count, "Retrieving Player Data"))
             {
-                // Get Player    
-                HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
-                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                foreach (var id in playersToInsert)
                 {
-                    throw new Exception($"Getting player data for {id}: {response.StatusCode}");
+                    // Get Player    
+                    HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
+                    if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Getting player data for {id}: {response.StatusCode}");
+                    }
+
+                    try
+                    {
+                        string responseBody = await response.Content.ReadAsStringAsync();
+                        JsonDocument json = JsonDocument.Parse(responseBody);
+                        JsonElement person = json.RootElement.GetProperty("people").EnumerateArray().ElementAt(0);
+                        Player player = GetPlayerFromJson(person);
+
+                        db.Player.Add(player);
+
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine($"Exception for id={id}: {e.Message}");
+                    }
+
+                    progressBar.Tick();
                 }
 
-                try
-                {
-                    string responseBody = await response.Content.ReadAsStringAsync();
-                    JsonDocument json = JsonDocument.Parse(responseBody);
-                    JsonElement person = json.RootElement.GetProperty("people").EnumerateArray().ElementAt(0);
-                    Player player = GetPlayerFromJson(person);
 
-                    db.Player.Add(player);
+                db.SaveChanges();
 
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Exception for id={id}: {e.Message}");
-                }
-
-                progressBar.Tick();
+                return true;
             }
-            
-
-            db.SaveChanges();
-
-            return true;
         }
 
         // Calls all necessary subfuncttions

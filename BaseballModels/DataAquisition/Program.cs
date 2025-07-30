@@ -13,11 +13,18 @@ namespace DataAquisition
 
             using (var db = new SqliteDbContext(options))
             {
-                //var result = await PlayerUpdate.Main(db, Constants.START_YEAR);
-                //var result = await GameLogUpdate.Main(db, 2005, 4, 5);
-                //var res = ParkFactorUpdate.Main(db, 2005);
-                var res = CalculateLevelStats.Main(db, 2005, 4);
-                res = CalculateLevelStats.Main(db, 2005, 5);
+                for (int year = 2005; year <= 2006; year++)
+                {
+                    var result = await PlayerUpdate.Main(db, year);
+                    result = await GameLogUpdate.Main(db, year, 3, 10);
+                    var res = ParkFactorUpdate.Main(db, year);
+                    res = CalculateLevelStats.Main(db, year, 4);
+                    res = CalculateLevelStats.Main(db, year, 5);
+                    res = CalculateLevelStats.Main(db, year, 6);
+                    res = CalculateLevelStats.Main(db, year, 7);
+                    res = CalculateLevelStats.Main(db, year, 8);
+                    res = CalculateLevelStats.Main(db, year, 9);
+                }
             }
         }
     }
