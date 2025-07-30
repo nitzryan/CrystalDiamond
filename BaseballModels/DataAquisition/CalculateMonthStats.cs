@@ -1,6 +1,8 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore.Storage;
 using ShellProgressBar;
+using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace DataAquisition
 {
@@ -204,8 +206,46 @@ namespace DataAquisition
                         continue;
 
                     var stats = GetMonthStatsHitter(gameLogs, adjustedParkFactors, month);
-                    if (stats.AB + stats.BB + stats.HBP + stats.SB + stats.CS > 0)
-                        db.Player_Hitter_MonthStats.Add(stats);
+                    if (stats.AB + stats.BB + stats.HBP + stats.SB + stats.CS == 0)
+                        continue;
+
+                    db.Player_Hitter_MonthStats.Add(stats);
+
+                    // Advanced Stats
+                    var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
+                    foreach (var a in teamLeagues)
+                    {
+                        stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), adjustedParkFactors, month);
+                        int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
+                        int pa = stats.AB + stats.BB + stats.HBP;
+                        float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
+                        float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
+                        float woba = pa > 0 ?
+                            ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / pa
+                            : 0;
+                        Player_Hitter_MonthAdvanced ma = new()
+                        {
+                            MlbId = idlvl.MlbId,
+                            LevelId = idlvl.LevelId,
+                            Year = year,
+                            Month = month,
+                            TeamId = a.TeamId,
+                            LeagueId = a.LeagueId,
+                            PA = pa,
+                            AVG = avg,
+                            OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
+                            SLG = avg + iso,
+                            ISO = iso,
+                            WOBA = woba,
+                            WRC = -1.0f, // Fill in later, need league wOBA
+                            HRPerc = pa > 0 ? (float)stats.HR / pa : 0,
+                            BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
+                            KPerc = pa > 0 ? (float)stats.K / pa : 0,
+                            SBRate = pa > 0 ?  (float)stats.SB / pa : 0,
+                            SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0
+                        };
+                        db.Player_Hitter_MonthAdvanced.Add(ma);
+                    }
                 }
             }
             
@@ -246,8 +286,42 @@ namespace DataAquisition
                         continue;
 
                     var stats = GetMonthStatsPitcher(gameLogs, adjustedParkFactors, month);
-                    if (stats.BattersFaced > 0)
-                        db.Player_Pitcher_MonthStats.Add(stats);
+                    if (stats.BattersFaced == 0)
+                        continue;
+
+                    db.Player_Pitcher_MonthStats.Add(stats);
+
+                    // Advanced Stats
+                    var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
+                    foreach (var a in teamLeagues)
+                    {
+                        stats = GetMonthStatsPitcher(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), adjustedParkFactors, month);
+                        int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
+                        float woba = stats.BattersFaced > 0 ?
+                            ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / stats.BattersFaced
+                            : 0;
+
+                        float fipConstant = db.Level_PitcherStats.Where(f => f.Year == year && f.Month == month && f.Level == idlvl.LevelId).Select(f => f.FipConstant).Single();
+                        Player_Pitcher_MonthAdvanced ma = new()
+                        {
+                            MlbId = idlvl.MlbId,
+                            LevelId = idlvl.LevelId,
+                            Year = year,
+                            Month = month,
+                            TeamId = a.TeamId,
+                            LeagueId = a.LeagueId,
+                            BF = stats.BattersFaced,
+                            Outs = stats.Outs,
+                            WOBA = woba,
+                            HRPerc = (float)stats.HR / stats.BattersFaced,
+                            BBPerc = (float)stats.BB / stats.BattersFaced,
+                            KPerc = (float)stats.K / stats.BattersFaced,
+                            ERA = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f,
+                            FIP = stats.Outs > 0 ? (float)((13 * stats.HR) + 3 * (stats.BB + stats.HBP) - (2 * stats.K)) * 3 / stats.Outs + fipConstant : 99.0f,
+                            GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f
+                        };
+                        db.Player_Pitcher_MonthAdvanced.Add(ma);
+                    }
                 }
             }
 
@@ -272,6 +346,7 @@ namespace DataAquisition
             {
                 Console.WriteLine("Error in CalculateHitterMonthStats");
                 Console.WriteLine(e.Message);
+                Console.Write(e.StackTrace);
                 return false;
             }
 
@@ -285,6 +360,7 @@ namespace DataAquisition
             {
                 Console.WriteLine("Error in CalculatePitcherMonthStats");
                 Console.WriteLine(e.Message);
+                Console.Write(e.StackTrace);
                 return false;
             }
 
