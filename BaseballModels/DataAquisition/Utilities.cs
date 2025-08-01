@@ -38,6 +38,31 @@ namespace DataAquisition
             return ma;
         }
 
+        public static Func<Player_Hitter_GameLog, Player_Hitter_GameLog, Player_Hitter_GameLog> HitterGameLogAggregation = (a, b) =>
+        new Player_Hitter_GameLog
+        {
+            GameId = a.GameId,
+            MlbId = a.MlbId,
+            Day = a.Day,
+            Month = a.Month,
+            Year = a.Year,
+            AB = a.AB + b.AB,
+            H = a.H + b.H,
+            Hit2B = a.Hit2B + b.Hit2B,
+            Hit3B = a.Hit3B + b.Hit3B,
+            HR = a.HR + b.HR,
+            K = a.K + b.K,
+            BB = a.BB + b.BB,
+            SB = a.SB + b.SB,
+            CS = a.CS + b.CS,
+            HBP = a.HBP + b.HBP,
+            Position = a.Position,
+            LevelId = a.LevelId,
+            HomeTeamId = a.HomeTeamId,
+            TeamId = a.TeamId,
+            LeagueId = a.TeamId
+        };
+
         public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, SqliteDbContext db)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
@@ -66,5 +91,32 @@ namespace DataAquisition
             };
             return ma;
         }
+
+        public static Func<Player_Pitcher_GameLog, Player_Pitcher_GameLog, Player_Pitcher_GameLog> PitcherGameLogAggregation = (a, b) =>
+        new Player_Pitcher_GameLog
+        {
+            GameId = a.GameId,
+            MlbId = a.MlbId,
+            Day = a.Day,
+            Month = a.Month,
+            Year = a.Year,
+            BattersFaced = a.BattersFaced + b.BattersFaced,
+            Outs = a.Outs + b.Outs,
+            H = a.H + b.H,
+            Hit2B = a.Hit2B + b.Hit2B,
+            Hit3B = a.Hit3B + b.Hit3B,
+            HR = a.HR + b.HR,
+            K = a.K + b.K,
+            BB = a.BB + b.BB,
+            GO = a.GO + b.GO,
+            AO = a.AO + b.AO,
+            ER = a.ER + b.ER,
+            R = a.R + b.R,
+            HBP = a.HBP + b.HBP,
+            LevelId = a.LevelId,
+            HomeTeamId = a.HomeTeamId,
+            TeamId = a.TeamId,
+            LeagueId = a.TeamId
+        };
     }
 }

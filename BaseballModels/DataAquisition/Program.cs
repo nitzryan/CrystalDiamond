@@ -23,9 +23,12 @@
                     //if (!CalculateMonthStats.Main(year, month))
                     //    return;
 
-                    if (!CalculateMonthRatios.Main(year, month))
-                        return;
+                    //if (!CalculateMonthRatios.Main(year, month))
+                    //    return;
                 }
+
+                if (!CalculateAnnualStats.Main(year))
+                    return;
             }
         }
     }
