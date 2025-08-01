@@ -159,7 +159,11 @@ namespace DataAquisition
                             game.GetProperty("team").GetProperty("id").GetInt32() :
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
-                    
+
+                    // Make sure to avoid games with no stats accumulated
+                    if (gl.AB == 0 && gl.H == 0 && gl.BB == 0 && gl.SB == 0 && gl.CS == 0 && gl.HBP == 0)
+                        continue;
+
                     // Map DSL to seperate league
                     if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
                         gl.LevelId = Constants.SPORT_IDS.Last();
