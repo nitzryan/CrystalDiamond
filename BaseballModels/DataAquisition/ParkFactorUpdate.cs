@@ -125,7 +125,8 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 // Calculate Park Factors
-                var parkScoringData = db.Park_ScoringData.Where(f => f.Year <= year && f.Year > year - ROLLING_PERIOD);
+                IEnumerable<int> parkIds = db.Park_ScoringData.Where(f => f.Year == year).Select(f => f.TeamId);
+                var parkScoringData = db.Park_ScoringData.Where(f => f.Year <= year && f.Year > year - ROLLING_PERIOD && parkIds.Contains(f.TeamId));
                 var teamIds = parkScoringData.Select(f => f.TeamId).Distinct();
                 foreach (var teamId in teamIds)
                 {
