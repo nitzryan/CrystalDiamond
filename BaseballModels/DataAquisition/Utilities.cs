@@ -82,9 +82,9 @@ namespace DataAquisition
                 BF = stats.BattersFaced,
                 Outs = stats.Outs,
                 WOBA = woba,
-                HRPerc = (float)stats.HR / stats.BattersFaced,
-                BBPerc = (float)stats.BB / stats.BattersFaced,
-                KPerc = (float)stats.K / stats.BattersFaced,
+                HRPerc = stats.BattersFaced > 0 ? (float)stats.HR / stats.BattersFaced : 0,
+                BBPerc = stats.BattersFaced > 0 ? (float)stats.BB / stats.BattersFaced : 0,
+                KPerc = stats.BattersFaced > 0 ? (float)stats.K / stats.BattersFaced : 0,
                 ERA = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f,
                 FIP = stats.Outs > 0 ? (float)((13 * stats.HR) + 3 * (stats.BB + stats.HBP) - (2 * stats.K)) * 3 / stats.Outs + fipConstant : 99.0f,
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f
@@ -118,5 +118,12 @@ namespace DataAquisition
             TeamId = a.TeamId,
             LeagueId = a.TeamId
         };
+
+        public static void LogException(Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.InnerException?.Message);
+            Console.Write(e.StackTrace);
+        }
     }
 }

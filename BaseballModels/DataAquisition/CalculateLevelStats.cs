@@ -164,7 +164,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("failed LevelHitterStats");
-                Console.WriteLine(e.Message);
+                Utilities.LogException(e);
             }
             try {
                 if (!LevelPitcherStats(db, year, month)){
@@ -175,7 +175,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("failed LevelPitcherStats");
-                Console.WriteLine(e.Message);
+                Utilities.LogException(e);
             }
 
             return true;

@@ -299,8 +299,7 @@ namespace DataAquisition
             } catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateHitterMonthStats");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 
@@ -313,8 +312,7 @@ namespace DataAquisition
             } catch (Exception e)
             {
                 Console.WriteLine("Error in CalculatePitcherMonthStats");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 

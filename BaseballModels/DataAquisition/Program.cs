@@ -2,43 +2,56 @@
 {
     internal class Program
     {
+        const int START_YEAR = 2021;
+        const int END_YEAR = 2024;
         static async Task Main(string[] args)
         {
-            List<int> years = new();
-            for (int year = 2005; year <= 2006; year++)
+            List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR+1)];
+            List<int> months = [4, 5, 6, 7, 8, 9];
+            foreach (int year in years)
             {
-                //if (!await PlayerUpdate.Main(year))
-                //    return;
+                if (!await PlayerUpdate.Main(year))
+                    return;
 
-                //if (!await GameLogUpdate.Main(year, 3, 10))
-                //    return;
+                if (!await GameLogUpdate.Main(year, 3, 10))
+                    return;
 
-                //if (!ParkFactorUpdate.Main(year))
-                //    return;
+                if (!ParkFactorUpdate.Main(year))
+                    return;
 
-                //for (int month = 4; month <= 9; month++)
-                //{
-                //    if (!CalculateLevelStats.Main(year, month))
-                //        return;
+                foreach (int month in months)
+                {
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
 
-                //    if (!CalculateMonthStats.Main(year, month))
-                //        return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                //    if (!CalculateMonthRatios.Main(year, month))
-                //        return;
-                //}
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
+                }
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
-                //if (!await UpdateParents.Main(year))
-                //    return;
+                if (!await UpdateParents.Main(year))
+                    return;
 
-                years.Add(year);
             }
 
-            if (!UpdateCareers.Main(years))
-                return;
+            //if (!UpdateServiceTime.Main())
+            //    return;
+
+            //if (!UpdateCareers.Main(years))
+            //    return;
+
+            //foreach (int year in years)
+            //{
+            //    foreach (int month in months)
+            //    {
+                    
+            //    }
+            //}
         }
     }
 }

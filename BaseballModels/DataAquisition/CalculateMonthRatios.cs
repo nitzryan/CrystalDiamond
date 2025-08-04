@@ -100,8 +100,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateHitterMonthRatios");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 
@@ -116,8 +115,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculatePitcherMonthRatios");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 

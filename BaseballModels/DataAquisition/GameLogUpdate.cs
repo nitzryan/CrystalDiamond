@@ -1,8 +1,5 @@
 ﻿using Db;
 using ShellProgressBar;
-using System;
-using System.Linq;
-using System.Reflection.Emit;
 using System.Text.Json;
 
 namespace DataAquisition
@@ -160,12 +157,16 @@ namespace DataAquisition
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
 
+                    // MLB changed Rk Adv to different LevelId id for some years, so catch here
+                    if (gl.LevelId == 5442)
+                        gl.LevelId = 16;
+
                     // Make sure to avoid games with no stats accumulated
                     if (gl.AB == 0 && gl.H == 0 && gl.BB == 0 && gl.SB == 0 && gl.CS == 0 && gl.HBP == 0)
                         continue;
 
-                    // Map DSL to seperate league
-                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
+                    // Map DSL/VSL to seperate league
+                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID || gl.LeagueId == Constants.VSL_LEAGUE_ID)
                         gl.LevelId = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
@@ -241,8 +242,12 @@ namespace DataAquisition
                             game.GetProperty("opponent").GetProperty("id").GetInt32(),
                     };
 
-                    // Map DSL to seperate league
-                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID)
+                    // MLB changed Rk Adv to different LevelId id for some years, so catch here
+                    if (gl.LevelId == 5442)
+                        gl.LevelId = 16;
+
+                    // Map DSL/VSL to seperate league
+                    if (gl.LeagueId == Constants.DSL_LEAGUE_ID || gl.LeagueId == Constants.VSL_LEAGUE_ID)
                         gl.LevelId = Constants.SPORT_IDS.Last();
                     log.Add(gl);
                 }
@@ -274,6 +279,10 @@ namespace DataAquisition
                 var stats = json.RootElement.GetProperty("stats");
                 var statsArray = stats.EnumerateArray();
                 IEnumerable<int> ids = statsArray.Select(f => f.GetProperty("playerId").GetInt32());
+
+                // Check for empty (Covid year)
+                if (!ids.Any())
+                    continue;
 
                 // Split ids into groups for tasks
                 int j = 0;
@@ -330,6 +339,10 @@ namespace DataAquisition
                 var statsArray = stats.EnumerateArray();
                 IEnumerable<int> ids = statsArray.Select(f => f.GetProperty("playerId").GetInt32());
 
+                // Check for empty (Covid year)
+                if (!ids.Any())
+                    continue;
+
                 // Split ids into groups for tasks
                 int j = 0;
                 IEnumerable<IEnumerable<int>> id_partitions = from item in ids
@@ -377,8 +390,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error getting hitter game logs");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 
@@ -389,8 +401,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error getting pitcher game logs");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
 

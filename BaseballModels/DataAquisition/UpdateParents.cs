@@ -23,10 +23,12 @@ namespace DataAquisition
                         continue;
                     if (sportId == 17) // Not a sportId in MLBs system
                         continue;
+                    if (sportId == 15 && year >= 2021) // Short Season A was discontinued
+                        continue;
 
                     HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/teams?sportIds={sportId}&season={year}");
                     if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                    {
+                    { 
                         throw new Exception($"Getting Org Maps for {year}: {response.StatusCode}");
                     }
 
@@ -90,8 +92,7 @@ namespace DataAquisition
             } catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateParents");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
         }

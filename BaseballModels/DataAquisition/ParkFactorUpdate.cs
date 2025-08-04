@@ -100,6 +100,8 @@ namespace DataAquisition
 
                     Func<SingleGameData, SingleGameData, SingleGameData> gameReduce = (a, b) => a.Add(b);
 
+                    if (!homeGames.Any() || !awayGames.Any())
+                        continue;
                     teamYearSums.Add(id, (homeGames.Aggregate(gameReduce), awayGames.Aggregate(gameReduce)));
                 }
 
@@ -223,8 +225,7 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error Calculating Park Factors");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
         }

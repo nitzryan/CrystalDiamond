@@ -49,7 +49,7 @@ namespace DataAquisition
         static private async Task<bool> GetPlayersThroughDraftAsync(SqliteDbContext db, HttpClient httpClient, int year)
         {
             db.ChangeTracker.Clear();
-            List<int> playersToInsert = new List<int>();
+            List<int> playersAdded = new List<int>();
         
             // Get Data
             HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/draft/{year}");
@@ -70,11 +70,16 @@ namespace DataAquisition
                     JsonElement.ArrayEnumerator picks = round.GetProperty("picks").EnumerateArray();
                     foreach (JsonElement pick in picks)
                     {
-                        JsonElement person = pick.GetProperty("person");
+                        if (!pick.TryGetProperty("person", out JsonElement person))
+                        {
+                            continue;
+                        }
                         int id = person.GetProperty("id").GetInt32();
-                        try
-                        { // Works if player already exists
-                            Player p = db.Player.Single(f => f.MlbId == id);
+
+                        var dbPlayer = db.Player.Where(f => f.MlbId == id);
+                        if (dbPlayer.Any()) // Player Exists, edit required properties
+                        {
+                            Player p = dbPlayer.First();
                             p.DraftPick = pick.GetProperty("pickNumber").GetInt32();
 
                             // Draft was in June 2005-2020, July 2021+
@@ -84,12 +89,26 @@ namespace DataAquisition
                                 p.SigningMonth = 7;
                             p.SigningYear = year;
                         }
-                        catch (Exception) // Player doesn't exist (Single() fails) so add player
-                        {
+                        else { // Player doesn't exist (Single() fails) so add player
                             try
                             {
                                 Player player = GetPlayerFromJson(person);
                                 player.DraftPick = pick.GetProperty("pickNumber").GetInt32();
+
+                                // MLB API sometimes has duplicates, so check it hasn't already been added
+                                if (playersAdded.Contains(id))
+                                {
+                                    continue;
+                                }
+                                playersAdded.Add(id);
+
+                                // Draft was in June 2005-2020, July 2021+
+                                if (year < 2021)
+                                    player.SigningMonth = 6;
+                                else
+                                    player.SigningMonth = 7;
+                                player.SigningYear = year;
+
                                 db.Player.Add(player);
                             }
                             catch (Exception) { } // Some players dont have data and should just be ignored
@@ -202,7 +221,7 @@ namespace DataAquisition
             } catch (Exception e)
             { 
                 Console.WriteLine("failed GetPlayersThroughDraftAsync");
-                Console.WriteLine(e.Message);
+                Utilities.LogException(e);
                 return false;
             }
 
@@ -213,7 +232,7 @@ namespace DataAquisition
             } catch(Exception e)
             {
                 Console.WriteLine("Error in GetPlayersThroughStatsAsync");
-                Console.WriteLine(e.Message);
+                Utilities.LogException(e);
                 return false;
             }
 

@@ -372,8 +372,7 @@ namespace DataAquisition
             } catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateCareers");
-                Console.WriteLine(e.Message);
-                Console.Write(e.StackTrace);
+                Utilities.LogException(e);
                 return false;
             }
         }
