@@ -16,6 +16,19 @@ namespace DataAquisition
             string throws = person.GetProperty("pitchHand").GetProperty("code").GetString() ?? throw new Exception("No pitchHand found");
             string birthdateFormatted = person.GetProperty("birthDate").GetString() ?? throw new Exception("No birthDate found");
             string[] birthdate = birthdateFormatted.Split("-");
+            
+            // Parse position code to hitter (H), Pitcher (P), Both (TWP)
+            string position = person.GetProperty("primaryPosition").GetProperty("code").GetString() ?? throw new Exception("No Position Code Found");
+            try {
+                int code = Convert.ToInt32(position);
+                if (code == 1)
+                    position = "P";
+                else
+                    position = "H";
+            } catch (Exception) // Two-Way players have code "Y"
+            {
+                position = "TWP";
+            }
 
             Player player = new()
             {
@@ -23,6 +36,7 @@ namespace DataAquisition
                 BirthYear = Convert.ToInt32(birthdate[0]),
                 BirthMonth = Convert.ToInt32(birthdate[1]),
                 BirthDate = Convert.ToInt32(birthdate[2]),
+                Position = position,
                 Bats = bats,
                 Throws = throws,
                 UseFirstName = useFirstName,
@@ -62,6 +76,13 @@ namespace DataAquisition
                         { // Works if player already exists
                             Player p = db.Player.Single(f => f.MlbId == id);
                             p.DraftPick = pick.GetProperty("pickNumber").GetInt32();
+
+                            // Draft was in June 2005-2020, July 2021+
+                            if (year < 2021)
+                                p.SigningMonth = 6;
+                            else
+                                p.SigningMonth = 7;
+                            p.SigningYear = year;
                         }
                         catch (Exception) // Player doesn't exist (Single() fails) so add player
                         {

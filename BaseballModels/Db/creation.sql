@@ -175,6 +175,7 @@ CREATE TABLE "Park_ScoringData" (
 CREATE TABLE "Player" (
 	"mlbId"	INTEGER NOT NULL,
 	"fangraphsId"	INTEGER,
+	"position" TEXT NOT NULL,
 	"birthYear"	INTEGER NOT NULL,
 	"birthMonth"	INTEGER NOT NULL,
 	"birthDate"	INTEGER NOT NULL,
@@ -196,17 +197,19 @@ CREATE TABLE "Player_CareerStatus" (
 	"mlbId"	INTEGER NOT NULL,
 	"isPitcher"	INTEGER NOT NULL,
 	"isHitter"	INTEGER NOT NULL,
-	"isActive"	INTEGER NOT NULL,
+	"isActive"	INTEGER,
 	"serviceReached"	INTEGER,
 	"mlbStartYear"	INTEGER,
 	"mlbRookieYear"	INTEGER,
 	"mlbRookieMonth"	INTEGER,
 	"serviceEndYear"	INTEGER,
 	"serviceLapseYear"	INTEGER,
-	"careerStartYear"	INTEGER NOT NULL,
+	"careerStartYear"	INTEGER,
+	"careerStartMonth" INTEGER,
 	"agedOut"	INTEGER,
 	"ignorePlayer"	INTEGER,
-	"highestLevel"	INTEGER NOT NULL,
+	"highestLevelPitcher"	INTEGER,
+	"highestLevelHitter"	INTEGER,
 	PRIMARY KEY("mlbId")
 );
 

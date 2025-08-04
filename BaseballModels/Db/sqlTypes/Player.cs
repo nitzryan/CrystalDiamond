@@ -4,6 +4,7 @@ namespace Db
 	{
 		public required int MlbId {get; set;}
 		public int? FangraphsId {get; set;}
+		public required string Position {get; set;}
 		public required int BirthYear {get; set;}
 		public required int BirthMonth {get; set;}
 		public required int BirthDate {get; set;}

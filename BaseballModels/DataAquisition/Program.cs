@@ -4,6 +4,7 @@
     {
         static async Task Main(string[] args)
         {
+            List<int> years = new();
             for (int year = 2005; year <= 2006; year++)
             {
                 //if (!await PlayerUpdate.Main(year))
@@ -30,9 +31,14 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                if (!await UpdateParents.Main(year))
-                    return;
+                //if (!await UpdateParents.Main(year))
+                //    return;
+
+                years.Add(year);
             }
+
+            if (!UpdateCareers.Main(years))
+                return;
         }
     }
 }

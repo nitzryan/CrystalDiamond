@@ -11,6 +11,11 @@ namespace DataAquisition
         public static ReadOnlyCollection<string> SPORT_ID_NAMES = new(["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"]);
         public const int MEXICAN_LEAGUE_ID = 125;
         public const int DSL_LEAGUE_ID = 130;
+        public const string SCRIPT_FOLDER = "../../../../DataAquisition/Scripts";
+        public const string IGNORE_PLAYERS_FILE = "../../../../DataAquisition/Scripts/IgnorePlayers.txt";
+        public const int SERVICE_TIME_CUTOFF = 6;
+        public const int AGED_OUT_AGE = 27;
+        public const int STOP_YEAR = 34;
 
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
                 .UseSqlite("Data Source=../../../../Db/BaseballStats.db")
