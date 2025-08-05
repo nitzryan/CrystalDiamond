@@ -1,5 +1,7 @@
-﻿using Db;
+﻿using CsvHelper;
+using Db;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace DataAquisition
 {
@@ -56,6 +58,19 @@ namespace DataAquisition
                 }
                 db.SaveChanges();
 
+                // Insert Career Start year from csv file
+                var reader = new StreamReader(Constants.PRE_05_FILE);
+                var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+                var data = csv.GetRecords<Pre05_Players>().ToList();
+                foreach (var d in data)
+                {
+                    try
+                    {
+                        db.Player_CareerStatus.Where(f => f.MlbId == d.MlbId).First().CareerStartYear = d.CareerStartYear;
+                    }
+                    catch (Exception e) { }
+                }
+
                 // Update IsActive
                 foreach (var pcs in db.Player_CareerStatus)
                 {
@@ -80,7 +95,7 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 // Set Career Start Year/Month
-                foreach (var pcs in db.Player_CareerStatus)
+                foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear == null))
                 {
                     int hitterStartYear = 10000;
                     int pitcherStartYear = 10000;

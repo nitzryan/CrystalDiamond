@@ -15,6 +15,7 @@ namespace DataAquisition
         public const string SCRIPT_FOLDER = "../../../../DataAquisition/Scripts";
         public const string IGNORE_PLAYERS_FILE = "../../../../DataAquisition/Scripts/IgnorePlayers.txt";
         public const string SERVICE_TIME_FILE = "../../../../DataAquisition/ServiceTime.csv";
+        public const string PRE_05_FILE = "../../../../DataAquisition/Pre05Players.csv";
         public const int SERVICE_TIME_CUTOFF = 6;
         public const int AGED_OUT_AGE = 27;
         public const int STOP_YEAR = 34;
