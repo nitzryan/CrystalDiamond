@@ -125,5 +125,14 @@ namespace DataAquisition
             Console.WriteLine(e.InnerException?.Message);
             Console.Write(e.StackTrace);
         }
+
+        public static float GetAge1MinusAge0(int y1, int m1, int d1, int y0, int m0, int d0)
+        {
+            int deltaYears = y1 - y0;
+            int deltaMonths = m1 - m0;
+            int deltaDays = d1 - d0;
+
+            return deltaYears + (deltaMonths / 12.0f) + (deltaDays / 365.0f);
+        }
     }
 }
