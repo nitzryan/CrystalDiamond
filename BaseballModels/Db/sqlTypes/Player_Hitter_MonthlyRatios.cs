@@ -24,5 +24,35 @@ namespace Db
 		public required float PercCF {get; set;}
 		public required float PercRF {get; set;}
 		public required float PercDH {get; set;}
+
+		public Player_Hitter_MonthlyRatios Clone()
+		{
+			return new Player_Hitter_MonthlyRatios
+			{
+				MlbId = this.MlbId,
+				Year = this.Year,
+				Month = this.Month,
+				LevelId = this.LevelId,
+				AVGRatio = this.AVGRatio,
+				OBPRatio = this.OBPRatio,
+				ISORatio = this.ISORatio,
+				WOBARatio = this.WOBARatio,
+				SBRateRatio = this.SBRateRatio,
+				SBPercRatio = this.SBPercRatio,
+				HRPercRatio = this.HRPercRatio,
+				BBPercRatio = this.BBPercRatio,
+				KPercRatio = this.KPercRatio,
+				PercC = this.PercC,
+				Perc1B = this.Perc1B,
+				Perc2B = this.Perc2B,
+				Perc3B = this.Perc3B,
+				PercSS = this.PercSS,
+				PercLF = this.PercLF,
+				PercCF = this.PercCF,
+				PercRF = this.PercRF,
+				PercDH = this.PercDH,
+				
+			};
+		}
 	}
 }

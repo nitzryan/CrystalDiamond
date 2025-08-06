@@ -19,5 +19,30 @@ namespace Db
 		public required float KPerc {get; set;}
 		public required int SB {get; set;}
 		public required int CS {get; set;}
+
+		public Player_Hitter_YearAdvanced Clone()
+		{
+			return new Player_Hitter_YearAdvanced
+			{
+				MlbId = this.MlbId,
+				LevelId = this.LevelId,
+				Year = this.Year,
+				TeamId = this.TeamId,
+				LeagueId = this.LeagueId,
+				PA = this.PA,
+				AVG = this.AVG,
+				OBP = this.OBP,
+				SLG = this.SLG,
+				ISO = this.ISO,
+				WOBA = this.WOBA,
+				WRC = this.WRC,
+				HR = this.HR,
+				BBPerc = this.BBPerc,
+				KPerc = this.KPerc,
+				SB = this.SB,
+				CS = this.CS,
+				
+			};
+		}
 	}
 }

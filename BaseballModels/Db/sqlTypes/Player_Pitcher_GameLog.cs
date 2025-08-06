@@ -25,5 +25,36 @@ namespace Db
 		public required int HomeTeamId {get; set;}
 		public required int TeamId {get; set;}
 		public required int LeagueId {get; set;}
+
+		public Player_Pitcher_GameLog Clone()
+		{
+			return new Player_Pitcher_GameLog
+			{
+				GameLogId = this.GameLogId,
+				GameId = this.GameId,
+				MlbId = this.MlbId,
+				Day = this.Day,
+				Month = this.Month,
+				Year = this.Year,
+				BattersFaced = this.BattersFaced,
+				Outs = this.Outs,
+				GO = this.GO,
+				AO = this.AO,
+				R = this.R,
+				ER = this.ER,
+				H = this.H,
+				K = this.K,
+				BB = this.BB,
+				HBP = this.HBP,
+				Hit2B = this.Hit2B,
+				Hit3B = this.Hit3B,
+				HR = this.HR,
+				LevelId = this.LevelId,
+				HomeTeamId = this.HomeTeamId,
+				TeamId = this.TeamId,
+				LeagueId = this.LeagueId,
+				
+			};
+		}
 	}
 }

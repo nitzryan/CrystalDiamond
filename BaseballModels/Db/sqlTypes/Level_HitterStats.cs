@@ -15,5 +15,26 @@ namespace Db
 		public required float KPerc {get; set;}
 		public required float SBRate {get; set;}
 		public required float SBPerc {get; set;}
+
+		public Level_HitterStats Clone()
+		{
+			return new Level_HitterStats
+			{
+				LevelId = this.LevelId,
+				Year = this.Year,
+				Month = this.Month,
+				AVG = this.AVG,
+				OBP = this.OBP,
+				SLG = this.SLG,
+				ISO = this.ISO,
+				WOBA = this.WOBA,
+				HRPerc = this.HRPerc,
+				BBPerc = this.BBPerc,
+				KPerc = this.KPerc,
+				SBRate = this.SBRate,
+				SBPerc = this.SBPerc,
+				
+			};
+		}
 	}
 }

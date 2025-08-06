@@ -6,5 +6,17 @@ namespace Db
 		public required int Year {get; set;}
 		public required float RunFactor {get; set;}
 		public required float HRFactor {get; set;}
+
+		public League_Factors Clone()
+		{
+			return new League_Factors
+			{
+				LeagueId = this.LeagueId,
+				Year = this.Year,
+				RunFactor = this.RunFactor,
+				HRFactor = this.HRFactor,
+				
+			};
+		}
 	}
 }

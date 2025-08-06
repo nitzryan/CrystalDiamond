@@ -17,5 +17,28 @@ namespace Db
 		public required float HRPercRatio {get; set;}
 		public required float BBPercRatio {get; set;}
 		public required float KPercRatio {get; set;}
+
+		public Model_PitcherStats Clone()
+		{
+			return new Model_PitcherStats
+			{
+				MlbId = this.MlbId,
+				Year = this.Year,
+				Month = this.Month,
+				Age = this.Age,
+				BF = this.BF,
+				LevelId = this.LevelId,
+				ParkRunFactor = this.ParkRunFactor,
+				ParkHRFactor = this.ParkHRFactor,
+				GBPercRatio = this.GBPercRatio,
+				ERARatio = this.ERARatio,
+				FIPRatio = this.FIPRatio,
+				WOBARatio = this.WOBARatio,
+				HRPercRatio = this.HRPercRatio,
+				BBPercRatio = this.BBPercRatio,
+				KPercRatio = this.KPercRatio,
+				
+			};
+		}
 	}
 }

@@ -18,5 +18,29 @@ namespace Db
 		public int? IgnorePlayer {get; set;}
 		public int? HighestLevelPitcher {get; set;}
 		public int? HighestLevelHitter {get; set;}
+
+		public Player_CareerStatus Clone()
+		{
+			return new Player_CareerStatus
+			{
+				MlbId = this.MlbId,
+				IsPitcher = this.IsPitcher,
+				IsHitter = this.IsHitter,
+				IsActive = this.IsActive,
+				ServiceReached = this.ServiceReached,
+				MlbStartYear = this.MlbStartYear,
+				MlbRookieYear = this.MlbRookieYear,
+				MlbRookieMonth = this.MlbRookieMonth,
+				ServiceEndYear = this.ServiceEndYear,
+				ServiceLapseYear = this.ServiceLapseYear,
+				CareerStartYear = this.CareerStartYear,
+				CareerStartMonth = this.CareerStartMonth,
+				AgedOut = this.AgedOut,
+				IgnorePlayer = this.IgnorePlayer,
+				HighestLevelPitcher = this.HighestLevelPitcher,
+				HighestLevelHitter = this.HighestLevelHitter,
+				
+			};
+		}
 	}
 }

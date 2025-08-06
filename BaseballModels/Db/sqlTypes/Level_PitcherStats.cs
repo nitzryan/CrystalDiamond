@@ -15,5 +15,26 @@ namespace Db
 		public required float GOPerc {get; set;}
 		public required float Avg {get; set;}
 		public required float Iso {get; set;}
+
+		public Level_PitcherStats Clone()
+		{
+			return new Level_PitcherStats
+			{
+				LevelId = this.LevelId,
+				Year = this.Year,
+				Month = this.Month,
+				ERA = this.ERA,
+				RA = this.RA,
+				FipConstant = this.FipConstant,
+				WOBA = this.WOBA,
+				HRPerc = this.HRPerc,
+				BBPerc = this.BBPerc,
+				KPerc = this.KPerc,
+				GOPerc = this.GOPerc,
+				Avg = this.Avg,
+				Iso = this.Iso,
+				
+			};
+		}
 	}
 }

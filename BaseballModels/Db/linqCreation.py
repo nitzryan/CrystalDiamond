@@ -20,12 +20,15 @@ for table, in tables:
     #Setup DbContext string
     dbSetStrings.append(f"public DbSet<{table}> {table} {{get; set;}}")
     modelBuilderString = f"modelBuilder.Entity<{table}>().HasKey(f => new " + "{"
+    cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t\t"
     # Write type to class file
     with open(f"sqlTypes/{table}.cs", "w") as classFile:
         classFile.write("namespace Db\n{\n")
         classFile.write(f"\tpublic class {table}\n" + '\t{\n')
         for _, name, type, notnull, _, pk in vals:
             name = name[0].capitalize() + name[1:]
+            cloneFunctionString += f"{name} = this.{name},\n\t\t\t\t"
+            
             # Need to write primary keys
             if pk > 0:
                 modelBuilderString += f"f.{name},"
@@ -48,6 +51,8 @@ for table, in tables:
         
         modelBuilderString = modelBuilderString[:-1]
         modelBuilderString += "})"
+        
+        classFile.write(cloneFunctionString + '\n\t\t\t};\n\t\t}\n')
         classFile.write('\t}\n}')
         modelBuilderStrings.append(modelBuilderString)
         

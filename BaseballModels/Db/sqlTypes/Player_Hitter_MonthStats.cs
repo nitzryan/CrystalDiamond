@@ -27,5 +27,38 @@ namespace Db
 		public required int GamesCF {get; set;}
 		public required int GamesRF {get; set;}
 		public required int GamesDH {get; set;}
+
+		public Player_Hitter_MonthStats Clone()
+		{
+			return new Player_Hitter_MonthStats
+			{
+				MlbId = this.MlbId,
+				Year = this.Year,
+				Month = this.Month,
+				LevelId = this.LevelId,
+				AB = this.AB,
+				H = this.H,
+				Hit2B = this.Hit2B,
+				Hit3B = this.Hit3B,
+				HR = this.HR,
+				K = this.K,
+				BB = this.BB,
+				SB = this.SB,
+				CS = this.CS,
+				HBP = this.HBP,
+				ParkRunFactor = this.ParkRunFactor,
+				ParkHRFactor = this.ParkHRFactor,
+				GamesC = this.GamesC,
+				Games1B = this.Games1B,
+				Games2B = this.Games2B,
+				Games3B = this.Games3B,
+				GamesSS = this.GamesSS,
+				GamesLF = this.GamesLF,
+				GamesCF = this.GamesCF,
+				GamesRF = this.GamesRF,
+				GamesDH = this.GamesDH,
+				
+			};
+		}
 	}
 }

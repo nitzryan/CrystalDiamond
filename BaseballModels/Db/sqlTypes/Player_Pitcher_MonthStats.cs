@@ -21,5 +21,32 @@ namespace Db
 		public required int HR {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float ParkHRFactor {get; set;}
+
+		public Player_Pitcher_MonthStats Clone()
+		{
+			return new Player_Pitcher_MonthStats
+			{
+				MlbId = this.MlbId,
+				Year = this.Year,
+				Month = this.Month,
+				LevelId = this.LevelId,
+				BattersFaced = this.BattersFaced,
+				Outs = this.Outs,
+				GO = this.GO,
+				AO = this.AO,
+				R = this.R,
+				ER = this.ER,
+				H = this.H,
+				K = this.K,
+				BB = this.BB,
+				HBP = this.HBP,
+				Hit2B = this.Hit2B,
+				Hit3B = this.Hit3B,
+				HR = this.HR,
+				ParkRunFactor = this.ParkRunFactor,
+				ParkHRFactor = this.ParkHRFactor,
+				
+			};
+		}
 	}
 }

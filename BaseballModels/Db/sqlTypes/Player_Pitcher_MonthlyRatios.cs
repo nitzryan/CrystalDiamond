@@ -13,5 +13,24 @@ namespace Db
 		public required float HRPercRatio {get; set;}
 		public required float BBPercRatio {get; set;}
 		public required float KPercRatio {get; set;}
+
+		public Player_Pitcher_MonthlyRatios Clone()
+		{
+			return new Player_Pitcher_MonthlyRatios
+			{
+				MlbId = this.MlbId,
+				Year = this.Year,
+				Month = this.Month,
+				LevelId = this.LevelId,
+				GBPercRatio = this.GBPercRatio,
+				ERARatio = this.ERARatio,
+				FIPRatio = this.FIPRatio,
+				WOBARatio = this.WOBARatio,
+				HRPercRatio = this.HRPercRatio,
+				BBPercRatio = this.BBPercRatio,
+				KPercRatio = this.KPercRatio,
+				
+			};
+		}
 	}
 }

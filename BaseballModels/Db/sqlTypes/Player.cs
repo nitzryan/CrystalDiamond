@@ -19,5 +19,30 @@ namespace Db
 		public int? IsRetired {get; set;}
 		public required string UseFirstName {get; set;}
 		public required string UseLastName {get; set;}
+
+		public Player Clone()
+		{
+			return new Player
+			{
+				MlbId = this.MlbId,
+				FangraphsId = this.FangraphsId,
+				Position = this.Position,
+				BirthYear = this.BirthYear,
+				BirthMonth = this.BirthMonth,
+				BirthDate = this.BirthDate,
+				DraftPick = this.DraftPick,
+				DraftBonus = this.DraftBonus,
+				SigningYear = this.SigningYear,
+				SigningMonth = this.SigningMonth,
+				SigningDate = this.SigningDate,
+				SigningBonus = this.SigningBonus,
+				Bats = this.Bats,
+				Throws = this.Throws,
+				IsRetired = this.IsRetired,
+				UseFirstName = this.UseFirstName,
+				UseLastName = this.UseLastName,
+				
+			};
+		}
 	}
 }
