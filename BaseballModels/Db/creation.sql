@@ -102,7 +102,7 @@ CREATE TABLE "Model_PlayerWar" (
 	"Year"	INTEGER NOT NULL,
 	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
-	"WAR"	REAL NOT NULL,
+	"WAR" REAL NOT NULL,
 	"OFF"	REAL NOT NULL,
 	"DEF"	REAL NOT NULL,
 	"BSR"	REAL NOT NULL,
@@ -463,13 +463,13 @@ CREATE TABLE "Player_ServiceTime" (
 CREATE TABLE "Player_YearlyWar" (
 	"mlbId"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
-	"position"	INTEGER NOT NULL,
+	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
 	"WAR"	REAL NOT NULL,
 	"OFF"	REAL NOT NULL,
 	"DEF"	REAL NOT NULL,
 	"BSR"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","year","position")
+	PRIMARY KEY("mlbId","year","isHitter")
 );
 
 CREATE TABLE "Pre05_Players" (

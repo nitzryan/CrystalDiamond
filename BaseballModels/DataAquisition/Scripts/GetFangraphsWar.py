@@ -14,10 +14,10 @@ def _Update_Fangraphs_War(db : sqlite3.Connection, year):
     for row in tqdm(hittingStats.itertuples(), desc="Fangraphs Hitter War"):
         try:
             mlbId = cursor.execute("SELECT mlbId FROM Player WHERE fangraphsId=?", (row.IDfg,)).fetchone()[0]
-            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? AND position=?", (mlbId, year, "hitting")).fetchone()[0] > 0:
+            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? AND position=?", (mlbId, year, 1)).fetchone()[0] > 0:
                 continue
             
-            cursor.execute("INSERT INTO Player_YearlyWar VALUES(?,?,?,?,?,?,?,?)", (mlbId, year, "hitting", row.PA, row.WAR, row.Off, row.Def, row.BsR))
+            cursor.execute("INSERT INTO Player_YearlyWar VALUES(?,?,?,?,?,?,?,?)", (mlbId, year, 1, row.PA, row.WAR, row.Off, row.Def, row.BsR))
         except: # Player doesn't exist in table
             pass
     
@@ -27,13 +27,13 @@ def _Update_Fangraphs_War(db : sqlite3.Connection, year):
     for row in tqdm(pitchingStats.itertuples(), desc="Fangraphs Pitcher War"):
         try:
             mlbId = cursor.execute("SELECT mlbId FROM Player WHERE fangraphsId=?", (row.IDfg,)).fetchone()[0]
-            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? and position=?", (mlbId, year, "pitching")).fetchone()[0] > 0:
+            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? and position=?", (mlbId, year, 0)).fetchone()[0] > 0:
                 continue
             
             innings, subinnings = str(row.IP).split('.')
             outs = 3 * int(innings) + int(subinnings)
             
-            cursor.execute("INSERT INTO Player_YearlyWar VALUES(?,?,?,?,?,?,?,?)", (mlbId, year, "pitching", outs, row.WAR, 0, 0, 0))
+            cursor.execute("INSERT INTO Player_YearlyWar VALUES(?,?,?,?,?,?,?,?)", (mlbId, year, 0, outs, row.WAR, 0, 0, 0))
         except:
             pass
         

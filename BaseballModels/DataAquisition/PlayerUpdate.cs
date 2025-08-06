@@ -30,6 +30,21 @@ namespace DataAquisition
                 position = "TWP";
             }
 
+            // Parse to get first year of data
+            int? startYear = null;
+            int? signingMonth = null;
+            try
+            {
+                startYear = Convert.ToInt32(person.GetProperty("stats")
+                    .EnumerateArray().First()
+                    .GetProperty("splits")
+                    .EnumerateArray().First()
+                    .GetProperty("season").ToString());
+
+                signingMonth = 1;
+            }
+            catch (Exception) { }
+
             Player player = new()
             {
                 MlbId = id,
@@ -40,7 +55,9 @@ namespace DataAquisition
                 Bats = bats,
                 Throws = throws,
                 UseFirstName = useFirstName,
-                UseLastName = useLastName
+                UseLastName = useLastName,
+                SigningYear = startYear,
+                SigningMonth = signingMonth
             };
 
             return player;

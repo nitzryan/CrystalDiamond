@@ -4,7 +4,7 @@ namespace Db
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
-		public required int Position {get; set;}
+		public required int IsHitter {get; set;}
 		public required int PA {get; set;}
 		public required float WAR {get; set;}
 		public required float OFF {get; set;}
