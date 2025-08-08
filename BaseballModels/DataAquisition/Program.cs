@@ -51,16 +51,11 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            if (!ModelMonthStats.Main())
-                return;
+            //if (!ModelMonthStats.Main())
+            //    return;
 
-            foreach (int year in years)
-            {
-                foreach (int month in months)
-                {
-                    
-                }
-            }
+            if (!await TransactionLog.Main())
+                return;
         }
     }
 }

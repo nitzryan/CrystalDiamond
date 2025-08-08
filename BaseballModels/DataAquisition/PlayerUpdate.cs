@@ -227,6 +227,7 @@ namespace DataAquisition
 
                 db.SaveChanges();
                 db.ChangeTracker.Clear();
+                file.Close();
 
                 return true;
             }

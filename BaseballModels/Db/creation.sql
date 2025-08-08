@@ -347,6 +347,17 @@ CREATE TABLE "Player_OrgMap" (
 	PRIMARY KEY("year","mlbId","month")
 );
 
+CREATE TABLE "Transaction_Log" (
+	"transactionId" INTEGER NOT NULL,
+	"mlbId" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"day" INTEGER NOT NULL,
+	"toIL" INTEGER NOT NULL,
+	"parentOrgId" INTEGER NOT NULL,
+	PRIMARY KEY("transactionId")
+);
+
 CREATE TABLE "Player_Pitcher_GameLog" (
 	"gameLogId"	INTEGER NOT NULL,
 	"gameId"	INTEGER NOT NULL,

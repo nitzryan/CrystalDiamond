@@ -176,5 +176,13 @@ namespace DataAquisition
         {
             return level == 1 ? level : level + 9;
         }
+
+        public static int GetParentOrgId(int teamId, int year, SqliteDbContext db)
+        {
+            var tom = db.Team_OrganizationMap.Where(f => f.TeamId == teamId && f.Year == year);
+            if (!tom.Any())
+                return -2;
+            return tom.Single().ParentOrgId;
+        }
     }
 }

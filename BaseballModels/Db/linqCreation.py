@@ -11,7 +11,7 @@ tables = cursor.fetchall()
 
 # For columns that will be created by insertion to be primary key, and value itself doesn't matter
 # Allows for not being required to create column, but not being nullable
-autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), ("Player_Pitcher_GameLog", "GameLogId")]
+autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), ("Player_Pitcher_GameLog", "GameLogId"), ("Transaction_Log", "TransactionId")]
 
 for table, in tables:
     # Get table data

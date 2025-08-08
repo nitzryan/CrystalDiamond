@@ -21,6 +21,16 @@ namespace DataAquisition
         public const int AGED_OUT_AGE = 27;
         public const int STOP_YEAR = 34;
 
+        // Set these to set start/stop
+        public const int CURRENT_YEAR = 2024;
+        public const int CURRENT_MONTH = 9;
+
+        // Transaction ToIL Status
+        public const int TL_SUSP = 1;
+        public const int TL_INJ_ADD_SHORT = 2;
+        public const int TL_INJ_ADD_LONG = 3;
+        public const int TL_INJ_REM = 4;
+
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
                 .UseSqlite("Data Source=../../../../Db/BaseballStats.db")
                 .Options;
