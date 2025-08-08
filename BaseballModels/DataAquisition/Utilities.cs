@@ -134,5 +134,47 @@ namespace DataAquisition
 
             return deltaYears + (deltaMonths / 12.0f) + (deltaDays / 365.0f);
         }
+
+        public static bool GamesAtLevel(int month, int level, int year, SqliteDbContext db)
+        {
+            
+            // Get Games at level, find max ABs in a month
+            var lhs = db.Level_HitterStats.Where(f => f.LevelId == level && f.Year == year);
+
+            // No games at all
+            if (!lhs.Any()) 
+                return false;
+                
+
+            int maxAbs = lhs.Max(f => f.AB);
+
+            // Not enough games
+            if (!lhs.Where(f => f.Month == month).Any())
+                return false;
+
+
+            // Return whether games played is half max month
+            var ab = lhs.Where(f => f.Month == month).Single().AB;
+            return ab >= (maxAbs / 2);
+        }
+
+        public static float GetGamesFrac(int month, int level, int year, SqliteDbContext db)
+        {
+            var lhs = db.Level_HitterStats.Where(f => f.LevelId == level && f.Year == year);
+
+            // No games at all
+            if (!lhs.Any())
+                return 0;
+
+            int maxAbs = lhs.Max(f => f.AB);
+
+            var ab = lhs.Where(f => f.Month == month).Single().AB;
+            return (float)ab / maxAbs;
+        }
+
+        public static int ModelLevelToMlbLevel(int level)
+        {
+            return level == 1 ? level : level + 9;
+        }
     }
 }

@@ -148,38 +148,42 @@ namespace DataAquisition
             db.ChangeTracker.Clear();
             List<int> playersToInsert = new List<int>();
 
-            for (int i = 0; i < Constants.SPORT_IDS.Count; i++) // Different levels
+            using (ProgressBar progressBar = new ProgressBar(Constants.SPORT_IDS.Count, $"Getting PlayerIds for {year}"))
             {
-                int sportId = Constants.SPORT_IDS.ElementAt(i);
-
-                // Seperate stats for hitting and pithcing
-                List<string> positions = new(["hitting", "pitching"]);
-                foreach (string position in positions)
+                for (int i = 0; i < Constants.SPORT_IDS.Count; i++) // Different levels
                 {
-                    // Get all stats this level/year
-                    HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group={position}&gameType=R&limit=5000&offset=0&sortStat=homeRuns&order=desc");
-                    if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                    {
-                        throw new Exception($"Getting player stats for {position}: {response.StatusCode}");
-                    }
+                    int sportId = Constants.SPORT_IDS.ElementAt(i);
 
-                    // Extract list of playerIds
-                    string responseBody = await response.Content.ReadAsStringAsync();
-                    JsonDocument json = JsonDocument.Parse(responseBody);
-                    JsonElement jsonPlayers = json.RootElement.GetProperty("stats");
-                    foreach (JsonElement player in jsonPlayers.EnumerateArray())
+                    // Seperate stats for hitting and pithcing
+                    List<string> positions = new(["hitting", "pitching"]);
+                    foreach (string position in positions)
                     {
-                        int leagueId = player.GetProperty("leagueId").GetInt32();
-                        if (leagueId == Constants.MEXICAN_LEAGUE_ID) // Found in some years AAA stats, but not affiliated ball
-                            continue;
+                        // Get all stats this level/year
+                        HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group={position}&gameType=R&limit=5000&offset=0&sortStat=homeRuns&order=desc");
+                        if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                        {
+                            throw new Exception($"Getting player stats for {position}: {response.StatusCode}");
+                        }
 
-                        int playerId = player.GetProperty("playerId").GetInt32();
-                        // Make sure database doesn't contain player, and that hasn't already been added (has hitting and pitching stats this year)
-                        if (!db.Player.Any(f => f.MlbId == playerId) && !playersToInsert.Contains(playerId))
-                            playersToInsert.Add(playerId);
+                        // Extract list of playerIds
+                        string responseBody = await response.Content.ReadAsStringAsync();
+                        JsonDocument json = JsonDocument.Parse(responseBody);
+                        JsonElement jsonPlayers = json.RootElement.GetProperty("stats");
+                        foreach (JsonElement player in jsonPlayers.EnumerateArray())
+                        {
+                            int leagueId = player.GetProperty("leagueId").GetInt32();
+                            if (leagueId == Constants.MEXICAN_LEAGUE_ID) // Found in some years AAA stats, but not affiliated ball
+                                continue;
+
+                            int playerId = player.GetProperty("playerId").GetInt32();
+
+                            // Make sure database doesn't contain player, and that hasn't already been added (has hitting and pitching stats this year)
+                            if (!db.Player.Any(f => f.MlbId == playerId) && !playersToInsert.Contains(playerId))
+                                playersToInsert.Add(playerId);
+                        }
                     }
+                    progressBar.Tick();
                 }
-                break;
             }
             
             return playersToInsert;
@@ -187,9 +191,10 @@ namespace DataAquisition
 
         // Takes in list of ids, gets player data for each id
         // Assumes ids not in db, and that no duplicate ids in list
-        static private async Task<bool> CreatePlayersAsync(SqliteDbContext db, HttpClient httpClient, List<int> playersToInsert)
+        static private async Task<bool> CreatePlayersAsync(SqliteDbContext db, HttpClient httpClient, List<int> playersToInsert, int year)
         {
-            using (ProgressBar progressBar = new ProgressBar(playersToInsert.Count, "Retrieving Player Data"))
+            StreamWriter file = File.CreateText(Constants.DATA_AQ_DIRECTORY + $"Logs/PlayerUpdate-{year}.txt");
+            using (ProgressBar progressBar = new ProgressBar(playersToInsert.Count, $"Retrieving Player Data for {year}"))
             {
                 foreach (var id in playersToInsert)
                 {
@@ -197,7 +202,9 @@ namespace DataAquisition
                     HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
                     if (response.StatusCode != System.Net.HttpStatusCode.OK)
                     {
-                        throw new Exception($"Getting player data for {id}: {response.StatusCode}");
+                        file.WriteLine($"Getting player data for {id}: {response.StatusCode}");
+                        progressBar.Tick();
+                        continue;
                     }
 
                     try
@@ -212,7 +219,7 @@ namespace DataAquisition
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Exception for id={id}: {e.Message}");
+                        file.WriteLine($"Exception for id={id}: {e.Message}");
                     }
 
                     progressBar.Tick();
@@ -253,7 +260,7 @@ namespace DataAquisition
                 return false;
             }
 
-            bool playersInserted = await CreatePlayersAsync(db, httpClient, playersToInsert);
+            bool playersInserted = await CreatePlayersAsync(db, httpClient, playersToInsert, year);
 
             return playersInserted;
         }

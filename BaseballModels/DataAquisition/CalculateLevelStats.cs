@@ -57,6 +57,7 @@ namespace DataAquisition
                     LevelId = level,
                     Year = year,
                     Month = month,
+                    AB = summedStats.AB,
                     AVG = avg,
                     OBP = obp,
                     SLG = slg,

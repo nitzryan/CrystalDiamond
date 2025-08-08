@@ -58,19 +58,6 @@ namespace DataAquisition
                 }
                 db.SaveChanges();
 
-                // Insert Career Start year from csv file
-                //var reader = new StreamReader(Constants.PRE_05_FILE);
-                //var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-                //var data = csv.GetRecords<Pre05_Players>().ToList();
-                //foreach (var d in data)
-                //{
-                //    try
-                //    {
-                //        db.Player_CareerStatus.Where(f => f.MlbId == d.MlbId).First().CareerStartYear = d.CareerStartYear;
-                //    }
-                //    catch (Exception e) { }
-                //}
-
                 // Update IsActive
                 foreach (var pcs in db.Player_CareerStatus)
                 {

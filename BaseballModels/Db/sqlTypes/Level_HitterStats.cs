@@ -5,6 +5,7 @@ namespace Db
 		public required int LevelId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
+		public required int AB {get; set;}
 		public required float AVG {get; set;}
 		public required float OBP {get; set;}
 		public required float SLG {get; set;}
@@ -23,6 +24,7 @@ namespace Db
 				LevelId = this.LevelId,
 				Year = this.Year,
 				Month = this.Month,
+				AB = this.AB,
 				AVG = this.AVG,
 				OBP = this.OBP,
 				SLG = this.SLG,

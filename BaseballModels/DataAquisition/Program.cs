@@ -10,45 +10,48 @@
             List<int> months = [4, 5, 6, 7, 8, 9];
             foreach (int year in years)
             {
-                while (!await PlayerUpdate.Main(year))
-                { }
+                //while (!await PlayerUpdate.Main(year))
+                //{ }
 
-                while (!await GameLogUpdate.Main(year, 3, 10))
-                { }
+                //while (!await GameLogUpdate.Main(year, 3, 10))
+                //{ }
 
-                if (!ParkFactorUpdate.Main(year))
-                    return;
+                //if (!ParkFactorUpdate.Main(year))
+                //    return;
 
-                foreach (int month in months)
-                {
-                    if (!CalculateLevelStats.Main(year, month))
-                        return;
+                //foreach (int month in months)
+                //{
+                //    if (!CalculateLevelStats.Main(year, month))
+                //        return;
 
-                    if (!CalculateMonthStats.Main(year, month))
-                        return;
+                //    if (!CalculateMonthStats.Main(year, month))
+                //        return;
 
-                    if (!CalculateMonthRatios.Main(year, month))
-                        return;
-                }
+                //    if (!CalculateMonthRatios.Main(year, month))
+                //        return;
+                //}
 
-                if (!CalculateAnnualStats.Main(year))
-                    return;
+                //if (!CalculateAnnualStats.Main(year))
+                //    return;
 
-                while (!await UpdateParents.Main(year))
-                { }
+                //while (!await UpdateParents.Main(year))
+                //{ }
 
             }
 
-            if (!UpdateServiceTime.Main())
-                return;
+            //if (!UpdateServiceTime.Main())
+            //    return;
 
-            while (!UpdateCareers.Main(years))
-            { }
+            //while (!UpdateCareers.Main(years))
+            //{ }
 
-            if (!ModelPlayers.Main(years.Last(), months.Last()))
-                return;
+            //if (!ModelPlayers.Main(years.Last(), months.Last()))
+            //    return;
 
-            if (!ModelPlayerWar.Main())
+            //if (!ModelPlayerWar.Main())
+            //    return;
+
+            if (!ModelMonthStats.Main())
                 return;
 
             foreach (int year in years)
