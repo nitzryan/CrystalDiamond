@@ -42,14 +42,14 @@
             //if (!UpdateServiceTime.Main())
             //    return;
 
-            //while (!UpdateCareers.Main(years))
-            //{ }
+            while (!UpdateCareers.Main(years))
+            { }
 
-            //if (!ModelPlayers.Main(years.Last(), months.Last()))
-            //    return;
+            if (!ModelPlayers.Main(years.Last(), months.Last()))
+                return;
 
-            //if (!ModelPlayerWar.Main())
-            //    return;
+            if (!ModelPlayerWar.Main())
+                return;
 
             //if (!await TransactionLog.Main())
             //    return;

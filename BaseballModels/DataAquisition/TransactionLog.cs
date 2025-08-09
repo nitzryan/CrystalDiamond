@@ -11,10 +11,11 @@ namespace DataAquisition
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts;
 
-        private static async Task<(IEnumerable<Transaction_Log>, IEnumerable<string>)> GetTransaction_Logs(IEnumerable<int> ids, int thread_idx, ProgressBar progressBar, int progressSum)
+        private static async Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)> GetTransaction_Logs(IEnumerable<int> ids, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             List<string> errors = new();
             List<Transaction_Log> logs = new(capacity: ids.Count());
+            List<(int, int)> playerRetireLogs = new();
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             IProgress<float> progress = progressBar.AsProgress<float>();
@@ -51,6 +52,10 @@ namespace DataAquisition
                             continue;
                         else
                             throw new Exception($"Unexpected code for {id}: {code}");
+
+                        // Set Player Retired Status
+                        if (code == "RET")
+                            playerRetireLogs.Add((id, birthdate[0]));
 
                         if (code == "SU")
                             toIL = Constants.TL_SUSP;
@@ -128,7 +133,7 @@ namespace DataAquisition
                 }
             }
 
-            return (logs, errors);
+            return (logs, errors, playerRetireLogs);
         }
 
         public static async Task<bool> Main()
@@ -149,7 +154,7 @@ namespace DataAquisition
                                                               group item by j++ % NUM_THREADS into part
                                                               select part.AsEnumerable();
 
-                List<Task<(IEnumerable<Transaction_Log>, IEnumerable<string>)>> tasks = new(NUM_THREADS);
+                List<Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)>> tasks = new(NUM_THREADS);
                 using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Generating Player Org Map"))
                 {
                     progress_bar_thread = 0;
@@ -158,7 +163,7 @@ namespace DataAquisition
                     for (int i = 0; i < NUM_THREADS; i++)
                     {
                         int idx = i;
-                        Task<(IEnumerable<Transaction_Log>, IEnumerable<string>)> task = GetTransaction_Logs(id_partitions.ElementAt(i), idx, progressBar, ids.Count());
+                        Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)> task = GetTransaction_Logs(id_partitions.ElementAt(i), idx, progressBar, ids.Count());
                         tasks.Add(task);
                     }
 
@@ -168,6 +173,8 @@ namespace DataAquisition
                         db.Transaction_Log.AddRange(logs.Item1);
                         foreach (var line in logs.Item2)
                             file.WriteLine(line);
+                        foreach (var retInfo in logs.Item3)
+                            db.Player.Where(f => f.MlbId == retInfo.Item1).Single().IsRetired = retInfo.Item2;
                         progress_bar_thread++; // If thread N completes, move updating progress bar to thread N+1
                     }
                 }

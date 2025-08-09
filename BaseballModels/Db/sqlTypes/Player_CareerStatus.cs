@@ -15,6 +15,7 @@ namespace Db
 		public int? CareerStartYear {get; set;}
 		public int? CareerStartMonth {get; set;}
 		public int? AgedOut {get; set;}
+		public int? PlayingGap {get; set;}
 		public int? IgnorePlayer {get; set;}
 		public int? HighestLevelPitcher {get; set;}
 		public int? HighestLevelHitter {get; set;}
@@ -36,6 +37,7 @@ namespace Db
 				CareerStartYear = this.CareerStartYear,
 				CareerStartMonth = this.CareerStartMonth,
 				AgedOut = this.AgedOut,
+				PlayingGap = this.PlayingGap,
 				IgnorePlayer = this.IgnorePlayer,
 				HighestLevelPitcher = this.HighestLevelPitcher,
 				HighestLevelHitter = this.HighestLevelHitter,

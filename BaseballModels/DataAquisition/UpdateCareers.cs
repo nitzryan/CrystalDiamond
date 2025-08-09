@@ -169,7 +169,7 @@ namespace DataAquisition
                             int levelId = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId)
                                 .Select(f => f.LevelId)
                                 .OrderBy(f => f).First();
-                            pcs.HighestLevelHitter = levelId;
+                            pcs.HighestLevelHitter = Utilities.MlbLevelToModelLevel(levelId);
                         }
                         catch (Exception) { }
                     }
@@ -181,7 +181,7 @@ namespace DataAquisition
                             int levelId = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId)
                                 .Select(f => f.LevelId)
                                 .OrderBy(f => f).First();
-                            pcs.HighestLevelPitcher = levelId;
+                            pcs.HighestLevelPitcher = Utilities.MlbLevelToModelLevel(levelId);
                         }
                         catch (Exception) { }
                     }
@@ -360,6 +360,23 @@ namespace DataAquisition
                         pcs.ServiceLapseYear = lastYear + 2;
                 }
                 db.SaveChanges();
+
+                // Add Playing Gap for players who hasn't played in the last 2 years
+                foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear != null))
+                {
+                    IEnumerable<int> playerYears = pcs.IsHitter == 1 ?
+                        db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year).OrderByDescending(f => f).Distinct() :
+                        db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year).OrderByDescending(f => f).Distinct();
+
+                    int lastYear = -1;
+                    if (!playerYears.Any())
+                        lastYear = pcs.CareerStartYear.Value + 2;
+                    else
+                        lastYear = playerYears.First() + 2;
+
+                    if (lastYear < Constants.CURRENT_YEAR)
+                        pcs.PlayingGap = lastYear;
+                }
 
                 // Update signing date for players that weren't drafted
                 foreach (var player in db.Player.Where(f => f.SigningYear == null))

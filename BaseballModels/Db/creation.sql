@@ -212,6 +212,7 @@ CREATE TABLE "Player_CareerStatus" (
 	"careerStartYear"	INTEGER,
 	"careerStartMonth" INTEGER,
 	"agedOut"	INTEGER,
+	"playingGap" INTEGER,
 	"ignorePlayer"	INTEGER,
 	"highestLevelPitcher"	INTEGER,
 	"highestLevelHitter"	INTEGER,
