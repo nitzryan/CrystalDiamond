@@ -30,9 +30,10 @@ namespace DataAquisition
         public const int TL_INJ_ADD_SHORT = 2;
         public const int TL_INJ_ADD_LONG = 3;
         public const int TL_INJ_REM = 4;
+        public const int TL_INJ_REHAB = 5;
 
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
-                .UseSqlite("Data Source=../../../../Db/BaseballStats.db")
+                .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
                 .Options;
     }
 }

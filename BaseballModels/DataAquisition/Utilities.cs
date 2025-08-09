@@ -155,7 +155,7 @@ namespace DataAquisition
 
             // Return whether games played is half max month
             var ab = lhs.Where(f => f.Month == month).Single().AB;
-            return ab >= (maxAbs / 2);
+            return ab >= (maxAbs / 5);
         }
 
         public static float GetGamesFrac(int month, int level, int year, SqliteDbContext db)
@@ -170,6 +170,20 @@ namespace DataAquisition
 
             var ab = lhs.Where(f => f.Month == month).Single().AB;
             return (float)ab / maxAbs;
+        }
+
+        public static int GetInjStatus(int month, int year, int mlbId, SqliteDbContext db)
+        {
+            var ils = db.Transaction_Log.Where(f => f.MlbId == mlbId && f.Year == year && f.Month == month)
+                .Select(f => f.ToIL).Distinct();
+
+            int ilStatus = 0;
+            foreach (int il in ils)
+            {
+                ilStatus += (1 << il);
+            }
+
+            return ilStatus;
         }
 
         public static int ModelLevelToMlbLevel(int level)

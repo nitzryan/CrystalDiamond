@@ -1,5 +1,6 @@
 ﻿using Db;
 using ShellProgressBar;
+using System.Net.NetworkInformation;
 
 namespace DataAquisition
 {
@@ -20,9 +21,7 @@ namespace DataAquisition
                     foreach (var hitter in hitters)
                     {
                         var player = db.Player.Where(f => f.MlbId == hitter.MlbId).First();
-                        var ratios = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == player.MlbId &&
-                                                                        ((f.Year <= hitter.LastProspectYear) ||
-                                                                        (f.Year == hitter.LastProspectYear && f.Month <= hitter.LastProspectMonth)))
+                        var ratios = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == player.MlbId)
                                                                     .OrderBy(f => f.Year).ThenBy(f => f.Month);
 
                         int prevYear = 0;
@@ -32,6 +31,7 @@ namespace DataAquisition
                         {
                             MlbId = player.MlbId,
                             Age = -1,
+                            InjStatus = -1,
                             PA = -1,
                             MonthFrac = -1,
                             ParkHRFactor = -1,
@@ -121,6 +121,7 @@ namespace DataAquisition
                                                 Month = prevMonth,
                                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                                 PA = 0,
+                                                InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
                                                 MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear, db),
                                                 LevelId = prevLevelInt,
                                                 ParkHRFactor = 1,
@@ -157,6 +158,7 @@ namespace DataAquisition
  
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.PA = stat.AB + stat.BB + stat.HBP;
+                                currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
                                 currentData.ParkHRFactor = stat.ParkHRFactor;
                                 currentData.ParkRunFactor = stat.ParkRunFactor;
                                 currentData.Year = r.Year;
@@ -188,6 +190,59 @@ namespace DataAquisition
                             }
                         }
 
+                        // Make sure that trailing gaps are included
+                        if (ratios.Any())
+                        {
+                            int lastYear = ratios.Last().Year;
+                            int pLevelInt = Convert.ToInt32(Math.Floor(prevLevel));
+                            while (prevYear <= Math.Min(lastYear + 2, Constants.CURRENT_YEAR))
+                            {
+                                // Fill Hitter Gaps
+                                //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
+
+                                if (Utilities.GamesAtLevel(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db))
+                                    db.Model_HitterStats.Add(new Model_HitterStats
+                                    {
+                                        MlbId = hitter.MlbId,
+                                        Year = prevYear,
+                                        Month = prevMonth,
+                                        Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        PA = 0,
+                                        InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, hitter.MlbId, db),
+                                        MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db),
+                                        LevelId = pLevelInt,
+                                        ParkHRFactor = 1,
+                                        ParkRunFactor = 1,
+                                        AVGRatio = 1,
+                                        OBPRatio = 1,
+                                        ISORatio = 1,
+                                        WOBARatio = 1,
+                                        SBPercRatio = 1,
+                                        SBRateRatio = 1,
+                                        HRPercRatio = 1,
+                                        BBPercRatio = 1,
+                                        KPercRatio = 1,
+                                        PercC = 0,
+                                        Perc1B = 0,
+                                        Perc2B = 0,
+                                        Perc3B = 0,
+                                        PercSS = 0,
+                                        PercLF = 0,
+                                        PercCF = 0,
+                                        PercRF = 0,
+                                        PercDH = 0
+                                    });
+
+                                prevMonth++;
+                                if (prevMonth > 9)
+                                {
+                                    prevMonth = 4;
+                                    prevYear++;
+                                }
+                            }
+                        }
+                        
+
                         progressBar.Tick();
                     }
                     db.SaveChanges();
@@ -199,9 +254,7 @@ namespace DataAquisition
                     foreach (var pitcher in pitchers)
                     {
                         var player = db.Player.Where(f => f.MlbId == pitcher.MlbId).First();
-                        var ratios = db.Player_Pitcher_MonthlyRatios.Where(f => f.MlbId == player.MlbId &&
-                                                                        ((f.Year <= pitcher.LastProspectYear) ||
-                                                                        (f.Year == pitcher.LastProspectYear && f.Month <= pitcher.LastProspectMonth)))
+                        var ratios = db.Player_Pitcher_MonthlyRatios.Where(f => f.MlbId == player.MlbId)
                                                                     .OrderBy(f => f.Year).ThenBy(f => f.Month);
 
                         int prevYear = 0;
@@ -212,6 +265,7 @@ namespace DataAquisition
                             MlbId = player.MlbId,
                             Age = -1,
                             BF = -1,
+                            InjStatus = -1,
                             MonthFrac = -1,
                             ParkHRFactor = -1,
                             ParkRunFactor = -1,
@@ -278,6 +332,7 @@ namespace DataAquisition
                                                 Month = prevMonth,
                                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                                 BF = 0,
+                                                InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
                                                 MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear, db),
                                                 LevelId = prevLevelInt,
                                                 ParkHRFactor = 1,
@@ -303,6 +358,7 @@ namespace DataAquisition
 
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.BF = stat.BattersFaced;
+                                currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
                                 currentData.ParkHRFactor = stat.ParkHRFactor;
                                 currentData.ParkRunFactor = stat.ParkRunFactor;
                                 currentData.Year = r.Year;
@@ -320,6 +376,47 @@ namespace DataAquisition
                                 prevMonth = r.Month;
                                 prevYear = r.Year;
                                 prevLevel = level;
+                            }
+                        }
+
+                        // Make sure that trailing gaps are included
+                        if (ratios.Any())
+                        {
+                            int lastYear = ratios.Last().Year;
+                            int pLevelInt = Convert.ToInt32(Math.Floor(prevLevel));
+                            while (prevYear <= Math.Min(lastYear + 2, Constants.CURRENT_YEAR))
+                            {
+                                // Fill Hitter Gaps
+                                //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
+
+                                if (Utilities.GamesAtLevel(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db))
+                                    db.Model_PitcherStats.Add(new Model_PitcherStats
+                                    {
+                                        MlbId = pitcher.MlbId,
+                                        Year = prevYear,
+                                        Month = prevMonth,
+                                        Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        BF = 0,
+                                        InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, pitcher.MlbId, db),
+                                        MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db),
+                                        LevelId = pLevelInt,
+                                        ParkHRFactor = 1,
+                                        ParkRunFactor = 1,
+                                        WOBARatio = 1,
+                                        HRPercRatio = 1,
+                                        BBPercRatio = 1,
+                                        KPercRatio = 1,
+                                        GBPercRatio = 1,
+                                        FIPRatio = 1,
+                                        ERARatio = 1
+                                    });
+
+                                prevMonth++;
+                                if (prevMonth > 9)
+                                {
+                                    prevMonth = 4;
+                                    prevYear++;
+                                }
                             }
                         }
 

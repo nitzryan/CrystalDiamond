@@ -55,6 +55,7 @@ CREATE TABLE "Model_HitterStats" (
 	"Month"	INTEGER NOT NULL,
 	"Age"	REAL NOT NULL,
 	"PA"	INTEGER NOT NULL,
+	"InjStatus" INTEGER NOT NULL,
 	"MonthFrac" REAL NOT NULL,
 	"LevelId"	REAL NOT NULL,
 	"ParkRunFactor"	REAL NOT NULL,
@@ -86,6 +87,7 @@ CREATE TABLE "Model_PitcherStats" (
 	"Month"	INTEGER NOT NULL,
 	"Age"	REAL NOT NULL,
 	"BF"	INTEGER NOT NULL,
+	"InjStatus" INTEGER NOT NULL,
 	"MonthFrac" REAL NOT NULL,
 	"LevelId"	REAL NOT NULL,
 	"ParkRunFactor"	REAL NOT NULL,
@@ -584,4 +586,11 @@ CREATE INDEX "idx_PitcherMonthStats_PlayerDate" ON "Player_Pitcher_MonthStats" (
 	"year",
 	"month",
 	"levelId"
+);
+
+CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
+	"mlbId",
+	"year",
+	"month",
+	"day"
 );

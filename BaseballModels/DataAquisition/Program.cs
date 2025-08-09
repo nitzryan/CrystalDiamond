@@ -51,11 +51,13 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            //if (!ModelMonthStats.Main())
+            //if (!await TransactionLog.Main())
             //    return;
 
-            if (!await TransactionLog.Main())
+            if (!ModelMonthStats.Main())
                 return;
+
+
         }
     }
 }

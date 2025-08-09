@@ -55,6 +55,15 @@ namespace DataAquisition
                         if (code == "SU")
                             toIL = Constants.TL_SUSP;
 
+                        // Get Rehab Assignments
+                        if (t.TryGetProperty("description", out var e))
+                        {
+                            string desc = e.ToString();
+                            if (desc.Contains("rehab"))
+                                toIL = Constants.TL_INJ_REHAB;
+                        }
+
+                        // Get Injury Status changes
                         if (code == "SC")
                         {
                             if (t.TryGetProperty("description", out var el))
@@ -83,7 +92,7 @@ namespace DataAquisition
                         if (parentOrgId == -2) // Not moved to a valid team (often for pre-draft or AFL transactions
                             continue;
 
-                        logs.Add(new Transaction_Log
+                        Transaction_Log tl = new Transaction_Log
                         {
                             MlbId = id,
                             Year = birthdate[0],
@@ -91,7 +100,18 @@ namespace DataAquisition
                             Day = birthdate[2],
                             ToIL = toIL,
                             ParentOrgId = parentOrgId
-                        });
+                        };
+
+                        // Sometimes has duplicate transactions, so check different than last
+                        if (!logs.Any() 
+                            || tl.Year != logs.Last().Year 
+                            || tl.Month != logs.Last().Month 
+                            || tl.Day != logs.Last().Day
+                            || tl.ToIL != logs.Last().ToIL
+                            || tl.ParentOrgId != logs.Last().ParentOrgId)
+                        {
+                            logs.Add(tl);
+                        }
                     }
                 }
                 catch (Exception e)

@@ -7,6 +7,7 @@ namespace Db
 		public required int Month {get; set;}
 		public required float Age {get; set;}
 		public required int BF {get; set;}
+		public required int InjStatus {get; set;}
 		public required float MonthFrac {get; set;}
 		public required float LevelId {get; set;}
 		public required float ParkRunFactor {get; set;}
@@ -28,6 +29,7 @@ namespace Db
 				Month = this.Month,
 				Age = this.Age,
 				BF = this.BF,
+				InjStatus = this.InjStatus,
 				MonthFrac = this.MonthFrac,
 				LevelId = this.LevelId,
 				ParkRunFactor = this.ParkRunFactor,
