@@ -34,4 +34,5 @@ IF EXIST %DB_BACKUP% (
 endlocal
 
 python linqCreation.py
+python pyCreation.py
 PAUSE

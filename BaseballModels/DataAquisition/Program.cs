@@ -42,10 +42,13 @@
             //if (!UpdateServiceTime.Main())
             //    return;
 
-            while (!UpdateCareers.Main(years))
-            { }
+            //if (!FangraphsData.Main(years))
+            //    return;
 
-            if (!ModelPlayers.Main(years.Last(), months.Last()))
+            //while (!UpdateCareers.Main(years))
+            //{ }
+
+            if (!ModelPlayers.Main())
                 return;
 
             if (!ModelPlayerWar.Main())
@@ -56,8 +59,6 @@
 
             if (!ModelMonthStats.Main())
                 return;
-
-
         }
     }
 }

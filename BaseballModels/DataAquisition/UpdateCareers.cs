@@ -10,34 +10,7 @@ namespace DataAquisition
         public static bool Main(List<int> years)
         {
             try {
-                // Apply Chadwick Register to correlate ids
-                ProcessStartInfo info = new()
-                {
-                    FileName = "python",
-                    Arguments = $"{Constants.SCRIPT_FOLDER}/GetChadwick.py",
-                    UseShellExecute = true,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = false,
-                    CreateNoWindow = false,
-                };
-                using (Process process = Process.Start(info) ?? throw new Exception("Failed to create process"))
-                {
-                    process.WaitForExit();
-                    if (process.ExitCode != 0)
-                        throw new Exception("GetChadwick.py Python script failed");
-                }
-
-                // Update Fangraphs WAR
-                foreach (int year in years)
-                {
-                    info.Arguments = $"{Constants.SCRIPT_FOLDER}/GetFangraphsWar.py {year}";
-                    using (Process process = Process.Start(info) ?? throw new Exception("Failed to create process"))
-                    {
-                        process.WaitForExit();
-                        if (process.ExitCode != 0)
-                            throw new Exception("GetFangraphsWar.py Python script failed");
-                    }
-                }
+                
 
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
                 db.Player_CareerStatus.RemoveRange(db.Player_CareerStatus);

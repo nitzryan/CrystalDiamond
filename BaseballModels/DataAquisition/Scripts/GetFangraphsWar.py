@@ -14,7 +14,7 @@ def _Update_Fangraphs_War(db : sqlite3.Connection, year):
     for row in tqdm(hittingStats.itertuples(), desc="Fangraphs Hitter War"):
         try:
             mlbId = cursor.execute("SELECT mlbId FROM Player WHERE fangraphsId=?", (row.IDfg,)).fetchone()[0]
-            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? AND position=?", (mlbId, year, 1)).fetchone()[0] > 0:
+            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? AND isHitter=?", (mlbId, year, 1)).fetchone()[0] > 0:
                 continue
             
             cursor.execute("INSERT INTO Player_YearlyWar VALUES(?,?,?,?,?,?,?,?)", (mlbId, year, 1, row.PA, row.WAR, row.Off, row.Def, row.BsR))
@@ -27,7 +27,7 @@ def _Update_Fangraphs_War(db : sqlite3.Connection, year):
     for row in tqdm(pitchingStats.itertuples(), desc="Fangraphs Pitcher War"):
         try:
             mlbId = cursor.execute("SELECT mlbId FROM Player WHERE fangraphsId=?", (row.IDfg,)).fetchone()[0]
-            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? and position=?", (mlbId, year, 0)).fetchone()[0] > 0:
+            if mlbId == None or cursor.execute("SELECT COUNT(*) FROM Player_YearlyWar WHERE mlbId=? AND year=? and isHitter=?", (mlbId, year, 0)).fetchone()[0] > 0:
                 continue
             
             innings, subinnings = str(row.IP).split('.')
@@ -38,6 +38,7 @@ def _Update_Fangraphs_War(db : sqlite3.Connection, year):
             pass
         
     cursor.execute("END TRANSACTION")
+    db.commit()
     
 if __name__ == "__main__":
     db = sqlite3.connect("../../../../Db/BaseballStats.db")

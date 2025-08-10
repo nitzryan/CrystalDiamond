@@ -122,6 +122,18 @@ CREATE TABLE "Model_Players" (
 	"lastProspectMonth"	INTEGER NOT NULL,
 	"lastMLBSeason"	INTEGER NOT NULL,
 	"ageAtSigningYear"	REAL NOT NULL,
+	"draftPick" INTEGER NOT NULL,
+	"highestLevelHitter" INTEGER NOT NULL,
+	"highestLevelPitcher" INTEGER NOT NULL,
+	"warHitter" REAL NOT NULL,
+	"warPitcher" REAL NOT NULL,
+	"peakWarHitter" REAL NOT NULL,
+	"peakWarPitcher" REAL NOT NULL,
+	"totalPA" INTEGER NOT NULL,
+	"totalOuts" INTEGER NOT NULL,
+	"rateOff" REAL NOT NULL,
+	"rateBsr" REAL NOT NULL,
+	"rateDef" REAL NOT NULL,
 	PRIMARY KEY("mlbId")
 );
 

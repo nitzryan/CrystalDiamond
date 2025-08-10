@@ -178,9 +178,9 @@ namespace DataAquisition
                 .Select(f => f.ToIL).Distinct();
 
             int ilStatus = 0;
-            foreach (int il in ils)
+            foreach (int il in ils.Where(f => f > 0))
             {
-                ilStatus += (1 << il);
+                ilStatus += (1 << (il - 1));
             }
 
             return ilStatus;
