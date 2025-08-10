@@ -28,6 +28,8 @@ namespace DataAquisition
                             lastMlbSeason = pcs.ServiceLapseYear.Value;
                         else if (pcs.ServiceEndYear != null)
                             lastMlbSeason = pcs.ServiceEndYear.Value;
+                        else if (pcs.PlayingGap != null)
+                            lastMlbSeason = pcs.PlayingGap.Value;
                         else
                             lastMlbSeason = 10000;
 

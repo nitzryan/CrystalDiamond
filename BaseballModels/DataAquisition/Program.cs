@@ -51,14 +51,14 @@
             if (!ModelPlayers.Main())
                 return;
 
-            if (!ModelPlayerWar.Main())
-                return;
+            //if (!ModelPlayerWar.Main())
+            //    return;
 
             //if (!await TransactionLog.Main())
             //    return;
 
-            if (!ModelMonthStats.Main())
-                return;
+            //if (!ModelMonthStats.Main())
+            //    return;
         }
     }
 }
