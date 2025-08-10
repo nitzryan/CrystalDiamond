@@ -45,8 +45,8 @@
             //if (!FangraphsData.Main(years))
             //    return;
 
-            //while (!UpdateCareers.Main(years))
-            //{ }
+            if (!UpdateCareers.Main(years))
+                return;
 
             if (!ModelPlayers.Main())
                 return;

@@ -338,8 +338,9 @@ namespace DataAquisition
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear != null))
                 {
                     IEnumerable<int> playerYears = pcs.IsHitter == 1 ?
-                        db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year).OrderByDescending(f => f).Distinct() :
-                        db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year).OrderByDescending(f => f).Distinct();
+                        db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year):
+                        db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year);
+                    playerYears = playerYears.Distinct().OrderDescending();
 
                     int lastYear = -1;
                     if (!playerYears.Any())
