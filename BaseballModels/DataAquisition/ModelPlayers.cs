@@ -13,47 +13,46 @@ namespace DataAquisition
                 db.Model_Players.RemoveRange(db.Model_Players);
                 db.SaveChanges();
 
-                var players = db.Player_CareerStatus
-                    .Where(f => f.CareerStartYear >= Constants.START_YEAR
-                        && f.IgnorePlayer == null);
+                var players = db.Player_CareerStatus.Join(db.Player, pcs => pcs.MlbId, p => p.MlbId, (pcs, p) => new { pcs, p })
+                    .Where(f => f.p.SigningYear >= Constants.START_YEAR && f.pcs.IgnorePlayer == null);
                 using (ProgressBar progressBar = new ProgressBar(players.Count(), $"Creating Model_Players"))
                 {
-                    foreach (var pcs in players)
+                    foreach (var p in players)
                     {
                         // Last MLB Season
                         int lastMlbSeason = -1;
-                        if (pcs.AgedOut != null)
-                            lastMlbSeason = pcs.AgedOut.Value;
-                        else if (pcs.ServiceLapseYear != null)
-                            lastMlbSeason = pcs.ServiceLapseYear.Value;
-                        else if (pcs.ServiceEndYear != null)
-                            lastMlbSeason = pcs.ServiceEndYear.Value;
-                        else if (pcs.PlayingGap != null)
-                            lastMlbSeason = pcs.PlayingGap.Value;
+                        if (p.pcs.AgedOut != null)
+                            lastMlbSeason = p.pcs.AgedOut.Value;
+                        else if (p.pcs.ServiceLapseYear != null)
+                            lastMlbSeason = p.pcs.ServiceLapseYear.Value;
+                        else if (p.pcs.ServiceEndYear != null)
+                            lastMlbSeason = p.pcs.ServiceEndYear.Value;
+                        else if (p.pcs.PlayingGap != null)
+                            lastMlbSeason = p.pcs.PlayingGap.Value;
                         else
                             lastMlbSeason = 10000;
 
                         // Last Prospect date
                         int lastProspectYear = -1;
                         int lastProspectMonth = -1;
-                        if (pcs.AgedOut != null)
+                        if (p.pcs.AgedOut != null)
                         {
-                            lastProspectYear = pcs.AgedOut.Value;
+                            lastProspectYear = p.pcs.AgedOut.Value;
                             lastProspectMonth = 13;
                         }
-                        else if (pcs.MlbRookieYear != null && pcs.MlbRookieMonth != null)
+                        else if (p.pcs.MlbRookieYear != null && p.pcs.MlbRookieMonth != null)
                         {
-                            lastProspectYear = pcs.MlbRookieYear.Value;
-                            lastProspectMonth = pcs.MlbRookieMonth.Value;
+                            lastProspectYear = p.pcs.MlbRookieYear.Value;
+                            lastProspectMonth = p.pcs.MlbRookieMonth.Value;
                         }
-                        else if (pcs.ServiceLapseYear != null)
+                        else if (p.pcs.ServiceLapseYear != null)
                         {
-                            lastProspectYear = pcs.ServiceLapseYear.Value;
+                            lastProspectYear = p.pcs.ServiceLapseYear.Value;
                             lastProspectMonth = 13;
                         }
-                        else if (pcs.PlayingGap != null)
+                        else if (p.pcs.PlayingGap != null)
                         {
-                            lastProspectYear = pcs.PlayingGap.Value;
+                            lastProspectYear = p.pcs.PlayingGap.Value;
                             lastProspectMonth = 13;
                         }
                         else
@@ -63,7 +62,7 @@ namespace DataAquisition
                         }
 
                         // Age at Signing
-                        var player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
+                        var player = db.Player.Where(f => f.MlbId == p.pcs.MlbId).First();
                         if (player.SigningYear == null || player.SigningMonth == null)
                             throw new Exception($"Null Signing Year/Month for {player.MlbId}");
 
@@ -71,11 +70,11 @@ namespace DataAquisition
                                                                         player.BirthYear, player.BirthMonth, player.BirthDate);
 
                         // Get WAR
-                        var fWar = db.Player_YearlyWar.Where(f => f.MlbId == pcs.MlbId);
-                        if (pcs.ServiceEndYear != null)
-                            fWar = fWar.Where(f => f.Year <= pcs.ServiceEndYear);
-                        if (pcs.ServiceLapseYear != null)
-                            fWar = fWar.Where(f => f.Year <= pcs.ServiceLapseYear);
+                        var fWar = db.Player_YearlyWar.Where(f => f.MlbId == p.pcs.MlbId);
+                        if (p.pcs.ServiceEndYear != null)
+                            fWar = fWar.Where(f => f.Year <= p.pcs.ServiceEndYear);
+                        if (p.pcs.ServiceLapseYear != null)
+                            fWar = fWar.Where(f => f.Year <= p.pcs.ServiceLapseYear);
 
                         var hitterWar = fWar.Where(f => f.IsHitter == 1);
                         var pitcherWar = fWar.Where(f => f.IsHitter == 0);
@@ -111,14 +110,14 @@ namespace DataAquisition
                         }
 
                         // Get Highest Level
-                        int highLevelHitter = pcs.HighestLevelHitter != null ? pcs.HighestLevelHitter.Value : -1;
-                        int highLevelPitcher = pcs.HighestLevelPitcher != null ? pcs.HighestLevelPitcher.Value : -1;
+                        int highLevelHitter = p.pcs.HighestLevelHitter != null ? p.pcs.HighestLevelHitter.Value : -1;
+                        int highLevelPitcher = p.pcs.HighestLevelPitcher != null ? p.pcs.HighestLevelPitcher.Value : -1;
 
                         db.Model_Players.Add(new Model_Players
                         {
-                            MlbId = pcs.MlbId,
-                            IsHitter = pcs.IsHitter,
-                            IsPitcher = pcs.IsPitcher,
+                            MlbId = p.pcs.MlbId,
+                            IsHitter = p.pcs.IsHitter,
+                            IsPitcher = p.pcs.IsPitcher,
                             LastProspectYear = lastProspectYear,
                             LastProspectMonth = lastProspectMonth,
                             LastMLBSeason = lastMlbSeason,

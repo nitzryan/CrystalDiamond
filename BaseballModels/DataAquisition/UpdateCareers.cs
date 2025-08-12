@@ -55,46 +55,46 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 // Set Career Start Year/Month
-                foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear == null))
-                {
-                    int hitterStartYear = 10000;
-                    int pitcherStartYear = 10000;
-                    int hitterStartMonth = 13;
-                    int pitcherStartMonth = 13;
+                //foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear == null))
+                //{
+                //    int hitterStartYear = 10000;
+                //    int pitcherStartYear = 10000;
+                //    int hitterStartMonth = 13;
+                //    int pitcherStartMonth = 13;
                     
-                    if (pcs.IsHitter == 1)
-                    {
-                        var dates = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
-                            .OrderBy(f => f.Year).ThenBy(f => f.Month);
-                        if (dates.Any())
-                        {
-                            var firstDate = dates.First();
-                            hitterStartYear = firstDate.Year;
-                            hitterStartMonth = firstDate.Month;
-                        }  
-                    }
+                //    if (pcs.IsHitter == 1)
+                //    {
+                //        var dates = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
+                //            .OrderBy(f => f.Year).ThenBy(f => f.Month);
+                //        if (dates.Any())
+                //        {
+                //            var firstDate = dates.First();
+                //            hitterStartYear = firstDate.Year;
+                //            hitterStartMonth = firstDate.Month;
+                //        }  
+                //    }
 
-                    if (pcs.IsPitcher == 1)
-                    {
-                        var dates = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
-                            .OrderBy(f => f.Year).ThenBy(f => f.Month);
-                        if (dates.Any())
-                        {
-                            var firstDate = dates.First();
-                            pitcherStartYear = firstDate.Year;
-                            pitcherStartMonth = firstDate.Month;
-                        }
-                    }
+                //    if (pcs.IsPitcher == 1)
+                //    {
+                //        var dates = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
+                //            .OrderBy(f => f.Year).ThenBy(f => f.Month);
+                //        if (dates.Any())
+                //        {
+                //            var firstDate = dates.First();
+                //            pitcherStartYear = firstDate.Year;
+                //            pitcherStartMonth = firstDate.Month;
+                //        }
+                //    }
 
-                    int startYear = Math.Min(hitterStartYear, pitcherStartYear);
-                    int startMonth = Math.Min(hitterStartMonth, pitcherStartMonth);
-                    if (startYear < 10000)
-                    {
-                        pcs.CareerStartYear = startYear;
-                        pcs.CareerStartMonth = startMonth;
-                    }
-                }
-                db.SaveChanges();
+                //    int startYear = Math.Min(hitterStartYear, pitcherStartYear);
+                //    int startMonth = Math.Min(hitterStartMonth, pitcherStartMonth);
+                //    if (startYear < 10000)
+                //    {
+                //        pcs.CareerStartYear = startYear;
+                //        pcs.CareerStartMonth = startMonth;
+                //    }
+                //}
+                //db.SaveChanges();
 
                 // Get MLB Start Year
                 foreach (var pcs in db.Player_CareerStatus)
@@ -235,37 +235,34 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 
-                foreach (int year in years)
+                // Age Out (No MLB)
+                int cutoffYear = years.Last() - Constants.AGED_OUT_AGE;
+                foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear == null))
                 {
-                    // Age Out (No MLB)
-                    int cutoffYear = year + Constants.AGED_OUT_AGE;
-                    foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear == null && f.AgedOut != null))
-                    {
-                        Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
-                        int birthYear = player.BirthYear;
-                        int birthMonth = player.BirthMonth;
-                        if (birthMonth >= 4)
-                            birthYear++;
+                    Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
+                    int birthYear = player.BirthYear;
+                    int birthMonth = player.BirthMonth;
+                    if (birthMonth >= 4)
+                        birthYear++;
 
-                        if (birthYear < cutoffYear)
-                            pcs.AgedOut = birthYear + Constants.AGED_OUT_AGE;
-                    }
-                    db.SaveChanges();
-
-                    // Aged Out (Some MLB)
-                    foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear != null))
-                    {
-                        Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
-                        int birthYear = player.BirthYear;
-                        int birthMonth = player.BirthMonth;
-                        if (birthMonth >= 4)
-                            birthYear++;
-
-                        if (pcs.MlbStartYear - birthYear > cutoffYear)
-                            pcs.AgedOut = birthYear + Constants.AGED_OUT_AGE;
-                    }
-                    db.SaveChanges();
+                    if (birthYear < cutoffYear)
+                        pcs.AgedOut = birthYear + Constants.AGED_OUT_AGE;
                 }
+                db.SaveChanges();
+
+                // Aged Out (Some MLB)
+                foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear != null))
+                {
+                    Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
+                    int birthYear = player.BirthYear;
+                    int birthMonth = player.BirthMonth;
+                    if (birthMonth >= 4)
+                        birthYear++;
+
+                    if (pcs.MlbStartYear - birthYear > cutoffYear)
+                        pcs.AgedOut = birthYear + Constants.AGED_OUT_AGE;
+                }
+                db.SaveChanges();
 
                 // Players to ignore for training (mostly players signed to MLB contracts from Asia)
                 string[] ignoreIds = File.ReadAllText(Constants.IGNORE_PLAYERS_FILE).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -335,31 +332,33 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 // Add Playing Gap for players who hasn't played in the last 2 years
-                foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear != null))
+                foreach (var pcs in db.Player_CareerStatus
+                    .Join(db.Player, pcs=>pcs.MlbId, p=>p.MlbId, (pl,p) => new {pl, p})
+                    .Where(f => f.p.SigningYear != null))
                 {
-                    IEnumerable<int> playerYears = pcs.IsHitter == 1 ?
-                        db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year):
-                        db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => f.Year);
+                    IEnumerable<int> playerYears = pcs.pl.IsHitter == 1 ?
+                        db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.pl.MlbId).Select(f => f.Year):
+                        db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.pl.MlbId).Select(f => f.Year);
                     playerYears = playerYears.Distinct().OrderDescending();
 
                     int lastYear = -1;
                     if (!playerYears.Any())
-                        lastYear = pcs.CareerStartYear.Value + 2;
+                        lastYear = pcs.p.SigningYear.Value + 2;
                     else
                         lastYear = playerYears.First() + 2;
 
                     if (lastYear < Constants.CURRENT_YEAR)
-                        pcs.PlayingGap = lastYear;
+                        pcs.pl.PlayingGap = lastYear;
                 }
 
                 // Update signing date for players that weren't drafted
-                foreach (var player in db.Player.Where(f => f.SigningYear == null))
-                {
-                    var pcs = db.Player_CareerStatus.Where(f => f.MlbId == player.MlbId).First();
-                    player.SigningYear = pcs.CareerStartYear;
-                    player.SigningMonth = pcs.CareerStartMonth;
-                }
-                db.SaveChanges();
+                //foreach (var player in db.Player.Where(f => f.SigningYear == null))
+                //{
+                //    var pcs = db.Player_CareerStatus.Where(f => f.MlbId == player.MlbId).First();
+                //    player.SigningYear = pcs.CareerStartYear;
+                //    player.SigningMonth = pcs.CareerStartMonth;
+                //}
+                //db.SaveChanges();
 
                 return true;
             } catch (Exception e)
