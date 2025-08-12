@@ -12,8 +12,6 @@ namespace Db
 		public int? MlbRookieMonth {get; set;}
 		public int? ServiceEndYear {get; set;}
 		public int? ServiceLapseYear {get; set;}
-		public int? CareerStartYear {get; set;}
-		public int? CareerStartMonth {get; set;}
 		public int? AgedOut {get; set;}
 		public int? PlayingGap {get; set;}
 		public int? IgnorePlayer {get; set;}
@@ -34,8 +32,6 @@ namespace Db
 				MlbRookieMonth = this.MlbRookieMonth,
 				ServiceEndYear = this.ServiceEndYear,
 				ServiceLapseYear = this.ServiceLapseYear,
-				CareerStartYear = this.CareerStartYear,
-				CareerStartMonth = this.CareerStartMonth,
 				AgedOut = this.AgedOut,
 				PlayingGap = this.PlayingGap,
 				IgnorePlayer = this.IgnorePlayer,

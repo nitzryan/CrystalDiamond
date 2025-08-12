@@ -221,8 +221,6 @@ CREATE TABLE "Player_CareerStatus" (
 	"mlbRookieMonth"	INTEGER,
 	"serviceEndYear"	INTEGER,
 	"serviceLapseYear"	INTEGER,
-	"careerStartYear"	INTEGER,
-	"careerStartMonth" INTEGER,
 	"agedOut"	INTEGER,
 	"playingGap" INTEGER,
 	"ignorePlayer"	INTEGER,

@@ -26,7 +26,7 @@ class DB_Model_TrainingHistory:
         cursor.executemany("INSERT INTO Model_TrainingHistory VALUES(?,?,?,?,?,?,?)", [i.To_Tuple() for i in items])
     
     @staticmethod
-    def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_TrainingHistory']:
+    def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: dict) -> list['DB_Model_TrainingHistory']:
         items = cursor.execute("SELECT * FROM Model_TrainingHistory " + conditional, values).fetchall()
         return [DB_Model_TrainingHistory(i) for i in items]
 
