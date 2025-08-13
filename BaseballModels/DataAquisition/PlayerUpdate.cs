@@ -7,6 +7,68 @@ namespace DataAquisition
 {
     internal class PlayerUpdate
     {
+        private const int NUM_THREADS = 16;
+        private static int progress_bar_thread = 0;
+        private static List<int> thread_counts;
+
+        private static async Task<(Player?, string?)> Get_Player_Async(int id, HttpClient httpClient)
+        {
+            HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                throw new Exception($"Getting player={id}: {response.StatusCode}");
+            }
+            string responseBody = await response.Content.ReadAsStringAsync();
+            JsonDocument json = JsonDocument.Parse(responseBody);
+            try
+            {
+                JsonElement person = json.RootElement.GetProperty("people").EnumerateArray().ElementAt(0);
+                return (GetPlayerFromJson(person), null);
+
+            }
+            catch (Exception e)
+            {
+                return(null, ($"Exception for id={id}: {e.Message}"));
+            }
+        }
+
+        private static async Task<(List<Player>, List<string>)> Get_Player_Thread_Function(IEnumerable<int> ids, int thread_idx, ProgressBar progressBar, int progressSum)
+        {
+            List<Player> playersToInsert = new();
+            List<string> errors = new();
+
+            HttpClient httpClient = new();
+            IProgress<float> progress = progressBar.AsProgress<float>();
+            foreach (var id in ids)
+            {
+                // Multiple attempts to get player
+                for (var i = 0; i < 3; i++)
+                {
+                    try {
+                        var result = await Get_Player_Async(id, httpClient);
+                        if (result.Item1 != null)
+                            playersToInsert.Add(result.Item1);
+                        else if (result.Item2 != null)
+                            errors.Add(result.Item2);
+                        break;
+                    } catch (Exception)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+
+                thread_counts[thread_idx]++; // Allows for tracking progress
+
+                if (thread_idx == progress_bar_thread) // Only update from single thread
+                {
+                    int count = thread_counts.Sum();
+                    progress.Report(Convert.ToSingle(count) / progressSum);
+                }
+            }
+
+            return (playersToInsert, errors);
+        }
+
         static private Player GetPlayerFromJson(JsonElement person)
         {
             int id = person.GetProperty("id").GetInt32();
@@ -148,9 +210,9 @@ namespace DataAquisition
             db.ChangeTracker.Clear();
             List<int> playersToInsert = new List<int>();
 
-            using (ProgressBar progressBar = new ProgressBar(Constants.SPORT_IDS.Count, $"Getting PlayerIds for {year}"))
+            using (ProgressBar progressBar = new ProgressBar(Constants.SPORT_IDS.Count - 1, $"Getting PlayerIds for {year}"))
             {
-                for (int i = 0; i < Constants.SPORT_IDS.Count; i++) // Different levels
+                for (int i = 0; i < Constants.SPORT_IDS.Count - 1; i++) // Different levels, ignore last because it is a different level in MLB's sytem
                 {
                     int sportId = Constants.SPORT_IDS.ElementAt(i);
 
@@ -191,38 +253,44 @@ namespace DataAquisition
 
         // Takes in list of ids, gets player data for each id
         // Assumes ids not in db, and that no duplicate ids in list
-        static private async Task<bool> CreatePlayersAsync(SqliteDbContext db, HttpClient httpClient, List<int> playersToInsert, int year)
+        static private async Task<bool> CreatePlayersAsync(SqliteDbContext db, HttpClient httpClient, List<int> ids, int year)
         {
             StreamWriter file = File.CreateText(Constants.DATA_AQ_DIRECTORY + $"Logs/PlayerUpdate-{year}.txt");
-            using (ProgressBar progressBar = new ProgressBar(playersToInsert.Count, $"Retrieving Player Data for {year}"))
+            using (ProgressBar progressBar = new ProgressBar(ids.Count, $"Retrieving Player Data for {year}"))
             {
-                foreach (var id in playersToInsert)
+                // Check for empty (Covid year)
+                if (ids.Count == 0)
+                    return true;
+
+                // Split ids into groups for tasks
+                int j = 0;
+                IEnumerable<IEnumerable<int>> id_partitions = from item in ids
+                                                              group item by j++ % NUM_THREADS into part
+                                                              select part.AsEnumerable();
+
+                List<Task<(List<Player>, List<string>)>> tasks = new(NUM_THREADS);
+                progress_bar_thread = 0;
+                thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+
+                for (int i = 0; i < NUM_THREADS; i++)
                 {
-                    // Get Player    
-                    HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
-                    if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                    {
-                        file.WriteLine($"Getting player data for {id}: {response.StatusCode}");
-                        progressBar.Tick();
-                        continue;
-                    }
+                    if (i >= id_partitions.Count())  // No more partitions left to give out
+                        break;
+                    
+                    int idx = i;
 
-                    try
-                    {
-                        string responseBody = await response.Content.ReadAsStringAsync();
-                        JsonDocument json = JsonDocument.Parse(responseBody);
-                        JsonElement person = json.RootElement.GetProperty("people").EnumerateArray().ElementAt(0);
-                        Player player = GetPlayerFromJson(person);
+                    Task<(List<Player>, List<string>)> t = Get_Player_Thread_Function(id_partitions.ElementAt(i), idx, progressBar, ids.Count);
+                    tasks.Add(t);
+                }
 
-                        db.Player.Add(player);
+                foreach(var task in tasks)
+                {
+                    var result = await task;
+                    db.AddRange(result.Item1);
+                    foreach (string error in result.Item2)
+                        file.WriteLine(error);
 
-                    }
-                    catch (Exception e)
-                    {
-                        file.WriteLine($"Exception for id={id}: {e.Message}");
-                    }
-
-                    progressBar.Tick();
+                    progress_bar_thread++;
                 }
 
                 db.SaveChanges();

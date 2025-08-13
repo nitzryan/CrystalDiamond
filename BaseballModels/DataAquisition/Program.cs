@@ -10,8 +10,8 @@
             List<int> months = [4, 5, 6, 7, 8, 9];
             foreach (int year in years)
             {
-                //while (!await PlayerUpdate.Main(year))
-                //{ }
+                while (!await PlayerUpdate.Main(year))
+                { }
 
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
@@ -54,8 +54,8 @@
             if (!ModelPlayerWar.Main())
                 return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
             if (!ModelMonthStats.Main())
                 return;
