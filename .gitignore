@@ -10,3 +10,8 @@ bin/
 
 # Log Files
 Logs/
+
+# Python
+*.ipynb
+__pycache__/
+*.pt
