@@ -155,7 +155,7 @@ namespace DataAquisition
                                                               select part.AsEnumerable();
 
                 List<Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)>> tasks = new(NUM_THREADS);
-                using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Generating Player Org Map"))
+                using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Getting Transactions"))
                 {
                     progress_bar_thread = 0;
                     thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];

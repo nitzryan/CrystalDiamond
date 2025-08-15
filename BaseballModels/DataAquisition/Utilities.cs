@@ -198,6 +198,10 @@ namespace DataAquisition
 
         public static int GetParentOrgId(int teamId, int year, SqliteDbContext db)
         {
+            // Check if team is parent
+            if (db.Team_OrganizationMap.Any(f => f.ParentOrgId == teamId))
+                return teamId;
+
             var tom = db.Team_OrganizationMap.Where(f => f.TeamId == teamId && f.Year == year);
             if (!tom.Any())
                 return -2;
