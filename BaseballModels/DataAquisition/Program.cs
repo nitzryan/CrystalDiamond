@@ -19,25 +19,25 @@
                 //if (!ParkFactorUpdate.Main(year))
                 //    return;
 
-                //foreach (int month in months)
-                //{
-                //    if (!CalculateLevelStats.Main(year, month))
-                //        return;
+                foreach (int month in months)
+                {
+                    //    if (!CalculateLevelStats.Main(year, month))
+                    //        return;
 
-                //    if (!CalculateMonthStats.Main(year, month))
-                //        return;
+                    //    if (!CalculateMonthStats.Main(year, month))
+                    //        return;
 
-                //    if (!CalculateMonthRatios.Main(year, month))
-                //        return;
-                //}
+                    //    if (!CalculateMonthRatios.Main(year, month))
+                    //        return;
+                    //}
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                    //if (!CalculateAnnualStats.Main(year))
+                    //    return;
 
-                //while (!await UpdateParents.Main(year))
-                //{ }
+                    //while (!await UpdateParents.Main(year))
+                    //{ }
 
-            }
+                }
 
             //if (!UpdateServiceTime.Main())
             //    return;
@@ -54,8 +54,8 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            if (!await TransactionLog.Main())
-                return;
+            //if (!await TransactionLog.Main())
+            //    return;
 
             //if (!ModelMonthStats.Main())
             //    return;

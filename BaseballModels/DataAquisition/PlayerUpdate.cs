@@ -1,7 +1,8 @@
 ﻿using Db;
+using HtmlAgilityPack;
 using ShellProgressBar;
-using System;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace DataAquisition
 {
@@ -10,6 +11,60 @@ namespace DataAquisition
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts;
+
+        // Returns List<PickNumber, Signed, Signing Bonus (null if unknown)>
+        private static async Task<List<(int, bool, int?)>> GetDraftSigningStatus(HttpClient httpClient, int year)
+        {
+            List<(int, bool, int?)> pickStatus = new();
+
+            List<int> rounds;
+            if (year < 2012)
+                rounds = [.. Enumerable.Range(1, 50)];
+            else if (year < 2020)
+                rounds = [.. Enumerable.Range(1, 40)];
+            else if (year == 2020)
+                rounds = [.. Enumerable.Range(1, 5)];
+            else
+                rounds = [.. Enumerable.Range(1, 20)];
+
+            using (ProgressBar progressBar = new(rounds.Count(), $"Getting Signing Status for {year} draft"))
+            {
+                foreach (int round in rounds)
+                {
+                    // Get page
+                    HttpResponseMessage response = await httpClient.GetAsync($"https://www.baseball-reference.com/draft/index.fcgi?year_ID={year}&draft_round={round}&draft_type=junreg&query_type=year_round");
+                    if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                    {
+                        throw new Exception($"Getting BR Draft Round={round} for Year={year}: {response.StatusCode}");
+                    }
+                    string responseBody = await response.Content.ReadAsStringAsync();
+
+                    // Create HTML doc
+                    var doc = new HtmlDocument();
+                    doc.LoadHtml(responseBody);
+
+                    // Get table
+                    var table = doc.DocumentNode.SelectSingleNode("//*[@id='draft_stats']");
+                    var rows = table.SelectNodes(".//tbody//tr");
+                    foreach (var row in rows)
+                    {
+                        int pickNum = Convert.ToInt32(row.SelectSingleNode(".//td[@data-stat='overall_pick']").InnerText);
+                        string signed = row.SelectSingleNode(".//td[@data-stat='signed']").InnerText;
+                        string bonus = row.SelectSingleNode(".//td[@data-stat='bonus']").InnerText;
+
+                        int? bonusAmount = bonus == "" ? null : Convert.ToInt32(Regex.Replace(bonus, "[$,]", ""));
+                        bool didSign = signed == "Y";
+
+                        pickStatus.Add((pickNum, didSign, bonusAmount));
+                    }
+
+                    Thread.Sleep(5000); // Otherwise BR will throw error for TooManyRequests
+                    progressBar.Tick();
+                }
+            }
+
+            return pickStatus;
+        }
 
         private static async Task<(Player?, string?)> Get_Player_Async(int id, HttpClient httpClient)
         {
@@ -125,7 +180,7 @@ namespace DataAquisition
             return player;
         }
 
-        static private async Task<bool> GetPlayersThroughDraftAsync(SqliteDbContext db, HttpClient httpClient, int year)
+        static private async Task<bool> GetPlayersThroughDraftAsync(SqliteDbContext db, HttpClient httpClient, int year, List<(int, bool, int?)> picksSigned)
         {
             db.ChangeTracker.Clear();
             List<int> playersAdded = new List<int>();
@@ -173,6 +228,17 @@ namespace DataAquisition
                             {
                                 Player player = GetPlayerFromJson(person);
                                 player.DraftPick = pick.GetProperty("pickNumber").GetInt32();
+
+                                // Check to see if player did not sign
+                                var pickData = picksSigned.Where(f => f.Item1 == player.DraftPick.Value).Single();
+                                if (!pickData.Item2)
+                                {
+                                    continue; // Did not sign
+                                }
+                                if (pickData.Item3 != null)
+                                {
+                                    player.DraftBonus = pickData.Item3;
+                                }
 
                                 // MLB API sometimes has duplicates, so check it hasn't already been added
                                 if (playersAdded.Contains(id))
@@ -307,16 +373,34 @@ namespace DataAquisition
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            // Look at current years draft
-            try
+            if (!db.Player.Any(f => f.SigningYear == year && f.DraftPick != null && f.DraftBonus != null))
             {
-                await GetPlayersThroughDraftAsync(db, httpClient, year);
-            } catch (Exception e)
-            { 
-                Console.WriteLine("failed GetPlayersThroughDraftAsync");
-                Utilities.LogException(e);
-                return false;
+                // Get picks in draft that actually signed
+                List<(int, bool, int?)> picksSigned;
+                try
+                {
+                    picksSigned = await GetDraftSigningStatus(httpClient, year);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("failed GetDraftSigningStatus");
+                    Utilities.LogException(e);
+                    return false;
+                }
+
+                // Look at current years draft
+                try
+                {
+                    await GetPlayersThroughDraftAsync(db, httpClient, year, picksSigned);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("failed GetPlayersThroughDraftAsync");
+                    Utilities.LogException(e);
+                    return false;
+                }
             }
+            
 
             // Look at all players that have stats in affiliated ball in the selected year
             List<int> playersToInsert;
