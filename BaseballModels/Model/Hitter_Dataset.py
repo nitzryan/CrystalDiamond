@@ -14,10 +14,6 @@ class Hitter_Dataset(torch.utils.data.Dataset):
             self.level_buckets = labels[:,:,2]
             self.pa_buckets = labels[:,:,3]
             
-        print(labels.shape)
-        print(self.twar_buckets.shape)
-        print(self.data.shape)
-            
     def __len__(self):
         return self.data.size(dim=1)
     

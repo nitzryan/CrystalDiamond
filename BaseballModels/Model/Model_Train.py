@@ -29,7 +29,6 @@ def train(network,  data_generator, loss_function, optimizer, logging = 200, sho
   avg_loss[1] /= num_batches
   avg_loss[2] /= num_batches
   avg_loss[3] /= num_batches
-  
   return avg_loss
 
 def test(network, test_loader, loss_function):

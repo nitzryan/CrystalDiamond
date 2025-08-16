@@ -7,7 +7,7 @@ from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_B
 class LSTM_Model(nn.Module):
     def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor):
         super().__init__()
-        self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_war2 = nn.Linear(hidden_size // 2, len(HITTER_TOTAL_WAR_BUCKETS))
         self.linear_pwar1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -19,15 +19,18 @@ class LSTM_Model(nn.Module):
         self.mutators = mutators
         
     def to(self, *args, **kwargs):
-        #self.mutators = self.mutators.to(*args, **kwargs)
+        self.mutators = self.mutators.to(*args, **kwargs)
         return super(LSTM_Model, self).to(*args, **kwargs)
     
     def forward(self, x, lengths):
+        if self.training:
+            x += self.mutators[:x.size(0), :x.size(1), :]
+        
         lengths = lengths.to(torch.device("cpu")).long()
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        packedOutput, _ = self.lstm(packedInput)
+        packedOutput, _ = self.rnn(packedInput)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         # Generate War predictions
@@ -94,6 +97,10 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     masked_loss_level = loss_level * mask
     masked_loss_pa = loss_pa * mask
     
+    
+    #print(torch.arange(max_steps, device=lengths.device).unsqueeze(0))
+    
+    
     # Calculate average loss of each entry (although not sure if this is actually good)
     loss_sums_war = masked_loss_war.sum(dim=1)
     loss_sums_pwar = masked_loss_pwar.sum(dim=1)
@@ -102,9 +109,20 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     
     lengths = lengths.float()
     
-    loss_mean_war = loss_sums_war / lengths.unsqueeze(1)
-    loss_mean_pwar = loss_sums_pwar / lengths.unsqueeze(1)
-    loss_mean_level = loss_sums_level / lengths.unsqueeze(1)
-    loss_mean_pa = loss_sums_pa / lengths.unsqueeze(1)
+    loss_mean_war = loss_sums_war / lengths#.unsqueeze(1)
+    loss_mean_pwar = loss_sums_pwar / lengths#.unsqueeze(1)
+    loss_mean_level = loss_sums_level / lengths#.unsqueeze(1)
+    loss_mean_pa = loss_sums_pa / lengths#.unsqueeze(1)
+    
+    # for i in range(batch_size):
+    #     if lengths[i].item() == 1:
+    #         print("\n\nHi")
+    #         #print(masked_loss_war[i])
+    #         #print(loss_sums_war[i])
+    #         print(loss_sums_war.shape)
+    #         print(lengths.shape)
+    #         print(loss_mean_war.shape)
+    #         #print(loss_mean_war[i])
+    #         break
     
     return loss_mean_war.mean(), loss_mean_pwar.mean(), loss_mean_level.mean(), loss_mean_pa.mean()

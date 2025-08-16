@@ -12,6 +12,5 @@ bin/
 Logs/
 
 # Python
-*.ipynb
 __pycache__/
 *.pt
