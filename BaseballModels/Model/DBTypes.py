@@ -222,16 +222,13 @@ class DB_Model_Players:
 class DB_Model_TrainingHistory:
 	def __init__(self, values : tuple[any]):
 		self.ModelName = values[0]
-		self.Year = values[1]
-		self.IsHitter = values[2]
-		self.TestLoss = values[3]
-		self.NumLayers = values[4]
-		self.HiddenSize = values[5]
-		self.ModelIdx = values[6]
+		self.IsHitter = values[1]
+		self.TestLoss = values[2]
+		self.ModelIdx = values[3]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelName,self.Year,self.IsHitter,self.TestLoss,self.NumLayers,self.HiddenSize,self.ModelIdx)
+		return (self.ModelName,self.IsHitter,self.TestLoss,self.ModelIdx)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_TrainingHistory']:
@@ -240,7 +237,7 @@ class DB_Model_TrainingHistory:
 
 	@staticmethod 
 	def Insert_Into_DB(cursor : 'sqlite3.Cursor', items : list['DB_Model_TrainingHistory']) -> None:
-		cursor.executemany("INSERT INTO Model_TrainingHistory VALUES(?,?,?,?,?,?,?)", [i.To_Tuple() for i in items])
+		cursor.executemany("INSERT INTO Model_TrainingHistory VALUES(?,?,?,?)", [i.To_Tuple() for i in items])
 
 ##############################################################################################
 class DB_Output_PlayerWar:

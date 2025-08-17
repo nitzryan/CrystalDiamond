@@ -139,13 +139,10 @@ CREATE TABLE "Model_Players" (
 
 CREATE TABLE "Model_TrainingHistory" (
 	"ModelName"	TEXT NOT NULL,
-	"Year"	INTEGER NOT NULL,
 	"IsHitter"	INTEGER NOT NULL,
 	"TestLoss"	REAL NOT NULL,
-	"NumLayers"	INTEGER NOT NULL,
-	"HiddenSize"	INTEGER NOT NULL,
 	"ModelIdx"	INTEGER NOT NULL,
-	PRIMARY KEY("ModelName","Year","IsHitter")
+	PRIMARY KEY("ModelName","ModelIdx","IsHitter")
 );
 
 CREATE TABLE "Output_PlayerWar" (
