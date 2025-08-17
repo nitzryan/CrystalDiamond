@@ -17,6 +17,8 @@ class LSTM_Model(nn.Module):
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
         self.mutators = mutators
+        self.nonlin = F.relu
+        #self.nonlin = F.leaky_relu
         
     def to(self, *args, **kwargs):
         self.mutators = self.mutators.to(*args, **kwargs)
@@ -34,19 +36,19 @@ class LSTM_Model(nn.Module):
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         # Generate War predictions
-        output_war = F.leaky_relu(self.linear_war1(output))
+        output_war = self.nonlin(self.linear_war1(output))
         output_war = self.linear_war2(output_war)
         
         # Generate Peak War Predictions
-        output_pwar = F.leaky_relu(self.linear_pwar1(output))
+        output_pwar = self.nonlin(self.linear_pwar1(output))
         output_pwar = self.linear_pwar2(output_pwar)
         
         # Generate Level Predictions
-        output_level = F.leaky_relu(self.linear_level1(output))
+        output_level = self.nonlin(self.linear_level1(output))
         output_level = self.linear_level2(output_level)
         
         # Generate PA Predictions
-        output_pa = F.leaky_relu(self.linear_pa1(output))
+        output_pa = self.nonlin(self.linear_pa1(output))
         output_pa = self.linear_pa2(output_pa)
         # output = self.linear(output)
         return output_war, output_pwar, output_level, output_pa

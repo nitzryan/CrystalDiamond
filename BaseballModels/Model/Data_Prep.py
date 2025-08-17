@@ -14,8 +14,10 @@ class Data_Prep:
     def __init__(self):
         # Mutators
         self.off_mutator_scale = 0.2
-        self.bsr_mutator_scale = 0.1
-        self.def_mutator_scale = 0.05
+        self.bsr_mutator_scale = 0.2
+        self.def_mutator_scale = 0.3
+        self.draft_mutator_scale = 0.2
+        self.signing_age_scale = 0.2
         
         cursor = db.cursor()
         # Get Ids for hitters, pitchers
@@ -42,12 +44,7 @@ class Data_Prep:
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         
         # Age and level information, keep stats individual
-        ages = torch.tensor([Data_Prep.__Map_Age(x) for x in hitter_stats]).float()
-        self.__hitter_age_mean = ages.mean()
-        self.__hitter_age_devs = ages.std()
-        levels = torch.tensor([Data_Prep.__Map_Level(x) for x in hitter_stats]).float()
-        self.__hitter_level_mean = levels.mean()
-        self.__hitter_level_devs = levels.std()
+        self.__Create_PCA_Norms(Data_Prep.__Map_HitterLevel, hitter_stats, "hitlevel", Data_Prep.__HitterLevel_Size)
         
         # Comments are explained variance ratios
         # [0.502, 0.217, 0.145, 0.102, 0.027, 0.007, 0.001]
@@ -66,12 +63,15 @@ class Data_Prep:
     __Map_DEF : Callable[[DB_Model_HitterStats], list[float]] = \
         lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH]
     
+    __Map_HitterLevel : Callable[[DB_Model_HitterStats], list[float]] = \
+        lambda h : [h.Age, h.LevelId, h.InjStatus]
+    
     __Map_Age : Callable[[DB_Model_HitterStats], list[float]] = lambda h : h.Age
     
     __Map_Level : Callable[[DB_Model_HitterStats], list[float]] = lambda h : h.LevelId
     
     __Hitter_Size = 3
-    __Level_Size = 2
+    __HitterLevel_Size = 3
     __OFF_Size = 5
     __BSR_Size = 2
     __DEF_Size = 9
@@ -79,30 +79,21 @@ class Data_Prep:
     __Cutoff_Year = 2024
     
     def Transform_HitterStats(self, stats : list[DB_Model_HitterStats]) -> torch.Tensor:
-        age_stats = torch.tensor([Data_Prep.__Map_Age(x) for x in stats], dtype=DTYPE).unsqueeze(-1)
-        level_stats = torch.tensor([Data_Prep.__Map_Level(x) for x in stats], dtype=DTYPE).unsqueeze(-1)
-        
-        age_stats = (age_stats - self.__hitter_age_mean) / self.__hitter_age_devs
-        level_stats = (level_stats - self.__hitter_level_mean) / self.__hitter_level_devs
-        
+        level_stats = torch.tensor([Data_Prep.__Map_HitterLevel(x) for x in stats], dtype=DTYPE)
         off_stats = torch.tensor([Data_Prep.__Map_OFF(x) for x in stats], dtype=DTYPE)
         bsr_stats = torch.tensor([Data_Prep.__Map_BSR(x) for x in stats], dtype=DTYPE)
         def_stats = torch.tensor([Data_Prep.__Map_DEF(x) for x in stats], dtype=DTYPE)
 
+        level_pca = torch.from_numpy(getattr(self, "__hitlevel_pca").transform(level_stats))
         off_pca = torch.from_numpy(getattr(self, "__off_pca").transform(off_stats))
         bsr_pca = torch.from_numpy(getattr(self, "__bsr_pca").transform(bsr_stats))
         def_pca = torch.from_numpy(getattr(self, "__def_pca").transform(def_stats))
         
-        # print(age_stats.shape)
-        # print(level_stats.shape)
-        # print(off_pca.shape)
-        # print(bsr_pca.shape)
-        # print(def_pca.shape)
-        return torch.cat((age_stats, level_stats, off_pca, bsr_pca, def_pca), dim=1)
+        return torch.cat((level_pca, off_pca, bsr_pca, def_pca), dim=1)
     
     @staticmethod
     def Get_Hitter_Size() -> int:
-        return Data_Prep.__Hitter_Size + Data_Prep.__Level_Size + Data_Prep.__OFF_Size + Data_Prep.__BSR_Size + Data_Prep.__DEF_Size
+        return Data_Prep.__Hitter_Size + Data_Prep.__HitterLevel_Size + Data_Prep.__OFF_Size + Data_Prep.__BSR_Size + Data_Prep.__DEF_Size
     
     def __Normalize_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         m : Callable[[DB_Model_Players], list[float]] = lambda h : [h.ageAtSigningYear, math.log10(h.draftPick)]
@@ -171,6 +162,7 @@ class Data_Prep:
         
     def Generate_Hitting_Mutators(self, batch_size : int, max_input_size : int) -> torch.Tensor:
         # Get std deviations from explained variance
+        level_stds = [math.sqrt(x) for x in getattr(self, "__hitlevel_devs")]
         off_stds = [math.sqrt(x) for x in getattr(self, "__off_devs")]
         bsr_stds =[math.sqrt(x) for x in getattr(self, "__bsr_devs")]
         def_stds = [math.sqrt(x) for x in getattr(self, "__def_devs")]
@@ -178,7 +170,7 @@ class Data_Prep:
         mutators = torch.zeros(size=(batch_size, max_input_size, self.Get_Hitter_Size()))
         for n in tqdm(range(batch_size), leave=False, desc="Generating Hitter Mutators"):
             for m in range(max_input_size):
-                player_header = [0,0,0,0,0]
+                player_header = [0] * (Data_Prep.__Hitter_Size + Data_Prep.__HitterLevel_Size)
                 
                 off_mutator = [0] * Data_Prep.__OFF_Size
                 bsr_mutator = [0] * Data_Prep.__BSR_Size
@@ -193,10 +185,11 @@ class Data_Prep:
                     
                 mutators[n,m] = torch.tensor(player_header + off_mutator + bsr_mutator + def_mutator)
             
-            mutators[1,:] = random.gauss(0, 0.2)
-            mutators[2,:] = random.gauss(0, 0.3)
+            mutators[1,:] = random.gauss(0, self.signing_age_scale)
+            mutators[2,:] = random.gauss(0, self.draft_mutator_scale)
             mutators[3,:] = random.gauss(0,0.2)
             # Only slightly modify level to avoid mid-month promotion overfitting
             mutators[4,:] = random.gauss(0, 0.01)
+            # No mutator for injury, only has discrete values
         
         return mutators

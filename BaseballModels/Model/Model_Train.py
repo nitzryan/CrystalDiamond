@@ -113,7 +113,7 @@ def trainAndGraph(network, training_generator, testing_generator, loss_function,
     print(f"Best result at epoch={best_epoch} with loss={best_loss}")
 
     graphLoss(epoch_counter, train_loss_history[0], test_loss_history[0], graph_y_range=graph_y_range, title="Total WAR")
-    graphLoss(epoch_counter, train_loss_history[1], test_loss_history[1], graph_y_range=graph_y_range, title="Peak WAR")
+    graphLoss(epoch_counter, train_loss_history[1], test_loss_history[1], title="Peak WAR")
     graphLoss(epoch_counter, train_loss_history[2], test_loss_history[2], title="Level")
     graphLoss(epoch_counter, train_loss_history[3], test_loss_history[3], title="PA")
   return best_loss
