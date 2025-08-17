@@ -21,11 +21,12 @@ class LSTM_Model(nn.Module):
         #self.nonlin = F.leaky_relu
         
     def to(self, *args, **kwargs):
-        self.mutators = self.mutators.to(*args, **kwargs)
+        if self.mutators is not None:
+            self.mutators = self.mutators.to(*args, **kwargs)
         return super(LSTM_Model, self).to(*args, **kwargs)
     
     def forward(self, x, lengths):
-        if self.training:
+        if self.training and self.mutators is not None:
             x += self.mutators[:x.size(0), :x.size(1), :]
         
         lengths = lengths.to(torch.device("cpu")).long()

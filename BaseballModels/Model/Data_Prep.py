@@ -119,13 +119,14 @@ class Data_Prep:
         pca.fit(normalized)
         setattr(self, "__" + name + "_pca", pca)
         
-    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any]) -> tuple[list['DB_Model_Players'], list[torch.Tensor], list[torch.Tensor], int]:
+    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any]) -> tuple[list['DB_Model_Players'], list[torch.Tensor], list[torch.Tensor], int, list[torch.Tensor]]:
         # Get Hitters
         cursor = db.cursor()
         hitters = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
         
         inputs = []
         outputs = []
+        dates = []
         max_length = 0
         
         for hitter in hitters:
@@ -141,6 +142,11 @@ class Data_Prep:
             l = len(stats) + 1
             if l > max_length:
                 max_length = l
+                
+            dates.append(
+                torch.cat(
+                    (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
+                    torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long))))
             
             # Input
             input = torch.zeros(l, Data_Prep.Get_Hitter_Size())
@@ -158,7 +164,7 @@ class Data_Prep:
             output[:,3] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
             outputs.append(output)
         
-        return hitters, inputs, outputs, max_length
+        return hitters, inputs, outputs, max_length, dates
         
     def Generate_Hitting_Mutators(self, batch_size : int, max_input_size : int) -> torch.Tensor:
         # Get std deviations from explained variance

@@ -15,7 +15,7 @@ if __name__ == "__main__":
         exit(1)
         
     data_prep = Data_Prep()
-    hitters, inputs, outputs, max_input_size = data_prep.Generate_IO_Hitters("WHERE (lastProspectYear<? OR lastMLBSeason<?) AND isHitter=?", (10000,10000,1))
+    hitters, inputs, outputs, max_input_size, dates = data_prep.Generate_IO_Hitters("WHERE (lastProspectYear<? OR lastMLBSeason<?) AND isHitter=?", (10000,10000,1))
     
     batch_size = 1000
     hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, max_input_size)
@@ -54,5 +54,5 @@ if __name__ == "__main__":
         best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, loss_function, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name}.pt")
         
         cursor = db.cursor()
-        cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?)", ("Hitter", 1, best_loss, i))
+        cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", ("Hitter", 1, best_loss, i, num_layers, hidden_size))
         db.commit()

@@ -142,6 +142,8 @@ CREATE TABLE "Model_TrainingHistory" (
 	"IsHitter"	INTEGER NOT NULL,
 	"TestLoss"	REAL NOT NULL,
 	"ModelIdx"	INTEGER NOT NULL,
+	"NumLayers" INTEGER NOT NULL,
+	"HiddenSize" INTEGER NOT NULL,
 	PRIMARY KEY("ModelName","ModelIdx","IsHitter")
 );
 

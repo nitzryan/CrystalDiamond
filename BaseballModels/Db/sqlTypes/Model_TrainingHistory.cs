@@ -6,6 +6,8 @@ namespace Db
 		public required int IsHitter {get; set;}
 		public required float TestLoss {get; set;}
 		public required int ModelIdx {get; set;}
+		public required int NumLayers {get; set;}
+		public required int HiddenSize {get; set;}
 
 		public Model_TrainingHistory Clone()
 		{
@@ -15,6 +17,8 @@ namespace Db
 				IsHitter = this.IsHitter,
 				TestLoss = this.TestLoss,
 				ModelIdx = this.ModelIdx,
+				NumLayers = this.NumLayers,
+				HiddenSize = this.HiddenSize,
 				
 			};
 		}
