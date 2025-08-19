@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": false,
+        "outDir": "dist",
+        "rootDir": "src",
+        "strict": true,
+        "strictNullChecks": true,
+        "noEmitOnError": true
+    },
+    "include": ["src/**/*"],
+    "exclude": ["*.spec.ts"]
+}

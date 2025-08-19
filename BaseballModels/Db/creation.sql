@@ -604,3 +604,9 @@ CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
 	"month",
 	"day"
 );
+
+CREATE INDEX "idx_PlayerOrgMap" ON "Player_OrgMap" (
+	"mlbId",
+	"year",
+	"month"
+);
