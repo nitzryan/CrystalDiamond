@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
+        "module": "none",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
@@ -9,8 +9,9 @@
         "rootDir": "src",
         "strict": true,
         "strictNullChecks": true,
-        "noEmitOnError": true
+        "noEmitOnError": true,
+        "lib": ["es5", "es2015", "dom"]
     },
-    "include": ["src/**/*"],
+    "include": ["src/*.ts", "src/*.d.ts"],
     "exclude": ["*.spec.ts"]
 }
