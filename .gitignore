@@ -19,4 +19,3 @@ __pycache__/
 # Web Files
 node_modules/
 *.json.gz
-*.js
