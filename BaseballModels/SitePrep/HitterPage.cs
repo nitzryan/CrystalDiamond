@@ -27,13 +27,9 @@ namespace SitePrep
                         JsonObject obj = new();
                         obj["year"] = opw.Year;
                         obj["month"] = opw.Month;
-                        obj["p0"] = opw.Prob0;
-                        obj["p1"] = opw.Prob1;
-                        obj["p2"] = opw.Prob2;
-                        obj["p3"] = opw.Prob3;
-                        obj["p4"] = opw.Prob4;
-                        obj["p5"] = opw.Prob5;
-                        obj["p6"] = opw.Prob6;
+
+                        JsonArray probs = [opw.Prob0, opw.Prob1, opw.Prob2, opw.Prob3, opw.Prob4, opw.Prob5, opw.Prob6];
+                        obj.Add("probs", probs);
 
                         modelOutput.Add(obj);
                     }
@@ -83,7 +79,7 @@ namespace SitePrep
                     }
                     json.Add("stats", statsArray);
 
-                    using var fileStream = new FileStream(Constants.SITE_DATA_FOLDER + $"player/h{player.MlbId}.json.gz", FileMode.Create);
+                    using var fileStream = new FileStream(Constants.SITE_ASSET_FOLDER + $"player/h{player.MlbId}.json.gz", FileMode.Create);
                     using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
                     using var writer = new Utf8JsonWriter(gzipStream, new JsonWriterOptions { Indented = false });
                     JsonSerializer.Serialize(writer, json);

@@ -15,5 +15,8 @@ Logs/
 __pycache__/
 *.pt
 
+
 # Web Files
+node_modules/
 *.json.gz
+*.js
