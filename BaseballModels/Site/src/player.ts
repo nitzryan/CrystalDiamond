@@ -39,24 +39,6 @@ type Pitcher = {
 
 }
 
-async function retrieveJson(filename : string) : Promise<JsonObject | null>
-{
-    const response = await fetch(filename)
-    if (response.status !== 200)
-    {
-        return null;
-    }
-    
-    const compressedData = response.body
-    const stream = new DecompressionStream('gzip')
-    const data = compressedData?.pipeThrough(stream)
-
-    const text = await new Response(data).text()
-    const json = JSON.parse(text)
-
-    return json as JsonObject;
-}
-
 function getHitterStats(hitterObject : JsonObject) : HitterStats[]
 {
     let stats : HitterStats[] = []
@@ -111,7 +93,7 @@ function getHitterModels(hitterObject : JsonObject) : HitterModel[]
 
 async function loadHitter(id : number) : Promise<Hitter | null>
 {
-    let hitterObject = await retrieveJson(`../../assets/player/h${id}.json.gz`);
+    let hitterObject = await retrieveJsonNullable(`../../assets/player/h${id}.json.gz`);
     if (hitterObject !== null)
     {
         const hitter : Hitter = {
@@ -140,9 +122,9 @@ function updateHitterStats(hitter : Hitter)
         const tr = document.createElement('tr')
         tr.innerHTML = `
             <td>${f.year}</td>
-            <td>${f.level}</td>
-            <td>${f.team}</td>
-            <td>${f.league}</td>
+            <td>${level_map[f.level]}</td>
+            <td>${getTeamAbbr(f.team, f.year)}</td>
+            <td>${getLeagueAbbr(f.league)}</td>
             <td>${f.pa}</td>
             <td>${f.avg.toFixed(3)}</td>
             <td>${f.obp.toFixed(3)}</td>
@@ -161,6 +143,7 @@ function updateHitterStats(hitter : Hitter)
 
 async function main()
 {
+    org_map = await retrieveJson("../../assets/map.json.gz")
     const id = getQueryParam("id")
     const hitter = await loadHitter(id)
     if (hitter !== null)

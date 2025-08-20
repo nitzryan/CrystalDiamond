@@ -99,6 +99,7 @@ namespace SitePrep
             } 
             catch (Exception e)
             {
+                Console.WriteLine("Error in HitterPage");
                 Utilities.LogException(e);
                 return false;
             }

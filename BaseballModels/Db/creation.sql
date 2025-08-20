@@ -525,6 +525,13 @@ CREATE TABLE "Team_Parents" (
 	PRIMARY KEY("id")
 );
 
+CREATE TABLE "Leagues" (
+	"id" INTEGER NOT NULL,
+	"abbr" TEXT NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY ("id")
+);
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",

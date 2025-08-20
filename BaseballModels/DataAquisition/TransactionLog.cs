@@ -1,6 +1,5 @@
 ﻿using Db;
 using ShellProgressBar;
-using System.Security.Claims;
 using System.Text.Json;
 
 namespace DataAquisition

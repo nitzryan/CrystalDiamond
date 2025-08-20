@@ -4,7 +4,10 @@
     {
         static void Main(string[] args)
         {
-            if (!HitterPage.Main())
+            //if (!HitterPage.Main())
+            //    return;
+
+            if (OrgMap.Main())
                 return;
         }
     }

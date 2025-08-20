@@ -95,3 +95,84 @@ function getQueryParam(name : string) : number
         
     return Number(value);
 }
+
+async function retrieveJsonNullable(filename : string) : Promise<JsonObject | null>
+{
+    const response = await fetch(filename)
+    if (response.status !== 200)
+    {
+        return null;
+    }
+    
+    const compressedData = response.body
+    const stream = new DecompressionStream('gzip')
+    const data = compressedData?.pipeThrough(stream)
+
+    const text = await new Response(data).text()
+    const json = JSON.parse(text)
+
+    return json as JsonObject;
+}
+
+async function retrieveJson(filename : string) : Promise<JsonObject>
+{
+    const json = await retrieveJsonNullable(filename)
+    if (json !== null)
+        return json;
+
+    throw new Error(`Failed to retrieve Json ${filename}`)
+}
+
+function getParentId(id : number, year : number) : number
+{
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentId")
+
+    // Check parents
+    const parents = org_map["parents"] as JsonObject
+    if (id in parents)
+        return id
+
+    // Parse through children
+    const children = org_map["children"] as JsonObject
+    const child = children[id] as JsonObject
+    const parentArray = child["parents"] as JsonArray
+    for (var parent of parentArray)
+    {
+        parent = parent as JsonObject
+        const y = parent["year"] as number
+        if (y == year)
+            return parent["parent"] as number
+    }
+
+    throw new Error(`No parentId for id=${id} year=${year}`)
+}
+
+function getTeamAbbr(id : number, year : number) : string
+{
+    if (org_map === null)
+        throw new Error("Org map null accessing getTeamAbbr")
+    const parentId = getParentId(id, year)
+
+    const parents = org_map["parents"] as JsonObject
+    const parent = parents[parentId] as JsonObject
+    return parent["abbr"] as string
+}
+
+function getLeagueAbbr(id : number) : string
+{
+    if (org_map === null)
+        throw new Error("Org map null accessing getLeagueAbbr")
+    
+    const leagues = org_map["leagues"] as JsonObject
+    if (id in leagues)
+    {
+        const league = leagues[id] as JsonObject
+        return league["abbr"] as string
+    }
+
+    throw new Error(`No League found for ${id}`)
+}
+
+let org_map : JsonObject | null = null
+const level_map : JsonObject = {1:"MLB",11:"AAA",12:"AA",13:"A+",14:"A",15:"A-",16:"Rk",17:"DSL"}

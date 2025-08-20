@@ -34,31 +34,35 @@
                     //if (!CalculateAnnualStats.Main(year))
                     //    return;
 
-                    //while (!await UpdateParents.Main(year))
-                    //{ }
+                    while (!await UpdateParents.Main(year))
+                    { }
 
                 }
 
-            //if (!UpdateServiceTime.Main())
-            //    return;
+                //if (!UpdateServiceTime.Main())
+                //    return;
 
-            //if (!FangraphsData.Main(years))
-            //    return;
+                //if (!FangraphsData.Main(years))
+                //    return;
 
-            //if (!UpdateCareers.Main(years))
-            //    return;
+                //if (!UpdateCareers.Main(years))
+                //    return;
 
-            //if (!ModelPlayers.Main())
-            //    return;
+                //if (!ModelPlayers.Main())
+                //    return;
 
-            //if (!ModelPlayerWar.Main())
-            //    return;
+                //if (!ModelPlayerWar.Main())
+                //    return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+                //if (!await TransactionLog.Main())
+                //    return;
 
-            //if (!ModelMonthStats.Main())
-            //    return;
+                //if (!ModelMonthStats.Main())
+                //    return;
+
+                //while (!await GetLeagues.Main())
+                //{ }
+            }
         }
     }
 }

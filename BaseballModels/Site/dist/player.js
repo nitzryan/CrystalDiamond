@@ -35,29 +35,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-function retrieveJson(filename) {
-    return __awaiter(this, void 0, void 0, function () {
-        var response, compressedData, stream, data, text, json;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, fetch(filename)];
-                case 1:
-                    response = _a.sent();
-                    if (response.status !== 200) {
-                        return [2, null];
-                    }
-                    compressedData = response.body;
-                    stream = new DecompressionStream('gzip');
-                    data = compressedData === null || compressedData === void 0 ? void 0 : compressedData.pipeThrough(stream);
-                    return [4, new Response(data).text()];
-                case 2:
-                    text = _a.sent();
-                    json = JSON.parse(text);
-                    return [2, json];
-            }
-        });
-    });
-}
 function getHitterStats(hitterObject) {
     var stats = [];
     var statsArray = getJsonArray(hitterObject, "stats");
@@ -107,7 +84,7 @@ function loadHitter(id) {
         var hitterObject, hitter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, retrieveJson("../../assets/player/h".concat(id, ".json.gz"))];
+                case 0: return [4, retrieveJsonNullable("../../assets/player/h".concat(id, ".json.gz"))];
                 case 1:
                     hitterObject = _a.sent();
                     if (hitterObject !== null) {
@@ -131,7 +108,7 @@ function updateHitterStats(hitter) {
     var stats_body = getElementByIdStrict('tstats_body');
     hitter.stats.forEach(function (f) {
         var tr = document.createElement('tr');
-        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.level, "</td>\n            <td>").concat(f.team, "</td>\n            <td>").concat(f.league, "</td>\n            <td>").concat(f.pa, "</td>\n            <td>").concat(f.avg.toFixed(3), "</td>\n            <td>").concat(f.obp.toFixed(3), "</td>\n            <td>").concat(f.slg.toFixed(3), "</td>\n            <td>").concat(f.iso.toFixed(3), "</td>\n            <td>").concat(f.wrc, "</td>\n            <td>").concat(f.hr, "</td>\n            <td>").concat(f.bbPerc.toFixed(1), "</td>\n            <td>").concat(f.kPerc.toFixed(1), "</td>\n            <td>").concat(f.sb, "</td>\n            <td>").concat(f.cs, "</td>\n        ");
+        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td>").concat(f.pa, "</td>\n            <td>").concat(f.avg.toFixed(3), "</td>\n            <td>").concat(f.obp.toFixed(3), "</td>\n            <td>").concat(f.slg.toFixed(3), "</td>\n            <td>").concat(f.iso.toFixed(3), "</td>\n            <td>").concat(f.wrc, "</td>\n            <td>").concat(f.hr, "</td>\n            <td>").concat(f.bbPerc.toFixed(1), "</td>\n            <td>").concat(f.kPerc.toFixed(1), "</td>\n            <td>").concat(f.sb, "</td>\n            <td>").concat(f.cs, "</td>\n        ");
         stats_body.appendChild(tr);
     });
 }
@@ -140,10 +117,12 @@ function main() {
         var id, hitter, age;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
+                case 0: return [4, retrieveJson("../../assets/map.json.gz")];
+                case 1:
+                    org_map = _a.sent();
                     id = getQueryParam("id");
                     return [4, loadHitter(id)];
-                case 1:
+                case 2:
                     hitter = _a.sent();
                     if (hitter !== null) {
                         updateElementText("player_name", "".concat(hitter.firstName, " ").concat(hitter.lastName));
