@@ -54,7 +54,7 @@ namespace SitePrep
                         json["orgId"] = poms.First().ParentOrgId;
 
                     // Annual Stats
-                    var annualStats = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenBy(f => f.LevelId).ThenBy(f => f.TeamId);
+                    var annualStats = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
                     JsonArray statsArray = new();
                     foreach (var stats in annualStats)
                     {
@@ -64,14 +64,14 @@ namespace SitePrep
                         obj["team"] = stats.TeamId;
                         obj["league"] = stats.LeagueId;
                         obj["PA"] = stats.PA;
-                        obj["AVG"] = stats.AVG;
-                        obj["OBP"] = stats.OBP;
-                        obj["SLG"] = stats.SLG;
-                        obj["ISO"] = stats.ISO;
-                        obj["wrc"] = stats.WRC;
+                        obj["AVG"] = Math.Round(stats.AVG, 3);
+                        obj["OBP"] = Math.Round(stats.OBP, 3);
+                        obj["SLG"] = Math.Round(stats.SLG, 3);
+                        obj["ISO"] = Math.Round(stats.ISO, 3);
+                        obj["wrc"] = Math.Round(stats.WRC, 3);
                         obj["HR"] = stats.HR;
-                        obj["BB%"] = stats.BBPerc;
-                        obj["K%"] = stats.KPerc;
+                        obj["BB%"] = Math.Round(stats.BBPerc * 100, 1);
+                        obj["K%"] = Math.Round(stats.KPerc * 100, 1);
                         obj["SB"] = stats.SB;
                         obj["CS"] = stats.CS;
 

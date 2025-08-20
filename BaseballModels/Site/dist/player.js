@@ -127,31 +127,32 @@ function loadHitter(id) {
         });
     });
 }
-function getQueryParam(name) {
-    var params = new URLSearchParams(window.location.search);
-    var value = params.get(name);
-    if (value === null)
-        throw new Error("Unable to get query parameter ".concat(name));
-    return Number(value);
+function updateHitterStats(hitter) {
+    var stats_body = getElementByIdStrict('tstats_body');
+    hitter.stats.forEach(function (f) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.level, "</td>\n            <td>").concat(f.team, "</td>\n            <td>").concat(f.league, "</td>\n            <td>").concat(f.pa, "</td>\n            <td>").concat(f.avg.toFixed(3), "</td>\n            <td>").concat(f.obp.toFixed(3), "</td>\n            <td>").concat(f.slg.toFixed(3), "</td>\n            <td>").concat(f.iso.toFixed(3), "</td>\n            <td>").concat(f.wrc, "</td>\n            <td>").concat(f.hr, "</td>\n            <td>").concat(f.bbPerc.toFixed(1), "</td>\n            <td>").concat(f.kPerc.toFixed(1), "</td>\n            <td>").concat(f.sb, "</td>\n            <td>").concat(f.cs, "</td>\n        ");
+        stats_body.appendChild(tr);
+    });
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var id, hitter, playerDom, player_data;
+        var id, hitter, age;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     id = getQueryParam("id");
-                    console.log(id);
                     return [4, loadHitter(id)];
                 case 1:
                     hitter = _a.sent();
                     if (hitter !== null) {
-                        playerDom = document.getElementById('player');
-                        if (playerDom !== null) {
-                            player_data = document.createElement('div');
-                            player_data.innerText = "".concat(hitter.firstName, " ").concat(hitter.lastName);
-                            playerDom.appendChild(player_data);
+                        updateElementText("player_name", "".concat(hitter.firstName, " ").concat(hitter.lastName));
+                        age = getDateDelta(hitter.birthDate, new Date());
+                        updateElementText("player_age", "".concat(age[0], " years, ").concat(age[1], " months, ").concat(age[2], " days"));
+                        if (hitter.draftPick !== null) {
+                            updateElementText("player_draft", "#".concat(hitter.draftPick, " Overall, ").concat(hitter.signYear));
                         }
+                        updateHitterStats(hitter);
                     }
                     return [2];
             }

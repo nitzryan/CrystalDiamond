@@ -133,30 +133,47 @@ async function loadHitter(id : number) : Promise<Hitter | null>
     return null;
 }
 
-function getQueryParam(name : string) : number
+function updateHitterStats(hitter : Hitter)
 {
-    const params = new URLSearchParams(window.location.search);
-    const value = params.get(name)
-    if (value === null)
-        throw new Error(`Unable to get query parameter ${name}`);
-        
-    return Number(value);
+    const stats_body = getElementByIdStrict('tstats_body')
+    hitter.stats.forEach(f => {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+            <td>${f.year}</td>
+            <td>${f.level}</td>
+            <td>${f.team}</td>
+            <td>${f.league}</td>
+            <td>${f.pa}</td>
+            <td>${f.avg.toFixed(3)}</td>
+            <td>${f.obp.toFixed(3)}</td>
+            <td>${f.slg.toFixed(3)}</td>
+            <td>${f.iso.toFixed(3)}</td>
+            <td>${f.wrc}</td>
+            <td>${f.hr}</td>
+            <td>${f.bbPerc.toFixed(1)}</td>
+            <td>${f.kPerc.toFixed(1)}</td>
+            <td>${f.sb}</td>
+            <td>${f.cs}</td>
+        `
+        stats_body.appendChild(tr)
+    })
 }
 
 async function main()
 {
     const id = getQueryParam("id")
-    console.log(id)
     const hitter = await loadHitter(id)
     if (hitter !== null)
     {
-        const playerDom = document.getElementById('player')
-        if (playerDom !== null)
+        updateElementText("player_name", `${hitter.firstName} ${hitter.lastName}`)
+        const age = getDateDelta(hitter.birthDate, new Date())
+        updateElementText("player_age", `${age[0]} years, ${age[1]} months, ${age[2]} days`)
+        if (hitter.draftPick !== null)
         {
-            const player_data = document.createElement('div')
-            player_data.innerText = `${hitter.firstName} ${hitter.lastName}`
-            playerDom.appendChild(player_data)
+            updateElementText("player_draft", `#${hitter.draftPick} Overall, ${hitter.signYear}`)
         }
+
+        updateHitterStats(hitter)
     }
 }
 
