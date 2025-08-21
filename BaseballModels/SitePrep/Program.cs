@@ -4,6 +4,9 @@
     {
         static void Main(string[] args)
         {
+            if (!ModelAggregation.Main())
+                return;
+        
             if (!HitterPage.Main())
                 return;
 

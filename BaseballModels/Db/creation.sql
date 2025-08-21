@@ -162,6 +162,21 @@ CREATE TABLE "Output_PlayerWar" (
 	PRIMARY KEY("mlbId","modelIdx","year","month")
 );
 
+CREATE TABLE "Output_PlayerWarAggregation" (
+	"mlbId"	INTEGER NOT NULL,
+	"isHitter"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+	"month"	INTEGER NOT NULL,
+	"prob0"	REAL NOT NULL,
+	"prob1"	REAL NOT NULL,
+	"prob2"	REAL NOT NULL,
+	"prob3"	REAL NOT NULL,
+	"prob4"	REAL NOT NULL,
+	"prob5"	REAL NOT NULL,
+	"prob6"	REAL NOT NULL,
+	PRIMARY KEY("mlbId","isHitter","year","month")
+);
+
 CREATE TABLE "Park_Factors" (
 	"TeamId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
@@ -613,6 +628,13 @@ CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
 );
 
 CREATE INDEX "idx_PlayerOrgMap" ON "Player_OrgMap" (
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
+	"modelIdx",
 	"mlbId",
 	"year",
 	"month"

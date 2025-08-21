@@ -270,6 +270,31 @@ class DB_Output_PlayerWar:
 		cursor.executemany("INSERT INTO Output_PlayerWar VALUES(?,?,?,?,?,?,?,?,?,?,?)", [i.To_Tuple() for i in items])
 
 ##############################################################################################
+class DB_Output_PlayerWarAggregation:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.isHitter = values[1]
+		self.year = values[2]
+		self.month = values[3]
+		self.prob0 = values[4]
+		self.prob1 = values[5]
+		self.prob2 = values[6]
+		self.prob3 = values[7]
+		self.prob4 = values[8]
+		self.prob5 = values[9]
+		self.prob6 = values[10]
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.isHitter,self.year,self.month,self.prob0,self.prob1,self.prob2,self.prob3,self.prob4,self.prob5,self.prob6)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PlayerWarAggregation']:
+		items = cursor.execute("SELECT * FROM Output_PlayerWarAggregation " + conditional, values).fetchall()
+		return [DB_Output_PlayerWarAggregation(i) for i in items]
+
+
+##############################################################################################
 class DB_Park_Factors:
 	def __init__(self, values : tuple[any]):
 		self.TeamId = values[0]

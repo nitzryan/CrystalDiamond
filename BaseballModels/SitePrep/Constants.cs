@@ -12,5 +12,9 @@ namespace SitePrep
                 .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
                 .Options;
+
+        public static readonly DbContextOptions<SqliteDbContext> DB_WRITE_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
+        .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
+        .Options;
     }
 }
