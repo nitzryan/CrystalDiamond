@@ -140,10 +140,41 @@ function updateHitterStats(hitter : Hitter)
 }
 
 const HITTER_WAR_BUCKETS = [0,0.5,2.5,7.5,15,25,35]
+const HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
+
+function piePointGenerator(model : HitterModel) : Point[]
+{
+    let points : Point[] = []
+    for (let i = 0; i < HITTER_WAR_LABELS.length; i++)
+    {
+        points.push({y: model.probs[i], label:HITTER_WAR_LABELS[i]})
+    }
+    return points
+}
+
+function lineCallback(index : number)
+{
+    if (hitter !== null)
+    {
+        const model = hitter.models[index]
+        if (pie_graph === null)
+            throw new Error("Pie Graph null at lineCallback")
+
+        const title_text : string = model.month == 0 ? 
+            "Iniitial Outcome Distribution" :
+            `${model.month}-${model.year} Outcome Distribution`
+        pie_graph.updateChart(model.probs, title_text)
+    } else if (pitcher !== null)
+    {
+
+    } else {
+        throw new Error("Both pitcher and hitter null at lineCallback")
+    }
+}
 
 function setupModel(hitter : Hitter) : void
 {
-    const points  = hitter.models.map(f => {
+    const line_points  = hitter.models.map(f => {
         let war = 0;
         for (let i = 0; i < f.probs.length; i++)
             war += f.probs[i] * HITTER_WAR_BUCKETS[i];
@@ -152,18 +183,24 @@ function setupModel(hitter : Hitter) : void
         const p : Point = {y: war, label : label}
         return p;
     })
-    console.log(hitter.models)
-    const lineGraph = new LineGraph(model_graph as HTMLCanvasElement, points,null)
+    line_graph = new LineGraph(model_graph, line_points, lineCallback)
+
+    const pie_points = piePointGenerator(hitter.models[hitter.models.length - 1])
+    pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
 }
 
-const model_pie = getElementByIdStrict("projWarPie")
-const model_graph = getElementByIdStrict("projWarGraph")
+const model_pie = getElementByIdStrict("projWarPie") as HTMLCanvasElement
+const model_graph = getElementByIdStrict("projWarGraph") as HTMLCanvasElement
+let line_graph : LineGraph | null = null
+let pie_graph : PieGraph | null = null
+let hitter : Hitter | null = null
+let pitcher : Pitcher | null = null
 
 async function main()
 {
     org_map = await retrieveJson("../../assets/map.json.gz")
     const id = getQueryParam("id")
-    const hitter = await loadHitter(id)
+    hitter = await loadHitter(id)
     if (hitter !== null)
     {
         updateElementText("player_name", `${hitter.firstName} ${hitter.lastName}`)

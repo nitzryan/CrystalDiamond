@@ -81,14 +81,14 @@ function getHitterModels(hitterObject) {
 }
 function loadHitter(id) {
     return __awaiter(this, void 0, void 0, function () {
-        var hitterObject, hitter;
+        var hitterObject, hitter_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, retrieveJsonNullable("../../assets/player/h".concat(id, ".json.gz"))];
                 case 1:
                     hitterObject = _a.sent();
                     if (hitterObject !== null) {
-                        hitter = {
+                        hitter_1 = {
                             firstName: getJsonString(hitterObject, "firstName"),
                             lastName: getJsonString(hitterObject, "lastName"),
                             birthDate: new Date(getJsonNumber(hitterObject, "birthYear"), getJsonNumber(hitterObject, "birthMonth"), getJsonNumber(hitterObject, "birthDate")),
@@ -97,7 +97,7 @@ function loadHitter(id) {
                             stats: getHitterStats(hitterObject),
                             models: getHitterModels(hitterObject)
                         };
-                        return [2, hitter];
+                        return [2, hitter_1];
                     }
                     return [2, null];
             }
@@ -113,8 +113,32 @@ function updateHitterStats(hitter) {
     });
 }
 var HITTER_WAR_BUCKETS = [0, 0.5, 2.5, 7.5, 15, 25, 35];
+var HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"];
+function piePointGenerator(model) {
+    var points = [];
+    for (var i = 0; i < HITTER_WAR_LABELS.length; i++) {
+        points.push({ y: model.probs[i], label: HITTER_WAR_LABELS[i] });
+    }
+    return points;
+}
+function lineCallback(index) {
+    if (hitter !== null) {
+        var model = hitter.models[index];
+        if (pie_graph === null)
+            throw new Error("Pie Graph null at lineCallback");
+        var title_text = model.month == 0 ?
+            "Iniitial Outcome Distribution" :
+            "".concat(model.month, "-").concat(model.year, " Outcome Distribution");
+        pie_graph.updateChart(model.probs, title_text);
+    }
+    else if (pitcher !== null) {
+    }
+    else {
+        throw new Error("Both pitcher and hitter null at lineCallback");
+    }
+}
 function setupModel(hitter) {
-    var points = hitter.models.map(function (f) {
+    var line_points = hitter.models.map(function (f) {
         var war = 0;
         for (var i = 0; i < f.probs.length; i++)
             war += f.probs[i] * HITTER_WAR_BUCKETS[i];
@@ -122,14 +146,19 @@ function setupModel(hitter) {
         var p = { y: war, label: label };
         return p;
     });
-    console.log(hitter.models);
-    var lineGraph = new LineGraph(model_graph, points, null);
+    line_graph = new LineGraph(model_graph, line_points, lineCallback);
+    var pie_points = piePointGenerator(hitter.models[hitter.models.length - 1]);
+    pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
 }
 var model_pie = getElementByIdStrict("projWarPie");
 var model_graph = getElementByIdStrict("projWarGraph");
+var line_graph = null;
+var pie_graph = null;
+var hitter = null;
+var pitcher = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var id, hitter, age;
+        var id, age;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4, retrieveJson("../../assets/map.json.gz")];
