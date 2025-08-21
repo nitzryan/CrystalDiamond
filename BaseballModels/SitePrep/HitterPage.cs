@@ -20,7 +20,7 @@ namespace SitePrep
                     JsonObject json = new();
 
                     // Model Output
-                    var opws = db.Output_PlayerWar.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month);
+                    var opws = db.Output_PlayerWar.Where(f => f.MlbId == player.MlbId && f.ModelIdx == 0).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     JsonArray modelOutput = new();
                     foreach (var opw in opws)
                     {

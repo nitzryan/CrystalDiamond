@@ -112,6 +112,21 @@ function updateHitterStats(hitter) {
         stats_body.appendChild(tr);
     });
 }
+var HITTER_WAR_BUCKETS = [0, 0.5, 2.5, 7.5, 15, 25, 35];
+function setupModel(hitter) {
+    var points = hitter.models.map(function (f) {
+        var war = 0;
+        for (var i = 0; i < f.probs.length; i++)
+            war += f.probs[i] * HITTER_WAR_BUCKETS[i];
+        var label = f.month == 0 ? 'Initial' : "".concat(f.month, "-").concat(f.year);
+        var p = { y: war, label: label };
+        return p;
+    });
+    console.log(hitter.models);
+    var lineGraph = new LineGraph(model_graph, points, null);
+}
+var model_pie = getElementByIdStrict("projWarPie");
+var model_graph = getElementByIdStrict("projWarGraph");
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var id, hitter, age;
@@ -132,6 +147,7 @@ function main() {
                             updateElementText("player_draft", "#".concat(hitter.draftPick, " Overall, ").concat(hitter.signYear));
                         }
                         updateHitterStats(hitter);
+                        setupModel(hitter);
                     }
                     return [2];
             }

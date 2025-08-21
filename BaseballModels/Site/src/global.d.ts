@@ -11,3 +11,5 @@ declare function getDateDelta(start : Date, end : Date) : number[]
 declare function getQueryParam(name : string) : number
 declare function retrieveJsonNullable(filename : string) : Promise<JsonObject | null>
 declare function retrieveJson(filename : string) : Promise<JsonObject>
+declare function getTeamAbbr(id : number, year : number) : string
+declare function getLeagueAbbr(id : number) : string 

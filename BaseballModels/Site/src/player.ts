@@ -1,5 +1,3 @@
-//import {JsonValue, JsonArray, JsonObject, getJsonString, getJsonNumber, getJsonArray, getJsonNumberNullable} from './utility'
-
 type HitterStats = {
     level : number,
     year : number,
@@ -141,6 +139,26 @@ function updateHitterStats(hitter : Hitter)
     })
 }
 
+const HITTER_WAR_BUCKETS = [0,0.5,2.5,7.5,15,25,35]
+
+function setupModel(hitter : Hitter) : void
+{
+    const points  = hitter.models.map(f => {
+        let war = 0;
+        for (let i = 0; i < f.probs.length; i++)
+            war += f.probs[i] * HITTER_WAR_BUCKETS[i];
+
+        const label : string = f.month == 0 ? 'Initial' : `${f.month}-${f.year}`
+        const p : Point = {y: war, label : label}
+        return p;
+    })
+    console.log(hitter.models)
+    const lineGraph = new LineGraph(model_graph as HTMLCanvasElement, points,null)
+}
+
+const model_pie = getElementByIdStrict("projWarPie")
+const model_graph = getElementByIdStrict("projWarGraph")
+
 async function main()
 {
     org_map = await retrieveJson("../../assets/map.json.gz")
@@ -157,6 +175,8 @@ async function main()
         }
 
         updateHitterStats(hitter)
+        setupModel(hitter)
+        
     }
 }
 
