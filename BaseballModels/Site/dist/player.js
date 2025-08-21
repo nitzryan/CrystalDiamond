@@ -184,3 +184,268 @@ function main() {
     });
 }
 main();
+function getJsonString(obj, key) {
+    var value = obj[key];
+    if (value === undefined) {
+        throw new Error("Property \"".concat(key, "\" is missing"));
+    }
+    if (typeof value === "string") {
+        return value;
+    }
+    throw new Error("Property \"".concat(key, "\" is type ").concat(typeof value, ", string expected"));
+}
+function getJsonNumber(obj, key) {
+    var value = obj[key];
+    if (value === undefined) {
+        throw new Error("Property \"".concat(key, "\" is missing"));
+    }
+    if (typeof value === "number") {
+        return value;
+    }
+    throw new Error("Property \"".concat(key, "\" is type ").concat(typeof value, ", number expected"));
+}
+function getJsonArray(obj, key) {
+    var value = obj[key];
+    if (value === undefined) {
+        throw new Error("Property \"".concat(key, "\" is missing"));
+    }
+    if (Array.isArray(value)) {
+        return value;
+    }
+    throw new Error("Property \"".concat(key, "\" is type ").concat(typeof value, ", number expected"));
+}
+function getJsonNumberNullable(obj, key) {
+    var value = obj[key];
+    if (value === undefined) {
+        return null;
+    }
+    if (typeof value === "number") {
+        return value;
+    }
+    throw new Error("Property \"".concat(key, "\" is type ").concat(typeof value, ", number expected"));
+}
+function getElementByIdStrict(id) {
+    var element = document.getElementById(id);
+    if (element !== null)
+        return element;
+    throw new Error("HTMLElement ".concat(id, " not found"));
+}
+function updateElementText(id, text) {
+    var element = getElementByIdStrict(id);
+    element.innerText = text;
+}
+function getDateDelta(start, end) {
+    var years = end.getFullYear() - start.getFullYear();
+    var months = end.getMonth() - start.getMonth();
+    var days = end.getDate() - start.getDate();
+    if (days < 0) {
+        months--;
+        var tmp = new Date(end.getFullYear(), end.getMonth(), 0).getDate();
+        days += tmp;
+    }
+    if (months < 0) {
+        months += 12;
+        years--;
+    }
+    return [years, months, days];
+}
+function getQueryParam(name) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        throw new Error("Unable to get query parameter ".concat(name));
+    return Number(value);
+}
+function retrieveJsonNullable(filename) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response, compressedData, stream, data, text, json;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, fetch(filename)];
+                case 1:
+                    response = _a.sent();
+                    if (response.status !== 200) {
+                        return [2, null];
+                    }
+                    compressedData = response.body;
+                    stream = new DecompressionStream('gzip');
+                    data = compressedData === null || compressedData === void 0 ? void 0 : compressedData.pipeThrough(stream);
+                    return [4, new Response(data).text()];
+                case 2:
+                    text = _a.sent();
+                    json = JSON.parse(text);
+                    return [2, json];
+            }
+        });
+    });
+}
+function retrieveJson(filename) {
+    return __awaiter(this, void 0, void 0, function () {
+        var json;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, retrieveJsonNullable(filename)];
+                case 1:
+                    json = _a.sent();
+                    if (json !== null)
+                        return [2, json];
+                    throw new Error("Failed to retrieve Json ".concat(filename));
+            }
+        });
+    });
+}
+function getParentId(id, year) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentId");
+    var parents = org_map["parents"];
+    if (id in parents)
+        return id;
+    var children = org_map["children"];
+    var child = children[id];
+    var parentArray = child["parents"];
+    for (var _i = 0, parentArray_1 = parentArray; _i < parentArray_1.length; _i++) {
+        var parent = parentArray_1[_i];
+        parent = parent;
+        var y = parent["year"];
+        if (y == year)
+            return parent["parent"];
+    }
+    throw new Error("No parentId for id=".concat(id, " year=").concat(year));
+}
+function getTeamAbbr(id, year) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getTeamAbbr");
+    var parentId = getParentId(id, year);
+    var parents = org_map["parents"];
+    var parent = parents[parentId];
+    return parent["abbr"];
+}
+function getLeagueAbbr(id) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getLeagueAbbr");
+    var leagues = org_map["leagues"];
+    if (id in leagues) {
+        var league = leagues[id];
+        return league["abbr"];
+    }
+    throw new Error("No League found for ".concat(id));
+}
+var org_map = null;
+var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL" };
+var POINT_DEFAULT_SIZE = 3;
+var POINT_HIGHLIGHT_SIZE = 9;
+var LineGraph = (function () {
+    function LineGraph(element, points, callback, colorscale) {
+        if (colorscale === void 0) { colorscale = null; }
+        var _this = this;
+        this.points = points;
+        this.callback = callback;
+        if (colorscale !== null)
+            this.colorscale = colorscale;
+        else
+            this.colorscale = [
+                '#d43d51',
+                '#df797d',
+                '#e2acab',
+                '#dddddd',
+                '#a1c0b6',
+                '#63a490',
+                '#00876c'
+            ];
+        this.chart = new Chart(element, {
+            type: 'line',
+            data: {
+                labels: points.map(function (f) { return f.label; }),
+                datasets: [{
+                        label: 'Model 1',
+                        data: points.map(function (f) { return f.y; }),
+                        pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
+                    }],
+            },
+            options: {
+                onClick: function (e, elements) {
+                    var points = _this.chart.getElementsAtEventForMode(e, 'nearest', { intesect: false, axis: 'x' }, true);
+                    if (points.length > 0) {
+                        var firstPoint = points[0];
+                        var index = firstPoint.index;
+                        _this.highlight_index(index);
+                        _this.callback(index);
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0
+                    }
+                }
+            }
+        });
+        if (points.length > 0)
+            this.highlight_index(points.length - 1);
+    }
+    LineGraph.prototype.highlight_index = function (index) {
+        var pointRadius = new Array(this.points.length).fill(POINT_DEFAULT_SIZE);
+        pointRadius[index] = POINT_HIGHLIGHT_SIZE;
+        this.chart.data.datasets[0].pointRadius = pointRadius;
+        this.chart.update();
+    };
+    return LineGraph;
+}());
+var PieGraph = (function () {
+    function PieGraph(element, points, title_text, colorscale) {
+        if (colorscale === void 0) { colorscale = null; }
+        var _this = this;
+        this.points = points;
+        if (colorscale !== null)
+            this.colorscale = colorscale;
+        else
+            this.colorscale = [
+                '#d43d51',
+                '#df797d',
+                '#e2acab',
+                '#dddddd',
+                '#a1c0b6',
+                '#63a490',
+                '#00876c'
+            ];
+        this.chart = new Chart(element, {
+            type: 'pie',
+            data: {
+                labels: points.map(function (f) { return f.label; }),
+                datasets: [{
+                        label: '',
+                        data: points.map(function (f) { return f.y; }),
+                        backgroundColor: this.colorscale
+                    }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                    title: {
+                        display: true,
+                        text: title_text,
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (item) {
+                                var point = _this.points[item.dataIndex];
+                                return "\t".concat((point.y * 100).toFixed(1), "%");
+                            }
+                        },
+                    }
+                },
+                hover: {
+                    mode: null,
+                }
+            }
+        });
+    }
+    PieGraph.prototype.updateChart = function (values, title_text) {
+        this.points.forEach(function (f, idx) { f.y = values[idx]; });
+        this.chart.data.datasets[0].data = values;
+        this.chart.options.plugins.title.text = title_text;
+        this.chart.update();
+    };
+    return PieGraph;
+}());
