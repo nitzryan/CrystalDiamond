@@ -3,7 +3,8 @@ const POINT_HIGHLIGHT_SIZE : number = 9
 
 class LineGraph
 {
-    private points : Point[];
+    private points : Point[]
+    private currentIdx : number
     private colorscale :  string[]
     private callback : (index : number) => void
     private readonly chart : any
@@ -12,6 +13,7 @@ class LineGraph
     {
         this.points = points
         this.callback = callback
+        this.currentIdx = 0
         if (colorscale !== null)
             this.colorscale = colorscale
         else
@@ -36,6 +38,11 @@ class LineGraph
                 }],   
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0,
+                },
                 // @ts-ignore
                 onClick: (e, elements) => {
                     const points = this.chart.getElementsAtEventForMode(e, 'nearest', {intesect: false, axis: 'x'}, true);
@@ -49,9 +56,18 @@ class LineGraph
                 },
                 scales: {
                     y: {
-                        min: 0
+                        min: 0,
+                        grid: {
+                            color: css.background_low
+                        },
+                    },
+                    x: {
+                        grid: {
+                            color: css.background_low
+                        }
                     }
-                }
+                },
+                
             }
         })
 
@@ -61,9 +77,20 @@ class LineGraph
 
     highlight_index(index : number) : void
     {
+        this.currentIdx = index
         let pointRadius : number[] = new Array(this.points.length).fill(POINT_DEFAULT_SIZE)
         pointRadius[index] = POINT_HIGHLIGHT_SIZE
         this.chart.data.datasets[0].pointRadius = pointRadius
         this.chart.update()
+    }
+
+    increment_index(x_inc : number) : void
+    {
+        if ((x_inc === -1 && this.currentIdx > 0) || (x_inc === 1 && this.currentIdx < this.points.length - 1))
+        {
+            this.currentIdx += x_inc
+            this.highlight_index(this.currentIdx)
+            this.callback(this.currentIdx)
+        }
     }
 }

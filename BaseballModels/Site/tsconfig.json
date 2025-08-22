@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "none",
-        "outFile": "dist/player.js",
+        "outFile": "dist/js/player.js",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
@@ -13,6 +13,6 @@
         "noEmitOnError": true,
         "lib": ["es5", "es2015", "dom"]
     },
-    "include": ["src/player.ts", "src/utility.ts", "src/linegraph.ts", "src/piegraph.ts", "src/*.d.ts"],
+    "include": ["src/player.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/linegraph.ts", "src/piegraph.ts", "src/*.d.ts"],
     "exclude": ["*.spec.ts"]
 }

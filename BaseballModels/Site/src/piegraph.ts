@@ -31,6 +31,11 @@ class PieGraph
                 }]
             },
             options: {
+                responseive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0,
+                },
                 plugins: {
                     legend: {
                         display: false,

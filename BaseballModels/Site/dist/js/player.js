@@ -108,7 +108,7 @@ function updateHitterStats(hitter) {
     var stats_body = getElementByIdStrict('tstats_body');
     hitter.stats.forEach(function (f) {
         var tr = document.createElement('tr');
-        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td>").concat(f.pa, "</td>\n            <td>").concat(f.avg.toFixed(3), "</td>\n            <td>").concat(f.obp.toFixed(3), "</td>\n            <td>").concat(f.slg.toFixed(3), "</td>\n            <td>").concat(f.iso.toFixed(3), "</td>\n            <td>").concat(f.wrc, "</td>\n            <td>").concat(f.hr, "</td>\n            <td>").concat(f.bbPerc.toFixed(1), "</td>\n            <td>").concat(f.kPerc.toFixed(1), "</td>\n            <td>").concat(f.sb, "</td>\n            <td>").concat(f.cs, "</td>\n        ");
+        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
         stats_body.appendChild(tr);
     });
 }
@@ -156,6 +156,7 @@ var line_graph = null;
 var pie_graph = null;
 var hitter = null;
 var pitcher = null;
+var keyControls = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var id, age;
@@ -178,12 +179,40 @@ function main() {
                         updateHitterStats(hitter);
                         setupModel(hitter);
                     }
+                    keyControls = new KeyControls(document, function (x_inc) {
+                        if (line_graph !== null)
+                            line_graph.increment_index(x_inc);
+                    });
                     return [2];
             }
         });
     });
 }
 main();
+var KeyControls = (function () {
+    function KeyControls(document, callback) {
+        this.callback = callback;
+        document.addEventListener('keydown', function (event) {
+            if (event.key === "ArrowLeft")
+                callback(-1);
+            else if (event.key === "ArrowRight")
+                callback(1);
+        });
+    }
+    return KeyControls;
+}());
+var CSS_Style = (function () {
+    function CSS_Style() {
+        var style = window.getComputedStyle(document.body);
+        this.background_high = style.getPropertyValue('--background-high');
+        this.background_med = style.getPropertyValue('--background-med');
+        this.background_low = style.getPropertyValue('--background-low');
+        this.text_high = style.getPropertyValue('--text-high');
+        this.text_low = style.getPropertyValue('--text-low');
+    }
+    return CSS_Style;
+}());
+var css = new CSS_Style();
 function getJsonString(obj, key) {
     var value = obj[key];
     if (value === undefined) {
@@ -340,6 +369,7 @@ var LineGraph = (function () {
         var _this = this;
         this.points = points;
         this.callback = callback;
+        this.currentIdx = 0;
         if (colorscale !== null)
             this.colorscale = colorscale;
         else
@@ -363,6 +393,11 @@ var LineGraph = (function () {
                     }],
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0,
+                },
                 onClick: function (e, elements) {
                     var points = _this.chart.getElementsAtEventForMode(e, 'nearest', { intesect: false, axis: 'x' }, true);
                     if (points.length > 0) {
@@ -374,19 +409,35 @@ var LineGraph = (function () {
                 },
                 scales: {
                     y: {
-                        min: 0
+                        min: 0,
+                        grid: {
+                            color: css.background_low
+                        },
+                    },
+                    x: {
+                        grid: {
+                            color: css.background_low
+                        }
                     }
-                }
+                },
             }
         });
         if (points.length > 0)
             this.highlight_index(points.length - 1);
     }
     LineGraph.prototype.highlight_index = function (index) {
+        this.currentIdx = index;
         var pointRadius = new Array(this.points.length).fill(POINT_DEFAULT_SIZE);
         pointRadius[index] = POINT_HIGHLIGHT_SIZE;
         this.chart.data.datasets[0].pointRadius = pointRadius;
         this.chart.update();
+    };
+    LineGraph.prototype.increment_index = function (x_inc) {
+        if ((x_inc === -1 && this.currentIdx > 0) || (x_inc === 1 && this.currentIdx < this.points.length - 1)) {
+            this.currentIdx += x_inc;
+            this.highlight_index(this.currentIdx);
+            this.callback(this.currentIdx);
+        }
     };
     return LineGraph;
 }());
@@ -418,6 +469,11 @@ var PieGraph = (function () {
                     }]
             },
             options: {
+                responseive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0,
+                },
                 plugins: {
                     legend: {
                         display: false,

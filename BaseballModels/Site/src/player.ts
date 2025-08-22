@@ -123,17 +123,17 @@ function updateHitterStats(hitter : Hitter)
             <td>${level_map[f.level]}</td>
             <td>${getTeamAbbr(f.team, f.year)}</td>
             <td>${getLeagueAbbr(f.league)}</td>
-            <td>${f.pa}</td>
-            <td>${f.avg.toFixed(3)}</td>
-            <td>${f.obp.toFixed(3)}</td>
-            <td>${f.slg.toFixed(3)}</td>
-            <td>${f.iso.toFixed(3)}</td>
-            <td>${f.wrc}</td>
-            <td>${f.hr}</td>
-            <td>${f.bbPerc.toFixed(1)}</td>
-            <td>${f.kPerc.toFixed(1)}</td>
-            <td>${f.sb}</td>
-            <td>${f.cs}</td>
+            <td class="align_right">${f.pa}</td>
+            <td class="align_right">${f.avg.toFixed(3)}</td>
+            <td class="align_right">${f.obp.toFixed(3)}</td>
+            <td class="align_right">${f.slg.toFixed(3)}</td>
+            <td class="align_right">${f.iso.toFixed(3)}</td>
+            <td class="align_right">${f.wrc}</td>
+            <td class="align_right">${f.hr}</td>
+            <td class="align_right">${f.bbPerc.toFixed(1)}</td>
+            <td class="align_right">${f.kPerc.toFixed(1)}</td>
+            <td class="align_right">${f.sb}</td>
+            <td class="align_right">${f.cs}</td>
         `
         stats_body.appendChild(tr)
     })
@@ -195,6 +195,7 @@ let line_graph : LineGraph | null = null
 let pie_graph : PieGraph | null = null
 let hitter : Hitter | null = null
 let pitcher : Pitcher | null = null
+let keyControls : KeyControls | null = null
 
 async function main()
 {
@@ -213,8 +214,12 @@ async function main()
 
         updateHitterStats(hitter)
         setupModel(hitter)
-        
     }
+
+    keyControls = new KeyControls(document, (x_inc) => {
+        if (line_graph !== null)
+            line_graph.increment_index(x_inc)
+    })
 }
 
 main()
