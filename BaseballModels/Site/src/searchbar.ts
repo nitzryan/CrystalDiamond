@@ -34,9 +34,17 @@ class SearchBar
     {
         text = text.toLowerCase()
         const valid = this.items.filter(f => 
+        {
             // @ts-ignore
-            f["f"].includes(text) || f["l"].includes(text) || (f["f"] + " " + f["l"]).includes(text)
-        ).sort((a, b) => {
+            const first : string = f["f"].toLowerCase()
+            // @ts-ignore
+            const last : string = f["l"].toLowerCase()
+
+            return first.includes(text) 
+                || last.includes(text) 
+                || (first + " " + last).includes(text)
+                || (last + " " + first).includes(text)
+        }).sort((a, b) => {
             // @ts-ignore
             const r = a["f"].localeCompare(b["f"])
             // @ts-ignore

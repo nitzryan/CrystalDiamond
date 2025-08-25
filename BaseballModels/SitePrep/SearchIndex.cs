@@ -22,8 +22,8 @@ namespace SitePrep
                     JsonObject p = new()
                     {
                         ["id"] = player.MlbId,
-                        ["f"] = player.UseFirstName.ToLower(),
-                        ["l"] = player.UseLastName.ToLower(),
+                        ["f"] = player.UseFirstName,
+                        ["l"] = player.UseLastName,
                     };
                     arr.Add(p);
                 }

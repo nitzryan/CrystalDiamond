@@ -220,7 +220,12 @@ var SearchBar = (function () {
     SearchBar.prototype.getResults = function (text) {
         text = text.toLowerCase();
         var valid = this.items.filter(function (f) {
-            return f["f"].includes(text) || f["l"].includes(text) || (f["f"] + " " + f["l"]).includes(text);
+            var first = f["f"].toLowerCase();
+            var last = f["l"].toLowerCase();
+            return first.includes(text)
+                || last.includes(text)
+                || (first + " " + last).includes(text)
+                || (last + " " + first).includes(text);
         }).sort(function (a, b) {
             var r = a["f"].localeCompare(b["f"]);
             return r !== 0 ? r : a["l"].localeCompare(b["l"]);
