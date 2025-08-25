@@ -13,6 +13,6 @@
         "noEmitOnError": true,
         "lib": ["es5", "es2015", "dom"]
     },
-    "include": ["src/player.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/linegraph.ts", "src/piegraph.ts", "src/*.d.ts"],
+    "include": ["src/player.ts", "src/searchbar.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/linegraph.ts", "src/piegraph.ts", "src/*.d.ts"],
     "exclude": ["*.spec.ts"]
 }

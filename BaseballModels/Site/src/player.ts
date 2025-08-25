@@ -196,9 +196,11 @@ let pie_graph : PieGraph | null = null
 let hitter : Hitter | null = null
 let pitcher : Pitcher | null = null
 let keyControls : KeyControls | null = null
+let searchBar : SearchBar | null = null
 
 async function main()
 {
+    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     org_map = await retrieveJson("../../assets/map.json.gz")
     const id = getQueryParam("id")
     hitter = await loadHitter(id)
@@ -220,6 +222,8 @@ async function main()
         if (line_graph !== null)
             line_graph.increment_index(x_inc)
     })
+
+    searchBar = new SearchBar(await player_search_data)
 }
 
 main()

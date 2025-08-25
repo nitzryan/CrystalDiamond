@@ -4,13 +4,16 @@
     {
         static void Main(string[] args)
         {
-            if (!ModelAggregation.Main())
-                return;
-        
-            if (!HitterPage.Main())
-                return;
+            //if (!ModelAggregation.Main())
+            //    return;
 
-            if (OrgMap.Main())
+            //if (!HitterPage.Main())
+            //    return;
+
+            //if (OrgMap.Main())
+            //    return;
+
+            if (!SearchIndex.Main())
                 return;
         }
     }

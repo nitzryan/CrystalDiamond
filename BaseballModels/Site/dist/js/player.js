@@ -157,18 +157,21 @@ var pie_graph = null;
 var hitter = null;
 var pitcher = null;
 var keyControls = null;
+var searchBar = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var id, age;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, retrieveJson("../../assets/map.json.gz")];
+        var player_search_data, id, age, _a;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    player_search_data = retrieveJson('../../assets/player_search.json.gz');
+                    return [4, retrieveJson("../../assets/map.json.gz")];
                 case 1:
-                    org_map = _a.sent();
+                    org_map = _b.sent();
                     id = getQueryParam("id");
                     return [4, loadHitter(id)];
                 case 2:
-                    hitter = _a.sent();
+                    hitter = _b.sent();
                     if (hitter !== null) {
                         updateElementText("player_name", "".concat(hitter.firstName, " ").concat(hitter.lastName));
                         age = getDateDelta(hitter.birthDate, new Date());
@@ -183,12 +186,52 @@ function main() {
                         if (line_graph !== null)
                             line_graph.increment_index(x_inc);
                     });
+                    _a = SearchBar.bind;
+                    return [4, player_search_data];
+                case 3:
+                    searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     return [2];
             }
         });
     });
 }
 main();
+var SearchBar = (function () {
+    function SearchBar(json) {
+        var _this = this;
+        this.searchBox = getElementByIdStrict('searchBar');
+        this.searchResults = getElementByIdStrict('searchResults');
+        this.items = json["players"];
+        this.current_count = 0;
+        this.searchBox.addEventListener('input', function (event) {
+            _this.current_count++;
+            var idx = _this.current_count;
+            var search_str = _this.searchBox.value;
+            var results = search_str == "" ? "" : _this.getResults(search_str);
+            if (idx != _this.current_count)
+                return;
+            _this.searchResults.innerHTML = results;
+            if (results.length > 0)
+                _this.searchResults.classList.remove('hidden');
+            else
+                _this.searchResults.classList.add('hidden');
+        });
+    }
+    SearchBar.prototype.getResults = function (text) {
+        text = text.toLowerCase();
+        var valid = this.items.filter(function (f) {
+            return f["f"].includes(text) || f["l"].includes(text) || (f["f"] + " " + f["l"]).includes(text);
+        }).sort(function (a, b) {
+            var r = a["f"].localeCompare(b["f"]);
+            return r !== 0 ? r : a["l"].localeCompare(b["l"]);
+        });
+        var htmlStrings = valid.map(function (f) {
+            return "<li><a href=\"./player.html?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a></li>");
+        });
+        return htmlStrings.join("\n");
+    };
+    return SearchBar;
+}());
 var KeyControls = (function () {
     function KeyControls(document, callback) {
         this.callback = callback;

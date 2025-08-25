@@ -82,3 +82,19 @@ th {
 .align_right {
     text-align: right;
 }
+
+#searchResults {
+    max-height: 10em;
+    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    background-color: var(--background-low);
+    padding-right: 1em;
+    padding-left: 0.5em;
+    list-style-type: none;
+}
+
+#searchResults li a {
+    color: var(--background-high);
+    text-decoration: none;
+}
