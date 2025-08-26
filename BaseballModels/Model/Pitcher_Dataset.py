@@ -1,7 +1,7 @@
 import torch
 import warnings
 
-class Hitter_Dataset(torch.utils.data.Dataset):
+class Pitcher_Dataset(torch.utils.data.Dataset):
     def __init__(self, data, lengths, labels):
         self.data = data
         self.lengths = lengths

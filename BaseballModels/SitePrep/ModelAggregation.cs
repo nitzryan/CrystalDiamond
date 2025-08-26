@@ -25,7 +25,7 @@ namespace SitePrep
                     {
                         foreach (var o in opw)
                         {
-                            var model_results = db.Output_PlayerWar.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month);
+                            var model_results = db.Output_PlayerWar.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.ModelName.Equals(o.ModelName));
                             int size = model_results.Count();
                             if (size == 0)
                                 throw new Exception("No elements in model_results, should not happen");
@@ -33,7 +33,7 @@ namespace SitePrep
                             Db.Output_PlayerWarAggregation owa = new()
                             {
                                 MlbId = o.MlbId,
-                                IsHitter = 1,
+                                ModelName = o.ModelName,
                                 Year = o.Year,
                                 Month = o.Month,
                                 Prob0 = 0,

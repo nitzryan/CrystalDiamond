@@ -53,8 +53,8 @@ namespace Db
 			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
-			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.MlbId,f.ModelIdx,f.Year,f.Month});
-			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.IsHitter,f.Year,f.Month});
+			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.MlbId,f.ModelName,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.ModelName,f.Year,f.Month});
 			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.TeamId,f.Year});
 			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.TeamId,f.Year,f.LeagueId});
 			modelBuilder.Entity<Player>().HasKey(f => new {f.MlbId});
