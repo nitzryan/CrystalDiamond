@@ -71,7 +71,7 @@ function getPitcherStats(pitcherObject) {
             year: getJsonNumber(fObj, "year"),
             team: getJsonNumber(fObj, "team"),
             league: getJsonNumber(fObj, "league"),
-            ip: getJsonNumber(fObj, "IP"),
+            ip: getJsonString(fObj, "IP"),
             era: getJsonNumber(fObj, "ERA"),
             fip: getJsonNumber(fObj, "FIP"),
             hrrate: getJsonNumber(fObj, "HR9"),
