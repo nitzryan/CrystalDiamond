@@ -38,6 +38,40 @@ namespace DataAquisition
             return ma;
         }
 
+        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_GameLog stats)
+        {
+            int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
+            int pa = stats.PA;
+            float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
+            float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
+            float woba = pa > 0 ?
+                ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / pa
+                : 0;
+            Player_Hitter_MonthAdvanced ma = new()
+            {
+                MlbId = stats.MlbId,
+                LevelId = stats.LevelId,
+                Year = stats.Year,
+                Month = stats.Month,
+                TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
+                LeagueId = -1,
+                PA = pa,
+                AVG = avg,
+                OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
+                SLG = avg + iso,
+                ISO = iso,
+                WOBA = woba,
+                WRC = -1.0f, // Fill in later, need league wOBA
+                HRPerc = pa > 0 ? (float)stats.HR / pa : 0,
+                BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
+                KPerc = pa > 0 ? (float)stats.K / pa : 0,
+                SBRate = pa > 0 ? (float)stats.SB / pa : 0,
+                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0
+            };
+
+            return ma;
+        }
+
         public static Func<Player_Hitter_GameLog, Player_Hitter_GameLog, Player_Hitter_GameLog> HitterGameLogAggregation = (a, b) =>
         new Player_Hitter_GameLog
         {

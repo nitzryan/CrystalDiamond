@@ -68,7 +68,7 @@ namespace SitePrep
                         obj["OBP"] = Math.Round(stats.OBP, 3);
                         obj["SLG"] = Math.Round(stats.SLG, 3);
                         obj["ISO"] = Math.Round(stats.ISO, 3);
-                        obj["wrc"] = Math.Round(stats.WRC, 3);
+                        obj["wrc"] = Math.Round(stats.WRC, 0);
                         obj["HR"] = stats.HR;
                         obj["BB%"] = Math.Round(stats.BBPerc * 100, 1);
                         obj["K%"] = Math.Round(stats.KPerc * 100, 1);
