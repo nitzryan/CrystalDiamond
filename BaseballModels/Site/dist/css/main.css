@@ -11,6 +11,10 @@
     --color-low: #994444;
 }
 
+.hidden {
+    display: none;
+}
+
 body {
     background-color: var(--background-high);
     color: var(--text-high);

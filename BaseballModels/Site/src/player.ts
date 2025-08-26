@@ -16,25 +16,44 @@ type HitterStats = {
     cs : number
 }
 
-type HitterModel = {
+type Model = {
     year : number,
     month : number,
     probs : number[]
 }
 
-type Hitter = {
+type Person = {
     firstName : string;
     lastName : string;
     birthDate : Date;
     signYear : number;
     draftPick : number | null;
+}
 
+type Hitter = {
+    person : Person,
     stats : HitterStats[],
-    models : HitterModel[],
+    models : Model[],
+}
+
+type PitcherStats = {
+    level : number,
+    year : number,
+    team : number,
+    league : number,
+    ip : number,
+    era : number,
+    fip : number,
+    hrrate : number,
+    bbperc : number,
+    kperc : number,
+    gorate : number,
 }
 
 type Pitcher = {
-
+    person : Person,
+    stats : PitcherStats[],
+    models : Model[]
 }
 
 function getHitterStats(hitterObject : JsonObject) : HitterStats[]
@@ -67,15 +86,42 @@ function getHitterStats(hitterObject : JsonObject) : HitterStats[]
     return stats
 }
 
-function getHitterModels(hitterObject : JsonObject) : HitterModel[]
+function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
 {
-    let models : HitterModel[] = []
-    let modelArray : JsonArray = getJsonArray(hitterObject, "model")
+    let stats : PitcherStats[] = []
+    let statsArray : JsonArray = getJsonArray(pitcherObject, "stats")
+
+    statsArray.forEach(f => {
+        const fObj : JsonObject = f as JsonObject;
+        const ps : PitcherStats = {
+            level : getJsonNumber(fObj, "level"),
+            year : getJsonNumber(fObj, "year"),
+            team : getJsonNumber(fObj, "team"),
+            league : getJsonNumber(fObj, "league"),
+            ip : getJsonNumber(fObj, "IP"),
+            era : getJsonNumber(fObj, "ERA"),
+            fip : getJsonNumber(fObj, "FIP"),
+            hrrate : getJsonNumber(fObj, "HR9"),
+            bbperc : getJsonNumber(fObj, "BB%"),
+            kperc : getJsonNumber(fObj, "K%"),
+            gorate : getJsonNumber(fObj, "GO%")
+        }
+        stats.push(ps)
+    })
+
+    return stats
+}
+
+function getModels(obj : JsonObject) : Model[]
+{
+    let models : Model[] = []
+    let modelArray : JsonArray = getJsonArray(obj, "model")
+
     modelArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const probArray = getJsonArray(fObj, "probs");
         
-        const m : HitterModel = {
+        const m : Model = {
             year : getJsonNumber(fObj, "year"),
             month : getJsonNumber(fObj, "month"),
             probs : probArray.map(f => {
@@ -89,23 +135,32 @@ function getHitterModels(hitterObject : JsonObject) : HitterModel[]
     return models;
 }
 
+function getPerson(obj : JsonObject)
+{
+    const p : Person = {
+        firstName : getJsonString(obj, "firstName"),
+        lastName : getJsonString(obj, "lastName"),
+        birthDate : new Date(
+            getJsonNumber(obj, "birthYear"),
+            getJsonNumber(obj, "birthMonth"),
+            getJsonNumber(obj, "birthDate")
+        ),
+        signYear : getJsonNumber(obj, "startYear"),
+        draftPick : getJsonNumberNullable(obj, "draftPick"),
+    }
+
+    return p
+}
+
 async function loadHitter(id : number) : Promise<Hitter | null>
 {
     let hitterObject = await retrieveJsonNullable(`../../assets/player/h${id}.json.gz`);
     if (hitterObject !== null)
     {
         const hitter : Hitter = {
-            firstName : getJsonString(hitterObject, "firstName"),
-            lastName : getJsonString(hitterObject, "lastName"),
-            birthDate : new Date(
-                getJsonNumber(hitterObject, "birthYear"),
-                getJsonNumber(hitterObject, "birthMonth"),
-                getJsonNumber(hitterObject, "birthDate")
-            ),
-            signYear : getJsonNumber(hitterObject, "startYear"),
-            draftPick : getJsonNumberNullable(hitterObject, "draftPick"),
+            person: getPerson(hitterObject),
             stats : getHitterStats(hitterObject),
-            models : getHitterModels(hitterObject)
+            models : getModels(hitterObject)
         }
 
         return hitter;
@@ -113,9 +168,25 @@ async function loadHitter(id : number) : Promise<Hitter | null>
     return null;
 }
 
+async function loadPitcher(id : number) : Promise<Pitcher | null>
+{
+    let pitcherObject = await retrieveJsonNullable(`../../assets/player/p${id}.json.gz`);
+    if (pitcherObject !== null)
+    {
+        const pitcher : Pitcher = {
+            person: getPerson(pitcherObject),
+            stats : getPitcherStats(pitcherObject),
+            models : getModels(pitcherObject)
+        }
+
+        return pitcher;
+    }
+    return null;
+}
+
 function updateHitterStats(hitter : Hitter)
 {
-    const stats_body = getElementByIdStrict('tstats_body')
+    const stats_body = getElementByIdStrict('h_stats_body')
     hitter.stats.forEach(f => {
         const tr = document.createElement('tr')
         tr.innerHTML = `
@@ -139,10 +210,32 @@ function updateHitterStats(hitter : Hitter)
     })
 }
 
+function updatePitcherStats(pitcher : Pitcher)
+{
+    const stats_body = getElementByIdStrict('p_stats_body')
+    pitcher.stats.forEach(f => {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+            <td>${f.year}</td>
+            <td>${level_map[f.level]}</td>
+            <td>${getTeamAbbr(f.team, f.year)}</td>
+            <td>${getLeagueAbbr(f.league)}</td>
+            <td class="align_right">${f.ip}</td>
+            <td class="align_right">${f.era.toFixed(2)}</td>
+            <td class="align_right">${f.fip.toFixed(2)}</td>
+            <td class="align_right">${f.hrrate.toFixed(1)}</td>
+            <td class="align_right">${f.bbperc.toFixed(1)}</td>
+            <td class="align_right">${f.kperc.toFixed(1)}</td>
+            <td class="align_right">${f.gorate.toFixed(1)}</td>
+        `
+        stats_body.append(tr)
+    })
+}
+
 const HITTER_WAR_BUCKETS = [0,0.5,2.5,7.5,15,25,35]
 const HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
 
-function piePointGenerator(model : HitterModel) : Point[]
+function piePointGenerator(model : Model) : Point[]
 {
     let points : Point[] = []
     for (let i = 0; i < HITTER_WAR_LABELS.length; i++)
@@ -172,9 +265,9 @@ function lineCallback(index : number)
     }
 }
 
-function setupModel(hitter : Hitter) : void
+function setupModel(models : Model[]) : void
 {
-    const line_points  = hitter.models.map(f => {
+    const line_points  = models.map(f => {
         let war = 0;
         for (let i = 0; i < f.probs.length; i++)
             war += f.probs[i] * HITTER_WAR_BUCKETS[i];
@@ -185,7 +278,7 @@ function setupModel(hitter : Hitter) : void
     })
     line_graph = new LineGraph(model_graph, line_points, lineCallback)
 
-    const pie_points = piePointGenerator(hitter.models[hitter.models.length - 1])
+    const pie_points = piePointGenerator(models[models.length - 1])
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
 }
 
@@ -203,19 +296,45 @@ async function main()
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     org_map = await retrieveJson("../../assets/map.json.gz")
     const id = getQueryParam("id")
-    hitter = await loadHitter(id)
+
+    const lh = loadHitter(id)
+    const lp = loadPitcher(id)
+
+    let person : Person | null = null
+    hitter = await lh
     if (hitter !== null)
     {
-        updateElementText("player_name", `${hitter.firstName} ${hitter.lastName}`)
-        const age = getDateDelta(hitter.birthDate, new Date())
-        updateElementText("player_age", `${age[0]} years, ${age[1]} months, ${age[2]} days`)
-        if (hitter.draftPick !== null)
-        {
-            updateElementText("player_draft", `#${hitter.draftPick} Overall, ${hitter.signYear}`)
-        }
-
+        person = hitter.person
         updateHitterStats(hitter)
-        setupModel(hitter)
+        setupModel(hitter.models)
+    } else {
+        const hitterStats = getElementByIdStrict('hitter_stats')
+        hitterStats.classList.add('hidden')
+    }
+
+    pitcher = await lp
+    if (pitcher !== null)
+    {
+        person = pitcher.person
+        updatePitcherStats(pitcher)
+        setupModel(pitcher.models)
+    } else {
+        const pitcherStats = getElementByIdStrict('pitcher_stats')
+        pitcherStats.classList.add('hidden')
+    }
+
+    // Set person
+    if (person !== null)
+    {
+        updateElementText("player_name", `${person.firstName} ${person.lastName}`)
+        const age = getDateDelta(person.birthDate, new Date())
+        updateElementText("player_age", `${age[0]} years, ${age[1]} months, ${age[2]} days`)
+        if (person.draftPick !== null)
+        {
+            updateElementText("player_draft", `#${person.draftPick} Overall, ${person.signYear}`)
+        }
+    } else {
+        throw Error("No person found")
     }
 
     keyControls = new KeyControls(document, (x_inc) => {

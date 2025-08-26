@@ -25,8 +25,9 @@
                         <canvas id="projWarGraph"></canvas>
                     </div>
                 </div>
-                <div id="stats">
-                    <table id="season_stats">
+
+                <div id="hitter_stats" class="stats">
+                    <table id="hitter_season_stats" class="season_stats">
                         <thead>
                             <tr>
                                 <th>Year</th>
@@ -46,12 +47,31 @@
                                 <th>CS</th>
                             </tr>
                         </thead>
-                        <tbody id="tstats_body"></tbody>
+                        <tbody id="h_stats_body"></tbody>
+                    </table>
+                </div>
+
+                <div id="pitcher_stats" class="stats">
+                    <table id="pitcher_season_stats" class="season_stats">
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Level</th>
+                                <th>Org</th>
+                                <th>League</th>
+                                <th>IP</th>
+                                <th>ERA</th>
+                                <th>FIP</th>
+                                <th>HR/9</th>
+                                <th>BB%</th>
+                                <th>K%</th>
+                                <th>GO%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="p_stats_body"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-        
-        
     </body>
 </html>

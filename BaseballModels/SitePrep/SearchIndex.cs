@@ -12,7 +12,7 @@ namespace SitePrep
             try
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                var players = db.Model_Players.Where(f => f.IsHitter == 1)
+                var players = db.Model_Players
                     .Join(db.Player, mp => mp.MlbId, p => p.MlbId, (mp, p) => p);
 
                 JsonObject json = new();

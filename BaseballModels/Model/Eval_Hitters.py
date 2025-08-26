@@ -9,8 +9,10 @@ import torch.nn.functional as F
 import warnings
 
 if __name__ == "__main__":
+    model_name = "H"
+    
     cursor = db.cursor()
-    cursor.execute("DELETE FROM Output_PlayerWar")
+    cursor.execute("DELETE FROM Output_PlayerWar WHERE modelName=?", (model_name,))
     db.commit()
     
     data_prep = Data_Prep()
@@ -58,6 +60,6 @@ if __name__ == "__main__":
             cursor = db.cursor()
             for dbd in db_data:
                 vals = [tuple(x) for x in dbd.tolist()]
-                cursor.executemany("INSERT INTO Output_PlayerWar VALUES(?,'H',?,?,?,?,?,?,?,?,?,?)", vals)
+                cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,'{model_name}',?,?,?,?,?,?,?,?,?,?)", vals)
             db.commit()
             
