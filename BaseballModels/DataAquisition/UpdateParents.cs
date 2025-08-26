@@ -48,6 +48,10 @@ namespace DataAquisition
                         int teamId = team.GetProperty("id").GetInt32();
                         try
                         {
+                            int leagueId = team.GetProperty("league").GetProperty("id").GetInt32();
+                            if (leagueId == Constants.MEXICAN_LEAGUE_ID)
+                                continue;
+
                             int parentId = team.GetProperty("parentOrgId").GetInt32();
                             db.Team_OrganizationMap.Add(new Team_OrganizationMap
                             {

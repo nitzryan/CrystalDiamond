@@ -372,8 +372,9 @@ CREATE TABLE "Player_OrgMap" (
 	"mlbId"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
+	"day" INTEGER NOT NULL,
 	"parentOrgId"	INTEGER NOT NULL,
-	PRIMARY KEY("year","mlbId","month")
+	PRIMARY KEY("mlbId", "year","month", "day")
 );
 
 CREATE TABLE "Transaction_Log" (
@@ -629,15 +630,17 @@ CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
 	"day"
 );
 
-CREATE INDEX "idx_PlayerOrgMap" ON "Player_OrgMap" (
-	"mlbId",
-	"year",
-	"month"
-);
-
 CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 	"modelIdx",
 	"mlbId",
 	"year",
 	"month"
+);
+
+CREATE INDEX "idx_HitterGameLog_Player" ON "Player_Hitter_GameLog" (
+	"mlbId"
+);
+
+CREATE INDEX "idx_PitcherGameLog_Player" ON "Player_Pitcher_GameLog" (
+	"mlbId"
 );

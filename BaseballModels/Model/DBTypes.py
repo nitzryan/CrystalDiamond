@@ -581,11 +581,12 @@ class DB_Player_OrgMap:
 		self.mlbId = values[0]
 		self.year = values[1]
 		self.month = values[2]
-		self.parentOrgId = values[3]
+		self.day = values[3]
+		self.parentOrgId = values[4]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.month,self.parentOrgId)
+		return (self.mlbId,self.year,self.month,self.day,self.parentOrgId)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_OrgMap']:

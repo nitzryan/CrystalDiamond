@@ -231,7 +231,9 @@ var SearchBar = (function () {
             return r !== 0 ? r : a["l"].localeCompare(b["l"]);
         });
         var htmlStrings = valid.map(function (f) {
-            return "<li><a href=\"./player.html?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a></li>");
+            var id = f["o"];
+            var teamString = id > 0 ? "  (" + getParentAbbr(id) + ")" : "";
+            return "<li><a href=\"./player.html?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
         });
         return htmlStrings.join("\n");
     };
@@ -395,6 +397,13 @@ function getTeamAbbr(id, year) {
     var parentId = getParentId(id, year);
     var parents = org_map["parents"];
     var parent = parents[parentId];
+    return parent["abbr"];
+}
+function getParentAbbr(id) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentAbbr");
+    var parents = org_map["parents"];
+    var parent = parents[id];
     return parent["abbr"];
 }
 function getLeagueAbbr(id) {

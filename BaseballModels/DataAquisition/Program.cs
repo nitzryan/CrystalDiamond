@@ -34,8 +34,8 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                if (!CalculateAnnualOPS.Main(year))
-                    return;
+                //if (!CalculateAnnualOPS.Main(year))
+                //    return;
 
                 //while (!await UpdateParents.Main(year))
                 //{ }
@@ -58,6 +58,9 @@
             //    return;
 
             //if (!await TransactionLog.Main())
+            //    return;
+
+            //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
             //if (!ModelMonthStats.Main())

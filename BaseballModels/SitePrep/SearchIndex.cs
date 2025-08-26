@@ -19,11 +19,18 @@ namespace SitePrep
                 JsonArray arr = new();
                 foreach (var player in players)
                 {
+                    var result = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId)
+                            .OrderByDescending(f => f.Year)
+                            .ThenByDescending(f => f.Month)
+                            .ThenByDescending(f => f.Day)
+                            .FirstOrDefault();
+
                     JsonObject p = new()
                     {
                         ["id"] = player.MlbId,
                         ["f"] = player.UseFirstName,
                         ["l"] = player.UseLastName,
+                        ["o"] = result != null ? result.ParentOrgId : 0
                     };
                     arr.Add(p);
                 }

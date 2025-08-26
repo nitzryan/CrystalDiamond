@@ -5,6 +5,7 @@ namespace Db
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
+		public required int Day {get; set;}
 		public required int ParentOrgId {get; set;}
 
 		public Player_OrgMap Clone()
@@ -14,6 +15,7 @@ namespace Db
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
+				Day = this.Day,
 				ParentOrgId = this.ParentOrgId,
 				
 			};
