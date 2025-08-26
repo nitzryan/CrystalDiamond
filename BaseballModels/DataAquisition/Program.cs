@@ -13,56 +13,55 @@
                 //while (!await PlayerUpdate.Main(year))
                 //{ }
 
-                //while (!await GameLogUpdate.Main(year, 3, 10))
-                //{ }
+                while (!await GameLogUpdate.Main(year, 3, 10))
+                { }
 
-                //if (!ParkFactorUpdate.Main(year))
-                //    return;
+                if (!ParkFactorUpdate.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {
-                    //    if (!CalculateLevelStats.Main(year, month))
-                    //        return;
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
 
-                    //    if (!CalculateMonthStats.Main(year, month))
-                    //        return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                    //    if (!CalculateMonthRatios.Main(year, month))
-                    //        return;
-                    //}
-
-                    //if (!CalculateAnnualStats.Main(year))
-                    //    return;
-
-                    while (!await UpdateParents.Main(year))
-                    { }
-
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
                 }
 
-                //if (!UpdateServiceTime.Main())
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
-                //if (!FangraphsData.Main(years))
-                //    return;
+                while (!await UpdateParents.Main(year))
+                { }
 
-                //if (!UpdateCareers.Main(years))
-                //    return;
-
-                //if (!ModelPlayers.Main())
-                //    return;
-
-                //if (!ModelPlayerWar.Main())
-                //    return;
-
-                //if (!await TransactionLog.Main())
-                //    return;
-
-                //if (!ModelMonthStats.Main())
-                //    return;
-
-                //while (!await GetLeagues.Main())
-                //{ }
             }
+
+            if (!UpdateServiceTime.Main())
+                return;
+
+            if (!FangraphsData.Main(years))
+                return;
+
+            if (!UpdateCareers.Main(years))
+                return;
+
+            if (!ModelPlayers.Main())
+                return;
+
+            if (!ModelPlayerWar.Main())
+                return;
+
+            if (!await TransactionLog.Main())
+                return;
+
+            if (!ModelMonthStats.Main())
+                return;
+
+            while (!await GetLeagues.Main())
+            { }
         }
     }
 }

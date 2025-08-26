@@ -7,7 +7,7 @@ namespace DataAquisition
         public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_MonthStats stats)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
-            int pa = stats.AB + stats.BB + stats.HBP;
+            int pa = stats.PA;
             float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
             float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
             float woba = pa > 0 ?
@@ -47,6 +47,7 @@ namespace DataAquisition
             Month = a.Month,
             Year = a.Year,
             AB = a.AB + b.AB,
+            PA = a.PA + b.PA,
             H = a.H + b.H,
             Hit2B = a.Hit2B + b.Hit2B,
             Hit3B = a.Hit3B + b.Hit3B,

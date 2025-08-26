@@ -410,24 +410,25 @@ class DB_Player_Hitter_GameLog:
 		self.Month = values[4]
 		self.Year = values[5]
 		self.AB = values[6]
-		self.H = values[7]
-		self.hit2B = values[8]
-		self.hit3B = values[9]
-		self.HR = values[10]
-		self.K = values[11]
-		self.BB = values[12]
-		self.SB = values[13]
-		self.CS = values[14]
-		self.HBP = values[15]
-		self.Position = values[16]
-		self.LevelId = values[17]
-		self.HomeTeamId = values[18]
-		self.TeamId = values[19]
-		self.LeagueId = values[20]
+		self.PA = values[7]
+		self.H = values[8]
+		self.hit2B = values[9]
+		self.hit3B = values[10]
+		self.HR = values[11]
+		self.K = values[12]
+		self.BB = values[13]
+		self.SB = values[14]
+		self.CS = values[15]
+		self.HBP = values[16]
+		self.Position = values[17]
+		self.LevelId = values[18]
+		self.HomeTeamId = values[19]
+		self.TeamId = values[20]
+		self.LeagueId = values[21]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.gameLogId,self.gameId,self.mlbId,self.Day,self.Month,self.Year,self.AB,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.Position,self.LevelId,self.HomeTeamId,self.TeamId,self.LeagueId)
+		return (self.gameLogId,self.gameId,self.mlbId,self.Day,self.Month,self.Year,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.Position,self.LevelId,self.HomeTeamId,self.TeamId,self.LeagueId)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_GameLog']:
@@ -475,30 +476,31 @@ class DB_Player_Hitter_MonthStats:
 		self.Month = values[2]
 		self.LevelId = values[3]
 		self.AB = values[4]
-		self.H = values[5]
-		self.hit2B = values[6]
-		self.hit3B = values[7]
-		self.HR = values[8]
-		self.K = values[9]
-		self.BB = values[10]
-		self.SB = values[11]
-		self.CS = values[12]
-		self.HBP = values[13]
-		self.ParkRunFactor = values[14]
-		self.ParkHRFactor = values[15]
-		self.GamesC = values[16]
-		self.Games1B = values[17]
-		self.Games2B = values[18]
-		self.Games3B = values[19]
-		self.GamesSS = values[20]
-		self.GamesLF = values[21]
-		self.GamesCF = values[22]
-		self.GamesRF = values[23]
-		self.GamesDH = values[24]
+		self.PA = values[5]
+		self.H = values[6]
+		self.hit2B = values[7]
+		self.hit3B = values[8]
+		self.HR = values[9]
+		self.K = values[10]
+		self.BB = values[11]
+		self.SB = values[12]
+		self.CS = values[13]
+		self.HBP = values[14]
+		self.ParkRunFactor = values[15]
+		self.ParkHRFactor = values[16]
+		self.GamesC = values[17]
+		self.Games1B = values[18]
+		self.Games2B = values[19]
+		self.Games3B = values[20]
+		self.GamesSS = values[21]
+		self.GamesLF = values[22]
+		self.GamesCF = values[23]
+		self.GamesRF = values[24]
+		self.GamesDH = values[25]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.Year,self.Month,self.LevelId,self.AB,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.ParkRunFactor,self.ParkHRFactor,self.GamesC,self.Games1B,self.Games2B,self.Games3B,self.GamesSS,self.GamesLF,self.GamesCF,self.GamesRF,self.GamesDH)
+		return (self.mlbId,self.Year,self.Month,self.LevelId,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.ParkRunFactor,self.ParkHRFactor,self.GamesC,self.Games1B,self.Games2B,self.Games3B,self.GamesSS,self.GamesLF,self.GamesCF,self.GamesRF,self.GamesDH)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_MonthStats']:

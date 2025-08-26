@@ -1,10 +1,4 @@
 ﻿using Db;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataAquisition
 {
@@ -31,7 +25,7 @@ namespace DataAquisition
                                                     && f.Year == year)
                         .Aggregate(Utilities.HitterGameLogAggregation);
 
-                    int pa = s.AB + s.HBP + s.BB;
+                    int pa = s.PA;
                     float iso = s.AB > 0 ? (float)(s.Hit2B + (2 * s.Hit3B) + (3 * s.HR)) / s.AB : 0;
                     float avg = s.AB > 0 ? (float)s.H / s.AB : 0;
                     int singles = s.H - s.Hit2B - s.Hit3B - s.HR;

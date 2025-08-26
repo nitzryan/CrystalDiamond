@@ -27,6 +27,7 @@ namespace DataAquisition
                     Month = 0,
                     Year = 0,
                     AB = a.AB + b.AB,
+                    PA = a.PA + b.PA,
                     H = a.H + b.H,
                     Hit2B = a.Hit2B + b.Hit2B,
                     Hit3B = a.Hit3B + b.Hit3B,

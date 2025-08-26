@@ -11,6 +11,7 @@ namespace DataAquisition
         private static Player_Hitter_MonthStats GetMonthStatsHitter(IEnumerable<Player_Hitter_GameLog> gameLogs, Dictionary<int, (float, float)> adjustedParkFactors, int month)
         {
             int totalAb = 0;
+            int totalPA = 0;
             int totalH = 0;
             int total2B = 0;
             int total3B = 0;
@@ -36,6 +37,7 @@ namespace DataAquisition
                 totalHBP += gl.HBP;
                 totalSB += gl.SB;
                 totalCS += gl.CS;
+                totalPA += gl.PA;
 
                 if (gl.Position > 1 && gl.Position <= 9)
                     totalPositions[gl.Position - 2]++;
@@ -63,6 +65,7 @@ namespace DataAquisition
                 Month = month,
                 LevelId = first.LevelId,
                 AB = totalAb,
+                PA = totalPA,
                 H = totalH,
                 Hit2B = total2B,
                 Hit3B = total3B,

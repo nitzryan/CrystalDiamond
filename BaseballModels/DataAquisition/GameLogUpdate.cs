@@ -112,7 +112,6 @@ namespace DataAquisition
                 var statArray = stat.EnumerateArray();
                 var statFirst = statArray.First();
                 var splits = statFirst.GetProperty("splits");
-                //var games = json.RootElement.GetProperty("stat").EnumerateArray().First().GetProperty("splits").EnumerateArray();
                 var games = splits.EnumerateArray();
 
                 // Go through each game
@@ -139,6 +138,7 @@ namespace DataAquisition
                         Month = gameMonth,
                         Year = Convert.ToInt32(gamedate[0]),
                         AB = stats.GetProperty("atBats").GetInt32(),
+                        PA = stats.GetProperty("plateAppearances").GetInt32(),
                         H = stats.GetProperty("hits").GetInt32(),
                         Hit2B = stats.GetProperty("doubles").GetInt32(),
                         Hit3B = stats.GetProperty("triples").GetInt32(),
