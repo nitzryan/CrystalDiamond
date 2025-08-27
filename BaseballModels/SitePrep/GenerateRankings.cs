@@ -145,17 +145,9 @@ namespace SitePrep
 
                 // Create JSON of dates for site
                 JsonObject datesJson = new();
-                JsonArray datesArray = new();
-                foreach (var date in dates)
-                {
-                    JsonObject obj = new()
-                    {
-                        ["month"] = date.Item1,
-                        ["year"] = date.Item2
-                    };
-                    datesArray.Add(obj);
-                }
-                datesJson.Add("dates", datesArray);
+                datesJson.Add("endYear", endYear);
+                datesJson.Add("endMonth", endMonth);
+                datesJson.Add("startYear", 2015);
                 using var fileStreamDates = new FileStream(Constants.SITE_ASSET_FOLDER + $"ranking/dates.json.gz", FileMode.Create);
                 using var gzipStreamDates = new GZipStream(fileStreamDates, CompressionLevel.Optimal);
                 using var writerDates = new Utf8JsonWriter(gzipStreamDates, new JsonWriterOptions { Indented = false });

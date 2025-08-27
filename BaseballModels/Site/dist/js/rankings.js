@@ -82,23 +82,71 @@ function getPlayers(rankingJson) {
         return player;
     });
 }
+var endYear = 0;
+var endMonth = 0;
+function selectorEventHandler(ev) {
+    var selectedMonth = parseInt(month_select.value);
+    var selectedYear = parseInt(year_select.value);
+    if (endYear == selectedYear && endMonth < selectedMonth) {
+        rankings_button.classList.add('hidden');
+        rankings_error.classList.remove('hidden');
+    }
+    else {
+        rankings_error.classList.add('hidden');
+        rankings_button.classList.remove('hidden');
+    }
+}
+function setupSelector(month, year) {
+    return __awaiter(this, void 0, void 0, function () {
+        var datesJson, startYear, i, opt, i, opt;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, retrieveJson('../../assets/ranking/dates.json.gz')];
+                case 1:
+                    datesJson = _a.sent();
+                    endYear = datesJson["endYear"];
+                    endMonth = datesJson["endMonth"];
+                    startYear = datesJson["startYear"];
+                    for (i = startYear; i <= endYear; i++) {
+                        opt = document.createElement('option');
+                        opt.value = i.toString();
+                        opt.innerText = i.toString();
+                        year_select.appendChild(opt);
+                    }
+                    for (i = 4; i <= 9; i++) {
+                        opt = document.createElement('option');
+                        opt.value = i.toString();
+                        opt.innerText = MONTH_CODES[i];
+                        month_select.appendChild(opt);
+                    }
+                    year_select.value = year.toString();
+                    month_select.value = month.toString();
+                    year_select.addEventListener('change', selectorEventHandler);
+                    month_select.addEventListener('change', selectorEventHandler);
+                    return [2];
+            }
+        });
+    });
+}
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var player_search_data, month, year, rankingJson, players, playerLoader, _a;
+        var month, year, player_search_data, selector, rankingJson, players, playerLoader, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    month = getQueryParam('month');
+                    year = getQueryParam('year');
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
+                    selector = setupSelector(month, year);
                     return [4, retrieveJson("../../assets/map.json.gz")];
                 case 1:
                     org_map = _b.sent();
-                    month = getQueryParam('month');
-                    year = getQueryParam('year');
                     return [4, retrieveJson("../../assets/ranking/".concat(month, "-").concat(year, ".json.gz"))];
                 case 2:
                     rankingJson = _b.sent();
                     players = getPlayers(rankingJson);
                     playerLoader = new PlayerLoader(players);
+                    rankings_header.innerText = "Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
                     rankings_load.addEventListener('click', function (event) {
                         var elements = playerLoader.getListElements();
                         for (var _i = 0, elements_1 = elements; _i < elements_1.length; _i++) {
@@ -111,6 +159,14 @@ function main() {
                     return [4, player_search_data];
                 case 3:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    return [4, selector];
+                case 4:
+                    _b.sent();
+                    rankings_button.addEventListener('click', function (event) {
+                        var mnth = month_select.value;
+                        var yr = year_select.value;
+                        window.location.href = "./rankings.html?year=".concat(yr, "&month=").concat(mnth);
+                    });
                     return [2];
             }
         });
@@ -339,3 +395,4 @@ function getLeagueAbbr(id) {
 }
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL" };
+var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];

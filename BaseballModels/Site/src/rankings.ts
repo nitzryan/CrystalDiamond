@@ -69,16 +69,67 @@ function getPlayers(rankingJson : JsonObject) : Player[]
     })
 }
 
+let endYear = 0
+let endMonth = 0
+function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
+{
+    const selectedMonth : number = parseInt(month_select.value)
+    const selectedYear : number = parseInt(year_select.value)
+
+    if (endYear == selectedYear && endMonth < selectedMonth)
+    {
+        rankings_button.classList.add('hidden')
+        rankings_error.classList.remove('hidden')
+    } else {
+        rankings_error.classList.add('hidden')
+        rankings_button.classList.remove('hidden')
+    }
+}
+
+async function setupSelector(month : number, year : number)
+{
+    const datesJson = await retrieveJson('../../assets/ranking/dates.json.gz')
+    endYear = datesJson["endYear"] as number
+    endMonth = datesJson["endMonth"] as number
+    const startYear = datesJson["startYear"] as number
+
+    for (let i = startYear; i <= endYear; i++)
+    {
+        let opt = document.createElement('option')
+        opt.value = i.toString()
+        opt.innerText = i.toString()
+        year_select.appendChild(opt)
+    }
+
+    for (let i = 4; i <= 9; i++)
+    {
+        let opt = document.createElement('option')
+        opt.value = i.toString()
+        opt.innerText = MONTH_CODES[i]
+        month_select.appendChild(opt)
+    }
+
+    year_select.value = year.toString()
+    month_select.value = month.toString()
+
+    year_select.addEventListener('change', selectorEventHandler)
+    month_select.addEventListener('change', selectorEventHandler)
+}
+
 async function main()
 {
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    org_map = await retrieveJson("../../assets/map.json.gz")
     const month : number = getQueryParam('month')
     const year : number = getQueryParam('year')
+    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
+    const selector = setupSelector(month, year)
+    org_map = await retrieveJson("../../assets/map.json.gz")
+    
     
     const rankingJson = await retrieveJson(`../../assets/ranking/${month}-${year}.json.gz`)
     const players = getPlayers(rankingJson)
     const playerLoader = new PlayerLoader(players)
+
+    rankings_header.innerText = `Rankings for ${MONTH_CODES[month]} ${year}`
 
     rankings_load.addEventListener('click', (event) => {
         const elements = playerLoader.getListElements()
@@ -90,6 +141,14 @@ async function main()
 
     rankings_load.dispatchEvent(new Event('click'))
     searchBar = new SearchBar(await player_search_data)
+
+    await selector
+    rankings_button.addEventListener('click', (event) => {
+        const mnth = month_select.value
+        const yr = year_select.value
+        
+        window.location.href = `./rankings.html?year=${yr}&month=${mnth}`
+    })
 }
 
 main()
