@@ -7,4 +7,4 @@ for %%F in ("%folder%*.html") do (
 )
 
 REM Compile typescript
-tsc
+tsc -b

@@ -169,7 +169,7 @@ function updatePitcherStats(pitcher) {
         stats_body.append(tr);
     });
 }
-var HITTER_WAR_BUCKETS = [0, 0.5, 2.5, 7.5, 15, 25, 35];
+var HITTER_WAR_BUCKETS = [0, 0.5, 3, 7.5, 15, 25, 35];
 var HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"];
 function piePointGenerator(model) {
     var points = [];

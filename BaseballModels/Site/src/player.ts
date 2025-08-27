@@ -232,7 +232,7 @@ function updatePitcherStats(pitcher : Pitcher)
     })
 }
 
-const HITTER_WAR_BUCKETS = [0,0.5,2.5,7.5,15,25,35]
+const HITTER_WAR_BUCKETS = [0,0.5,3,7.5,15,25,35]
 const HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
 
 function piePointGenerator(model : Model) : Point[]

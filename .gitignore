@@ -19,3 +19,6 @@ __pycache__/
 # Web Files
 node_modules/
 *.json.gz
+
+# Typescript
+*.tsbuildinfo
