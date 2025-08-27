@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "none",
+        "outFile": "dist/js/teams.js",
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["src/teams.ts", "src/rankingPlayers.ts", "src/searchbar.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+}

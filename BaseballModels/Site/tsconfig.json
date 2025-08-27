@@ -13,6 +13,7 @@
     "files":[],
     "references": [
         {"path": "./tsconfig.player.json"},
-        {"path": "./tsconfig.rankings.json"}
+        {"path": "./tsconfig.rankings.json"},
+        {"path": "./tsconfig.teams.json"}
     ],
 }

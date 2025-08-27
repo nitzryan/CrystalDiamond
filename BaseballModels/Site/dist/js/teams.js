@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var searchBar = null;
 var month = null;
 var year = null;
+var teamId = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var datesJsonPromise, player_search_data, datesJson, selector, rankingJson, _a;
@@ -48,6 +49,7 @@ function main() {
                     try {
                         month = getQueryParam('month');
                         year = getQueryParam('year');
+                        teamId = getQueryParam('team');
                     }
                     catch (error) { }
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
@@ -60,21 +62,23 @@ function main() {
                         month = endMonth;
                         year = endYear;
                     }
+                    if (teamId === null)
+                        teamId = 142;
+                    return [4, retrieveJson("../../assets/map.json.gz")];
+                case 2:
+                    org_map = _b.sent();
                     selector = setupSelector({
                         month: month,
                         year: year,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: null
+                        startTeam: teamId
                     });
-                    return [4, retrieveJson("../../assets/map.json.gz")];
-                case 2:
-                    org_map = _b.sent();
-                    return [4, retrieveJson("../../assets/ranking/".concat(month, "-").concat(year, ".json.gz"))];
+                    return [4, retrieveJson("../../assets/ranking/teams/".concat(teamId, "-").concat(month, "-").concat(year, ".json.gz"))];
                 case 3:
                     rankingJson = _b.sent();
-                    setupRankings(rankingJson, month, year, null);
+                    setupRankings(rankingJson, month, year, teamId);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
                 case 4:
@@ -85,7 +89,8 @@ function main() {
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
-                        window.location.href = "./rankings.html?year=".concat(yr, "&month=").concat(mnth);
+                        var tm = team_select === null || team_select === void 0 ? void 0 : team_select.value;
+                        window.location.href = "./teams.html?year=".concat(yr, "&month=").concat(mnth, "&team=").concat(tm);
                     });
                     return [2];
             }

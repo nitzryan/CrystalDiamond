@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Baseball Models</title>
+        <link rel="stylesheet" type="text/css" href="../css/main.css">
+        <script type="text/javascript" src="../js/teams.js" defer></script>
+    </head>
+    <body>
+        <!-- BANNER -->
+        <div id="ranking_selector" class="row">
+            <select id="year_select"></select>
+            <select id="month_select"></select>
+            <select id="team_select"></select>
+            <div id="rankings_get">
+                <button id="rankings_button">Update</button>
+                <div id="rankings_error" class="hidden">Invalid Date</div>
+            </div>
+        </div>
+        <div id="rankings">
+            <div id="rankings_header"></div>
+            <ol id="rankings_list"></ol>
+            <button id="rankings_load">More</button>
+        </div>
+    </body>
+</html>
