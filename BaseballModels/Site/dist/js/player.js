@@ -179,8 +179,17 @@ function piePointGenerator(model) {
     return points;
 }
 function lineCallback(index) {
+    var model = null;
     if (hitter !== null) {
-        var model = hitter.models[index];
+        model = hitter.models[index];
+    }
+    else if (pitcher !== null) {
+        model = pitcher.models[index];
+    }
+    else {
+        throw new Error("Both pitcher and hitter null at lineCallback");
+    }
+    if (model !== null) {
         if (pie_graph === null)
             throw new Error("Pie Graph null at lineCallback");
         var title_text = model.month == 0 ?
@@ -188,10 +197,8 @@ function lineCallback(index) {
             "".concat(model.month, "-").concat(model.year, " Outcome Distribution");
         pie_graph.updateChart(model.probs, title_text);
     }
-    else if (pitcher !== null) {
-    }
     else {
-        throw new Error("Both pitcher and hitter null at lineCallback");
+        throw new Error("Model was not set for hitter or pitcher");
     }
 }
 function setupModel(models) {
@@ -260,6 +267,7 @@ function main() {
                         if (person.draftPick !== null) {
                             updateElementText("player_draft", "#".concat(person.draftPick, " Overall, ").concat(person.signYear));
                         }
+                        document.title = person.firstName + " " + person.lastName;
                     }
                     else {
                         throw Error("No person found");

@@ -247,9 +247,20 @@ function piePointGenerator(model : Model) : Point[]
 
 function lineCallback(index : number)
 {
+    let model : Model | null = null
     if (hitter !== null)
     {
-        const model = hitter.models[index]
+        model = hitter.models[index]
+        
+    } else if (pitcher !== null)
+    {
+        model = pitcher.models[index]
+    } else {
+        throw new Error("Both pitcher and hitter null at lineCallback")
+    }
+
+    if (model !== null)
+    {
         if (pie_graph === null)
             throw new Error("Pie Graph null at lineCallback")
 
@@ -257,11 +268,8 @@ function lineCallback(index : number)
             "Iniitial Outcome Distribution" :
             `${model.month}-${model.year} Outcome Distribution`
         pie_graph.updateChart(model.probs, title_text)
-    } else if (pitcher !== null)
-    {
-
     } else {
-        throw new Error("Both pitcher and hitter null at lineCallback")
+        throw new Error("Model was not set for hitter or pitcher")
     }
 }
 
@@ -333,6 +341,7 @@ async function main()
         {
             updateElementText("player_draft", `#${person.draftPick} Overall, ${person.signYear}`)
         }
+        document.title = person.firstName + " " + person.lastName
     } else {
         throw Error("No person found")
     }
