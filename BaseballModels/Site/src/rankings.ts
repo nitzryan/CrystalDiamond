@@ -86,14 +86,16 @@ function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
     }
 }
 
-async function setupSelector(month : number, year : number)
+type SelectorArgs = {
+    month : number,
+    year : number,
+    startYear : number,
+    endYear : number, 
+    endMonth : number
+}
+async function setupSelector(args : SelectorArgs)
 {
-    const datesJson = await retrieveJson('../../assets/ranking/dates.json.gz')
-    endYear = datesJson["endYear"] as number
-    endMonth = datesJson["endMonth"] as number
-    const startYear = datesJson["startYear"] as number
-
-    for (let i = startYear; i <= endYear; i++)
+    for (let i = args.startYear; i <= endYear; i++)
     {
         let opt = document.createElement('option')
         opt.value = i.toString()
@@ -109,19 +111,41 @@ async function setupSelector(month : number, year : number)
         month_select.appendChild(opt)
     }
 
-    year_select.value = year.toString()
-    month_select.value = month.toString()
+    year_select.value = args.year.toString()
+    month_select.value = args.month.toString()
 
     year_select.addEventListener('change', selectorEventHandler)
     month_select.addEventListener('change', selectorEventHandler)
 }
 
+let month : number | null = null
+let year : number | null = null
 async function main()
 {
-    const month : number = getQueryParam('month')
-    const year : number = getQueryParam('year')
+    const datesJsonPromise = retrieveJson('../../assets/ranking/dates.json.gz')
+    try {
+        month = getQueryParam('month')
+        year = getQueryParam('year')
+    } catch (error) {}
+    
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const selector = setupSelector(month, year)
+    const datesJson = await datesJsonPromise
+
+    endYear = datesJson["endYear"] as number
+    endMonth = datesJson["endMonth"] as number
+    if (month === null || year === null)
+    {
+        month = endMonth
+        year = endYear
+    }
+
+    const selector = setupSelector({
+        month : month,
+        year : year,
+        endYear : endYear,
+        endMonth : endMonth,
+        startYear : datesJson["startYear"] as number
+    })
     org_map = await retrieveJson("../../assets/map.json.gz")
     
     

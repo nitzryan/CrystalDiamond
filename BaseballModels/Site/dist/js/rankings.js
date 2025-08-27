@@ -96,53 +96,66 @@ function selectorEventHandler(ev) {
         rankings_button.classList.remove('hidden');
     }
 }
-function setupSelector(month, year) {
+function setupSelector(args) {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJson, startYear, i, opt, i, opt;
+        var i, opt, i, opt;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, retrieveJson('../../assets/ranking/dates.json.gz')];
-                case 1:
-                    datesJson = _a.sent();
-                    endYear = datesJson["endYear"];
-                    endMonth = datesJson["endMonth"];
-                    startYear = datesJson["startYear"];
-                    for (i = startYear; i <= endYear; i++) {
-                        opt = document.createElement('option');
-                        opt.value = i.toString();
-                        opt.innerText = i.toString();
-                        year_select.appendChild(opt);
-                    }
-                    for (i = 4; i <= 9; i++) {
-                        opt = document.createElement('option');
-                        opt.value = i.toString();
-                        opt.innerText = MONTH_CODES[i];
-                        month_select.appendChild(opt);
-                    }
-                    year_select.value = year.toString();
-                    month_select.value = month.toString();
-                    year_select.addEventListener('change', selectorEventHandler);
-                    month_select.addEventListener('change', selectorEventHandler);
-                    return [2];
+            for (i = args.startYear; i <= endYear; i++) {
+                opt = document.createElement('option');
+                opt.value = i.toString();
+                opt.innerText = i.toString();
+                year_select.appendChild(opt);
             }
+            for (i = 4; i <= 9; i++) {
+                opt = document.createElement('option');
+                opt.value = i.toString();
+                opt.innerText = MONTH_CODES[i];
+                month_select.appendChild(opt);
+            }
+            year_select.value = args.year.toString();
+            month_select.value = args.month.toString();
+            year_select.addEventListener('change', selectorEventHandler);
+            month_select.addEventListener('change', selectorEventHandler);
+            return [2];
         });
     });
 }
+var month = null;
+var year = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var month, year, player_search_data, selector, rankingJson, players, playerLoader, _a;
+        var datesJsonPromise, player_search_data, datesJson, selector, rankingJson, players, playerLoader, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    month = getQueryParam('month');
-                    year = getQueryParam('year');
+                    datesJsonPromise = retrieveJson('../../assets/ranking/dates.json.gz');
+                    try {
+                        month = getQueryParam('month');
+                        year = getQueryParam('year');
+                    }
+                    catch (error) { }
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
-                    selector = setupSelector(month, year);
-                    return [4, retrieveJson("../../assets/map.json.gz")];
+                    return [4, datesJsonPromise];
                 case 1:
+                    datesJson = _b.sent();
+                    endYear = datesJson["endYear"];
+                    endMonth = datesJson["endMonth"];
+                    if (month === null || year === null) {
+                        month = endMonth;
+                        year = endYear;
+                    }
+                    selector = setupSelector({
+                        month: month,
+                        year: year,
+                        endYear: endYear,
+                        endMonth: endMonth,
+                        startYear: datesJson["startYear"]
+                    });
+                    return [4, retrieveJson("../../assets/map.json.gz")];
+                case 2:
                     org_map = _b.sent();
                     return [4, retrieveJson("../../assets/ranking/".concat(month, "-").concat(year, ".json.gz"))];
-                case 2:
+                case 3:
                     rankingJson = _b.sent();
                     players = getPlayers(rankingJson);
                     playerLoader = new PlayerLoader(players);
@@ -157,10 +170,10 @@ function main() {
                     rankings_load.dispatchEvent(new Event('click'));
                     _a = SearchBar.bind;
                     return [4, player_search_data];
-                case 3:
+                case 4:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     return [4, selector];
-                case 4:
+                case 5:
                     _b.sent();
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
