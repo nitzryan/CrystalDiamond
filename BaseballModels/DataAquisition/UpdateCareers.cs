@@ -20,15 +20,31 @@ namespace DataAquisition
                 foreach (var player in db.Player)
                 {
                     Db.Player dbPlayer = db.Player.Where(f => f.MlbId == player.MlbId).Single();
+
+                    // Determine if player is hitter/pitcher/two-way
+                    int pa = db.Player_Hitter_GameLog.Where(f => f.MlbId == player.MlbId && f.Position != 1).Sum(f => f.PA);
+                    int bf = db.Player_Pitcher_GameLog.Where(f => f.MlbId == player.MlbId).Sum(f => f.BattersFaced);
+
+                    int isHitter, isPitcher;
+                    if (pa == 0 && bf == 0) // No stats, use position
+                    {
+                        isHitter = dbPlayer.Position.Equals("H") || dbPlayer.Position.Equals("TWP")
+                            ? 1 : 0;
+                        isPitcher = dbPlayer.Position.Equals("P") || dbPlayer.Position.Equals("TWP")
+                            ? 1 : 0;
+                    } else {
+                        float prop_hitter = (float)(pa) / (pa + bf);
+                        isHitter = prop_hitter > 0.1 ? 1 : 0;
+                        isPitcher = prop_hitter < 0.9 ? 1 : 0;
+                    }
+
                     db.Player_CareerStatus.Add(new Player_CareerStatus
                     {
                         MlbId = player.MlbId,
-                        IsPitcher = dbPlayer.Position.Equals("P") || dbPlayer.Position.Equals("TWP")
-                            ? 1 : 0,
-                        IsHitter = dbPlayer.Position.Equals("H") || dbPlayer.Position.Equals("TWP")
-                            ? 1 : 0,
+                        IsPitcher = isPitcher,
+                        IsHitter = isHitter,
                     });
-                }
+            }
                 db.SaveChanges();
 
                 // Update IsActive
