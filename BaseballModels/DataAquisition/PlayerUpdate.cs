@@ -144,7 +144,10 @@ namespace DataAquisition
                     position = "H";
             } catch (Exception) // Two-Way players have code "Y"
             {
-                position = "TWP";
+                if (position == "Y")
+                    position = "TWP";
+                else
+                    position = "H";
             }
 
             // Parse to get first year of data
