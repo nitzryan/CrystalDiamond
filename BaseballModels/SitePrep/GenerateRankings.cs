@@ -210,6 +210,28 @@ namespace SitePrep
                         // Create overall ranking
                         pmwList = pmwList.OrderByDescending(f => f.War).ToList();
 
+                        // Log Ranking
+                        using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+                        {
+                            int rank = 1;
+                            db_write.Ranking_Prospect.RemoveRange(db_write.Ranking_Prospect.Where(f => f.Month == month && f.Year == year));
+                            db_write.SaveChanges();
+                            foreach (var pmw in pmwList)
+                            {
+                                int r = rank;
+                                db_write.Ranking_Prospect.Add(new Ranking_Prospect
+                                {
+                                    MlbId = pmw.MLbId,
+                                    Year = year,
+                                    Month = month,
+                                    Model = pmw.ModelName,
+                                    Rank = r
+                                });
+                                rank++;
+                            }
+                            db_write.SaveChanges();
+                        }
+
                         JsonObject json = new();
                         JsonArray rankingJson = new();
                         foreach (var pmw in pmwList)

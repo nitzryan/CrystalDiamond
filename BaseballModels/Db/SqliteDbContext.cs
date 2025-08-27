@@ -39,6 +39,7 @@ namespace Db
 		public DbSet<Team_OrganizationMap> Team_OrganizationMap {get; set;}
 		public DbSet<Team_Parents> Team_Parents {get; set;}
 		public DbSet<Leagues> Leagues {get; set;}
+		public DbSet<Ranking_Prospect> Ranking_Prospect {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -79,6 +80,7 @@ namespace Db
 			modelBuilder.Entity<Team_OrganizationMap>().HasKey(f => new {f.TeamId,f.Year});
 			modelBuilder.Entity<Team_Parents>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<Leagues>().HasKey(f => new {f.Id});
+			modelBuilder.Entity<Ranking_Prospect>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Model});
 		}
 	}
 }

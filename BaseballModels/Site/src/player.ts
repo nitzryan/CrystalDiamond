@@ -19,7 +19,8 @@ type HitterStats = {
 type Model = {
     year : number,
     month : number,
-    probs : number[]
+    probs : number[],
+    rank: number | null
 }
 
 type Person = {
@@ -120,14 +121,15 @@ function getModels(obj : JsonObject) : Model[]
     modelArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const probArray = getJsonArray(fObj, "probs");
-        
+
         const m : Model = {
             year : getJsonNumber(fObj, "year"),
             month : getJsonNumber(fObj, "month"),
             probs : probArray.map(f => {
                 const num = f as number;
                 return num;
-            })
+            }),
+            rank : getJsonNumberNullable(fObj, "rank")
         }
         models.push(m);
     })
@@ -284,7 +286,17 @@ function setupModel(models : Model[]) : void
         const p : Point = {y: war, label : label}
         return p;
     })
-    line_graph = new LineGraph(model_graph, line_points, lineCallback)
+    
+    let ranks : Point[] = []
+    for (const model of models)
+    {
+        let m = model.month
+        let y = model.year
+        if (model.rank !== null)
+            ranks.push({y: model.rank, label: m == 0 ? 'Initial' : `${m}-${y}`})
+    }
+
+    line_graph = new LineGraph(model_graph, line_points, ranks, lineCallback)
 
     const pie_points = piePointGenerator(models[models.length - 1])
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")

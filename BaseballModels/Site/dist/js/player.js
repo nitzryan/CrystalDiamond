@@ -95,7 +95,8 @@ function getModels(obj) {
             probs: probArray.map(function (f) {
                 var num = f;
                 return num;
-            })
+            }),
+            rank: getJsonNumberNullable(fObj, "rank")
         };
         models.push(m);
     });
@@ -210,7 +211,15 @@ function setupModel(models) {
         var p = { y: war, label: label };
         return p;
     });
-    line_graph = new LineGraph(model_graph, line_points, lineCallback);
+    var ranks = [];
+    for (var _i = 0, models_1 = models; _i < models_1.length; _i++) {
+        var model = models_1[_i];
+        var m = model.month;
+        var y = model.year;
+        if (model.rank !== null)
+            ranks.push({ y: model.rank, label: m == 0 ? 'Initial' : "".concat(m, "-").concat(y) });
+    }
+    line_graph = new LineGraph(model_graph, line_points, ranks, lineCallback);
     var pie_points = piePointGenerator(models[models.length - 1]);
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
 }
@@ -512,7 +521,7 @@ var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;
 var LineGraph = (function () {
-    function LineGraph(element, points, callback, colorscale) {
+    function LineGraph(element, points, ranks, callback, colorscale) {
         if (colorscale === void 0) { colorscale = null; }
         var _this = this;
         this.points = points;
@@ -530,15 +539,32 @@ var LineGraph = (function () {
                 '#63a490',
                 '#00876c'
             ];
+        this.warDataset = {
+            label: 'WAR',
+            data: points.map(function (f) { return f.y; }),
+            pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
+            yAxisID: 'y',
+        };
+        if (ranks.length > 0) {
+            this.rankingDataset = {
+                label: 'Ranking',
+                data: ranks.map(function (f) { return f.y; }),
+                pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
+                yAxisID: 'y1',
+                hidden: true,
+            };
+        }
+        else {
+            this.rankingDataset = null;
+        }
+        var datasets = [this.warDataset];
+        if (this.rankingDataset !== null)
+            datasets.push(this.rankingDataset);
         this.chart = new Chart(element, {
             type: 'line',
             data: {
                 labels: points.map(function (f) { return f.label; }),
-                datasets: [{
-                        label: 'Model 1',
-                        data: points.map(function (f) { return f.y; }),
-                        pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
-                    }],
+                datasets: datasets,
             },
             options: {
                 responsive: true,
@@ -558,9 +584,37 @@ var LineGraph = (function () {
                 scales: {
                     y: {
                         min: 0,
+                        max: 16,
                         grid: {
                             color: css.background_low
                         },
+                        title: {
+                            display: true,
+                            text: 'Expected WAR Through Control'
+                        },
+                        position: 'left',
+                    },
+                    y1: {
+                        type: 'logarithmic',
+                        display: this.rankingDataset !== null,
+                        position: 'right',
+                        reverse: true,
+                        min: 1,
+                        max: 20000,
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Prospect Ranking'
+                        },
+                        ticks: {
+                            callback: function (value, index, ticks) {
+                                if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
+                                    return value.toLocaleString();
+                                return null;
+                            }
+                        }
                     },
                     x: {
                         grid: {

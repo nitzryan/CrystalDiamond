@@ -909,3 +909,22 @@ class DB_Leagues:
 
 
 ##############################################################################################
+class DB_Ranking_Prospect:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.year = values[1]
+		self.month = values[2]
+		self.model = values[3]
+		self.rank = values[4]
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.year,self.month,self.model,self.rank)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Ranking_Prospect']:
+		items = cursor.execute("SELECT * FROM Ranking_Prospect " + conditional, values).fetchall()
+		return [DB_Ranking_Prospect(i) for i in items]
+
+
+##############################################################################################

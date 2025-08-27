@@ -551,6 +551,15 @@ CREATE TABLE "Leagues" (
 	PRIMARY KEY ("id")
 );
 
+CREATE TABLE "Ranking_Prospect" (
+	"mlbId" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"model" TEXT NOT NULL,
+	"rank" INTEGER NOT NULL,
+	PRIMARY KEY ("mlbId", "year", "month", "model")
+);
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",

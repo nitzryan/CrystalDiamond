@@ -9,7 +9,10 @@ class LineGraph
     private callback : (index : number) => void
     private readonly chart : any
 
-    constructor(element : HTMLCanvasElement, points : Point[], callback : (index : number) => void, colorscale : string[] | null = null)
+    private warDataset : JsonObject
+    private rankingDataset : JsonObject | null
+
+    constructor(element : HTMLCanvasElement, points : Point[], ranks : Point[], callback : (index : number) => void, colorscale : string[] | null = null)
     {
         this.points = points
         this.callback = callback
@@ -26,16 +29,36 @@ class LineGraph
                         '#63a490',
                         '#00876c']
 
+        // Setup Datasets
+        this.warDataset = {
+            label: 'WAR',
+            data: points.map(f => f.y),
+            pointRadius : new Array(points.length).fill(POINT_DEFAULT_SIZE),
+            yAxisID: 'y',
+        }
+
+        if (ranks.length > 0)
+        {
+            this.rankingDataset = {
+                label: 'Ranking',
+                data: ranks.map(f => f.y),
+                pointRadius : new Array(points.length).fill(POINT_DEFAULT_SIZE),
+                yAxisID: 'y1',
+                hidden: true,
+            }
+        } else {
+            this.rankingDataset = null
+        }
+        let datasets = [this.warDataset]
+        if (this.rankingDataset !== null)
+            datasets.push(this.rankingDataset)
+
         // @ts-ignore
         this.chart = new Chart(element, {
             type: 'line',
             data: {
                 labels: points.map(f => f.label),
-                datasets : [{
-                    label: 'Model 1',
-                    data: points.map(f => f.y),
-                    pointRadius : new Array(points.length).fill(POINT_DEFAULT_SIZE),
-                }],   
+                datasets : datasets,   
             },
             options: {
                 responsive: true,
@@ -57,9 +80,38 @@ class LineGraph
                 scales: {
                     y: {
                         min: 0,
+                        max: 16,
                         grid: {
                             color: css.background_low
                         },
+                        title: {
+                            display: true,
+                            text: 'Expected WAR Through Control'
+                        },
+                        position: 'left',
+                    },
+                    y1: {
+                        type: 'logarithmic',
+                        display: this.rankingDataset !== null,
+                        position : 'right',
+                        reverse: true,
+                        min: 1,
+                        max: 20000,
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Prospect Ranking'
+                        },
+                        ticks: {
+                            // @ts-ignore
+                            callback: function(value, index, ticks) {
+                                if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
+                                    return value.toLocaleString()
+                                return null
+                            }
+                        }
                     },
                     x: {
                         grid: {
