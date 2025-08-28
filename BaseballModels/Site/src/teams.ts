@@ -47,6 +47,8 @@ async function main()
         
         window.location.href = `./teams.html?year=${yr}&month=${mnth}&team=${tm}`
     })
+
+    getElementByIdStrict('nav_teams').classList.add('selected')
 }
 
 main()

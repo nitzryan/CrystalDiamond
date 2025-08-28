@@ -87,6 +87,7 @@ function main() {
                         var yr = year_select.value;
                         window.location.href = "./rankings.html?year=".concat(yr, "&month=").concat(mnth);
                     });
+                    getElementByIdStrict('nav_rankings').classList.add('selected');
                     return [2];
             }
         });

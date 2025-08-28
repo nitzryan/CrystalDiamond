@@ -43,6 +43,8 @@ async function main()
         
         window.location.href = `./rankings.html?year=${yr}&month=${mnth}`
     })
+
+    getElementByIdStrict('nav_rankings').classList.add('selected')
 }
 
 main()

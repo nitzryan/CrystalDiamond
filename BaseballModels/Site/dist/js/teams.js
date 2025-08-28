@@ -92,6 +92,7 @@ function main() {
                         var tm = team_select === null || team_select === void 0 ? void 0 : team_select.value;
                         window.location.href = "./teams.html?year=".concat(yr, "&month=").concat(mnth, "&team=").concat(tm);
                     });
+                    getElementByIdStrict('nav_teams').classList.add('selected');
                     return [2];
             }
         });
