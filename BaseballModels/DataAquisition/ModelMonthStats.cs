@@ -6,7 +6,7 @@ namespace DataAquisition
 {
     internal class ModelMonthStats
     {
-        public static bool Main()
+        public static bool Main(int endYear, int endMonth)
         {
             try
             {
@@ -240,8 +240,59 @@ namespace DataAquisition
                                     prevYear++;
                                 }
                             }
+                        } 
+                        else // Player just signed, put in empty values for year(s) after signing
+                        {
+                            Player p = db.Player.Where(f => f.MlbId == hitter.MlbId).Single();
+                            int signingYear = p.SigningYear.Value;
+
+                            int y = signingYear + 1;
+                            int m = 4;
+                            const int MISSING_LEVEL = 7;
+                            while ((y < endYear || (y == endYear && m <= endMonth)) && (y < (signingYear + 7)))
+                            {
+                                if (Utilities.GamesAtLevel(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db))
+                                    db.Model_HitterStats.Add(new Model_HitterStats
+                                    {
+                                        MlbId = hitter.MlbId,
+                                        Year = y,
+                                        Month = m,
+                                        Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        PA = 0,
+                                        InjStatus = Utilities.GetInjStatus(m, y, hitter.MlbId, db),
+                                        MonthFrac = Utilities.GetGamesFrac(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db),
+                                        LevelId = MISSING_LEVEL,
+                                        ParkHRFactor = 1,
+                                        ParkRunFactor = 1,
+                                        AVGRatio = 1,
+                                        OBPRatio = 1,
+                                        ISORatio = 1,
+                                        WOBARatio = 1,
+                                        SBPercRatio = 1,
+                                        SBRateRatio = 1,
+                                        HRPercRatio = 1,
+                                        BBPercRatio = 1,
+                                        KPercRatio = 1,
+                                        PercC = 0,
+                                        Perc1B = 0,
+                                        Perc2B = 0,
+                                        Perc3B = 0,
+                                        PercSS = 0,
+                                        PercLF = 0,
+                                        PercCF = 0,
+                                        PercRF = 0,
+                                        PercDH = 0
+                                    });
+
+                                m++;
+                                if (m > 9)
+                                {
+                                    m = 4;
+                                    y++;
+                                }
+                            }
                         }
-                        
+
 
                         progressBar.Tick();
                     }
@@ -416,6 +467,46 @@ namespace DataAquisition
                                 {
                                     prevMonth = 4;
                                     prevYear++;
+                                }
+                            }
+                        }
+                        else // Player just signed, put in empty values for year(s) after signing
+                        {
+                            Player p = db.Player.Where(f => f.MlbId == pitcher.MlbId).Single();
+                            int signingYear = p.SigningYear.Value;
+
+                            int y = signingYear + 1;
+                            int m = 4;
+                            const int MISSING_LEVEL = 7;
+                            while ((y < endYear || (y == endYear && m <= endMonth)) && (y < (signingYear + 7)))
+                            {
+                                if (Utilities.GamesAtLevel(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db))
+                                    db.Model_PitcherStats.Add(new Model_PitcherStats
+                                    {
+                                        MlbId = pitcher.MlbId,
+                                        Year = y,
+                                        Month = m,
+                                        Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        BF = 0,
+                                        InjStatus = Utilities.GetInjStatus(m, y, pitcher.MlbId, db),
+                                        MonthFrac = Utilities.GetGamesFrac(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db),
+                                        LevelId = MISSING_LEVEL,
+                                        ParkHRFactor = 1,
+                                        ParkRunFactor = 1,
+                                        WOBARatio = 1,
+                                        HRPercRatio = 1,
+                                        BBPercRatio = 1,
+                                        KPercRatio = 1,
+                                        GBPercRatio = 1,
+                                        FIPRatio = 1,
+                                        ERARatio = 1
+                                    });
+
+                                m++;
+                                if (m > 9)
+                                {
+                                    m = 4;
+                                    y++;
                                 }
                             }
                         }

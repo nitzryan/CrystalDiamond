@@ -48,14 +48,14 @@
             //if (!FangraphsData.Main(years))
             //    return;
 
-            if (!UpdateCareers.Main(years))
-                return;
+            //if (!UpdateCareers.Main(years))
+            //    return;
 
-            if (!ModelPlayers.Main())
-                return;
+            //if (!ModelPlayers.Main())
+            //    return;
 
-            if (!ModelPlayerWar.Main())
-                return;
+            //if (!ModelPlayerWar.Main())
+            //    return;
 
             //if (!await TransactionLog.Main())
             //    return;
@@ -63,7 +63,7 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!ModelMonthStats.Main())
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
                 return;
 
             //while (!await GetLeagues.Main())

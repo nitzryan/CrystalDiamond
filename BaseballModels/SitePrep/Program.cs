@@ -16,6 +16,9 @@
             //if (!GenerateRankings.Main(year, month))
             //    return;
 
+            if (!ClearPlayers.Main())
+                return;
+
             if (!HitterPage.Main())
                 return;
 
