@@ -58,7 +58,14 @@ namespace DataAquisition
                             int bonusAmount = bonus == "" ? -1 : Convert.ToInt32(Regex.Replace(bonus, "[$,]", ""));
                             bool didSign = signed == "Y";
 
-                            pickStatus.Add((pickNum, didSign, bonusAmount));
+                            // Error for duplicate with Matthew Long, different values for didSign
+                            // Need to exclude value where he did not sign (he actually signed)
+                            if (year == 2008 && pickNum == 708 && !didSign)
+                                continue;
+
+                            var item = (pickNum, didSign, bonusAmount);
+                            if (!pickStatus.Contains(item))
+                                pickStatus.Add(item);
                         }
 
                         Thread.Sleep(5000); // Otherwise BR will throw error for TooManyRequests

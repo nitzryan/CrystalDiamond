@@ -118,11 +118,15 @@ namespace DataAquisition
                             MlbId = p.pcs.MlbId,
                             IsHitter = p.pcs.IsHitter,
                             IsPitcher = p.pcs.IsPitcher,
+                            SigningYear = player.SigningYear.Value,
                             LastProspectYear = lastProspectYear,
                             LastProspectMonth = lastProspectMonth,
                             LastMLBSeason = lastMlbSeason,
                             AgeAtSigningYear = ageAtSigning,
                             DraftPick = player.DraftPick != null ? player.DraftPick.Value : 2000,
+                            DraftSignRank = player.DraftPick != null ? 
+                                db.Draft_Results.Where(f => f.Year == player.SigningYear && f.Pick == player.DraftPick.Value).Single().BonusRank
+                                : 2000,
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,
                             PeakWarHitter = peakHitterWar,

@@ -5,11 +5,13 @@ namespace Db
 		public required int MlbId {get; set;}
 		public required int IsHitter {get; set;}
 		public required int IsPitcher {get; set;}
+		public required int SigningYear {get; set;}
 		public required int LastProspectYear {get; set;}
 		public required int LastProspectMonth {get; set;}
 		public required int LastMLBSeason {get; set;}
 		public required float AgeAtSigningYear {get; set;}
 		public required int DraftPick {get; set;}
+		public required int DraftSignRank {get; set;}
 		public required int HighestLevelHitter {get; set;}
 		public required int HighestLevelPitcher {get; set;}
 		public required float WarHitter {get; set;}
@@ -29,11 +31,13 @@ namespace Db
 				MlbId = this.MlbId,
 				IsHitter = this.IsHitter,
 				IsPitcher = this.IsPitcher,
+				SigningYear = this.SigningYear,
 				LastProspectYear = this.LastProspectYear,
 				LastProspectMonth = this.LastProspectMonth,
 				LastMLBSeason = this.LastMLBSeason,
 				AgeAtSigningYear = this.AgeAtSigningYear,
 				DraftPick = this.DraftPick,
+				DraftSignRank = this.DraftSignRank,
 				HighestLevelHitter = this.HighestLevelHitter,
 				HighestLevelPitcher = this.HighestLevelPitcher,
 				WarHitter = this.WarHitter,
