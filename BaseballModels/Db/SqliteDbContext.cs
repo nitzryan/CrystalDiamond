@@ -4,6 +4,7 @@ namespace Db
 {
 	public class SqliteDbContext : DbContext
 	{
+		public DbSet<Draft_Results> Draft_Results {get; set;}
 		public DbSet<League_Factors> League_Factors {get; set;}
 		public DbSet<Level_Factors> Level_Factors {get; set;}
 		public DbSet<Level_HitterStats> Level_HitterStats {get; set;}
@@ -45,6 +46,7 @@ namespace Db
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
+			modelBuilder.Entity<Draft_Results>().HasKey(f => new {f.Year,f.Pick});
 			modelBuilder.Entity<League_Factors>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<Level_Factors>().HasKey(f => new {f.LevelId,f.Year});
 			modelBuilder.Entity<Level_HitterStats>().HasKey(f => new {f.LevelId,f.Year,f.Month});

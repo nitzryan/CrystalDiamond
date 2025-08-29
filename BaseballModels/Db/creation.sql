@@ -1,3 +1,14 @@
+CREATE TABLE "Draft_Results" (
+	"Year" INTEGER NOT NULL,
+	"Pick" INTEGER NOT NULL,
+	"Round" TEXT NOT NULL,
+	"mlbId" INTEGER NOT NULL,
+	"Signed" INTEGER NOT NULL,
+	"Bonus" INTEGER NOT NULL,
+	"BonusRank" INTEGER NOT NULL,
+	PRIMARY KEY ("Year", "Pick")
+);
+
 CREATE TABLE "League_Factors" (
 	"LeagueId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
@@ -212,7 +223,6 @@ CREATE TABLE "Player" (
 	"birthMonth"	INTEGER NOT NULL,
 	"birthDate"	INTEGER NOT NULL,
 	"draftPick"	INTEGER,
-	"draftBonus"	INTEGER,
 	"signingYear"	INTEGER,
 	"signingMonth"	INTEGER,
 	"signingDate"	INTEGER,

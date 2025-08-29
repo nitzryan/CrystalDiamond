@@ -1,5 +1,26 @@
 import sqlite3
 
+class DB_Draft_Results:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.Pick = values[1]
+		self.Round = values[2]
+		self.mlbId = values[3]
+		self.Signed = values[4]
+		self.Bonus = values[5]
+		self.BonusRank = values[6]
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.Pick,self.Round,self.mlbId,self.Signed,self.Bonus,self.BonusRank)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Draft_Results']:
+		items = cursor.execute("SELECT * FROM Draft_Results " + conditional, values).fetchall()
+		return [DB_Draft_Results(i) for i in items]
+
+
+##############################################################################################
 class DB_League_Factors:
 	def __init__(self, values : tuple[any]):
 		self.LeagueId = values[0]
@@ -351,20 +372,19 @@ class DB_Player:
 		self.birthMonth = values[4]
 		self.birthDate = values[5]
 		self.draftPick = values[6]
-		self.draftBonus = values[7]
-		self.signingYear = values[8]
-		self.signingMonth = values[9]
-		self.signingDate = values[10]
-		self.signingBonus = values[11]
-		self.bats = values[12]
-		self.throws = values[13]
-		self.isRetired = values[14]
-		self.useFirstName = values[15]
-		self.useLastName = values[16]
+		self.signingYear = values[7]
+		self.signingMonth = values[8]
+		self.signingDate = values[9]
+		self.signingBonus = values[10]
+		self.bats = values[11]
+		self.throws = values[12]
+		self.isRetired = values[13]
+		self.useFirstName = values[14]
+		self.useLastName = values[15]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.fangraphsId,self.position,self.birthYear,self.birthMonth,self.birthDate,self.draftPick,self.draftBonus,self.signingYear,self.signingMonth,self.signingDate,self.signingBonus,self.bats,self.throws,self.isRetired,self.useFirstName,self.useLastName)
+		return (self.mlbId,self.fangraphsId,self.position,self.birthYear,self.birthMonth,self.birthDate,self.draftPick,self.signingYear,self.signingMonth,self.signingDate,self.signingBonus,self.bats,self.throws,self.isRetired,self.useFirstName,self.useLastName)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player']:

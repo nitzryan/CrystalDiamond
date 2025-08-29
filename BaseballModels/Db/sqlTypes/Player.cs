@@ -9,7 +9,6 @@ namespace Db
 		public required int BirthMonth {get; set;}
 		public required int BirthDate {get; set;}
 		public int? DraftPick {get; set;}
-		public int? DraftBonus {get; set;}
 		public int? SigningYear {get; set;}
 		public int? SigningMonth {get; set;}
 		public int? SigningDate {get; set;}
@@ -31,7 +30,6 @@ namespace Db
 				BirthMonth = this.BirthMonth,
 				BirthDate = this.BirthDate,
 				DraftPick = this.DraftPick,
-				DraftBonus = this.DraftBonus,
 				SigningYear = this.SigningYear,
 				SigningMonth = this.SigningMonth,
 				SigningDate = this.SigningDate,

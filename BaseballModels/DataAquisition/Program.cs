@@ -1,4 +1,6 @@
-﻿namespace DataAquisition
+﻿using Db;
+
+namespace DataAquisition
 {
     internal class Program
     {
@@ -10,64 +12,69 @@
             List<int> months = [4, 5, 6, 7, 8, 9];
             foreach (int year in years)
             {
-                //while (!await PlayerUpdate.Main(year))
-                //{ }
+                while (!await DraftResults.Main(year))
+                { }
 
-                //while (!await GameLogUpdate.Main(year, 3, 10))
-                //{ }
+                while (!await PlayerUpdate.Main(year))
+                { }
 
-                //if (!ParkFactorUpdate.Main(year))
-                //    return;
+                return;
+
+                while (!await GameLogUpdate.Main(year, 3, 10))
+                { }
+
+                if (!ParkFactorUpdate.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {
-                    //if (!CalculateLevelStats.Main(year, month))
-                    //    return;
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
 
-                    //if (!CalculateMonthStats.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                    //if (!CalculateMonthRatios.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
                 }
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
-                //if (!CalculateAnnualOPS.Main(year))
-                //    return;
+                if (!CalculateAnnualOPS.Main(year))
+                    return;
 
-                //while (!await UpdateParents.Main(year))
-                //{ }
+                while (!await UpdateParents.Main(year))
+                { }
 
             }
 
-            //if (!UpdateServiceTime.Main())
-            //    return;
+            if (!UpdateServiceTime.Main())
+                return;
 
-            //if (!FangraphsData.Main(years))
-            //    return;
+            if (!FangraphsData.Main(years))
+                return;
 
-            //if (!UpdateCareers.Main(years))
-            //    return;
+            if (!UpdateCareers.Main(years))
+                return;
 
-            //if (!ModelPlayers.Main())
-            //    return;
+            if (!ModelPlayers.Main())
+                return;
 
-            //if (!ModelPlayerWar.Main())
-            //    return;
+            if (!ModelPlayerWar.Main())
+                return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
-            //if (!UpdatePlayerOrgMap.Main())
-            //    return;
+            if (!UpdatePlayerOrgMap.Main())
+                return;
 
             if (!ModelMonthStats.Main(END_YEAR, months.Last()))
                 return;
 
-            //while (!await GetLeagues.Main())
-            //{ }
+            while (!await GetLeagues.Main())
+            { }
         }
     }
 }
