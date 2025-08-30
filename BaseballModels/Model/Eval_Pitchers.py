@@ -1,7 +1,7 @@
 from Data_Prep import Data_Prep
 import torch
 from Eval_Dataset import Eval_Dataset
-from Pitcher_Model import LSTM_Model
+from Pitcher_Model import RNN_Model
 from tqdm import tqdm
 from Constants import device, db
 from DBTypes import DB_Model_TrainingHistory
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     mth = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=?", ("Pitcher",))
     num_layers = mth[0].NumLayers
     hidden_size = mth[0].HiddenSize
-    network = LSTM_Model(x_padded[0].shape[1], num_layers, hidden_size, None)
+    network = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None)
     
     for m in tqdm(mth, desc="Evaluation Models"):
         model_idx = int(m.ModelIdx)

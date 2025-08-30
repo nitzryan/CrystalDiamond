@@ -3,7 +3,7 @@ from Data_Prep import Data_Prep
 from sklearn.model_selection import train_test_split # type: ignore
 import torch
 from Pitcher_Dataset import Pitcher_Dataset
-from Pitcher_Model import LSTM_Model, Classification_Loss
+from Pitcher_Model import RNN_Model, Classification_Loss
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         # Setup Model
         num_layers = 3
         hidden_size = 30
-        network = LSTM_Model(x_train_padded[0].shape[1], num_layers, hidden_size, pitching_mutators)
+        network = RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, pitching_mutators)
         network = network.to(device)
         
         optimizer = torch.optim.Adam(network.parameters(), lr=0.003)

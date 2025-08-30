@@ -4,9 +4,14 @@ import torch.nn.functional as F
 
 from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS, PITCHER_PEAK_WAR_BUCKETS, PITCHER_TOTAL_WAR_BUCKETS
 
-class LSTM_Model(nn.Module):
+class RNN_Model(nn.Module):
     def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor):
         super().__init__()
+        
+        self.pre1 = nn.Linear(input_size, input_size)
+        self.pre2 = nn.Linear(input_size, input_size)
+        self.pre3 = nn.Linear(input_size, input_size)
+        
         self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_war2 = nn.Linear(hidden_size // 2, len(PITCHER_TOTAL_WAR_BUCKETS))
@@ -23,11 +28,16 @@ class LSTM_Model(nn.Module):
     def to(self, *args, **kwargs):
         if self.mutators is not None:
             self.mutators = self.mutators.to(*args, **kwargs)
-        return super(LSTM_Model, self).to(*args, **kwargs)
+        return super(RNN_Model, self).to(*args, **kwargs)
     
     def forward(self, x, lengths):
         if self.training and self.mutators is not None:
             x += self.mutators[:x.size(0), :x.size(1), :]
+        
+        # Apply transformation to data before entering network
+        x = self.nonlin(self.pre1(x))
+        x = self.nonlin(self.pre2(x))
+        x = self.nonlin(self.pre3(x))
         
         lengths = lengths.to(torch.device("cpu")).long()
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
