@@ -1,6 +1,5 @@
-from typing import Callable
 from sklearn.decomposition import PCA # type: ignore
-from typing import TypeVar 
+from typing import TypeVar, Optional, Callable
 from DBTypes import *
 from Constants import db, DTYPE
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS, HITTER_TOTAL_WAR_BUCKETS
@@ -14,20 +13,20 @@ _T = TypeVar('T')
 class Data_Prep:
     def __init__(self):
         # Mutators
-        self.off_mutator_scale = 0.2
-        self.bsr_mutator_scale = 0.2
-        self.def_mutator_scale = 0.3
+        self.off_mutator_scale = 0.05
+        self.bsr_mutator_scale = 0.05
+        self.def_mutator_scale = 0.05
         
-        self.hitbio_mutator_scale = 0.2
-        self.pitbio_mutator_scale = 0.2
+        self.hitbio_mutator_scale = 0.05
+        self.pitbio_mutator_scale = 0.05
         
-        self.hitpt_mutator_scale = 0.2
-        self.pitpt_mutator_scale = 0.2
+        self.hitpt_mutator_scale = 0.05
+        self.pitpt_mutator_scale = 0.05
         
-        self.hitlvl_mutator_scale = 0.02
-        self.pitlvl_mutator_scale = 0.02
+        self.hitlvl_mutator_scale = 0.05
+        self.pitlvl_mutator_scale = 0.05
         
-        self.pit_mutator_scale = 0.2
+        self.pit_mutator_scale = 0.05
         
         cursor = db.cursor()
         # Bios
@@ -252,6 +251,31 @@ class Data_Prep:
             outputs.append(output)
         
         return pitchers, inputs, outputs, max_length, dates 
+        
+    def Update_Mutators(self, *, off_dev : Optional[float] = None, bsr_dev : Optional[float] = None, def_dev : Optional[float] = None, hitlevel_dev : Optional[float] = None, hitpt_dev : Optional[float] = None, 
+                        hitbio_dev : Optional[float] = None, pitbio_dev : Optional[float] = None,
+                        pit_dev : Optional[float] = None, pitlevel_dev : Optional[float] = None, pitpt_dev : Optional[float] = None):
+        
+        if off_dev is not None:
+            self.off_mutator_scale = off_dev
+        if bsr_dev is not None:
+            self.bsr_mutator_scale = bsr_dev
+        if def_dev is not None:
+            self.def_mutator_scale = def_dev
+        if hitlevel_dev is not None:
+            self.hitlvl_mutator_scale = hitlevel_dev
+        if hitpt_dev is not None:
+            self.hitpt_mutator_scale = hitpt_dev
+        if hitbio_dev is not None:
+            self.hitbio_mutator_scale = hitbio_dev
+        if pitbio_dev is not None:
+            self.pitbio_mutator_scale = pitbio_dev
+        if pit_dev is not None:
+            self.pit_mutator_scale = pit_dev
+        if pitlevel_dev is not None:
+            self.pitlvl_mutator_scale = pitlevel_dev
+        if pitpt_dev is not None:
+            self.pitpt_mutator_scale = pitpt_dev
         
     def Generate_Hitting_Mutators(self, batch_size : int, max_input_size : int) -> torch.Tensor:
         # Get std deviations from explained variance

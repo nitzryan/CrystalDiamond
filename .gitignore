@@ -14,7 +14,7 @@ Logs/
 # Python
 __pycache__/
 *.pt
-
+experiment.png
 
 # Web Files
 node_modules/
