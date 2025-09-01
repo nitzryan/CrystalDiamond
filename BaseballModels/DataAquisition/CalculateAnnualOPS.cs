@@ -26,13 +26,13 @@ namespace DataAquisition
                         var monthAdvanced = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var ma in monthAdvanced)
                         {
-                            ma.WRC = 100 * ((ma.OBP / advanced.OBP) + (ma.SLG + advanced.SLG) - 1); // OPS+ for now, simpler
+                            ma.WRC = 100 * ((ma.OBP / advanced.OBP) + (ma.SLG / advanced.SLG) - 1); // OPS+ for now, simpler
                         }
 
                         var yearAdvanced = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var ya in yearAdvanced)
                         {
-                            ya.WRC = 100 * ((ya.OBP / advanced.OBP) + (ya.SLG + advanced.SLG) - 1);
+                            ya.WRC = 100 * ((ya.OBP / advanced.OBP) + (ya.SLG / advanced.SLG) - 1);
                         }
                         db.SaveChanges();
 
