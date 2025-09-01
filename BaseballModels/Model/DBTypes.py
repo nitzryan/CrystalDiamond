@@ -950,3 +950,29 @@ class DB_Ranking_Prospect:
 
 
 ##############################################################################################
+class DB_Site_PlayerBio:
+	def __init__(self, values : tuple[any]):
+		self.id = values[0]
+		self.position = values[1]
+		self.isPitcher = values[2]
+		self.isHitter = values[3]
+		self.hasModel = values[4]
+		self.parentId = values[5]
+		self.levelId = values[6]
+		self.status = values[7]
+		self.draftPick = values[8]
+		self.draftRound = values[9]
+		self.draftBonus = values[10]
+		self.signingYear = values[11]
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.id,self.position,self.isPitcher,self.isHitter,self.hasModel,self.parentId,self.levelId,self.status,self.draftPick,self.draftRound,self.draftBonus,self.signingYear)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Site_PlayerBio']:
+		items = cursor.execute("SELECT * FROM Site_PlayerBio " + conditional, values).fetchall()
+		return [DB_Site_PlayerBio(i) for i in items]
+
+
+##############################################################################################

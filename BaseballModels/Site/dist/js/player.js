@@ -103,12 +103,22 @@ function getModels(obj) {
     return models;
 }
 function getPerson(obj) {
+    var draftJson = obj["draft"];
+    var draft = null;
+    if (draftJson !== undefined)
+        draft = {
+            pick: getJsonNumber(draftJson, "pick"),
+            round: getJsonString(draftJson, "round"),
+            bonus: getJsonNumber(draftJson, "bonus")
+        };
     var p = {
         firstName: getJsonString(obj, "firstName"),
         lastName: getJsonString(obj, "lastName"),
         birthDate: new Date(getJsonNumber(obj, "birthYear"), getJsonNumber(obj, "birthMonth"), getJsonNumber(obj, "birthDate")),
         signYear: getJsonNumber(obj, "startYear"),
-        draftPick: getJsonNumberNullable(obj, "draftPick"),
+        position: getJsonString(obj, "position"),
+        status: getJsonString(obj, "status"),
+        draft: draft,
     };
     return p;
 }
@@ -233,7 +243,7 @@ var keyControls = null;
 var searchBar = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var player_search_data, id, lh, lp, person, hitterStats, pitcherStats, age, _a;
+        var player_search_data, id, lh, lp, person, hitterStats, pitcherStats, age, round, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -271,10 +281,12 @@ function main() {
                     }
                     if (person !== null) {
                         updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
+                        updateElementText("player_position", person.position);
                         age = getDateDelta(person.birthDate, new Date());
                         updateElementText("player_age", "".concat(age[0], " years, ").concat(age[1], " months, ").concat(age[2], " days"));
-                        if (person.draftPick !== null) {
-                            updateElementText("player_draft", "#".concat(person.draftPick, " Overall, ").concat(person.signYear));
+                        if (person.draft !== null) {
+                            round = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round;
+                            updateElementText("player_draft", "".concat(person.signYear, " Draft, ").concat(round, " (").concat(getOrdinalNumber(person.draft.pick), " Overall)\n$").concat(person.draft.bonus.toLocaleString(), " Bonus"));
                         }
                         document.title = person.firstName + " " + person.lastName;
                     }
@@ -514,6 +526,17 @@ function getLeagueAbbr(id) {
         return league["abbr"];
     }
     throw new Error("No League found for ".concat(id));
+}
+function getOrdinalNumber(num) {
+    var lastDigit = num % 10;
+    var last2Digits = num % 100;
+    if (lastDigit === 1 && last2Digits !== 11)
+        return num + "st";
+    if (lastDigit === 2 && last2Digits !== 12)
+        return num + "nd";
+    if (lastDigit === 3 && last2Digits !== 13)
+        return num + "rd";
+    return num + "th";
 }
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL" };

@@ -12,11 +12,15 @@ namespace SitePrep
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            var players = db.Model_Players.Where(f => f.IsPitcher == 1);
+            var players = db.Model_Players.Where(f => f.IsPitcher == 1)
+                .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi }); ;
             using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Pitcher Pages"))
             {
-                foreach (var player in players)
+                foreach (var playerTuple in players)
                 {
+                    var player = playerTuple.mp;
+                    var bio = playerTuple.sbi;
+
                     JsonObject json = new();
 
                     // Model Output
@@ -49,8 +53,20 @@ namespace SitePrep
                     json["birthMonth"] = p.BirthMonth;
                     json["birthDate"] = p.BirthDate;
                     json["startYear"] = p.SigningYear;
-                    if (p.DraftPick != null)
-                        json["draftPick"] = p.DraftPick.Value;
+
+                    if (bio.DraftPick != -1)
+                    {
+                        JsonObject draftObj = new()
+                        {
+                            ["pick"] = bio.DraftPick,
+                            ["round"] = bio.DraftRound,
+                            ["bonus"] = bio.DraftBonus
+                        };
+                        json.Add("draft", draftObj);
+                    }
+
+                    json["position"] = bio.Position;
+                    json["status"] = bio.Status;
                     json["firstName"] = p.UseFirstName;
                     json["lastName"] = p.UseLastName;
 

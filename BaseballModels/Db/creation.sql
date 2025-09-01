@@ -572,6 +572,22 @@ CREATE TABLE "Ranking_Prospect" (
 	PRIMARY KEY ("mlbId", "year", "month", "model")
 );
 
+CREATE TABLE "Site_PlayerBio" (
+	"id" INTEGER NOT NULL,
+	"position" TEXT NOT NULL,
+	"isPitcher" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"hasModel" INTEGER NOT NULL,
+	"parentId" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"status" TEXT NOT NULL,
+	"draftPick" INTEGER NOT NULL,
+	"draftRound" TEXT NOT NULL,
+	"draftBonus" INTEGER NOT NULL,
+	"signingYear" INTEGER NOT NULL,
+	PRIMARY KEY ("id")
+);
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",

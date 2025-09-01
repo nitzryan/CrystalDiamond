@@ -23,12 +23,20 @@ type Model = {
     rank: number | null
 }
 
+type Draft = {
+    pick : number,
+    round : string,
+    bonus : number
+}
+
 type Person = {
     firstName : string;
     lastName : string;
     birthDate : Date;
     signYear : number;
-    draftPick : number | null;
+    draft : Draft | null;
+    position : string;
+    status : string;
 }
 
 type Hitter = {
@@ -139,6 +147,15 @@ function getModels(obj : JsonObject) : Model[]
 
 function getPerson(obj : JsonObject)
 {
+    const draftJson = obj["draft"] as JsonObject
+    let draft : Draft | null = null
+    if (draftJson !== undefined)
+        draft = {
+            pick : getJsonNumber(draftJson, "pick"),
+            round : getJsonString(draftJson, "round"),
+            bonus : getJsonNumber(draftJson, "bonus")
+        }
+    
     const p : Person = {
         firstName : getJsonString(obj, "firstName"),
         lastName : getJsonString(obj, "lastName"),
@@ -148,7 +165,9 @@ function getPerson(obj : JsonObject)
             getJsonNumber(obj, "birthDate")
         ),
         signYear : getJsonNumber(obj, "startYear"),
-        draftPick : getJsonNumberNullable(obj, "draftPick"),
+        position : getJsonString(obj, "position"),
+        status : getJsonString(obj, "status"),
+        draft : draft,
     }
 
     return p
@@ -347,11 +366,13 @@ async function main()
     if (person !== null)
     {
         updateElementText("player_name", `${person.firstName} ${person.lastName}`)
+        updateElementText("player_position", person.position)
         const age = getDateDelta(person.birthDate, new Date())
         updateElementText("player_age", `${age[0]} years, ${age[1]} months, ${age[2]} days`)
-        if (person.draftPick !== null)
+        if (person.draft !== null)
         {
-            updateElementText("player_draft", `#${person.draftPick} Overall, ${person.signYear}`)
+            const round : string = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round
+            updateElementText("player_draft", `${person.signYear} Draft, ${round} (${getOrdinalNumber(person.draft.pick)} Overall)\n$${person.draft.bonus.toLocaleString()} Bonus`)
         }
         document.title = person.firstName + " " + person.lastName
     } else {

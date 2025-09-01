@@ -56,8 +56,8 @@ namespace DataAquisition
             //if (!UpdateCareers.Main(years))
             //    return;
 
-            if (!ModelPlayers.Main())
-                return;
+            //if (!ModelPlayers.Main())
+            //    return;
 
             //if (!ModelPlayerWar.Main())
             //    return;
@@ -73,6 +73,9 @@ namespace DataAquisition
 
             //while (!await GetLeagues.Main())
             //{ }
+
+            while (!await SitePlayerBio.Main(END_YEAR))
+            { }
         }
     }
 }
