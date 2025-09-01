@@ -48,7 +48,7 @@ if __name__ == "__main__":
             scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=5)
             loss_function = Classification_Loss
             
-            num_epochs = 1000
+            num_epochs = 500
             training_generator = torch.utils.data.DataLoader(train_hitters_dataset, batch_size=batch_size, shuffle=True)
             testing_generator = torch.utils.data.DataLoader(test_hitters_dataset, batch_size=batch_size, shuffle=False)
             
