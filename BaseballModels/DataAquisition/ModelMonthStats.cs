@@ -1,6 +1,6 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using System.Net.NetworkInformation;
 
 namespace DataAquisition
 {
@@ -14,8 +14,9 @@ namespace DataAquisition
                 db.Model_HitterStats.RemoveRange(db.Model_HitterStats);
                 db.Model_PitcherStats.RemoveRange(db.Model_PitcherStats);
                 db.SaveChanges();
+                db.ChangeTracker.Clear();
 
-                var hitters = db.Model_Players.Where(f => f.IsHitter == 1);
+                var hitters = db.Model_Players.Where(f => f.IsHitter == 1).AsNoTracking();
                 using (ProgressBar progressBar = new ProgressBar(hitters.Count(), $"Generating Model Hitter Month Stats"))
                 {
                     foreach (var hitter in hitters)
@@ -190,12 +191,23 @@ namespace DataAquisition
                             }
                         }
 
+                        // Add last result
+                        if (ratios.Any())
+                            db.Model_HitterStats.Add(currentData.Clone());
+
                         // Make sure that trailing gaps are included
                         if (ratios.Any())
                         {
                             int lastYear = ratios.Last().Year;
                             int pLevelInt = Convert.ToInt32(Math.Floor(prevLevel));
-                            while (prevYear <= Math.Min(lastYear + 2, Constants.CURRENT_YEAR))
+                            
+                            prevMonth++;
+                            if (prevMonth > 9)
+                            {
+                                prevMonth = 4;
+                                prevYear++;
+                            }
+                            while (prevYear <= Math.Min(lastYear + 2, endYear))
                             {
                                 // Fill Hitter Gaps
                                 //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
@@ -297,9 +309,10 @@ namespace DataAquisition
                         progressBar.Tick();
                     }
                     db.SaveChanges();
+                    db.ChangeTracker.Clear();
                 }
 
-                var pitchers = db.Model_Players.Where(f => f.IsPitcher == 1);
+                var pitchers = db.Model_Players.Where(f => f.IsPitcher == 1).AsNoTracking();
                 using (ProgressBar progressBar = new ProgressBar(pitchers.Count(), $"Generating Model Pitcher Month Stats"))
                 {
                     foreach (var pitcher in pitchers)
@@ -430,12 +443,24 @@ namespace DataAquisition
                             }
                         }
 
+                        // Add last result
+                        if (ratios.Any())
+                            db.Model_PitcherStats.Add(currentData.Clone());
+
                         // Make sure that trailing gaps are included
                         if (ratios.Any())
                         {
                             int lastYear = ratios.Last().Year;
                             int pLevelInt = Convert.ToInt32(Math.Floor(prevLevel));
-                            while (prevYear <= Math.Min(lastYear + 2, Constants.CURRENT_YEAR))
+
+                            prevMonth++;
+                            if (prevMonth > 9)
+                            {
+                                prevMonth = 4;
+                                prevYear++;
+                            }
+
+                            while (prevYear <= Math.Min(lastYear + 2, endYear))
                             {
                                 // Fill Hitter Gaps
                                 //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");

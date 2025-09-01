@@ -22,8 +22,8 @@ namespace DataAquisition
         public const int STOP_YEAR = 34;
 
         // Set these to set start/stop
-        public const int CURRENT_YEAR = 2024;
-        public const int CURRENT_MONTH = 9;
+        //public const int CURRENT_YEAR = 2024;
+        //public const int CURRENT_MONTH = 9;
 
         // Transaction ToIL Status
         public const int TL_SUSP = 1;

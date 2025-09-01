@@ -363,7 +363,7 @@ namespace DataAquisition
                     else
                         lastYear = playerYears.First() + 2;
 
-                    if (lastYear < Constants.CURRENT_YEAR)
+                    if (lastYear < years.Last())
                         pcs.pl.PlayingGap = lastYear;
                 }
 
