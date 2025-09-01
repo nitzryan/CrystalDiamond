@@ -121,7 +121,7 @@ var PlayerLoader = (function () {
             var player = this.players[i];
             var element = document.createElement('li');
             var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
-            element.innerHTML = "<div><a href='./player.html?id=".concat(player.id, "'>").concat(player.name, "</a><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
+            element.innerHTML = "<div><a href='./player.html?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
             elements.push(element);
         }
         this.index += this.numElements;
@@ -206,7 +206,8 @@ function getPlayers(rankingJson) {
             war: getJsonNumber(f, "war"),
             id: getJsonNumber(f, "id"),
             model: getJsonString(f, "model"),
-            team: getJsonNumber(f, "team")
+            team: getJsonNumber(f, "team"),
+            position: getJsonString(f, "position")
         };
         return player;
     });

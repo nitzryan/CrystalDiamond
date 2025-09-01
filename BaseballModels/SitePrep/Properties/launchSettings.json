@@ -2,7 +2,7 @@
   "profiles": {
     "SitePrep": {
       "commandName": "Project",
-      "commandLineArgs": "2024 9"
+      "commandLineArgs": "2025 8"
     }
   }
 }

@@ -16,7 +16,8 @@ type Player = {
     war : number,
     id : number,
     model : string,
-    team : number
+    team : number,
+    position : string,
 }
 
 class PlayerLoader
@@ -46,7 +47,7 @@ class PlayerLoader
             
             let element = document.createElement('li') as HTMLLIElement
             const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
-            element.innerHTML = `<div><a href='./player.html?id=${player.id}'>${player.name}</a><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
+            element.innerHTML = `<div><a href='./player.html?id=${player.id}'>${player.name}</a><div>${player.position}</div><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
             elements.push(element)
         }
 
@@ -156,7 +157,8 @@ function getPlayers(rankingJson : JsonObject) : Player[]
             war : getJsonNumber(f, "war"),
             id : getJsonNumber(f, "id"),
             model : getJsonString(f, "model"),
-            team : getJsonNumber(f, "team")
+            team : getJsonNumber(f, "team"),
+            position : getJsonString(f, "position")
         }
         return player
     })

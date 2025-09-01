@@ -19,8 +19,14 @@ namespace SitePrep
         internal class PlayerMonthWar {
             public required int MLbId;
             public required string ModelName;
+            public required string position;
             public required float War;
             public required int ParentOrgId;
+        }
+
+        internal class PlayerYearPosition {
+            public required int Year;
+            public required string position;
         }
 
         private static JsonObject GetJson(PlayerMonthWar pmw, SqliteDbContext db)
@@ -33,7 +39,8 @@ namespace SitePrep
                 ["team"] = pmw.ParentOrgId,
                 ["name"] = db.Player.Where(f => f.MlbId == pmw.MLbId)
                                     .Select(f => f.UseFirstName + " " + f.UseLastName)
-                                    .Single()
+                                    .Single(),
+                ["position"] = pmw.position
             };
 
             return player;
@@ -43,6 +50,45 @@ namespace SitePrep
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+                // Create Position List
+                Dictionary<int, List<PlayerYearPosition>> playerYearPositions = new();
+                using (ProgressBar progressBar = new ProgressBar(db.Model_Players.Count(), "Creating playerYearPositions"))
+                {
+                    foreach (var mp in db.Model_Players)
+                    {
+                        List<PlayerYearPosition> pyps = new();
+                    
+                        var years = mp.IsHitter == 1 ?
+                            db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) :
+                            db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f);
+                        if (mp.IsPitcher == 1)
+                        {
+                            foreach (var y in years)
+                            {
+                                pyps.Add(new PlayerYearPosition
+                                {
+                                    Year = y,
+                                    position = "P"
+                                });
+                            }
+                        }
+                        else {
+                            foreach (var y in years)
+                            {
+                                pyps.Add(new PlayerYearPosition
+                                {
+                                    Year = y,
+                                    position = Utilities.GetPosition(db, mp.MlbId, y)
+                                });
+                            }
+                        }
+
+                        playerYearPositions.Add(mp.MlbId, pyps);
+
+                        progressBar.Tick();
+                    }
+                }
 
                 // Get intial value for every player
                 var initial_pwa = db.Output_PlayerWarAggregation.Where(f => f.Year == 0)
@@ -194,7 +240,20 @@ namespace SitePrep
                                     poms = db.Player_OrgMap.Where(f => f.MlbId == current.MlbId)
                                         .OrderBy(f => f.Year).ThenBy(f => f.Month);
                                 }
-                                    
+
+                                // Get Position
+                                string position = "";
+                                var pyps = playerYearPositions[current.MlbId];
+                                if (!pyps.Any()) // No playing time, get stored from Mlb
+                                    position = db.Site_PlayerBio.Single(f => f.Id == current.MlbId).Position;
+                                else {
+                                    var prevCurrentPyps = pyps.Where(f => f.Year <= year) // All values <= selected year
+                                        .OrderByDescending(f => f.Year);
+                                    if (prevCurrentPyps.Any())
+                                        position = prevCurrentPyps.First().position; // Get most recent
+                                    else
+                                        position = pyps.OrderBy(f => f.Year).First().position; // Get next value (slight future bias)
+                                }
 
                                 pmwList.Add(new PlayerMonthWar
                                 {
@@ -202,7 +261,8 @@ namespace SitePrep
                                     ModelName = current.ModelName,
                                     War = current.War,
                                     ParentOrgId = poms.Any() ? poms // Few players only played on VSL teams that were multiple teams (no parent)
-                                        .First().ParentOrgId : 0
+                                        .First().ParentOrgId : 0,
+                                    position = position
                                 });
                             }
                         }
