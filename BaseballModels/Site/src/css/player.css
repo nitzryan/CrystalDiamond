@@ -1,0 +1,55 @@
+@import url("main.css");
+
+#player {
+    width: 20em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    justify-content: flex-start;
+}
+
+#model {
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+#piediv {
+    width: 24%;
+}
+
+#wardiv {
+    width: 74%;
+}
+
+#right_column {
+    width: 1%;
+    flex-grow: 1;
+}
+
+#player_name {
+    font-size: 2em;
+    text-align: center;
+}
+
+#player_team {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--text-high);
+}
+
+#player_row2 {
+    justify-content: space-between;
+    font-size: 1.25em;
+}
+
+#player_row2 div {
+    margin-left: 2em;
+    margin-right: 2em;
+}
+
+.player_stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 7.5vh;
+}

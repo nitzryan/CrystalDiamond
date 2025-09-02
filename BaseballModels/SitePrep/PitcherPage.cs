@@ -71,10 +71,8 @@ namespace SitePrep
                     json["lastName"] = p.UseLastName;
 
                     // Get most recent org
-                    var poms = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).ThenByDescending(f => f.Month);
-                    if (!poms.Any())
-                        json["orgId"] = 0;
-                    else
+                    var poms = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).ThenByDescending(f => f.Day);
+                    if (poms.Any())
                         json["orgId"] = poms.First().ParentOrgId;
 
                     // Annual Stats

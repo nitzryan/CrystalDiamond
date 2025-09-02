@@ -119,6 +119,7 @@ function getPerson(obj) {
         position: getJsonString(obj, "position"),
         status: getJsonString(obj, "status"),
         draft: draft,
+        parentId: getJsonNumber(obj, "orgId")
     };
     return p;
 }
@@ -243,7 +244,7 @@ var keyControls = null;
 var searchBar = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var player_search_data, id, lh, lp, person, hitterStats, pitcherStats, age, round, _a;
+        var player_search_data, id, lh, lp, person, hitterStats, pitcherStats, player_team, age, round, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -262,10 +263,10 @@ function main() {
                         person = hitter.person;
                         updateHitterStats(hitter);
                         setupModel(hitter.models);
-                    }
-                    else {
-                        hitterStats = getElementByIdStrict('hitter_stats');
-                        hitterStats.classList.add('hidden');
+                        if (hitter.stats.length > 0) {
+                            hitterStats = getElementByIdStrict('hitter_stats');
+                            hitterStats.classList.remove('hidden');
+                        }
                     }
                     return [4, lp];
                 case 3:
@@ -274,16 +275,25 @@ function main() {
                         person = pitcher.person;
                         updatePitcherStats(pitcher);
                         setupModel(pitcher.models);
-                    }
-                    else {
-                        pitcherStats = getElementByIdStrict('pitcher_stats');
-                        pitcherStats.classList.add('hidden');
+                        if (pitcher.stats.length > 0) {
+                            pitcherStats = getElementByIdStrict('pitcher_stats');
+                            pitcherStats.classList.remove('hidden');
+                        }
                     }
                     if (person !== null) {
                         updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
                         updateElementText("player_position", person.position);
+                        updateElementText("player_status", person.status);
+                        if (person.parentId !== null) {
+                            player_team = getElementByIdStrict("player_team");
+                            player_team.innerText = getParentName(person.parentId);
+                            player_team.href = "teams.html?team=".concat(person.parentId);
+                        }
+                        else {
+                            updateElementText("player_team", "Free Agent");
+                        }
                         age = getDateDelta(person.birthDate, new Date());
-                        updateElementText("player_age", "".concat(age[0], " years, ").concat(age[1], " months, ").concat(age[2], " days"));
+                        updateElementText("player_age", "".concat(age[0], "y, ").concat(age[1], "m, ").concat(age[2], "d"));
                         if (person.draft !== null) {
                             round = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round;
                             updateElementText("player_draft", "".concat(person.signYear, " Draft, ").concat(round, " (").concat(getOrdinalNumber(person.draft.pick), " Overall)\n$").concat(person.draft.bonus.toLocaleString(), " Bonus"));
@@ -517,6 +527,13 @@ function getParentAbbr(id) {
     var parent = parents[id];
     return parent["abbr"];
 }
+function getParentName(id) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentAbbr");
+    var parents = org_map["parents"];
+    var parent = parents[id];
+    return parent["name"];
+}
 function getLeagueAbbr(id) {
     if (org_map === null)
         throw new Error("Org map null accessing getLeagueAbbr");
@@ -562,6 +579,7 @@ var LineGraph = (function () {
                 '#63a490',
                 '#00876c'
             ];
+        var max_war = points.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0);
         this.warDataset = {
             label: 'WAR',
             data: points.map(function (f) { return f.y; }),
@@ -607,7 +625,7 @@ var LineGraph = (function () {
                 scales: {
                     y: {
                         min: 0,
-                        max: 16,
+                        max: Math.max(16, max_war + 1),
                         grid: {
                             color: css.background_low
                         },
@@ -616,6 +634,13 @@ var LineGraph = (function () {
                             text: 'Expected WAR Through Control'
                         },
                         position: 'left',
+                        ticks: {
+                            callback: function (value, index, ticks) {
+                                if (value % 2 === 0)
+                                    return value.toLocaleString();
+                                return null;
+                            }
+                        }
                     },
                     y1: {
                         type: 'logarithmic',

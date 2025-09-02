@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Baseball Models</title>
-        <link rel="stylesheet" type="text/css" href="../css/main.css">
+        <link rel="stylesheet" type="text/css" href="../css/player.css">
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4"></script>
         <script type="text/javascript" src="../js/player.js" defer></script>
     </head>
@@ -13,9 +13,13 @@
         <div id="top_level" class="row">
             <div id="player">
                 <div id="player_name"></div>
-                <div id="player_position"></div>
-                <div id="player_age"></div>
-                <div id="player_draft"></div>
+                <div class="center_text"><a id="player_team"></a></div>
+                <div id="player_row2" class="row">
+                    <div id="player_status"></div>
+                    <div id="player_position"></div>
+                </div>
+                <div id="player_age" class="center_text"></div>
+                <div id="player_draft" class="center_text"></div>
             </div>
             <div id="right_column" class="column">
                 <div id="model" class="row">
@@ -27,7 +31,10 @@
                     </div>
                 </div>
 
-                <div id="hitter_stats" class="stats">
+                <div id="hitter_stats" class="stats player_stats hidden">
+                    <div id="hitter_stats_control" class="stats_control">
+                        Hitter Stats
+                    </div>
                     <table id="hitter_season_stats" class="season_stats">
                         <thead>
                             <tr>
@@ -52,7 +59,10 @@
                     </table>
                 </div>
 
-                <div id="pitcher_stats" class="stats">
+                <div id="pitcher_stats" class="stats player_stats hidden">
+                    <div id="hitter_stats_control" class="stats_control">
+                        Pitcher Stats
+                    </div>
                     <table id="pitcher_season_stats" class="season_stats">
                         <thead>
                             <tr>

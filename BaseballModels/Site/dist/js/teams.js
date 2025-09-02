@@ -443,6 +443,13 @@ function getParentAbbr(id) {
     var parent = parents[id];
     return parent["abbr"];
 }
+function getParentName(id) {
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentAbbr");
+    var parents = org_map["parents"];
+    var parent = parents[id];
+    return parent["name"];
+}
 function getLeagueAbbr(id) {
     if (org_map === null)
         throw new Error("Org map null accessing getLeagueAbbr");

@@ -1,0 +1,20 @@
+@import url("main.css");
+
+#rankings_list {
+    border: 1px solid cyan;
+}
+
+#rankings_list li div a {
+    color: var(--text-high);
+    font-weight: bold;
+}
+
+#rankings_list li div{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.war {
+    padding-right: 2em;
+}

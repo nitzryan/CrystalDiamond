@@ -1,0 +1,172 @@
+:root {
+    --background-low: #666666;
+    --background-med: #222222;
+    --background-high: #000000;
+
+    --text-high: #FFFFFF;
+    --text-low: #AAAAAA;
+
+    --color-high: #DD0000;
+    --color-med: #BB2222;
+    --color-low: #994444;
+}
+
+.hidden {
+    display: none !important;
+}
+
+body {
+    background-color: var(--background-high);
+    color: var(--text-high);
+    margin: 0;
+}
+
+canvas {
+    background-color: var(--background-high);
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    /* width: 100%; */
+}
+
+.center {
+    justify-content: center;
+    height: 100%;
+}
+
+.center_text {
+    text-align: center;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+}
+
+table {
+    text-align: left;
+    border-collapse: collapse;
+}
+
+thead, tfoot {
+    background: var(--color-med);
+}
+
+tbody tr:nth-child(even)
+{
+    background: color-mix(in srgb, var(--color-med), transparent 50%);
+}
+
+tbody tr:nth-child(odd)
+{
+    background: color-mix(in srgb, var(--color-med), transparent 75%);
+}
+
+th, td {
+    border: 1px solid var(--text-low);
+}
+
+th {
+    padding-left: 0.4em;
+    padding-right: 0.4em;
+    text-align: center;
+}
+
+a {
+    text-decoration: none;
+}
+
+.align_right {
+    text-align: right;
+}
+
+
+#searchResults {
+    max-height: 10em;
+    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    background-color: var(--background-low);
+    padding-right: 1em;
+    padding-left: 0.5em;
+    list-style-type: none;
+    z-index: 100;
+}
+
+#searchResults li a {
+    color: var(--background-high);
+}
+
+#banner {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+
+    height: 3em;
+}
+
+#search {
+    padding-right: 5em;
+    padding-left: 1em;
+    display: flex;
+    align-items: center;
+}
+
+#search:not(:focus-within) nav {
+    display: none;
+}
+
+#searchBar {
+    font-size: 1.5em;
+}
+
+#colorbar {
+    background-color: var(--color-med);
+    width: 100%;
+    height: 1em;
+}
+
+#navbar a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5em;
+    color: var(--color-med);
+    height: 100%;
+    font-size: 1.5em;
+}
+
+#banner div {
+    height: 100%;
+}
+
+#navbar a.selected {
+    background-color: var(--color-med);
+    color: var(--text-high);
+}
+
+#navbar a:hover {
+    background-color: var(--background-low);
+}
+
+#rankings_list {
+    border: 1px solid cyan;
+}
+
+#rankings_list li div a {
+    color: var(--text-high);
+    font-weight: bold;
+}
+
+#rankings_list li div{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.war {
+    padding-right: 2em;
+}

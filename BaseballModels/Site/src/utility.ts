@@ -169,6 +169,16 @@ function getParentAbbr(id: number) : string
     return parent["abbr"] as string
 }
 
+function getParentName(id : number) : string
+{
+    if (org_map === null)
+        throw new Error("Org map null accessing getParentAbbr")
+
+    const parents = org_map["parents"] as JsonObject
+    const parent = parents[id] as JsonObject
+    return parent["name"] as string
+}
+
 function getLeagueAbbr(id : number) : string
 {
     if (org_map === null)

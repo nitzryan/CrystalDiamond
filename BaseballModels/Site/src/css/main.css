@@ -1,0 +1,83 @@
+:root {
+    --background-low: #666666;
+    --background-med: #222222;
+    --background-high: #000000;
+
+    --text-high: #FFFFFF;
+    --text-low: #AAAAAA;
+
+    --color-high: #DD0000;
+    --color-med: #BB2222;
+    --color-low: #994444;
+}
+
+.hidden {
+    display: none !important;
+}
+
+body {
+    background-color: var(--background-high);
+    color: var(--text-high);
+    margin: 0;
+}
+
+canvas {
+    background-color: var(--background-high);
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    /* width: 100%; */
+}
+
+.center {
+    justify-content: center;
+    height: 100%;
+}
+
+.center_text {
+    text-align: center;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+}
+
+table {
+    text-align: left;
+    border-collapse: collapse;
+}
+
+thead, tfoot {
+    background: var(--color-med);
+}
+
+tbody tr:nth-child(even)
+{
+    background: color-mix(in srgb, var(--color-med), transparent 50%);
+}
+
+tbody tr:nth-child(odd)
+{
+    background: color-mix(in srgb, var(--color-med), transparent 75%);
+}
+
+th, td {
+    border: 1px solid var(--text-low);
+}
+
+th {
+    padding-left: 0.4em;
+    padding-right: 0.4em;
+    text-align: center;
+}
+
+a {
+    text-decoration: none;
+}
+
+.align_right {
+    text-align: right;
+}

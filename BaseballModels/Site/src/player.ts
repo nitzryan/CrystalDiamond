@@ -37,6 +37,7 @@ type Person = {
     draft : Draft | null;
     position : string;
     status : string;
+    parentId : number | null;
 }
 
 type Hitter = {
@@ -168,6 +169,7 @@ function getPerson(obj : JsonObject)
         position : getJsonString(obj, "position"),
         status : getJsonString(obj, "status"),
         draft : draft,
+        parentId : getJsonNumber(obj, "orgId")
     }
 
     return p
@@ -346,9 +348,12 @@ async function main()
         person = hitter.person
         updateHitterStats(hitter)
         setupModel(hitter.models)
-    } else {
-        const hitterStats = getElementByIdStrict('hitter_stats')
-        hitterStats.classList.add('hidden')
+
+        if (hitter.stats.length > 0)
+        {
+            const hitterStats = getElementByIdStrict('hitter_stats')
+            hitterStats.classList.remove('hidden')
+        }
     }
 
     pitcher = await lp
@@ -357,9 +362,12 @@ async function main()
         person = pitcher.person
         updatePitcherStats(pitcher)
         setupModel(pitcher.models)
-    } else {
-        const pitcherStats = getElementByIdStrict('pitcher_stats')
-        pitcherStats.classList.add('hidden')
+
+        if (pitcher.stats.length > 0)
+        {
+            const pitcherStats = getElementByIdStrict('pitcher_stats')
+            pitcherStats.classList.remove('hidden')
+        }
     }
 
     // Set person
@@ -367,8 +375,19 @@ async function main()
     {
         updateElementText("player_name", `${person.firstName} ${person.lastName}`)
         updateElementText("player_position", person.position)
+        updateElementText("player_status", person.status)
+
+        if (person.parentId !== null)
+        {
+            const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
+            player_team.innerText = getParentName(person.parentId)
+            player_team.href = `teams.html?team=${person.parentId}`
+        } else 
+        {
+            updateElementText("player_team", "Free Agent")
+        }
         const age = getDateDelta(person.birthDate, new Date())
-        updateElementText("player_age", `${age[0]} years, ${age[1]} months, ${age[2]} days`)
+        updateElementText("player_age", `${age[0]}y, ${age[1]}m, ${age[2]}d`)
         if (person.draft !== null)
         {
             const round : string = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round

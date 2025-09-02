@@ -1,0 +1,70 @@
+@import url("main.css");
+
+#searchResults {
+    max-height: 10em;
+    overflow: hidden;
+    overflow-y: scroll;
+    position: fixed;
+    background-color: var(--background-low);
+    padding-right: 1em;
+    padding-left: 0.5em;
+    list-style-type: none;
+    z-index: 100;
+}
+
+#searchResults li a {
+    color: var(--background-high);
+}
+
+#banner {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+
+    height: 3em;
+}
+
+#search {
+    padding-right: 5em;
+    padding-left: 1em;
+    display: flex;
+    align-items: center;
+}
+
+#search:not(:focus-within) nav {
+    display: none;
+}
+
+#searchBar {
+    font-size: 1.5em;
+}
+
+#colorbar {
+    background-color: var(--color-med);
+    width: 100%;
+    height: 1em;
+}
+
+#navbar a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 5em;
+    color: var(--color-med);
+    height: 100%;
+    font-size: 1.5em;
+}
+
+#banner div {
+    height: 100%;
+}
+
+#navbar a.selected {
+    background-color: var(--color-med);
+    color: var(--text-high);
+}
+
+#navbar a:hover {
+    background-color: var(--background-low);
+}

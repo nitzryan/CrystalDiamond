@@ -29,6 +29,8 @@ class LineGraph
                         '#63a490',
                         '#00876c']
 
+        const max_war : number = points.map(f => f.y).reduce((a, b) => Math.max(a,b), 0)
+
         // Setup Datasets
         this.warDataset = {
             label: 'WAR',
@@ -80,7 +82,7 @@ class LineGraph
                 scales: {
                     y: {
                         min: 0,
-                        max: 16,
+                        max: Math.max(16, max_war + 1),
                         grid: {
                             color: css.background_low
                         },
@@ -89,6 +91,14 @@ class LineGraph
                             text: 'Expected WAR Through Control'
                         },
                         position: 'left',
+                        ticks: {
+                            // @ts-ignore
+                            callback: function(value, index, ticks) {
+                                if (value % 2 === 0)
+                                    return value.toLocaleString()
+                                return null
+                            }
+                        }
                     },
                     y1: {
                         type: 'logarithmic',
