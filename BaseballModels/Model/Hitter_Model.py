@@ -110,32 +110,10 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     masked_loss_level = loss_level * mask
     masked_loss_pa = loss_pa * mask
     
-    
-    #print(torch.arange(max_steps, device=lengths.device).unsqueeze(0))
-    
-    
-    # Calculate average loss of each entry (although not sure if this is actually good)
+    # Calculate total loss of each entry, masked values already zero
     loss_sums_war = masked_loss_war.sum(dim=1)
     loss_sums_pwar = masked_loss_pwar.sum(dim=1)
     loss_sums_level = masked_loss_level.sum(dim=1)
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
-    lengths = lengths.float()
-    
-    loss_mean_war = loss_sums_war / lengths#.unsqueeze(1)
-    loss_mean_pwar = loss_sums_pwar / lengths#.unsqueeze(1)
-    loss_mean_level = loss_sums_level / lengths#.unsqueeze(1)
-    loss_mean_pa = loss_sums_pa / lengths#.unsqueeze(1)
-    
-    # for i in range(batch_size):
-    #     if lengths[i].item() == 1:
-    #         print("\n\nHi")
-    #         #print(masked_loss_war[i])
-    #         #print(loss_sums_war[i])
-    #         print(loss_sums_war.shape)
-    #         print(lengths.shape)
-    #         print(loss_mean_war.shape)
-    #         #print(loss_mean_war[i])
-    #         break
-    
-    return loss_mean_war.mean(), loss_mean_pwar.mean(), loss_mean_level.mean(), loss_mean_pa.mean()
+    return loss_sums_war.sum(), loss_sums_pwar.sum(), loss_sums_level.sum(), loss_sums_pa.sum()

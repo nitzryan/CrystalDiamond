@@ -24,8 +24,8 @@ if __name__ == "__main__":
     cursor.execute("DELETE FROM Model_TrainingHistory WHERE ModelName='Pitcher'")
     db.commit()
     for i in tqdm(range(num_models), desc="Training Pitcher Models"):
-        best_loss = 1
-        while best_loss > 0.32:
+        best_loss = 10
+        while best_loss > 9: # Throw away trainings that get stuck in local minima
             x_train, x_test, y_train, y_test = train_test_split(inputs, outputs, test_size=0.25, random_state=i)
 
             train_lengths = torch.tensor([len(seq) for seq in x_train])
@@ -53,7 +53,7 @@ if __name__ == "__main__":
             testing_generator = torch.utils.data.DataLoader(test_pitchers_dataset, batch_size=batch_size, shuffle=False)
             
             model_name = f"Pitcher_{i}"
-            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, loss_function, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name}.pt")
+            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_pitchers_dataset), len(test_pitchers_dataset), loss_function, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name}.pt")
         
         cursor = db.cursor()
         cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", ("Pitcher", 1, best_loss, i, num_layers, hidden_size))

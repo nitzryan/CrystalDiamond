@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 from Constants import device
 
-def train(network,  data_generator, loss_function, optimizer, logging = 200, should_output=True):
+def train(network,  data_generator, num_elements, loss_function, optimizer, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0,0,0,0]
   num_batches = 0
@@ -25,13 +25,13 @@ def train(network,  data_generator, loss_function, optimizer, logging = 200, sho
     num_batches += 1
     if should_output and ((batch+1)%logging == 0): print('Batch [%d/%d], Train Loss: %.4f' %(batch+1, len(data_generator.dataset)/len(output_war), avg_loss/num_batches))
   
-  avg_loss[0] /= num_batches
-  avg_loss[1] /= num_batches
-  avg_loss[2] /= num_batches
-  avg_loss[3] /= num_batches
+  avg_loss[0] /= num_elements
+  avg_loss[1] /= num_elements
+  avg_loss[2] /= num_elements
+  avg_loss[3] /= num_elements
   return avg_loss
 
-def test(network, test_loader, loss_function):
+def test(network, test_loader, num_elements, loss_function):
   network.eval() #updates any network layers that behave differently in training and execution
   avg_loss = [0,0,0,0]
   num_batches = 0
@@ -47,11 +47,10 @@ def test(network, test_loader, loss_function):
       avg_loss[3] += loss_pa.item()
       num_batches += 1
   
-  avg_loss[0] /= num_batches
-  avg_loss[1] /= num_batches
-  avg_loss[2] /= num_batches
-  avg_loss[3] /= num_batches
-  #print('\nTest set: Avg. loss: {:.4f})\n'.format(test_loss))
+  avg_loss[0] /= num_elements
+  avg_loss[1] /= num_elements
+  avg_loss[2] /= num_elements
+  avg_loss[3] /= num_elements
   return avg_loss
 
 def count_parameters(model):
@@ -72,7 +71,7 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
-def trainAndGraph(network, training_generator, testing_generator, loss_function, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt"):
+def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, loss_function, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt"):
   #Arrays to store training history
   test_loss_history = [[],[],[],[]]
   epoch_counter = []
@@ -86,8 +85,8 @@ def trainAndGraph(network, training_generator, testing_generator, loss_function,
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, training_generator, loss_function, optimizer, should_output=should_output)
-    test_loss = test(network, testing_generator, loss_function)
+    avg_loss = train(network, training_generator, num_train, loss_function, optimizer, should_output=should_output)
+    test_loss = test(network, testing_generator, num_test, loss_function)
     scheduler.step(test_loss[0])
     logResults(epoch, num_epochs, avg_loss[0], test_loss[0], logging_interval, should_output)
     

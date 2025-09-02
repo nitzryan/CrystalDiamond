@@ -5,12 +5,11 @@ class Hitter_Dataset(torch.utils.data.Dataset):
     def __init__(self, data, lengths, labels):
         self.data = data
         self.lengths = lengths
-        with warnings.catch_warnings(): # Get warning for data copy, which is okay since this is only run once
-            warnings.filterwarnings("ignore", category=UserWarning, message='.*non-contiguous.*')
-            self.twar_buckets = labels[:,:,0]
-            self.pwar_buckets = labels[:,:,1]
-            self.level_buckets = labels[:,:,2]
-            self.pa_buckets = labels[:,:,3]
+        
+        self.twar_buckets = labels[:,:,0]
+        self.pwar_buckets = labels[:,:,1]
+        self.level_buckets = labels[:,:,2]
+        self.pa_buckets = labels[:,:,3]
             
     def __len__(self):
         return self.data.size(dim=1)
