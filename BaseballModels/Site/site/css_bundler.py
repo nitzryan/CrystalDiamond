@@ -17,7 +17,7 @@ if __name__ == "__main__":
     outfilename = sys.argv[1]
     infiles = sys.argv[2].split(",")
     
-    with open(f"dist/css/{outfilename}", "w") as outfile:
+    with open(f"../server/src/css/{outfilename}", "w") as outfile:
         outfile.write(getFileContents("src/css/main.css"))
         outfile.write(getFileContents("src/css/banner.css"))
         for infile in infiles:

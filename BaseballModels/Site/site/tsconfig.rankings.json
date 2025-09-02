@@ -2,7 +2,7 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "module": "none",
-        "outFile": "dist/js/rankings.js",
+        "outFile": "../server/src/js/rankings.js",
         "outDir": "dist",
         "rootDir": "src",
     },

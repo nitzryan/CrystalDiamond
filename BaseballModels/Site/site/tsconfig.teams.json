@@ -2,7 +2,7 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "module": "none",
-        "outFile": "dist/js/teams.js",
+        "outFile": "../server/src/js/teams.js",
         "outDir": "dist",
         "rootDir": "src",
     },

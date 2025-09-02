@@ -10,5 +10,5 @@ if __name__ == "__main__":
         contents = file.read()
         contents = contents.replace("<!-- BANNER -->", bannerHtml)
         
-        with open(f"dist/html/{filename}", "w") as outFile:
+        with open(f"../server/src/html/{filename}", "w") as outFile:
             outFile.write(contents)
