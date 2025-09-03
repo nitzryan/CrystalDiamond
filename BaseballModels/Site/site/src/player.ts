@@ -38,12 +38,8 @@ type Person = {
     position : string;
     status : string;
     parentId : number | null;
-}
-
-type Hitter = {
-    person : Person,
-    stats : HitterStats[],
-    models : Model[],
+    isHitter : boolean;
+    isPitcher : boolean;
 }
 
 type PitcherStats = {
@@ -60,33 +56,27 @@ type PitcherStats = {
     gorate : number,
 }
 
-type Pitcher = {
-    person : Person,
-    stats : PitcherStats[],
-    models : Model[]
-}
-
 function getHitterStats(hitterObject : JsonObject) : HitterStats[]
 {
     let stats : HitterStats[] = []
-    let statsArray : JsonArray = getJsonArray(hitterObject, "stats")
+    let statsArray : JsonArray = getJsonArray(hitterObject, "hit_stats")
 
     statsArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const hs : HitterStats = {
-            level : getJsonNumber(fObj, "level"),
+            level : getJsonNumber(fObj, "levelId"),
             year : getJsonNumber(fObj, "year"),
-            team : getJsonNumber(fObj, "team"),
-            league : getJsonNumber(fObj, "league"),
+            team : getJsonNumber(fObj, "teamId"),
+            league : getJsonNumber(fObj, "leagueId"),
             pa : getJsonNumber(fObj, "PA"),
             avg : getJsonNumber(fObj, "AVG"),
             obp : getJsonNumber(fObj, "OBP"),
             slg : getJsonNumber(fObj, "SLG"),
             iso : getJsonNumber(fObj, "ISO"),
-            wrc : getJsonNumber(fObj, "wrc"),
+            wrc : getJsonNumber(fObj, "WRC"),
             hr : getJsonNumber(fObj, "HR"),
-            bbPerc : getJsonNumber(fObj, "BB%"),
-            kPerc : getJsonNumber(fObj, "K%"),
+            bbPerc : getJsonNumber(fObj, "BBPerc"),
+            kPerc : getJsonNumber(fObj, "KPerc"),
             sb : getJsonNumber(fObj, "SB"),
             cs : getJsonNumber(fObj, "CS")
         }
@@ -99,22 +89,22 @@ function getHitterStats(hitterObject : JsonObject) : HitterStats[]
 function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
 {
     let stats : PitcherStats[] = []
-    let statsArray : JsonArray = getJsonArray(pitcherObject, "stats")
+    let statsArray : JsonArray = getJsonArray(pitcherObject, "pit_stats")
 
     statsArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const ps : PitcherStats = {
-            level : getJsonNumber(fObj, "level"),
+            level : getJsonNumber(fObj, "levelId"),
             year : getJsonNumber(fObj, "year"),
-            team : getJsonNumber(fObj, "team"),
-            league : getJsonNumber(fObj, "league"),
+            team : getJsonNumber(fObj, "teamId"),
+            league : getJsonNumber(fObj, "leagueId"),
             ip : getJsonString(fObj, "IP"),
             era : getJsonNumber(fObj, "ERA"),
             fip : getJsonNumber(fObj, "FIP"),
             hrrate : getJsonNumber(fObj, "HR9"),
-            bbperc : getJsonNumber(fObj, "BB%"),
-            kperc : getJsonNumber(fObj, "K%"),
-            gorate : getJsonNumber(fObj, "GO%")
+            bbperc : getJsonNumber(fObj, "BBPerc"),
+            kperc : getJsonNumber(fObj, "KPerc"),
+            gorate : getJsonNumber(fObj, "GOPerc")
         }
         stats.push(ps)
     })
@@ -122,22 +112,20 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
     return stats
 }
 
-function getModels(obj : JsonObject) : Model[]
+function getModels(obj : JsonObject, name : string) : Model[]
 {
     let models : Model[] = []
-    let modelArray : JsonArray = getJsonArray(obj, "model")
+    let modelArray : JsonArray = getJsonArray(obj, name)
 
     modelArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
-        const probArray = getJsonArray(fObj, "probs");
+        const probString = getJsonString(fObj, "probs");
+        const probArray : number[] = probString.split(',').map(Number)
 
         const m : Model = {
             year : getJsonNumber(fObj, "year"),
             month : getJsonNumber(fObj, "month"),
-            probs : probArray.map(f => {
-                const num = f as number;
-                return num;
-            }),
+            probs : probArray,
             rank : getJsonNumberNullable(fObj, "rank")
         }
         models.push(m);
@@ -148,13 +136,13 @@ function getModels(obj : JsonObject) : Model[]
 
 function getPerson(obj : JsonObject)
 {
-    const draftJson = obj["draft"] as JsonObject
+    const draftPick : number | null = obj["draftPick"] as number | null
     let draft : Draft | null = null
-    if (draftJson !== undefined)
+    if (draftPick !== null)
         draft = {
-            pick : getJsonNumber(draftJson, "pick"),
-            round : getJsonString(draftJson, "round"),
-            bonus : getJsonNumber(draftJson, "bonus")
+            pick : draftPick,
+            round : getJsonString(obj, "draftRound"),
+            bonus : getJsonNumber(obj, "draftBonus")
         }
     
     const p : Person = {
@@ -169,48 +157,18 @@ function getPerson(obj : JsonObject)
         position : getJsonString(obj, "position"),
         status : getJsonString(obj, "status"),
         draft : draft,
-        parentId : getJsonNumber(obj, "orgId")
+        parentId : getJsonNumber(obj, "orgId"),
+        isHitter : obj["isHitter"] as boolean,
+        isPitcher : obj["isPitcher"] as boolean
     }
 
     return p
 }
 
-async function loadHitter(id : number) : Promise<Hitter | null>
-{
-    let hitterObject = await retrieveJsonNullable(`../../assets/player/h${id}.json.gz`);
-    if (hitterObject !== null)
-    {
-        const hitter : Hitter = {
-            person: getPerson(hitterObject),
-            stats : getHitterStats(hitterObject),
-            models : getModels(hitterObject)
-        }
-
-        return hitter;
-    }
-    return null;
-}
-
-async function loadPitcher(id : number) : Promise<Pitcher | null>
-{
-    let pitcherObject = await retrieveJsonNullable(`../../assets/player/p${id}.json.gz`);
-    if (pitcherObject !== null)
-    {
-        const pitcher : Pitcher = {
-            person: getPerson(pitcherObject),
-            stats : getPitcherStats(pitcherObject),
-            models : getModels(pitcherObject)
-        }
-
-        return pitcher;
-    }
-    return null;
-}
-
-function updateHitterStats(hitter : Hitter)
+function updateHitterStats(hitterStats : HitterStats[])
 {
     const stats_body = getElementByIdStrict('h_stats_body')
-    hitter.stats.forEach(f => {
+    hitterStats.forEach(f => {
         const tr = document.createElement('tr')
         tr.innerHTML = `
             <td>${f.year}</td>
@@ -233,10 +191,10 @@ function updateHitterStats(hitter : Hitter)
     })
 }
 
-function updatePitcherStats(pitcher : Pitcher)
+function updatePitcherStats(pitcherStats : PitcherStats[])
 {
     const stats_body = getElementByIdStrict('p_stats_body')
-    pitcher.stats.forEach(f => {
+    pitcherStats.forEach(f => {
         const tr = document.createElement('tr')
         tr.innerHTML = `
             <td>${f.year}</td>
@@ -270,16 +228,13 @@ function piePointGenerator(model : Model) : Point[]
 
 function lineCallback(index : number)
 {
-    let model : Model | null = null
-    if (hitter !== null)
+    let model : Model
+    if (line_graph.getModelIsHitter())
     {
-        model = hitter.models[index]
-        
-    } else if (pitcher !== null)
+        model = hitterModels[index]
+    } else
     {
-        model = pitcher.models[index]
-    } else {
-        throw new Error("Both pitcher and hitter null at lineCallback")
+        model = pitcherModels[index]
     }
 
     if (model !== null)
@@ -296,9 +251,9 @@ function lineCallback(index : number)
     }
 }
 
-function setupModel(models : Model[]) : void
+function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
 {
-    const line_points  = models.map(f => {
+    let war_map = (f: Model) => {
         let war = 0;
         for (let i = 0; i < f.probs.length; i++)
             war += f.probs[i] * HITTER_WAR_BUCKETS[i];
@@ -306,97 +261,99 @@ function setupModel(models : Model[]) : void
         const label : string = f.month == 0 ? 'Initial' : `${f.month}-${f.year}`
         const p : Point = {y: war, label : label}
         return p;
-    })
-    
-    let ranks : Point[] = []
-    for (const model of models)
-    {
-        let m = model.month
-        let y = model.year
-        if (model.rank !== null)
-            ranks.push({y: model.rank, label: m == 0 ? 'Initial' : `${m}-${y}`})
     }
 
-    line_graph = new LineGraph(model_graph, line_points, ranks, lineCallback)
+    let rank_map = (f : Model) => {
+        let month = f.month
+        let year = f.year
+        if (f.rank === null)
+            throw new Error("No Rank")
+        const p : Point = {y: f.rank, label: year == 0 ? "Initial" : `${month}-${year}`}
+        return p
+    }
+    
+    const hitter_war = hitterModels.map(war_map)
+    const pitcher_war = pitcherModels.map(war_map)
 
-    const pie_points = piePointGenerator(models[models.length - 1])
+    let hitter_ranks : Point[] = []
+    let pitcher_ranks : Point[] = []
+    try {
+        hitter_ranks = hitterModels.map(rank_map)
+        pitcher_ranks = pitcherModels.map(rank_map)
+    } catch (e) {}
+
+    line_graph = new LineGraph(model_graph, hitter_war, hitter_ranks, pitcher_war, pitcher_ranks, lineCallback)
+
+
+    const pie_points = person.isHitter ? 
+        piePointGenerator(hitterModels[hitterModels.length - 1]) :
+        piePointGenerator(pitcherModels[pitcherModels.length - 1])
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
 }
 
 const model_pie = getElementByIdStrict("projWarPie") as HTMLCanvasElement
 const model_graph = getElementByIdStrict("projWarGraph") as HTMLCanvasElement
-let line_graph : LineGraph | null = null
-let pie_graph : PieGraph | null = null
-let hitter : Hitter | null = null
-let pitcher : Pitcher | null = null
-let keyControls : KeyControls | null = null
-let searchBar : SearchBar | null = null
+let line_graph : LineGraph
+let pie_graph : PieGraph
+let keyControls : KeyControls
+let searchBar : SearchBar
+
+let person : Person
+let hitterModels : Model[]
+let pitcherModels : Model[]
 
 async function main()
 {
+    const id = getQueryParam("id")
+    var player_data = fetch(`/player/${id}`)
+
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     org_map = await retrieveJson("../../assets/map.json.gz")
-    const id = getQueryParam("id")
 
-    const lh = loadHitter(id)
-    const lp = loadPitcher(id)
+    const pd = await (await player_data).json() as JsonObject
+    person = getPerson(pd)
 
-    let person : Person | null = null
-    hitter = await lh
-    if (hitter !== null)
+    let hitterStats = person.isHitter ? getHitterStats(pd) : []
+    let pitcherStats = person.isPitcher ? getPitcherStats(pd) : []
+
+    if (hitterStats.length > 0)
     {
-        person = hitter.person
-        updateHitterStats(hitter)
-        setupModel(hitter.models)
-
-        if (hitter.stats.length > 0)
-        {
-            const hitterStats = getElementByIdStrict('hitter_stats')
-            hitterStats.classList.remove('hidden')
-        }
+        updateHitterStats(hitterStats)
+        getElementByIdStrict('hitter_stats').classList.remove('hidden')
     }
-
-    pitcher = await lp
-    if (pitcher !== null)
+    if (pitcherStats.length > 0)
     {
-        person = pitcher.person
-        updatePitcherStats(pitcher)
-        setupModel(pitcher.models)
-
-        if (pitcher.stats.length > 0)
-        {
-            const pitcherStats = getElementByIdStrict('pitcher_stats')
-            pitcherStats.classList.remove('hidden')
-        }
+        updatePitcherStats(pitcherStats)
+        getElementByIdStrict('pitcher_stats').classList.remove('hidden')
     }
+    
+    hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
+    pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
+
+    setupModel(hitterModels, pitcherModels)
 
     // Set person
-    if (person !== null)
-    {
-        updateElementText("player_name", `${person.firstName} ${person.lastName}`)
-        updateElementText("player_position", person.position)
-        updateElementText("player_status", person.status)
+    updateElementText("player_name", `${person.firstName} ${person.lastName}`)
+    updateElementText("player_position", person.position)
+    updateElementText("player_status", person.status)
 
-        if (person.parentId !== null)
-        {
-            const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
-            player_team.innerText = getParentName(person.parentId)
-            player_team.href = `teams.html?team=${person.parentId}`
-        } else 
-        {
-            updateElementText("player_team", "Free Agent")
-        }
-        const age = getDateDelta(person.birthDate, new Date())
-        updateElementText("player_age", `${age[0]}y, ${age[1]}m, ${age[2]}d`)
-        if (person.draft !== null)
-        {
-            const round : string = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round
-            updateElementText("player_draft", `${person.signYear} Draft, ${round} (${getOrdinalNumber(person.draft.pick)} Overall)\n$${person.draft.bonus.toLocaleString()} Bonus`)
-        }
-        document.title = person.firstName + " " + person.lastName
-    } else {
-        throw Error("No person found")
+    if (person.parentId !== null)
+    {
+        const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
+        player_team.innerText = getParentName(person.parentId)
+        player_team.href = `teams.html?team=${person.parentId}`
+    } else 
+    {
+        updateElementText("player_team", "Free Agent")
     }
+    const age = getDateDelta(person.birthDate, new Date())
+    updateElementText("player_age", `${age[0]}y, ${age[1]}m, ${age[2]}d`)
+    if (person.draft !== null)
+    {
+        const round : string = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round
+        updateElementText("player_draft", `${person.signYear} Draft, ${round} (${getOrdinalNumber(person.draft.pick)} Overall)\n$${person.draft.bonus.toLocaleString()} Bonus`)
+    }
+    document.title = person.firstName + " " + person.lastName
 
     keyControls = new KeyControls(document, (x_inc) => {
         if (line_graph !== null)

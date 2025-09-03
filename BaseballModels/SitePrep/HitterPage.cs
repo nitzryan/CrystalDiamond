@@ -1,8 +1,6 @@
 ﻿using Db;
-using System.Text.Json.Nodes;
-using System.Text.Json;
 using ShellProgressBar;
-using System.IO.Compression;
+using SiteDb;
 
 namespace SitePrep
 {
@@ -11,104 +9,102 @@ namespace SitePrep
         private static bool WritePlayerJson()
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
+
+            siteDb.PlayerModel.RemoveRange(siteDb.PlayerModel);
+            siteDb.Player.RemoveRange(siteDb.Player);
+            siteDb.SaveChanges();
+            siteDb.ChangeTracker.Clear();
 
             var players = db.Model_Players.Where(f => f.IsHitter == 1)
                 .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi });
-            using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Hitter Pages"))
+            using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Hitter Site Data"))
             {
                 foreach (var playerTuple in players)
                 {
                     var player = playerTuple.mp;
                     var bio = playerTuple.sbi;
 
-                    JsonObject json = new();
-
                     // Model Output
                     var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.ModelName.Equals("H")).OrderBy(f => f.Year).ThenBy(f => f.Month);
-                    JsonArray modelOutput = new();
                     foreach (var opw in opws)
                     {
-                        JsonObject obj = new();
-                        obj["year"] = opw.Year;
-                        obj["month"] = opw.Month;
-
-                        JsonArray probs = [opw.Prob0, opw.Prob1, opw.Prob2, opw.Prob3, opw.Prob4, opw.Prob5, opw.Prob6];
-                        obj.Add("probs", probs);
-
                         var ranks = db.Ranking_Prospect.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.Model.Equals(opw.ModelName));
                         if (!ranks.Any() && opw.Month == 0)
                             ranks = db.Ranking_Prospect.Where(f => f.MlbId == opw.MlbId && f.Model.Equals(opw.ModelName))
                                 .OrderBy(f => f.Year).ThenBy(f => f.Month);
 
-                        if (ranks.Any())
-                            obj["rank"] = ranks.First().Rank;
-
-                        modelOutput.Add(obj);
+                        siteDb.Add(new PlayerModel
+                        {
+                            MlbId = player.MlbId,
+                            Year = opw.Year,
+                            Month = opw.Month,
+                            ModelId = 0,
+                            Probs = $"{opw.Prob0.ToString("0.000")}," +
+                                    $"{opw.Prob1.ToString("0.000")}," +
+                                    $"{opw.Prob2.ToString("0.000")}," +
+                                    $"{opw.Prob3.ToString("0.000")}," +
+                                    $"{opw.Prob4.ToString("0.000")}," +
+                                    $"{opw.Prob5.ToString("0.000")}," +
+                                    $"{opw.Prob6.ToString("0.000")}",
+                            Rank = ranks.Any() ? ranks.First().Rank : null
+                        });
                     }
-                    json.Add("model", modelOutput);
 
                     // Demographic Data
                     Db.Player p = db.Player.Where(f => f.MlbId == player.MlbId).Single();
-                    json["birthYear"] = p.BirthYear;
-                    json["birthMonth"] = p.BirthMonth;
-                    json["birthDate"] = p.BirthDate;
-                    json["startYear"] = p.SigningYear;
-
-                    if (bio.DraftPick != -1)
-                    {
-                        JsonObject draftObj = new()
-                        {
-                            ["pick"] = bio.DraftPick,
-                            ["round"] = bio.DraftRound,
-                            ["bonus"] = bio.DraftBonus
-                        };
-                        json.Add("draft", draftObj);
-                    }
-
-                    json["position"] = bio.Position;
-                    json["status"] = bio.Status;
-                    json["firstName"] = p.UseFirstName;
-                    json["lastName"] = p.UseLastName;
 
                     // Get most recent org
                     var poms = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).ThenByDescending(f => f.Day);
-                    if (poms.Any())
-                        json["orgId"] = poms.First().ParentOrgId;
+
+                    siteDb.Add(new SiteDb.Player
+                    {
+                        MlbId = p.MlbId,
+                        FirstName = p.UseFirstName,
+                        LastName = p.UseLastName,
+                        BirthYear = p.BirthYear,
+                        BirthMonth = p.BirthMonth,
+                        BirthDate = p.BirthDate,
+                        StartYear = p.SigningYear.Value,
+                        Position = bio.Position,
+                        Status = bio.Status,
+                        OrgId = poms.Any() ? poms.First().ParentOrgId : 0,
+                        DraftPick = bio.DraftPick > 0 ? bio.DraftPick : null,
+                        DraftRound = bio.DraftPick > 0 ? bio.DraftRound : null,
+                        DraftBonus = bio.DraftPick > 0 ? bio.DraftBonus : null,
+                        IsPitcher = 0,
+                        IsHitter = 1
+                    });
 
                     // Annual Stats
                     var annualStats = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
-                    JsonArray statsArray = new();
                     foreach (var stats in annualStats)
                     {
-                        JsonObject obj = new();
-                        obj["level"] = stats.LevelId;
-                        obj["year"] = stats.Year;
-                        obj["team"] = stats.TeamId;
-                        obj["league"] = stats.LeagueId;
-                        obj["PA"] = stats.PA;
-                        obj["AVG"] = Math.Round(stats.AVG, 3);
-                        obj["OBP"] = Math.Round(stats.OBP, 3);
-                        obj["SLG"] = Math.Round(stats.SLG, 3);
-                        obj["ISO"] = Math.Round(stats.ISO, 3);
-                        obj["wrc"] = Math.Round(stats.WRC, 0);
-                        obj["HR"] = stats.HR;
-                        obj["BB%"] = Math.Round(stats.BBPerc * 100, 1);
-                        obj["K%"] = Math.Round(stats.KPerc * 100, 1);
-                        obj["SB"] = stats.SB;
-                        obj["CS"] = stats.CS;
-
-                        statsArray.Add(obj);
+                        siteDb.HitterStats.Add(new HitterStats
+                        {
+                            MlbId = p.MlbId,
+                            LevelId = stats.LevelId,
+                            Year = stats.Year,
+                            TeamId = stats.TeamId,
+                            LeagueId = stats.LeagueId,
+                            PA = stats.PA,
+                            AVG = (float)Math.Round(stats.AVG, 3),
+                            OBP = (float)Math.Round(stats.OBP, 3),
+                            SLG = (float)Math.Round(stats.SLG, 3),
+                            ISO = (float)Math.Round(stats.ISO, 3),
+                            WRC = (int)Math.Round(stats.WRC, 0),
+                            HR = stats.HR,
+                            BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
+                            KPerc = (float)Math.Round(stats.KPerc * 100, 1),
+                            SB = stats.SB,
+                            CS = stats.CS,
+                        });
                     }
-                    json.Add("stats", statsArray);
-
-                    using var fileStream = new FileStream(Constants.SITE_ASSET_FOLDER + $"player/h{player.MlbId}.json.gz", FileMode.Create);
-                    using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
-                    using var writer = new Utf8JsonWriter(gzipStream, new JsonWriterOptions { Indented = false });
-                    JsonSerializer.Serialize(writer, json);
-
                     progressBar.Tick();
                 }
             }
+
+            siteDb.SaveChanges();
 
             return true;
         }

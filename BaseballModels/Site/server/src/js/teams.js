@@ -270,7 +270,7 @@ var SearchBar = (function () {
         var htmlStrings = valid.map(function (f) {
             var id = f["o"];
             var teamString = id > 0 ? "  (" + getParentAbbr(id) + ")" : "";
-            return "<li><a href=\"./player.html?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
+            return "<li><a href=\"./player?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
         });
         return htmlStrings.join("\n");
     };

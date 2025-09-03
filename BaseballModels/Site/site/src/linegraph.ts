@@ -3,18 +3,29 @@ const POINT_HIGHLIGHT_SIZE : number = 9
 
 class LineGraph
 {
+    private hitterPoints : Point[]
+    private pitcherPoints : Point[]
+    private hitterRanks : Point[]
+    private pitcherRanks : Point[]
     private points : Point[]
     private currentIdx : number
     private colorscale :  string[]
+    private isHitterMode : boolean
     private callback : (index : number) => void
     private readonly chart : any
 
     private warDataset : JsonObject
     private rankingDataset : JsonObject | null
 
-    constructor(element : HTMLCanvasElement, points : Point[], ranks : Point[], callback : (index : number) => void, colorscale : string[] | null = null)
+    constructor(element : HTMLCanvasElement, hitterPoints : Point[], hitterRanks : Point[], pitcherPoints : Point[], pitcherRanks : Point[], callback : (index : number) => void, colorscale : string[] | null = null)
     {
-        this.points = points
+        this.hitterPoints = hitterPoints
+        this.pitcherPoints = pitcherPoints
+        this.hitterRanks = hitterRanks
+        this.pitcherRanks = pitcherRanks
+
+        this.isHitterMode = this.hitterPoints.length > 0
+
         this.callback = callback
         this.currentIdx = 0
         if (colorscale !== null)
@@ -29,13 +40,16 @@ class LineGraph
                         '#63a490',
                         '#00876c']
 
-        const max_war : number = points.map(f => f.y).reduce((a, b) => Math.max(a,b), 0)
+        const max_war : number = Math.max(hitterPoints.map(f => f.y).reduce((a, b) => Math.max(a,b), 0),
+                                        pitcherPoints.map(f => f.y).reduce((a, b) => Math.max(a,b), 0))
 
         // Setup Datasets
+        this.points = this.isHitterMode ? hitterPoints : pitcherPoints
+        let ranks : Point[] = this.isHitterMode ? hitterRanks : pitcherRanks
         this.warDataset = {
             label: 'WAR',
-            data: points.map(f => f.y),
-            pointRadius : new Array(points.length).fill(POINT_DEFAULT_SIZE),
+            data: this.points.map(f => f.y),
+            pointRadius : new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
             yAxisID: 'y',
         }
 
@@ -44,7 +58,7 @@ class LineGraph
             this.rankingDataset = {
                 label: 'Ranking',
                 data: ranks.map(f => f.y),
-                pointRadius : new Array(points.length).fill(POINT_DEFAULT_SIZE),
+                pointRadius : new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
                 yAxisID: 'y1',
                 hidden: true,
             }
@@ -59,7 +73,7 @@ class LineGraph
         this.chart = new Chart(element, {
             type: 'line',
             data: {
-                labels: points.map(f => f.label),
+                labels: this.points.map(f => f.label),
                 datasets : datasets,   
             },
             options: {
@@ -133,8 +147,8 @@ class LineGraph
             }
         })
 
-        if (points.length > 0)
-            this.highlight_index(points.length - 1);
+        if (this.points.length > 0)
+            this.highlight_index(this.points.length - 1);
     }
 
     highlight_index(index : number) : void
@@ -143,6 +157,7 @@ class LineGraph
         let pointRadius : number[] = new Array(this.points.length).fill(POINT_DEFAULT_SIZE)
         pointRadius[index] = POINT_HIGHLIGHT_SIZE
         this.chart.data.datasets[0].pointRadius = pointRadius
+        this.chart.data.datasets[1].pointRadius = pointRadius
         this.chart.update()
     }
 
@@ -154,5 +169,10 @@ class LineGraph
             this.highlight_index(this.currentIdx)
             this.callback(this.currentIdx)
         }
+    }
+
+    getModelIsHitter() : boolean
+    {
+        return this.isHitterMode
     }
 }

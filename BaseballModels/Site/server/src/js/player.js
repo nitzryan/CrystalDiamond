@@ -37,23 +37,23 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 function getHitterStats(hitterObject) {
     var stats = [];
-    var statsArray = getJsonArray(hitterObject, "stats");
+    var statsArray = getJsonArray(hitterObject, "hit_stats");
     statsArray.forEach(function (f) {
         var fObj = f;
         var hs = {
-            level: getJsonNumber(fObj, "level"),
+            level: getJsonNumber(fObj, "levelId"),
             year: getJsonNumber(fObj, "year"),
-            team: getJsonNumber(fObj, "team"),
-            league: getJsonNumber(fObj, "league"),
+            team: getJsonNumber(fObj, "teamId"),
+            league: getJsonNumber(fObj, "leagueId"),
             pa: getJsonNumber(fObj, "PA"),
             avg: getJsonNumber(fObj, "AVG"),
             obp: getJsonNumber(fObj, "OBP"),
             slg: getJsonNumber(fObj, "SLG"),
             iso: getJsonNumber(fObj, "ISO"),
-            wrc: getJsonNumber(fObj, "wrc"),
+            wrc: getJsonNumber(fObj, "WRC"),
             hr: getJsonNumber(fObj, "HR"),
-            bbPerc: getJsonNumber(fObj, "BB%"),
-            kPerc: getJsonNumber(fObj, "K%"),
+            bbPerc: getJsonNumber(fObj, "BBPerc"),
+            kPerc: getJsonNumber(fObj, "KPerc"),
             sb: getJsonNumber(fObj, "SB"),
             cs: getJsonNumber(fObj, "CS")
         };
@@ -63,39 +63,37 @@ function getHitterStats(hitterObject) {
 }
 function getPitcherStats(pitcherObject) {
     var stats = [];
-    var statsArray = getJsonArray(pitcherObject, "stats");
+    var statsArray = getJsonArray(pitcherObject, "pit_stats");
     statsArray.forEach(function (f) {
         var fObj = f;
         var ps = {
-            level: getJsonNumber(fObj, "level"),
+            level: getJsonNumber(fObj, "levelId"),
             year: getJsonNumber(fObj, "year"),
-            team: getJsonNumber(fObj, "team"),
-            league: getJsonNumber(fObj, "league"),
+            team: getJsonNumber(fObj, "teamId"),
+            league: getJsonNumber(fObj, "leagueId"),
             ip: getJsonString(fObj, "IP"),
             era: getJsonNumber(fObj, "ERA"),
             fip: getJsonNumber(fObj, "FIP"),
             hrrate: getJsonNumber(fObj, "HR9"),
-            bbperc: getJsonNumber(fObj, "BB%"),
-            kperc: getJsonNumber(fObj, "K%"),
-            gorate: getJsonNumber(fObj, "GO%")
+            bbperc: getJsonNumber(fObj, "BBPerc"),
+            kperc: getJsonNumber(fObj, "KPerc"),
+            gorate: getJsonNumber(fObj, "GOPerc")
         };
         stats.push(ps);
     });
     return stats;
 }
-function getModels(obj) {
+function getModels(obj, name) {
     var models = [];
-    var modelArray = getJsonArray(obj, "model");
+    var modelArray = getJsonArray(obj, name);
     modelArray.forEach(function (f) {
         var fObj = f;
-        var probArray = getJsonArray(fObj, "probs");
+        var probString = getJsonString(fObj, "probs");
+        var probArray = probString.split(',').map(Number);
         var m = {
             year: getJsonNumber(fObj, "year"),
             month: getJsonNumber(fObj, "month"),
-            probs: probArray.map(function (f) {
-                var num = f;
-                return num;
-            }),
+            probs: probArray,
             rank: getJsonNumberNullable(fObj, "rank")
         };
         models.push(m);
@@ -103,13 +101,13 @@ function getModels(obj) {
     return models;
 }
 function getPerson(obj) {
-    var draftJson = obj["draft"];
+    var draftPick = obj["draftPick"];
     var draft = null;
-    if (draftJson !== undefined)
+    if (draftPick !== null)
         draft = {
-            pick: getJsonNumber(draftJson, "pick"),
-            round: getJsonString(draftJson, "round"),
-            bonus: getJsonNumber(draftJson, "bonus")
+            pick: draftPick,
+            round: getJsonString(obj, "draftRound"),
+            bonus: getJsonNumber(obj, "draftBonus")
         };
     var p = {
         firstName: getJsonString(obj, "firstName"),
@@ -119,63 +117,23 @@ function getPerson(obj) {
         position: getJsonString(obj, "position"),
         status: getJsonString(obj, "status"),
         draft: draft,
-        parentId: getJsonNumber(obj, "orgId")
+        parentId: getJsonNumber(obj, "orgId"),
+        isHitter: obj["isHitter"],
+        isPitcher: obj["isPitcher"]
     };
     return p;
 }
-function loadHitter(id) {
-    return __awaiter(this, void 0, void 0, function () {
-        var hitterObject, hitter_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, retrieveJsonNullable("../../assets/player/h".concat(id, ".json.gz"))];
-                case 1:
-                    hitterObject = _a.sent();
-                    if (hitterObject !== null) {
-                        hitter_1 = {
-                            person: getPerson(hitterObject),
-                            stats: getHitterStats(hitterObject),
-                            models: getModels(hitterObject)
-                        };
-                        return [2, hitter_1];
-                    }
-                    return [2, null];
-            }
-        });
-    });
-}
-function loadPitcher(id) {
-    return __awaiter(this, void 0, void 0, function () {
-        var pitcherObject, pitcher_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, retrieveJsonNullable("../../assets/player/p".concat(id, ".json.gz"))];
-                case 1:
-                    pitcherObject = _a.sent();
-                    if (pitcherObject !== null) {
-                        pitcher_1 = {
-                            person: getPerson(pitcherObject),
-                            stats: getPitcherStats(pitcherObject),
-                            models: getModels(pitcherObject)
-                        };
-                        return [2, pitcher_1];
-                    }
-                    return [2, null];
-            }
-        });
-    });
-}
-function updateHitterStats(hitter) {
+function updateHitterStats(hitterStats) {
     var stats_body = getElementByIdStrict('h_stats_body');
-    hitter.stats.forEach(function (f) {
+    hitterStats.forEach(function (f) {
         var tr = document.createElement('tr');
         tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
         stats_body.appendChild(tr);
     });
 }
-function updatePitcherStats(pitcher) {
+function updatePitcherStats(pitcherStats) {
     var stats_body = getElementByIdStrict('p_stats_body');
-    pitcher.stats.forEach(function (f) {
+    pitcherStats.forEach(function (f) {
         var tr = document.createElement('tr');
         tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
         stats_body.append(tr);
@@ -191,15 +149,12 @@ function piePointGenerator(model) {
     return points;
 }
 function lineCallback(index) {
-    var model = null;
-    if (hitter !== null) {
-        model = hitter.models[index];
-    }
-    else if (pitcher !== null) {
-        model = pitcher.models[index];
+    var model;
+    if (line_graph.getModelIsHitter()) {
+        model = hitterModels[index];
     }
     else {
-        throw new Error("Both pitcher and hitter null at lineCallback");
+        model = pitcherModels[index];
     }
     if (model !== null) {
         if (pie_graph === null)
@@ -213,96 +168,95 @@ function lineCallback(index) {
         throw new Error("Model was not set for hitter or pitcher");
     }
 }
-function setupModel(models) {
-    var line_points = models.map(function (f) {
+function setupModel(hitterModels, pitcherModels) {
+    var war_map = function (f) {
         var war = 0;
         for (var i = 0; i < f.probs.length; i++)
             war += f.probs[i] * HITTER_WAR_BUCKETS[i];
         var label = f.month == 0 ? 'Initial' : "".concat(f.month, "-").concat(f.year);
         var p = { y: war, label: label };
         return p;
-    });
-    var ranks = [];
-    for (var _i = 0, models_1 = models; _i < models_1.length; _i++) {
-        var model = models_1[_i];
-        var m = model.month;
-        var y = model.year;
-        if (model.rank !== null)
-            ranks.push({ y: model.rank, label: m == 0 ? 'Initial' : "".concat(m, "-").concat(y) });
+    };
+    var rank_map = function (f) {
+        var month = f.month;
+        var year = f.year;
+        if (f.rank === null)
+            throw new Error("No Rank");
+        var p = { y: f.rank, label: year == 0 ? "Initial" : "".concat(month, "-").concat(year) };
+        return p;
+    };
+    var hitter_war = hitterModels.map(war_map);
+    var pitcher_war = pitcherModels.map(war_map);
+    var hitter_ranks = [];
+    var pitcher_ranks = [];
+    try {
+        hitter_ranks = hitterModels.map(rank_map);
+        pitcher_ranks = pitcherModels.map(rank_map);
     }
-    line_graph = new LineGraph(model_graph, line_points, ranks, lineCallback);
-    var pie_points = piePointGenerator(models[models.length - 1]);
+    catch (e) { }
+    line_graph = new LineGraph(model_graph, hitter_war, hitter_ranks, pitcher_war, pitcher_ranks, lineCallback);
+    var pie_points = person.isHitter ?
+        piePointGenerator(hitterModels[hitterModels.length - 1]) :
+        piePointGenerator(pitcherModels[pitcherModels.length - 1]);
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
 }
 var model_pie = getElementByIdStrict("projWarPie");
 var model_graph = getElementByIdStrict("projWarGraph");
-var line_graph = null;
-var pie_graph = null;
-var hitter = null;
-var pitcher = null;
-var keyControls = null;
-var searchBar = null;
+var line_graph;
+var pie_graph;
+var keyControls;
+var searchBar;
+var person;
+var hitterModels;
+var pitcherModels;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var player_search_data, id, lh, lp, person, hitterStats, pitcherStats, player_team, age, round, _a;
+        var id, player_data, player_search_data, pd, hitterStats, pitcherStats, player_team, age, round, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    id = getQueryParam("id");
+                    player_data = fetch("/player/".concat(id));
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
                     return [4, retrieveJson("../../assets/map.json.gz")];
                 case 1:
                     org_map = _b.sent();
-                    id = getQueryParam("id");
-                    lh = loadHitter(id);
-                    lp = loadPitcher(id);
-                    person = null;
-                    return [4, lh];
-                case 2:
-                    hitter = _b.sent();
-                    if (hitter !== null) {
-                        person = hitter.person;
-                        updateHitterStats(hitter);
-                        setupModel(hitter.models);
-                        if (hitter.stats.length > 0) {
-                            hitterStats = getElementByIdStrict('hitter_stats');
-                            hitterStats.classList.remove('hidden');
-                        }
-                    }
-                    return [4, lp];
+                    return [4, player_data];
+                case 2: return [4, (_b.sent()).json()];
                 case 3:
-                    pitcher = _b.sent();
-                    if (pitcher !== null) {
-                        person = pitcher.person;
-                        updatePitcherStats(pitcher);
-                        setupModel(pitcher.models);
-                        if (pitcher.stats.length > 0) {
-                            pitcherStats = getElementByIdStrict('pitcher_stats');
-                            pitcherStats.classList.remove('hidden');
-                        }
+                    pd = _b.sent();
+                    person = getPerson(pd);
+                    hitterStats = person.isHitter ? getHitterStats(pd) : [];
+                    pitcherStats = person.isPitcher ? getPitcherStats(pd) : [];
+                    if (hitterStats.length > 0) {
+                        updateHitterStats(hitterStats);
+                        getElementByIdStrict('hitter_stats').classList.remove('hidden');
                     }
-                    if (person !== null) {
-                        updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
-                        updateElementText("player_position", person.position);
-                        updateElementText("player_status", person.status);
-                        if (person.parentId !== null) {
-                            player_team = getElementByIdStrict("player_team");
-                            player_team.innerText = getParentName(person.parentId);
-                            player_team.href = "teams.html?team=".concat(person.parentId);
-                        }
-                        else {
-                            updateElementText("player_team", "Free Agent");
-                        }
-                        age = getDateDelta(person.birthDate, new Date());
-                        updateElementText("player_age", "".concat(age[0], "y, ").concat(age[1], "m, ").concat(age[2], "d"));
-                        if (person.draft !== null) {
-                            round = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round;
-                            updateElementText("player_draft", "".concat(person.signYear, " Draft, ").concat(round, " (").concat(getOrdinalNumber(person.draft.pick), " Overall)\n$").concat(person.draft.bonus.toLocaleString(), " Bonus"));
-                        }
-                        document.title = person.firstName + " " + person.lastName;
+                    if (pitcherStats.length > 0) {
+                        updatePitcherStats(pitcherStats);
+                        getElementByIdStrict('pitcher_stats').classList.remove('hidden');
+                    }
+                    hitterModels = person.isHitter ? getModels(pd, "hit_models") : [];
+                    pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : [];
+                    setupModel(hitterModels, pitcherModels);
+                    updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
+                    updateElementText("player_position", person.position);
+                    updateElementText("player_status", person.status);
+                    if (person.parentId !== null) {
+                        player_team = getElementByIdStrict("player_team");
+                        player_team.innerText = getParentName(person.parentId);
+                        player_team.href = "teams.html?team=".concat(person.parentId);
                     }
                     else {
-                        throw Error("No person found");
+                        updateElementText("player_team", "Free Agent");
                     }
+                    age = getDateDelta(person.birthDate, new Date());
+                    updateElementText("player_age", "".concat(age[0], "y, ").concat(age[1], "m, ").concat(age[2], "d"));
+                    if (person.draft !== null) {
+                        round = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round;
+                        updateElementText("player_draft", "".concat(person.signYear, " Draft, ").concat(round, " (").concat(getOrdinalNumber(person.draft.pick), " Overall)\n$").concat(person.draft.bonus.toLocaleString(), " Bonus"));
+                    }
+                    document.title = person.firstName + " " + person.lastName;
                     keyControls = new KeyControls(document, function (x_inc) {
                         if (line_graph !== null)
                             line_graph.increment_index(x_inc);
@@ -354,7 +308,7 @@ var SearchBar = (function () {
         var htmlStrings = valid.map(function (f) {
             var id = f["o"];
             var teamString = id > 0 ? "  (" + getParentAbbr(id) + ")" : "";
-            return "<li><a href=\"./player.html?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
+            return "<li><a href=\"./player?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
         });
         return htmlStrings.join("\n");
     };
@@ -561,10 +515,14 @@ var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;
 var LineGraph = (function () {
-    function LineGraph(element, points, ranks, callback, colorscale) {
+    function LineGraph(element, hitterPoints, hitterRanks, pitcherPoints, pitcherRanks, callback, colorscale) {
         if (colorscale === void 0) { colorscale = null; }
         var _this = this;
-        this.points = points;
+        this.hitterPoints = hitterPoints;
+        this.pitcherPoints = pitcherPoints;
+        this.hitterRanks = hitterRanks;
+        this.pitcherRanks = pitcherRanks;
+        this.isHitterMode = this.hitterPoints.length > 0;
         this.callback = callback;
         this.currentIdx = 0;
         if (colorscale !== null)
@@ -579,18 +537,20 @@ var LineGraph = (function () {
                 '#63a490',
                 '#00876c'
             ];
-        var max_war = points.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0);
+        var max_war = Math.max(hitterPoints.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0), pitcherPoints.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0));
+        this.points = this.isHitterMode ? hitterPoints : pitcherPoints;
+        var ranks = this.isHitterMode ? hitterRanks : pitcherRanks;
         this.warDataset = {
             label: 'WAR',
-            data: points.map(function (f) { return f.y; }),
-            pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
+            data: this.points.map(function (f) { return f.y; }),
+            pointRadius: new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
             yAxisID: 'y',
         };
         if (ranks.length > 0) {
             this.rankingDataset = {
                 label: 'Ranking',
                 data: ranks.map(function (f) { return f.y; }),
-                pointRadius: new Array(points.length).fill(POINT_DEFAULT_SIZE),
+                pointRadius: new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
                 yAxisID: 'y1',
                 hidden: true,
             };
@@ -604,7 +564,7 @@ var LineGraph = (function () {
         this.chart = new Chart(element, {
             type: 'line',
             data: {
-                labels: points.map(function (f) { return f.label; }),
+                labels: this.points.map(function (f) { return f.label; }),
                 datasets: datasets,
             },
             options: {
@@ -672,14 +632,15 @@ var LineGraph = (function () {
                 },
             }
         });
-        if (points.length > 0)
-            this.highlight_index(points.length - 1);
+        if (this.points.length > 0)
+            this.highlight_index(this.points.length - 1);
     }
     LineGraph.prototype.highlight_index = function (index) {
         this.currentIdx = index;
         var pointRadius = new Array(this.points.length).fill(POINT_DEFAULT_SIZE);
         pointRadius[index] = POINT_HIGHLIGHT_SIZE;
         this.chart.data.datasets[0].pointRadius = pointRadius;
+        this.chart.data.datasets[1].pointRadius = pointRadius;
         this.chart.update();
     };
     LineGraph.prototype.increment_index = function (x_inc) {
@@ -688,6 +649,9 @@ var LineGraph = (function () {
             this.highlight_index(this.currentIdx);
             this.callback(this.currentIdx);
         }
+    };
+    LineGraph.prototype.getModelIsHitter = function () {
+        return this.isHitterMode;
     };
     return LineGraph;
 }());

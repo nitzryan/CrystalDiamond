@@ -55,7 +55,7 @@ class SearchBar
             const id : number = f["o"] as number
             const teamString : string = id > 0 ? "  (" + getParentAbbr(id) + ")" : ""
             // @ts-ignore
-            return `<li><a href="./player.html?id=${f["id"]}">${f["f"][0].toUpperCase() + f["f"].substring(1)} ${f["l"][0].toUpperCase() + f["l"].substring(1)}</a>${teamString}</li>`
+            return `<li><a href="./player?id=${f["id"]}">${f["f"][0].toUpperCase() + f["f"].substring(1)} ${f["l"][0].toUpperCase() + f["l"].substring(1)}</a>${teamString}</li>`
         })
 
         return htmlStrings.join("\n")

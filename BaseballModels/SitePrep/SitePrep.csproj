@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Db\Db.csproj" />
+    <ProjectReference Include="..\SiteDb\SiteDb.csproj" />
   </ItemGroup>
 
 </Project>
