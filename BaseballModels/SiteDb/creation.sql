@@ -62,3 +62,25 @@ CREATE TABLE "PlayerModel" (
 	"rank" INTEGER,
 	PRIMARY KEY("mlbId","year","month","modelId")
 );
+
+CREATE TABLE "PlayerRank" (
+	"mlbId" INTEGER NOT NULL,
+	"modelName" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"war" REAL NOT NULL,
+	"teamId" INTEGER NOT NULL,
+	"position" TEXT NOT NULL,
+	"name" TEXT NOT NULL,
+	"rank" INTEGER NOT NULL,
+	"teamRank" INTEGER NOT NULL,
+	PRIMARY KEY("mlbId", "year", "month", "modelName")
+);
+
+CREATE INDEX "idx_PlayerRankOverall" ON "PlayerRank" (
+	"year", "month", "rank"
+);
+
+CREATE INDEX idx_PlayerRankTeam ON "PlayerRank" (
+	"teamId", "year", "month", "teamRank"
+);

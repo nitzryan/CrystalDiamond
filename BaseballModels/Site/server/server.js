@@ -1,6 +1,7 @@
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose()
 const path = require('path');
+const { start } = require('repl');
 const app = express()
 const port = 3000
 
@@ -20,6 +21,14 @@ app.use('/assets', express.static('assets'))
 
 app.get('/player', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/player.html"))
+})
+
+app.get("/teams/", (req, res) => {
+    res.sendFile(path.join(__dirname, "src/html/teams.html"))
+})
+
+app.get("/rankings/", (req, res) => {
+    res.sendFile(path.join(__dirname, "src/html/rankings.html"))
 })
 
 const dbAll = (sql, params) => {
@@ -82,8 +91,29 @@ app.get('/player/:id', async (req, res) => {
     }
 })
 
-app.get("/teams/", (req, res) => {
-    res.redirect('/html/teams.html')
+app.get('/rankingsRequest', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const startRank = req.query.startRank
+        const endRank = req.query.endRank
+        const teamId = req.query.teamId
+
+        if (teamId !== undefined)
+        {
+            db.all("SELECT * FROM PlayerRank WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? ORDER BY teamRank ASC", [year,month,teamId,startRank,endRank], (err, rows) => {
+                res.json(rows)
+            })
+        } else {
+            db.all("SELECT * FROM PlayerRank WHERE year=? AND month=? AND rank>=? AND rank<=? ORDER BY rank ASC", [year,month,startRank,endRank], (err, rows) => {
+                res.json(rows)
+            })
+        }
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in rankingsRequest: " + e)
+    }
 })
 
 app.listen(port, () => {

@@ -13,6 +13,7 @@ namespace SitePrep
 
             siteDb.PlayerModel.RemoveRange(siteDb.PlayerModel);
             siteDb.Player.RemoveRange(siteDb.Player);
+            siteDb.HitterStats.RemoveRange(siteDb.HitterStats);
             siteDb.SaveChanges();
             siteDb.ChangeTracker.Clear();
 

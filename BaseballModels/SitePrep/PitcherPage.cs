@@ -11,6 +11,10 @@ namespace SitePrep
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
 
+            siteDb.PitcherStats.RemoveRange(siteDb.PitcherStats);
+            siteDb.SaveChanges();
+            siteDb.ChangeTracker.Clear();
+
             var players = db.Model_Players.Where(f => f.IsPitcher == 1)
                 .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi }); ;
             using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Pitcher Site Data"))
@@ -96,7 +100,7 @@ namespace SitePrep
                             HR9 = (float)Math.Round(hrRate, 1),
                             BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
                             KPerc = (float)Math.Round(stats.KPerc * 100, 1),
-                            GOPerc = stats.GBRatio,
+                            GOPerc = (float)Math.Round(stats.GBRatio * 100, 1),
                         });
                     }
 

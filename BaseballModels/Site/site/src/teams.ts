@@ -35,8 +35,7 @@ async function main()
         startTeam : teamId
     })
     
-    const rankingJson = await retrieveJson(`../../assets/ranking/teams/${teamId}-${month}-${year}.json.gz`)
-    setupRankings(rankingJson, month, year, teamId)
+    setupRankings(month, year, teamId, 30)
     searchBar = new SearchBar(await player_search_data)
 
     await selector
@@ -45,7 +44,7 @@ async function main()
         const yr = year_select.value
         const tm = team_select?.value
         
-        window.location.href = `./teams.html?year=${yr}&month=${mnth}&team=${tm}`
+        window.location.href = `./teams?year=${yr}&month=${mnth}&team=${tm}`
     })
 
     getElementByIdStrict('nav_teams').classList.add('selected')

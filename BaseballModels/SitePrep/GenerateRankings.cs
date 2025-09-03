@@ -1,5 +1,6 @@
 ﻿using Db;
 using ShellProgressBar;
+using SiteDb;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -50,6 +51,10 @@ namespace SitePrep
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
+                using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
+                siteDb.PlayerRank.RemoveRange(siteDb.PlayerRank);
+                siteDb.SaveChanges();
+                siteDb.ChangeTracker.Clear();
 
                 // Create Position List
                 Dictionary<int, List<PlayerYearPosition>> playerYearPositions = new();
@@ -270,61 +275,48 @@ namespace SitePrep
                         // Create overall ranking
                         pmwList = pmwList.OrderByDescending(f => f.War).ToList();
 
-                        // Log Ranking
-                        using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-                        {
-                            int rank = 1;
-                            db_write.Ranking_Prospect.RemoveRange(db_write.Ranking_Prospect.Where(f => f.Month == month && f.Year == year));
-                            db_write.SaveChanges();
-                            foreach (var pmw in pmwList)
-                            {
-                                int r = rank;
-                                db_write.Ranking_Prospect.Add(new Ranking_Prospect
-                                {
-                                    MlbId = pmw.MLbId,
-                                    Year = year,
-                                    Month = month,
-                                    Model = pmw.ModelName,
-                                    Rank = r
-                                });
-                                rank++;
-                            }
-                            db_write.SaveChanges();
-                        }
-
-                        JsonObject json = new();
-                        JsonArray rankingJson = new();
+                        // Create Rankings
+                        List<SiteDb.PlayerRank> ranks = new(pmwList.Count);
+                        int rank = 1;
                         foreach (var pmw in pmwList)
                         {
-                            rankingJson.Add(GetJson(pmw, db));
+                            int r = rank;
+                            var player = db.Player.Where(f => f.MlbId == pmw.MLbId).Single();
+                            ranks.Add(new PlayerRank
+                            {
+                                MlbId = pmw.MLbId,
+                                Year = year,
+                                Month = month,
+                                ModelName = pmw.ModelName == "H" ? 0 : 1,
+                                Rank = r,
+                                War = pmw.War,
+                                Position = pmw.position,
+                                Name = player.UseFirstName + " " + player.UseLastName,
+                                TeamId = pmw.ParentOrgId,
+                                TeamRank = -1
+                            });
+                            rank++;
                         }
-                        json.Add("players", rankingJson);
 
-                        using var fileStream = new FileStream(Constants.SITE_ASSET_FOLDER + $"ranking/{month}-{year}.json.gz", FileMode.Create);
-                        using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
-                        using var writer = new Utf8JsonWriter(gzipStream, new JsonWriterOptions { Indented = false });
-                        JsonSerializer.Serialize(writer, json);
-
-                        // Create Team Rankings
+                        // Modify to include team rankings
                         var teamIds = db.Team_Parents.Select(f => f.Id);
                         foreach (var teamId in teamIds)
                         {
-                            var teamList = pmwList.Where(f => f.ParentOrgId == teamId)
-                                .OrderByDescending(f => f.War);
+                            var teamRanks = ranks.Where(f => f.TeamId == teamId)
+                                .OrderBy(f => f.Rank);
 
-                            JsonObject teamJson = new();
-                            JsonArray teamArray = new();
-                            foreach (var pmw in teamList)
+                            int teamRank = 1;
+                            foreach (var tr in teamRanks)
                             {
-                                teamArray.Add(GetJson(pmw, db));
+                                int r = teamRank;
+                                tr.TeamRank = r;
+                                teamRank++;
                             }
-                            teamJson.Add("players", teamArray);
-
-                            using var fileStreamTeam = new FileStream(Constants.SITE_ASSET_FOLDER + $"ranking/teams/{teamId}-{month}-{year}.json.gz", FileMode.Create);
-                            using var gzipStreamTeam = new GZipStream(fileStreamTeam, CompressionLevel.Optimal);
-                            using var writerTeam = new Utf8JsonWriter(gzipStreamTeam, new JsonWriterOptions { Indented = false });
-                            JsonSerializer.Serialize(writerTeam, teamJson);
                         }
+
+                        siteDb.AddRange(ranks);
+                        siteDb.SaveChanges();
+                        siteDb.ChangeTracker.Clear();
 
                         progressBar.Tick();
                     }

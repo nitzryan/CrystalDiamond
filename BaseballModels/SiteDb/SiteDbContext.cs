@@ -8,6 +8,7 @@ namespace SiteDb
 		public DbSet<HitterStats> HitterStats {get; set;}
 		public DbSet<PitcherStats> PitcherStats {get; set;}
 		public DbSet<PlayerModel> PlayerModel {get; set;}
+		public DbSet<PlayerRank> PlayerRank {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -17,6 +18,7 @@ namespace SiteDb
 			modelBuilder.Entity<HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId});
+			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelName,f.Year,f.Month});
 		}
 	}
 }

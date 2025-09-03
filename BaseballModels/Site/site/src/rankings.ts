@@ -31,9 +31,7 @@ async function main()
     })
     org_map = await retrieveJson("../../assets/map.json.gz")
     
-    
-    const rankingJson = await retrieveJson(`../../assets/ranking/${month}-${year}.json.gz`)
-    setupRankings(rankingJson, month, year, null)
+    setupRankings(month, year, null, 100)
     searchBar = new SearchBar(await player_search_data)
 
     await selector
@@ -41,7 +39,7 @@ async function main()
         const mnth = month_select.value
         const yr = year_select.value
         
-        window.location.href = `./rankings.html?year=${yr}&month=${mnth}`
+        window.location.href = `./rankings?year=${yr}&month=${mnth}`
     })
 
     getElementByIdStrict('nav_rankings').classList.add('selected')

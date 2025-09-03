@@ -15,44 +15,60 @@ type Player = {
     name : string,
     war : number,
     id : number,
-    model : string,
     team : number,
     position : string,
 }
 
+function createPlayer(obj : JsonObject)
+{
+    const p : Player = {
+        name : getJsonString(obj, "name"),
+        war : getJsonNumber(obj, "war"),
+        id : getJsonNumber(obj, "mlbId"),
+        team : getJsonNumber(obj, "teamId"),
+        position : getJsonString(obj, "position")
+    }
+    return p
+}
+
 class PlayerLoader
 {
-    private players : Player[]
     private index : number
-    private numElements : number = 100
+    private exhaustedElements : boolean = false
+    private year : number
+    private month : number
+    private teamId : number | null
 
-    constructor(ps : Player[])
+    constructor(year : number, month : number, teamId : number | null = null)
     {
-        this.players = ps
         this.index = 0
+        this.year = year
+        this.month = month
+        this.teamId = teamId
     }
 
-    getListElements() : HTMLLIElement[]
+    async getElements(num_elements : number) : Promise<HTMLLIElement[]>
     {
-        var elements : HTMLLIElement[] = []
+        if (this.exhaustedElements)
+            return []
 
-        for (let i = this.index; i < this.index + this.numElements; i++)
-        {
-            if (i >= this.players.length)
-            {
-                rankings_load.classList.add('hidden')
-                break
-            }
-            const player = this.players[i]
-            
+        const endRank = this.index + num_elements
+        const response = this.teamId !== null ?
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}`) : 
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}`)
+
+        const players = await response.json() as JsonArray
+
+        this.exhaustedElements = (players.length != num_elements)
+        this.index += players.length
+
+        return players.map(f => {
             let element = document.createElement('li') as HTMLLIElement
+            const player = createPlayer(f as JsonObject)
             const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
-            element.innerHTML = `<div><a href='./player.html?id=${player.id}'>${player.name}</a><div>${player.position}</div><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
-            elements.push(element)
-        }
-
-        this.index += this.numElements
-        return elements
+            element.innerHTML = `<div><a href='./player?id=${player.id}'>${player.name}</a><div>${player.position}</div><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
+            return element
+        })
     }
 }
 
@@ -147,27 +163,10 @@ async function setupSelector(args : SelectorArgs)
     }
 }
 
-function getPlayers(rankingJson : JsonObject) : Player[]
+let playerLoader : PlayerLoader
+function setupRankings(month : number, year : number, team : number | null, num_elements : number)
 {
-    const jsonArray = rankingJson["players"] as JsonArray
-    return jsonArray.map(f => {
-        f = f as JsonObject
-        const player : Player = {
-            name: getJsonString(f, "name"),
-            war : getJsonNumber(f, "war"),
-            id : getJsonNumber(f, "id"),
-            model : getJsonString(f, "model"),
-            team : getJsonNumber(f, "team"),
-            position : getJsonString(f, "position")
-        }
-        return player
-    })
-}
-
-function setupRankings(obj : JsonObject, month : number, year : number, team : number | null)
-{
-    const players = getPlayers(obj)
-    const playerLoader = new PlayerLoader(players)
+    playerLoader = new PlayerLoader(year, month, team)
 
     if (team === null)
         rankings_header.innerText = `Rankings for ${MONTH_CODES[month]} ${year}`
@@ -175,8 +174,8 @@ function setupRankings(obj : JsonObject, month : number, year : number, team : n
         // @ts-ignore
         rankings_header.innerText = `Rankings for ${org_map["parents"][team]["name"]} ${MONTH_CODES[month]} ${year}`
 
-    rankings_load.addEventListener('click', (event) => {
-        const elements = playerLoader.getListElements()
+    rankings_load.addEventListener('click', async (event) => {
+        const elements = await playerLoader.getElements(num_elements)
         for (var el of elements)
         {
             rankings_list.appendChild(el)

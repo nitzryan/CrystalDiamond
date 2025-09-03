@@ -40,7 +40,7 @@ var month = null;
 var year = null;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, selector, rankingJson, _a;
+        var datesJsonPromise, player_search_data, datesJson, selector, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -71,21 +71,18 @@ function main() {
                     return [4, retrieveJson("../../assets/map.json.gz")];
                 case 2:
                     org_map = _b.sent();
-                    return [4, retrieveJson("../../assets/ranking/".concat(month, "-").concat(year, ".json.gz"))];
-                case 3:
-                    rankingJson = _b.sent();
-                    setupRankings(rankingJson, month, year, null);
+                    setupRankings(month, year, null, 100);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
-                case 4:
+                case 3:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     return [4, selector];
-                case 5:
+                case 4:
                     _b.sent();
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
-                        window.location.href = "./rankings.html?year=".concat(yr, "&month=").concat(mnth);
+                        window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth);
                     });
                     getElementByIdStrict('nav_rankings').classList.add('selected');
                     return [2];
@@ -105,27 +102,60 @@ var rankings_list = getElementByIdStrict('rankings_list');
 var rankings_load = getElementByIdStrict('rankings_load');
 var endYear = 0;
 var endMonth = 0;
+function createPlayer(obj) {
+    var p = {
+        name: getJsonString(obj, "name"),
+        war: getJsonNumber(obj, "war"),
+        id: getJsonNumber(obj, "mlbId"),
+        team: getJsonNumber(obj, "teamId"),
+        position: getJsonString(obj, "position")
+    };
+    return p;
+}
 var PlayerLoader = (function () {
-    function PlayerLoader(ps) {
-        this.numElements = 100;
-        this.players = ps;
+    function PlayerLoader(year, month, teamId) {
+        if (teamId === void 0) { teamId = null; }
+        this.exhaustedElements = false;
         this.index = 0;
+        this.year = year;
+        this.month = month;
+        this.teamId = teamId;
     }
-    PlayerLoader.prototype.getListElements = function () {
-        var elements = [];
-        for (var i = this.index; i < this.index + this.numElements; i++) {
-            if (i >= this.players.length) {
-                rankings_load.classList.add('hidden');
-                break;
-            }
-            var player = this.players[i];
-            var element = document.createElement('li');
-            var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
-            element.innerHTML = "<div><a href='./player.html?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
-            elements.push(element);
-        }
-        this.index += this.numElements;
-        return elements;
+    PlayerLoader.prototype.getElements = function (num_elements) {
+        return __awaiter(this, void 0, void 0, function () {
+            var endRank, response, _a, players;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        if (this.exhaustedElements)
+                            return [2, []];
+                        endRank = this.index + num_elements;
+                        if (!(this.teamId !== null)) return [3, 2];
+                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId))];
+                    case 1:
+                        _a = _b.sent();
+                        return [3, 4];
+                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank))];
+                    case 3:
+                        _a = _b.sent();
+                        _b.label = 4;
+                    case 4:
+                        response = _a;
+                        return [4, response.json()];
+                    case 5:
+                        players = _b.sent();
+                        this.exhaustedElements = (players.length != num_elements);
+                        this.index += players.length;
+                        return [2, players.map(function (f) {
+                                var element = document.createElement('li');
+                                var player = createPlayer(f);
+                                var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
+                                element.innerHTML = "<div><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
+                                return element;
+                            })];
+                }
+            });
+        });
     };
     return PlayerLoader;
 }());
@@ -197,35 +227,29 @@ function setupSelector(args) {
         });
     });
 }
-function getPlayers(rankingJson) {
-    var jsonArray = rankingJson["players"];
-    return jsonArray.map(function (f) {
-        f = f;
-        var player = {
-            name: getJsonString(f, "name"),
-            war: getJsonNumber(f, "war"),
-            id: getJsonNumber(f, "id"),
-            model: getJsonString(f, "model"),
-            team: getJsonNumber(f, "team"),
-            position: getJsonString(f, "position")
-        };
-        return player;
-    });
-}
-function setupRankings(obj, month, year, team) {
-    var players = getPlayers(obj);
-    var playerLoader = new PlayerLoader(players);
+var playerLoader;
+function setupRankings(month, year, team, num_elements) {
+    var _this = this;
+    playerLoader = new PlayerLoader(year, month, team);
     if (team === null)
         rankings_header.innerText = "Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
     else
         rankings_header.innerText = "Rankings for ".concat(org_map["parents"][team]["name"], " ").concat(MONTH_CODES[month], " ").concat(year);
-    rankings_load.addEventListener('click', function (event) {
-        var elements = playerLoader.getListElements();
-        for (var _i = 0, elements_2 = elements; _i < elements_2.length; _i++) {
-            var el = elements_2[_i];
-            rankings_list.appendChild(el);
-        }
-    });
+    rankings_load.addEventListener('click', function (event) { return __awaiter(_this, void 0, void 0, function () {
+        var elements, _i, elements_2, el;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, playerLoader.getElements(num_elements)];
+                case 1:
+                    elements = _a.sent();
+                    for (_i = 0, elements_2 = elements; _i < elements_2.length; _i++) {
+                        el = elements_2[_i];
+                        rankings_list.appendChild(el);
+                    }
+                    return [2];
+            }
+        });
+    }); });
     rankings_load.dispatchEvent(new Event('click'));
 }
 var SearchBar = (function () {
