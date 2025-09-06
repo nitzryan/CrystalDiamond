@@ -28,9 +28,9 @@ namespace SitePrep
                     var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.ModelName.Equals("P")).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     foreach (var opw in opws)
                     {
-                        var ranks = db.Ranking_Prospect.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.Model.Equals(opw.ModelName));
+                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelName.Equals(opw.ModelName));
                         if (!ranks.Any() && opw.Month == 0)
-                            ranks = db.Ranking_Prospect.Where(f => f.MlbId == opw.MlbId && f.Model.Equals(opw.ModelName))
+                            ranks = siteDb.PlayerRank.Where(f => f.MlbId == opw.MlbId && f.ModelName.Equals(opw.ModelName))
                                 .OrderBy(f => f.Year).ThenBy(f => f.Month);
 
                         siteDb.Add(new PlayerModel
@@ -38,7 +38,7 @@ namespace SitePrep
                             MlbId = player.MlbId,
                             Year = opw.Year,
                             Month = opw.Month,
-                            ModelId = 1,
+                            ModelName = opw.ModelName,
                             Probs = $"{opw.Prob0.ToString("0.000")}," +
                                     $"{opw.Prob1.ToString("0.000")}," +
                                     $"{opw.Prob2.ToString("0.000")}," +

@@ -14,7 +14,7 @@ namespace DataAquisition
 
         private static async Task<(Player?, string?)> Get_Player_Async(int id, HttpClient httpClient)
         {
-            HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
+            HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/people/{id}?hydrate=currentTeam,team,stats(group=[hitting,pitching],type=[yearByYear](team(league)),leagueListId=mlb_milb)&site=en");
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 throw new Exception($"Getting player={id}: {response.StatusCode}");
@@ -101,12 +101,18 @@ namespace DataAquisition
             int? signingMonth = null;
             try
             {
-                startYear = Convert.ToInt32(person.GetProperty("stats")
-                    .EnumerateArray().First()
-                    .GetProperty("splits")
+                int sy = 10000;
+                var statsArray = person.GetProperty("stats").EnumerateArray();
+                foreach (var sa in statsArray)
+                {
+                    int testStartYear = Convert.ToInt32(sa.GetProperty("splits")
                     .EnumerateArray().First()
                     .GetProperty("season").ToString());
+                    if (testStartYear < sy)
+                        sy = testStartYear;
+                }
 
+                startYear = sy;
                 signingMonth = 1;
             }
             catch (Exception) { }

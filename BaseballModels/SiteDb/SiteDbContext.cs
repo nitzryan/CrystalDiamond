@@ -17,7 +17,7 @@ namespace SiteDb
 			modelBuilder.Entity<Player>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.TeamId,f.LeagueId});
-			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId});
+			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelName});
 			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelName,f.Year,f.Month});
 		}
 	}

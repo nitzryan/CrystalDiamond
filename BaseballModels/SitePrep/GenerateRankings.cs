@@ -15,6 +15,7 @@ namespace SitePrep
             public required float War;
             public required int Month;
             public required int Year;
+            public required bool isHitter;
         }
 
         internal class PlayerMonthWar {
@@ -28,23 +29,7 @@ namespace SitePrep
         internal class PlayerYearPosition {
             public required int Year;
             public required string position;
-        }
-
-        private static JsonObject GetJson(PlayerMonthWar pmw, SqliteDbContext db)
-        {
-            JsonObject player = new()
-            {
-                ["war"] = Math.Round((double)pmw.War, 1),
-                ["id"] = pmw.MLbId,
-                ["model"] = pmw.ModelName,
-                ["team"] = pmw.ParentOrgId,
-                ["name"] = db.Player.Where(f => f.MlbId == pmw.MLbId)
-                                    .Select(f => f.UseFirstName + " " + f.UseLastName)
-                                    .Single(),
-                ["position"] = pmw.position
-            };
-
-            return player;
+            public required bool isHitter;
         }
 
         public static bool Main(int endYear, int endMonth)
@@ -63,28 +48,31 @@ namespace SitePrep
                     foreach (var mp in db.Model_Players)
                     {
                         List<PlayerYearPosition> pyps = new();
-                    
-                        var years = mp.IsHitter == 1 ?
-                            db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) :
-                            db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f);
+
+                        IEnumerable<int> hitterYears = mp.IsHitter == 1 ? db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) : [];
+                        IEnumerable<int> pitcherYears = mp.IsPitcher == 1 ? db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) : [];
+
                         if (mp.IsPitcher == 1)
                         {
-                            foreach (var y in years)
+                            foreach (var y in pitcherYears)
                             {
                                 pyps.Add(new PlayerYearPosition
                                 {
                                     Year = y,
-                                    position = "P"
+                                    position = "P",
+                                    isHitter = false,
                                 });
                             }
                         }
-                        else {
-                            foreach (var y in years)
+                        if (mp.IsHitter == 1)
+                        {
+                            foreach (var y in hitterYears)
                             {
                                 pyps.Add(new PlayerYearPosition
                                 {
                                     Year = y,
-                                    position = Utilities.GetPosition(db, mp.MlbId, y)
+                                    position = Utilities.GetPosition(db, mp.MlbId, y),
+                                    isHitter = true,
                                 });
                             }
                         }
@@ -103,6 +91,7 @@ namespace SitePrep
                         War = Utilities.GetWar(opwa),
                         Month = p.SigningMonth.Value,
                         Year = p.SigningYear.Value,
+                        isHitter = opwa.ModelName.Equals("H"),
                     });
 
                 // Get ordered list of values for players
@@ -112,8 +101,6 @@ namespace SitePrep
                     foreach (var pwa in initial_pwa)
                     {
                         List<PlayerWar> pw = [];
-                        if (pwa.MlbId == 656941)
-                            pw = [];
                         var opwas = db.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.ModelName.Equals(pwa.ModelName))
                             .OrderBy(f => f.Year).ThenBy(f => f.Month)
                             .Select(f => new PlayerWar
@@ -123,6 +110,7 @@ namespace SitePrep
                                 War = Utilities.GetWar(f),
                                 Month = f.Month,
                                 Year = f.Year,
+                                isHitter = pwa.ModelName.Equals("H"),
                             }
                         );
 
@@ -154,6 +142,7 @@ namespace SitePrep
                                     War = last.War,
                                     Month = mp.LastProspectMonth,
                                     Year = mp.LastProspectYear,
+                                    isHitter = pwa.ModelName.Equals("H"),
                                 });
                             }
                             else // Player is still a prospect
@@ -166,7 +155,8 @@ namespace SitePrep
                                         ModelName = last.ModelName,
                                         War = last.War,
                                         Month = endMonth,
-                                        Year = endYear
+                                        Year = endYear,
+                                        isHitter = pwa.ModelName.Equals("H"),
                                     });
                                 }
                             }
@@ -248,7 +238,7 @@ namespace SitePrep
 
                                 // Get Position
                                 string position = "";
-                                var pyps = playerYearPositions[current.MlbId];
+                                var pyps = playerYearPositions[current.MlbId].Where(f => f.isHitter == playerWarList.First().isHitter);
                                 if (!pyps.Any()) // No playing time, get stored from Mlb
                                     position = db.Site_PlayerBio.Single(f => f.Id == current.MlbId).Position;
                                 else {
@@ -287,7 +277,7 @@ namespace SitePrep
                                 MlbId = pmw.MLbId,
                                 Year = year,
                                 Month = month,
-                                ModelName = pmw.ModelName == "H" ? 0 : 1,
+                                ModelName = pmw.ModelName,
                                 Rank = r,
                                 War = pmw.War,
                                 Position = pmw.position,

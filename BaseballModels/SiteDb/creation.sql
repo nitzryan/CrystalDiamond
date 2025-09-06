@@ -57,15 +57,15 @@ CREATE TABLE "PlayerModel" (
 	"mlbId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"modelId" INTEGER NOT NULL,
+	"modelName" TEXT NOT NULL,
 	"probs" TEXT NOT NULL,
 	"rank" INTEGER,
-	PRIMARY KEY("mlbId","year","month","modelId")
+	PRIMARY KEY("mlbId","year","month","modelName")
 );
 
 CREATE TABLE "PlayerRank" (
 	"mlbId" INTEGER NOT NULL,
-	"modelName" INTEGER NOT NULL,
+	"modelName" TEXT NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"war" REAL NOT NULL,

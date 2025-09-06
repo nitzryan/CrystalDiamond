@@ -1,4 +1,6 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace DataAquisition
 {
@@ -41,8 +43,8 @@ namespace DataAquisition
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                if (!CalculateAnnualOPS.Main(year))
-                    return;
+                //if (!CalculateAnnualOPS.Main(year))
+                //    return;
 
                 //while (!await UpdateParents.Main(year))
                 //{ }
@@ -70,8 +72,8 @@ namespace DataAquisition
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
             //while (!await GetLeagues.Main())
             //{ }

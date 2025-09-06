@@ -3,7 +3,7 @@ namespace SiteDb
 	public class PlayerRank
 	{
 		public required int MlbId {get; set;}
-		public required int ModelName {get; set;}
+		public required string ModelName {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float War {get; set;}

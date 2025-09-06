@@ -327,6 +327,7 @@ async function main()
         getElementByIdStrict('pitcher_stats').classList.remove('hidden')
     }
     
+    console.log(pd)
     hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 

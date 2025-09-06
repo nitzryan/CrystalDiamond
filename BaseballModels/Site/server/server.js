@@ -54,14 +54,14 @@ app.get('/player/:id', async (req, res) => {
             {
                 promiseHitter = Promise.all([
                     dbAll("SELECT * FROM HitterStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
-                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelId=? ORDER BY YEAR ASC, Month ASC", [req.params.id, 0])
+                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "H"])
                 ]);
             }
             if (row.isPitcher == 1)
             {
                 promisePitcher = Promise.all([
                     dbAll("SELECT * FROM PitcherStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
-                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelId=? ORDER BY YEAR ASC, Month ASC", [req.params.id, 1])
+                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "P"])
                 ]);
             }
             if (row.isHitter == 1)
@@ -69,14 +69,14 @@ app.get('/player/:id', async (req, res) => {
                 const [hitStats, hitModels] = await promiseHitter
 
                 row["hit_stats"] = await hitStats;
-                row["hit_models"] = hitModels;
+                row["hit_models"] = await hitModels;
             }
             if (row.isPitcher == 1)
             {
                 const [pitStats, pitModels] = await promisePitcher
 
                 row["pit_stats"] = await pitStats;
-                row["pit_models"] = pitModels;
+                row["pit_models"] = await pitModels;
             }
 
             res.json(row)
