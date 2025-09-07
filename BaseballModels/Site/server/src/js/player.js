@@ -150,7 +150,7 @@ function piePointGenerator(model) {
 }
 function lineCallback(index) {
     var model;
-    if (line_graph.getModelIsHitter()) {
+    if (line_graph.graphIsHitter()) {
         model = hitterModels[index];
     }
     else {
@@ -167,6 +167,69 @@ function lineCallback(index) {
     else {
         throw new Error("Model was not set for hitter or pitcher");
     }
+}
+function getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks) {
+    var datasets = [];
+    if (hitter_war.length > 0)
+        datasets.push({
+            points: hitter_war,
+            title: 'Hitter WAR',
+            isLog: false,
+            isHitter: true
+        });
+    if (hitter_ranks.length > 0)
+        datasets.push({
+            points: hitter_ranks,
+            title: "Rank",
+            isLog: true,
+            isHitter: true
+        });
+    if (pitcher_war.length > 0)
+        datasets.push({
+            points: pitcher_war,
+            title: 'Pitcher WAR',
+            isLog: false,
+            isHitter: false
+        });
+    if (pitcher_ranks.length > 0)
+        datasets.push({
+            points: pitcher_ranks,
+            title: "Rank",
+            isLog: true,
+            isHitter: false
+        });
+    return datasets;
+}
+function setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks) {
+    var graph_selector = getElementByIdStrict('graph_selector');
+    if (hitter_war.length > 0) {
+        var opt = document.createElement('option');
+        opt.text = "Hitter WAR";
+        opt.value = graph_selector.children.length.toString();
+        graph_selector.appendChild(opt);
+    }
+    if (hitter_ranks.length > 0) {
+        var opt = document.createElement('option');
+        opt.text = "Hitter Rank";
+        opt.value = graph_selector.children.length.toString();
+        graph_selector.appendChild(opt);
+    }
+    if (pitcher_war.length > 0) {
+        var opt = document.createElement('option');
+        opt.text = "Pitcher WAR";
+        opt.value = graph_selector.children.length.toString();
+        graph_selector.appendChild(opt);
+    }
+    if (pitcher_ranks.length > 0) {
+        var opt = document.createElement('option');
+        opt.text = "Pitcher Rank";
+        opt.value = graph_selector.children.length.toString();
+        graph_selector.appendChild(opt);
+    }
+    graph_selector.value = "0";
+    graph_selector.addEventListener('change', function () {
+        line_graph.setDataset(parseInt(graph_selector.value));
+    });
 }
 function setupModel(hitterModels, pitcherModels) {
     var war_map = function (f) {
@@ -194,7 +257,9 @@ function setupModel(hitterModels, pitcherModels) {
         pitcher_ranks = pitcherModels.map(rank_map);
     }
     catch (e) { }
-    line_graph = new LineGraph(model_graph, hitter_war, hitter_ranks, pitcher_war, pitcher_ranks, lineCallback);
+    var datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
+    line_graph = new LineGraph(model_graph, datasets, lineCallback);
+    setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
     var pie_points = person.isHitter ?
         piePointGenerator(hitterModels[hitterModels.length - 1]) :
         piePointGenerator(pitcherModels[pitcherModels.length - 1]);
@@ -225,7 +290,6 @@ function main() {
                 case 2: return [4, (_b.sent()).json()];
                 case 3:
                     pd = _b.sent();
-                    console.log(pd);
                     person = getPerson(pd);
                     hitterStats = person.isHitter ? getHitterStats(pd) : [];
                     pitcherStats = person.isPitcher ? getPitcherStats(pd) : [];
@@ -319,10 +383,14 @@ var KeyControls = (function () {
     function KeyControls(document, callback) {
         this.callback = callback;
         document.addEventListener('keydown', function (event) {
-            if (event.key === "ArrowLeft")
+            if (event.key === "ArrowLeft") {
                 callback(-1);
-            else if (event.key === "ArrowRight")
+                event.preventDefault();
+            }
+            else if (event.key === "ArrowRight") {
                 callback(1);
+                event.preventDefault();
+            }
         });
     }
     return KeyControls;
@@ -516,63 +584,84 @@ var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;
 var LineGraph = (function () {
-    function LineGraph(element, hitterPoints, hitterRanks, pitcherPoints, pitcherRanks, callback, colorscale) {
+    function LineGraph(element, datasets, callback, colorscale) {
         if (colorscale === void 0) { colorscale = null; }
         var _this = this;
-        this.hitterPoints = hitterPoints;
-        this.pitcherPoints = pitcherPoints;
-        this.hitterRanks = hitterRanks;
-        this.pitcherRanks = pitcherRanks;
-        this.isHitterMode = this.hitterPoints.length > 0;
+        this.datasets = datasets;
+        this.datasetIdx = 0;
         this.callback = callback;
-        this.currentIdx = 0;
-        if (colorscale !== null)
-            this.colorscale = colorscale;
-        else
-            this.colorscale = [
-                '#d43d51',
-                '#df797d',
-                '#e2acab',
-                '#dddddd',
-                '#a1c0b6',
-                '#63a490',
-                '#00876c'
-            ];
-        var max_war = Math.max(hitterPoints.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0), pitcherPoints.map(function (f) { return f.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0));
-        this.points = this.isHitterMode ? hitterPoints : pitcherPoints;
-        var ranks = this.isHitterMode ? hitterRanks : pitcherRanks;
-        this.warDataset = {
-            label: 'WAR',
-            data: this.points.map(function (f) { return f.y; }),
-            pointRadius: new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
-            yAxisID: 'y',
-        };
-        if (ranks.length > 0) {
-            this.rankingDataset = {
-                label: 'Ranking',
-                data: ranks.map(function (f) { return f.y; }),
-                pointRadius: new Array(this.points.length).fill(POINT_DEFAULT_SIZE),
-                yAxisID: 'y1',
-                hidden: true,
+        this.pointIdx = 0;
+        this.points = this.datasets[0].points;
+        this.graphObjs = datasets.map(function (f) {
+            var go = {
+                dataset: {
+                    label: f.title,
+                    data: f.points.map(function (f) { return f.y; }),
+                    pointRadius: new Array(f.points.length).fill(POINT_DEFAULT_SIZE),
+                },
+                yscale: {}
             };
-        }
-        else {
-            this.rankingDataset = null;
-        }
-        var datasets = [this.warDataset];
-        if (this.rankingDataset !== null)
-            datasets.push(this.rankingDataset);
+            if (f.isLog) {
+                go.yscale = {
+                    type: 'logarithmic',
+                    reverse: true,
+                    min: 0.1,
+                    max: 20000,
+                    title: {
+                        display: true,
+                        text: 'Prospect Ranking'
+                    },
+                    grid: {
+                        color: css.background_low
+                    },
+                    ticks: {
+                        callback: function (value, index, ticks) {
+                            if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
+                                return value.toLocaleString();
+                            return null;
+                        }
+                    }
+                };
+            }
+            else {
+                go.yscale = {
+                    min: 0,
+                    max: Math.max(16, f.points.map(function (g) { return g.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0) + 2),
+                    grid: {
+                        color: css.background_low
+                    },
+                    title: {
+                        display: true,
+                        text: 'Expected WAR Through Control'
+                    },
+                    position: 'left',
+                    ticks: {
+                        callback: function (value, index, ticks) {
+                            if (value % 2 === 0)
+                                return value.toLocaleString();
+                            return null;
+                        }
+                    }
+                };
+            }
+            return go;
+        });
         this.chart = new Chart(element, {
             type: 'line',
             data: {
                 labels: this.points.map(function (f) { return f.label; }),
-                datasets: datasets,
+                datasets: [this.graphObjs[0].dataset],
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
                     duration: 0,
+                },
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
                 },
                 onClick: function (e, elements) {
                     var points = _this.chart.getElementsAtEventForMode(e, 'nearest', { intesect: false, axis: 'x' }, true);
@@ -584,47 +673,7 @@ var LineGraph = (function () {
                     }
                 },
                 scales: {
-                    y: {
-                        min: 0,
-                        max: Math.max(16, max_war + 1),
-                        grid: {
-                            color: css.background_low
-                        },
-                        title: {
-                            display: true,
-                            text: 'Expected WAR Through Control'
-                        },
-                        position: 'left',
-                        ticks: {
-                            callback: function (value, index, ticks) {
-                                if (value % 2 === 0)
-                                    return value.toLocaleString();
-                                return null;
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'logarithmic',
-                        display: this.rankingDataset !== null,
-                        position: 'right',
-                        reverse: true,
-                        min: 1,
-                        max: 20000,
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Prospect Ranking'
-                        },
-                        ticks: {
-                            callback: function (value, index, ticks) {
-                                if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
-                                    return value.toLocaleString();
-                                return null;
-                            }
-                        }
-                    },
+                    y: this.graphObjs[0].yscale,
                     x: {
                         grid: {
                             color: css.background_low
@@ -637,22 +686,31 @@ var LineGraph = (function () {
             this.highlight_index(this.points.length - 1);
     }
     LineGraph.prototype.highlight_index = function (index) {
-        this.currentIdx = index;
+        this.pointIdx = index;
         var pointRadius = new Array(this.points.length).fill(POINT_DEFAULT_SIZE);
         pointRadius[index] = POINT_HIGHLIGHT_SIZE;
         this.chart.data.datasets[0].pointRadius = pointRadius;
-        this.chart.data.datasets[1].pointRadius = pointRadius;
         this.chart.update();
     };
     LineGraph.prototype.increment_index = function (x_inc) {
-        if ((x_inc === -1 && this.currentIdx > 0) || (x_inc === 1 && this.currentIdx < this.points.length - 1)) {
-            this.currentIdx += x_inc;
-            this.highlight_index(this.currentIdx);
-            this.callback(this.currentIdx);
+        if ((x_inc === -1 && this.pointIdx > 0) || (x_inc === 1 && this.pointIdx < this.points.length - 1)) {
+            this.pointIdx += x_inc;
+            this.highlight_index(this.pointIdx);
+            this.callback(this.pointIdx);
         }
     };
-    LineGraph.prototype.getModelIsHitter = function () {
-        return this.isHitterMode;
+    LineGraph.prototype.graphIsHitter = function () {
+        return this.datasets[this.datasetIdx].isHitter;
+    };
+    LineGraph.prototype.setDataset = function (idx) {
+        this.datasetIdx = idx;
+        this.points = this.datasets[this.datasetIdx].points;
+        this.chart.data.datasets[0] = this.graphObjs[this.datasetIdx].dataset;
+        this.chart.data.labels = this.points.map(function (f) { return f.label; });
+        this.chart.options.scales.y = this.graphObjs[this.datasetIdx].yscale;
+        this.chart.update();
+        if (this.points.length > 0)
+            this.highlight_index(this.points.length - 1);
     };
     return LineGraph;
 }());

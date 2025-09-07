@@ -318,10 +318,14 @@ var KeyControls = (function () {
     function KeyControls(document, callback) {
         this.callback = callback;
         document.addEventListener('keydown', function (event) {
-            if (event.key === "ArrowLeft")
+            if (event.key === "ArrowLeft") {
                 callback(-1);
-            else if (event.key === "ArrowRight")
+                event.preventDefault();
+            }
+            else if (event.key === "ArrowRight") {
                 callback(1);
+                event.preventDefault();
+            }
         });
     }
     return KeyControls;

@@ -8,9 +8,15 @@ class KeyControls
 
         document.addEventListener('keydown', (event) => {
             if (event.key === "ArrowLeft")
+            {
                 callback(-1)
+                event.preventDefault();
+            }
             else if (event.key === "ArrowRight")
+            {
                 callback(1)
+                event.preventDefault();
+            }
         })
     }
 }

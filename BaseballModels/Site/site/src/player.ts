@@ -229,7 +229,7 @@ function piePointGenerator(model : Model) : Point[]
 function lineCallback(index : number)
 {
     let model : Model
-    if (line_graph.getModelIsHitter())
+    if (line_graph.graphIsHitter())
     {
         model = hitterModels[index]
     } else
@@ -249,6 +249,85 @@ function lineCallback(index : number)
     } else {
         throw new Error("Model was not set for hitter or pitcher")
     }
+}
+
+function getDatasets(hitter_war : Point[], hitter_ranks : Point[], pitcher_war : Point[], pitcher_ranks : Point[]) : GraphDataset[]
+{
+    let datasets : GraphDataset[] = []
+    if (hitter_war.length > 0)
+        datasets.push({
+            points: hitter_war,
+            title: 'Hitter WAR',
+            isLog: false,
+            isHitter : true
+        })
+    if (hitter_ranks.length > 0)
+        datasets.push({
+            points: hitter_ranks,
+            title: "Rank",
+            isLog: true,
+            isHitter: true
+        })
+    if (pitcher_war.length > 0)
+        datasets.push({
+            points: pitcher_war,
+            title: 'Pitcher WAR',
+            isLog: false,
+            isHitter : false
+        })
+    if (pitcher_ranks.length > 0)
+        datasets.push({
+            points: pitcher_ranks,
+            title: "Rank",
+            isLog: true,
+            isHitter: false
+        })
+
+    return datasets
+}
+
+function setupSelector(hitter_war : Point[], hitter_ranks : Point[], pitcher_war : Point[], pitcher_ranks : Point[])
+{
+    let graph_selector = getElementByIdStrict('graph_selector') as HTMLSelectElement
+
+    if (hitter_war.length > 0)
+    {
+        let opt = document.createElement('option') as HTMLOptionElement
+        opt.text = "Hitter WAR"
+        opt.value = graph_selector.children.length.toString()
+
+        graph_selector.appendChild(opt)
+    }
+    if (hitter_ranks.length > 0)
+    {
+        let opt = document.createElement('option') as HTMLOptionElement
+        opt.text = "Hitter Rank"
+        opt.value = graph_selector.children.length.toString()
+
+        graph_selector.appendChild(opt)
+    }
+    if (pitcher_war.length > 0)
+    {
+        let opt = document.createElement('option') as HTMLOptionElement
+        opt.text = "Pitcher WAR"
+        opt.value = graph_selector.children.length.toString()
+
+        graph_selector.appendChild(opt)
+    }
+    if (pitcher_ranks.length > 0)
+    {
+        let opt = document.createElement('option') as HTMLOptionElement
+        opt.text = "Pitcher Rank"
+        opt.value = graph_selector.children.length.toString()
+
+        graph_selector.appendChild(opt)
+    }
+
+    graph_selector.value = "0"
+
+    graph_selector.addEventListener('change', () => {
+        line_graph.setDataset(parseInt(graph_selector.value))
+    })
 }
 
 function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
@@ -282,8 +361,9 @@ function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
         pitcher_ranks = pitcherModels.map(rank_map)
     } catch (e) {}
 
-    line_graph = new LineGraph(model_graph, hitter_war, hitter_ranks, pitcher_war, pitcher_ranks, lineCallback)
-
+    const datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks)
+    line_graph = new LineGraph(model_graph, datasets, lineCallback)
+    setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks)
 
     const pie_points = person.isHitter ? 
         piePointGenerator(hitterModels[hitterModels.length - 1]) :
@@ -311,7 +391,6 @@ async function main()
     org_map = await retrieveJson("../../assets/map.json.gz")
 
     const pd = await (await player_data).json() as JsonObject
-    console.log(pd)
     person = getPerson(pd)
 
     let hitterStats = person.isHitter ? getHitterStats(pd) : []
