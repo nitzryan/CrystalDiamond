@@ -9,7 +9,6 @@ namespace SiteDb
 		public required float War {get; set;}
 		public required int TeamId {get; set;}
 		public required string Position {get; set;}
-		public required string Name {get; set;}
 		public required int Rank {get; set;}
 		public required int TeamRank {get; set;}
 
@@ -24,7 +23,6 @@ namespace SiteDb
 				War = this.War,
 				TeamId = this.TeamId,
 				Position = this.Position,
-				Name = this.Name,
 				Rank = this.Rank,
 				TeamRank = this.TeamRank,
 				

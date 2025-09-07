@@ -225,6 +225,7 @@ function main() {
                 case 2: return [4, (_b.sent()).json()];
                 case 3:
                     pd = _b.sent();
+                    console.log(pd);
                     person = getPerson(pd);
                     hitterStats = person.isHitter ? getHitterStats(pd) : [];
                     pitcherStats = person.isPitcher ? getPitcherStats(pd) : [];
@@ -236,7 +237,6 @@ function main() {
                         updatePitcherStats(pitcherStats);
                         getElementByIdStrict('pitcher_stats').classList.remove('hidden');
                     }
-                    console.log(pd);
                     hitterModels = person.isHitter ? getModels(pd, "hit_models") : [];
                     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : [];
                     setupModel(hitterModels, pitcherModels);

@@ -25,11 +25,11 @@
             if (!PitcherPage.Main())
                 return;
 
-            //if (!OrgMap.Main())
-            //    return;
+            if (!OrgMap.Main())
+                return;
 
-            //if (!SearchIndex.Main())
-            //    return;
+            if (!SearchIndex.Main())
+                return;
         }
     }
 }

@@ -85,6 +85,7 @@ function main() {
                         window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth);
                     });
                     getElementByIdStrict('nav_rankings').classList.add('selected');
+                    document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Rankings");
                     return [2];
             }
         });
@@ -104,13 +105,28 @@ var endYear = 0;
 var endMonth = 0;
 function createPlayer(obj) {
     var p = {
-        name: getJsonString(obj, "name"),
+        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
         war: getJsonNumber(obj, "war"),
         id: getJsonNumber(obj, "mlbId"),
         team: getJsonNumber(obj, "teamId"),
-        position: getJsonString(obj, "position")
+        position: getJsonString(obj, "position"),
+        birthYear: getJsonNumber(obj, "birthYear"),
+        birthMonth: getJsonNumber(obj, "birthMonth"),
     };
     return p;
+}
+function createPlayerElement(player, year, month) {
+    var el = document.createElement('li');
+    var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
+    var ageInYears = year - player.birthYear;
+    if (month < player.birthMonth)
+        ageInYears--;
+    el.innerHTML =
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>Level</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(player.war.toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+    return el;
+    var element = document.createElement('li');
+    element.innerHTML = "<div><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
+    return element;
 }
 var PlayerLoader = (function () {
     function PlayerLoader(year, month, teamId) {
@@ -124,6 +140,7 @@ var PlayerLoader = (function () {
     PlayerLoader.prototype.getElements = function (num_elements) {
         return __awaiter(this, void 0, void 0, function () {
             var endRank, response, _a, players;
+            var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -147,11 +164,7 @@ var PlayerLoader = (function () {
                         this.exhaustedElements = (players.length != num_elements);
                         this.index += players.length;
                         return [2, players.map(function (f) {
-                                var element = document.createElement('li');
-                                var player = createPlayer(f);
-                                var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
-                                element.innerHTML = "<div><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
-                                return element;
+                                return createPlayerElement(createPlayer(f), _this.year, _this.month);
                             })];
                 }
             });

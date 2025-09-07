@@ -1,20 +1,31 @@
 @import url("main.css");
 
 #rankings_list {
-    border: 1px solid cyan;
+    font-size: 1.5em;
+    align-items: center;
 }
 
-#rankings_list li div a {
-    color: var(--text-high);
-    font-weight: bold;
+.rankings_item {
+    display: flex;
+    flex-direction: column;
+    width: 30em;
+    margin-top: 1em;
 }
 
-#rankings_list li div{
+.rankings_row {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
 
-.war {
-    padding-right: 2em;
+.rankings_rightrow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 12em;
+}
+
+.rankings_item a {
+    color: var(--text-high);
+    font-weight: bold;
 }

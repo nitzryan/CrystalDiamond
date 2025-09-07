@@ -71,7 +71,6 @@ CREATE TABLE "PlayerRank" (
 	"war" REAL NOT NULL,
 	"teamId" INTEGER NOT NULL,
 	"position" TEXT NOT NULL,
-	"name" TEXT NOT NULL,
 	"rank" INTEGER NOT NULL,
 	"teamRank" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId", "year", "month", "modelName")

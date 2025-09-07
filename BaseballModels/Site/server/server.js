@@ -101,11 +101,23 @@ app.get('/rankingsRequest', (req, res) => {
 
         if (teamId !== undefined)
         {
-            db.all("SELECT * FROM PlayerRank WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? ORDER BY teamRank ASC", [year,month,teamId,startRank,endRank], (err, rows) => {
+            db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
+                FROM PlayerRank as pr
+                INNER JOIN Player as p on pr.mlbId=p.mlbId
+                WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? 
+                ORDER BY teamRank ASC`, 
+            [year,month,teamId,startRank,endRank], (err, rows) => {
+            
                 res.json(rows)
             })
         } else {
-            db.all("SELECT * FROM PlayerRank WHERE year=? AND month=? AND rank>=? AND rank<=? ORDER BY rank ASC", [year,month,startRank,endRank], (err, rows) => {
+            db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
+                FROM PlayerRank as pr
+                INNER JOIN Player as p on pr.mlbId=p.mlbId 
+                WHERE year=? AND month=? AND rank>=? AND rank<=? 
+                ORDER BY rank ASC`, 
+            [year,month,startRank,endRank], (err, rows) => {
+
                 res.json(rows)
             })
         }

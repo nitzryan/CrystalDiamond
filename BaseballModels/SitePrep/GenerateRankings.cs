@@ -271,7 +271,6 @@ namespace SitePrep
                         foreach (var pmw in pmwList)
                         {
                             int r = rank;
-                            var player = db.Player.Where(f => f.MlbId == pmw.MLbId).Single();
                             ranks.Add(new PlayerRank
                             {
                                 MlbId = pmw.MLbId,
@@ -281,7 +280,6 @@ namespace SitePrep
                                 Rank = r,
                                 War = pmw.War,
                                 Position = pmw.position,
-                                Name = player.UseFirstName + " " + player.UseLastName,
                                 TeamId = pmw.ParentOrgId,
                                 TeamRank = -1
                             });

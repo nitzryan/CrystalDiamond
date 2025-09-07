@@ -17,18 +17,57 @@ type Player = {
     id : number,
     team : number,
     position : string,
+    birthYear : number,
+    birthMonth : number,
 }
 
 function createPlayer(obj : JsonObject)
 {
     const p : Player = {
-        name : getJsonString(obj, "name"),
+        name : getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
         war : getJsonNumber(obj, "war"),
         id : getJsonNumber(obj, "mlbId"),
         team : getJsonNumber(obj, "teamId"),
-        position : getJsonString(obj, "position")
+        position : getJsonString(obj, "position"),
+        birthYear : getJsonNumber(obj, "birthYear"),
+        birthMonth : getJsonNumber(obj, "birthMonth"),
     }
     return p
+}
+
+function createPlayerElement(player : Player, year : number, month : number) : HTMLLIElement
+{
+    const el = document.createElement('li') as HTMLLIElement
+    const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
+    let ageInYears = year - player.birthYear
+    if (month < player.birthMonth)
+        ageInYears--
+
+    el.innerHTML = 
+        `
+        <div class='rankings_item'>
+            <div class='rankings_row'>
+                <div class='rankings_name'><a href='./player?id=${player.id}'>${player.name}</a></div>
+                <div class='rankings_rightrow'>
+                    <div><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></div>
+                    <div>Level</div>
+                </div>
+            </div>
+            <div class='rankings_row'>
+                <div>${player.war.toFixed(1)} WAR</div>
+                <div class='rankings_rightrow'>
+                    <div>${player.position}</div>
+                    <div>${ageInYears}yrs</div>
+                </div>
+            </div>
+        </div>
+        `
+
+    return el
+
+    let element = document.createElement('li') as HTMLLIElement
+    element.innerHTML = `<div><a href='./player?id=${player.id}'>${player.name}</a><div>${player.position}</div><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
+    return element
 }
 
 class PlayerLoader
@@ -63,11 +102,8 @@ class PlayerLoader
         this.index += players.length
 
         return players.map(f => {
-            let element = document.createElement('li') as HTMLLIElement
-            const player = createPlayer(f as JsonObject)
-            const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
-            element.innerHTML = `<div><a href='./player?id=${player.id}'>${player.name}</a><div>${player.position}</div><div><div class='war'>${player.war.toFixed(1)} WAR</div><div class='team${player.team}'>${teamAbbr}</span></div></div>`
-            return element
+            return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month)
+            
         })
     }
 }

@@ -43,6 +43,8 @@ async function main()
     })
 
     getElementByIdStrict('nav_rankings').classList.add('selected')
+    
+    document.title = `${MONTH_CODES[month]} ${year} Rankings`
 }
 
 main()

@@ -311,6 +311,7 @@ async function main()
     org_map = await retrieveJson("../../assets/map.json.gz")
 
     const pd = await (await player_data).json() as JsonObject
+    console.log(pd)
     person = getPerson(pd)
 
     let hitterStats = person.isHitter ? getHitterStats(pd) : []
@@ -327,7 +328,6 @@ async function main()
         getElementByIdStrict('pitcher_stats').classList.remove('hidden')
     }
     
-    console.log(pd)
     hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 

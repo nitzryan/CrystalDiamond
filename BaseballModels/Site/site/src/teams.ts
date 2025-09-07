@@ -48,6 +48,8 @@ async function main()
     })
 
     getElementByIdStrict('nav_teams').classList.add('selected')
+
+    document.title = `${getParentAbbr(teamId)} ${MONTH_CODES[month]} ${year} Rankings`
 }
 
 main()
