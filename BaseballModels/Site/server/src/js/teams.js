@@ -117,6 +117,7 @@ function createPlayer(obj) {
         position: getJsonString(obj, "position"),
         birthYear: getJsonNumber(obj, "birthYear"),
         birthMonth: getJsonNumber(obj, "birthMonth"),
+        level: getJsonNumber(obj, "highestLevel"),
     };
     return p;
 }
@@ -127,7 +128,7 @@ function createPlayerElement(player, year, month) {
     if (month < player.birthMonth)
         ageInYears--;
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>Level</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(player.war.toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(player.war.toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
     var element = document.createElement('li');
     element.innerHTML = "<div><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
@@ -509,5 +510,5 @@ function getOrdinalNumber(num) {
     return num + "th";
 }
 var org_map = null;
-var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL" };
+var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];

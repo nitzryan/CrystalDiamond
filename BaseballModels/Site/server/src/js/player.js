@@ -511,7 +511,7 @@ function getOrdinalNumber(num) {
     return num + "th";
 }
 var org_map = null;
-var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL" };
+var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;

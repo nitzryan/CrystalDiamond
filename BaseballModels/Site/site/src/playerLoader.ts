@@ -19,6 +19,7 @@ type Player = {
     position : string,
     birthYear : number,
     birthMonth : number,
+    level : number,
 }
 
 function createPlayer(obj : JsonObject)
@@ -31,6 +32,7 @@ function createPlayer(obj : JsonObject)
         position : getJsonString(obj, "position"),
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
+        level : getJsonNumber(obj, "highestLevel"),
     }
     return p
 }
@@ -50,7 +52,7 @@ function createPlayerElement(player : Player, year : number, month : number) : H
                 <div class='rankings_name'><a href='./player?id=${player.id}'>${player.name}</a></div>
                 <div class='rankings_rightrow'>
                     <div><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></div>
-                    <div>Level</div>
+                    <div>${level_map[player.level]}</div>
                 </div>
             </div>
             <div class='rankings_row'>

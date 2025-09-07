@@ -24,6 +24,7 @@ namespace SitePrep
             public required string position;
             public required float War;
             public required int ParentOrgId;
+            public required int HighestLevel;
         }
 
         internal class PlayerYearPosition {
@@ -250,6 +251,21 @@ namespace SitePrep
                                         position = pyps.OrderBy(f => f.Year).First().position; // Get next value (slight future bias)
                                 }
 
+                                // Get highest level player has reached this far
+                                int highestLevel = 20;
+                                if (playerWarList.First().isHitter)
+                                {
+                                    var hitterLevels = db.Player_Hitter_MonthStats.Where(f => f.MlbId == current.MlbId && (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
+                                    if (hitterLevels.Any())
+                                        highestLevel = hitterLevels.First();
+                                }
+                                else {
+                                    var pitcherLevels = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == current.MlbId && (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
+                                    if (pitcherLevels.Any())
+                                        highestLevel = pitcherLevels.First();
+                                }
+
+
                                 pmwList.Add(new PlayerMonthWar
                                 {
                                     MLbId = current.MlbId,
@@ -257,7 +273,8 @@ namespace SitePrep
                                     War = current.War,
                                     ParentOrgId = poms.Any() ? poms // Few players only played on VSL teams that were multiple teams (no parent)
                                         .First().ParentOrgId : 0,
-                                    position = position
+                                    position = position,
+                                    HighestLevel = highestLevel,
                                 });
                             }
                         }
@@ -281,7 +298,8 @@ namespace SitePrep
                                 War = pmw.War,
                                 Position = pmw.position,
                                 TeamId = pmw.ParentOrgId,
-                                TeamRank = -1
+                                TeamRank = -1,
+                                HighestLevel = pmw.HighestLevel,
                             });
                             rank++;
                         }

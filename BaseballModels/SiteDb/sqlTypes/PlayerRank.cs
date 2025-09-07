@@ -11,6 +11,7 @@ namespace SiteDb
 		public required string Position {get; set;}
 		public required int Rank {get; set;}
 		public required int TeamRank {get; set;}
+		public required int HighestLevel {get; set;}
 
 		public PlayerRank Clone()
 		{
@@ -25,6 +26,7 @@ namespace SiteDb
 				Position = this.Position,
 				Rank = this.Rank,
 				TeamRank = this.TeamRank,
+				HighestLevel = this.HighestLevel,
 				
 			};
 		}

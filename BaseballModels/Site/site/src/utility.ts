@@ -209,5 +209,5 @@ function getOrdinalNumber(num : number) : string
 }
 
 var org_map : JsonObject | null = null
-const level_map : JsonObject = {1:"MLB",11:"AAA",12:"AA",13:"A+",14:"A",15:"A-",16:"Rk",17:"DSL"}
+const level_map : JsonObject = {1:"MLB",11:"AAA",12:"AA",13:"A+",14:"A",15:"A-",16:"Rk",17:"DSL",20:""}
 const MONTH_CODES : string[] = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"]

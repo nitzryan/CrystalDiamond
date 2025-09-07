@@ -13,8 +13,8 @@
             //if (!ModelAggregation.Main())
             //    return;
 
-            //if (!GenerateRankings.Main(year, month))
-            //    return;
+            if (!GenerateRankings.Main(year, month))
+                return;
 
             //if (!ClearPlayers.Main())
             //    return;
