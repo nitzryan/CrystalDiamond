@@ -446,6 +446,7 @@ CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"KPerc"	REAL NOT NULL,
 	"BBPerc"	REAL NOT NULL,
 	"HRPerc"	REAL NOT NULL,
+	"HR" INTEGER NOT NULL,
 	"wOBA"	REAL NOT NULL,
 	PRIMARY KEY("leagueId","teamId","month","year","levelId","mlbId")
 );

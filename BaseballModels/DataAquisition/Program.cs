@@ -1,8 +1,4 @@
-﻿using Db;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-
-namespace DataAquisition
+﻿namespace DataAquisition
 {
     internal class Program
     {
@@ -10,10 +6,10 @@ namespace DataAquisition
         const int END_YEAR = 2024;
         static async Task Main(string[] args)
         {
-            //List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR+1)];
-            //List<int> months = [4, 5, 6, 7, 8, 9];
-            List<int> years = [2025];
-            List<int> months = [4, 5, 6, 7, 8];
+            List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
+            List<int> months = [4, 5, 6, 7, 8, 9];
+            //List<int> years = [2025];
+            //List<int> months = [4, 5, 6, 7, 8];
             foreach (int year in years)
             {
                 //while (!await DraftResults.Main(year))
@@ -33,8 +29,8 @@ namespace DataAquisition
                     //if (!CalculateLevelStats.Main(year, month))
                     //    return;
 
-                    //if (!CalculateMonthStats.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;

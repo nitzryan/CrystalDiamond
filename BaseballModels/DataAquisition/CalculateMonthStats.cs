@@ -1,8 +1,5 @@
 ﻿using Db;
-using Microsoft.EntityFrameworkCore.Storage;
 using ShellProgressBar;
-using System.Net;
-using System.Runtime.CompilerServices;
 
 namespace DataAquisition
 {

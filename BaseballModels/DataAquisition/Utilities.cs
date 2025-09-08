@@ -128,7 +128,8 @@ namespace DataAquisition
                 KPerc = stats.BattersFaced > 0 ? (float)stats.K / stats.BattersFaced : 0,
                 ERA = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f,
                 FIP = stats.Outs > 0 ? (float)((13 * stats.HR) + 3 * (stats.BB + stats.HBP) - (2 * stats.K)) * 3 / stats.Outs + fipConstant : 99.0f,
-                GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f
+                GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
+                HR = stats.HR,
             };
             return ma;
         }

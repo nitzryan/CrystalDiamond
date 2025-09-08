@@ -16,6 +16,7 @@ namespace Db
 		public required float KPerc {get; set;}
 		public required float BBPerc {get; set;}
 		public required float HRPerc {get; set;}
+		public required int HR {get; set;}
 		public required float WOBA {get; set;}
 
 		public Player_Pitcher_MonthAdvanced Clone()
@@ -36,6 +37,7 @@ namespace Db
 				KPerc = this.KPerc,
 				BBPerc = this.BBPerc,
 				HRPerc = this.HRPerc,
+				HR = this.HR,
 				WOBA = this.WOBA,
 				
 			};
