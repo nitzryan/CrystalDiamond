@@ -43,7 +43,8 @@
 #colorbar {
     background-color: var(--color-med);
     width: 100%;
-    height: 1em;
+    height: 3em;
+    margin-bottom: 1em;
 }
 
 #navbar a {

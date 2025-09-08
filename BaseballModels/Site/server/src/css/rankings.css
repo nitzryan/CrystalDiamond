@@ -82,6 +82,23 @@ a {
     text-align: right;
 }
 
+select {
+    background-color: var(--background-high);
+    color: var(--text-high);
+    border-color: var(--text-high);
+}
+
+button {
+    background-color: var(--color-med);
+    font-size: 1em;
+    color: var(--text-high);
+    border: 1px solid var(--text-high);
+}
+
+button:hover {
+    background-color: var(--text-high);
+    color: var(--background-high);
+}
 
 #searchResults {
     max-height: 10em;
@@ -126,7 +143,8 @@ a {
 #colorbar {
     background-color: var(--color-med);
     width: 100%;
-    height: 1em;
+    height: 3em;
+    margin-bottom: 1em;
 }
 
 #navbar a {
@@ -152,9 +170,29 @@ a {
     background-color: var(--background-low);
 }
 
+#rankings_main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 #rankings_list {
     font-size: 1.5em;
     align-items: center;
+}
+
+#rankings_header {
+    margin-top: 0.5em;
+    font-size: 1.5em;
+    text-align: center;
+}
+
+#rankings_selector {
+    gap: 2em;
+}
+
+#rankings_selector * {
+    font-size: 1.25em;
 }
 
 .rankings_item {

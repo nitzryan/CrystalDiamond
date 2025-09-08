@@ -1,4 +1,4 @@
-const rankings_selector = getElementByIdStrict('ranking_selector')
+const rankings_selector = getElementByIdStrict('rankings_selector')
 const year_select = getElementByIdStrict('year_select') as HTMLSelectElement
 const month_select = getElementByIdStrict('month_select') as HTMLSelectElement
 const team_select = document.getElementById('team_select') as HTMLSelectElement | null

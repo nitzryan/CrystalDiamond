@@ -92,7 +92,7 @@ function main() {
     });
 }
 main();
-var rankings_selector = getElementByIdStrict('ranking_selector');
+var rankings_selector = getElementByIdStrict('rankings_selector');
 var year_select = getElementByIdStrict('year_select');
 var month_select = getElementByIdStrict('month_select');
 var team_select = document.getElementById('team_select');

@@ -81,3 +81,21 @@ a {
 .align_right {
     text-align: right;
 }
+
+select {
+    background-color: var(--background-high);
+    color: var(--text-high);
+    border-color: var(--text-high);
+}
+
+button {
+    background-color: var(--color-med);
+    font-size: 1em;
+    color: var(--text-high);
+    border: 1px solid var(--text-high);
+}
+
+button:hover {
+    background-color: var(--text-high);
+    color: var(--background-high);
+}
