@@ -32,7 +32,10 @@ namespace DataAquisition
                 BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
                 KPerc = pa > 0 ? (float)stats.K / pa : 0,
                 SBRate = pa > 0 ? (float)stats.SB / pa : 0,
-                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0
+                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0,
+                SB = stats.SB,
+                CS = stats.CS,
+                HR = stats.HR,
             };
 
             return ma;
@@ -66,7 +69,10 @@ namespace DataAquisition
                 BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
                 KPerc = pa > 0 ? (float)stats.K / pa : 0,
                 SBRate = pa > 0 ? (float)stats.SB / pa : 0,
-                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0
+                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0,
+                SB = stats.SB,
+                CS = stats.CS,
+                HR = stats.HR,
             };
 
             return ma;

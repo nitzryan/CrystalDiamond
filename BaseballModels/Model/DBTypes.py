@@ -480,10 +480,13 @@ class DB_Player_Hitter_MonthAdvanced:
 		self.KPerc = values[15]
 		self.SBRate = values[16]
 		self.SBPerc = values[17]
+		self.SB = values[18]
+		self.CS = values[19]
+		self.HR = values[20]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc)
+		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc,self.SB,self.CS,self.HR)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_MonthAdvanced']:

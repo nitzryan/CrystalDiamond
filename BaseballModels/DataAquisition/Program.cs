@@ -7,12 +7,12 @@ namespace DataAquisition
     internal class Program
     {
         const int START_YEAR = 2005;
-        const int END_YEAR = 2025;
+        const int END_YEAR = 2024;
         static async Task Main(string[] args)
         {
-            List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR+1)];
+            //List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR+1)];
             //List<int> months = [4, 5, 6, 7, 8, 9];
-            //List<int> years = [2025];
+            List<int> years = [2025];
             List<int> months = [4, 5, 6, 7, 8];
             foreach (int year in years)
             {
@@ -72,8 +72,8 @@ namespace DataAquisition
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
+            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+            //    return;
 
             //while (!await GetLeagues.Main())
             //{ }
