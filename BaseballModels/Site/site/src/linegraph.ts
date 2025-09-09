@@ -162,6 +162,11 @@ class LineGraph
         }
     }
 
+    fireCallback() : void
+    {
+        this.callback(this.pointIdx)
+    }
+
     graphIsHitter() : boolean
     {
         return this.datasets[this.datasetIdx].isHitter

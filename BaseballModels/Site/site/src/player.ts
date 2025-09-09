@@ -604,6 +604,7 @@ async function main()
     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 
     setupModel(hitterModels, pitcherModels)
+    line_graph.fireCallback()
 
     // Set person
     updateElementText("player_name", `${person.firstName} ${person.lastName}`)

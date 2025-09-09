@@ -444,6 +444,7 @@ function main() {
                     hitterModels = person.isHitter ? getModels(pd, "hit_models") : [];
                     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : [];
                     setupModel(hitterModels, pitcherModels);
+                    line_graph.fireCallback();
                     updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
                     updateElementText("player_position", person.position);
                     updateElementText("player_status", person.status);
@@ -847,6 +848,9 @@ var LineGraph = (function () {
             this.highlight_index(this.pointIdx);
             this.callback(this.pointIdx);
         }
+    };
+    LineGraph.prototype.fireCallback = function () {
+        this.callback(this.pointIdx);
     };
     LineGraph.prototype.graphIsHitter = function () {
         return this.datasets[this.datasetIdx].isHitter;
