@@ -275,42 +275,62 @@ var SearchBar = (function () {
     function SearchBar(json) {
         var _this = this;
         this.searchBox = getElementByIdStrict('searchBar');
-        this.searchResults = getElementByIdStrict('searchResults');
-        this.items = json["players"];
+        this.majorsSearchResults = getElementByIdStrict('majorsSearchResults');
+        this.minorsSearchResults = getElementByIdStrict('minorsSearchResults');
+        this.searchResultsContainer = getElementByIdStrict('searchResultsContainer');
+        var players = json["players"];
+        this.mlbItems = players.filter(function (f) { return (f["s"] & 2) === 2; });
+        this.milbItems = players.filter(function (f) { return (f["s"] & 2) === 0; });
         this.current_count = 0;
         this.searchBox.addEventListener('input', function (event) {
             _this.current_count++;
             var idx = _this.current_count;
             var search_str = _this.searchBox.value;
-            var results = search_str == "" ? "" : _this.getResults(search_str);
+            var resultsPair = search_str == "" ? null : _this.getResults(search_str);
             if (idx != _this.current_count)
                 return;
-            _this.searchResults.innerHTML = results;
-            if (results.length > 0)
-                _this.searchResults.classList.remove('hidden');
-            else
-                _this.searchResults.classList.add('hidden');
+            if (resultsPair !== null) {
+                _this.searchResultsContainer.classList.remove('hidden');
+                _this.majorsSearchResults.innerHTML = resultsPair[0];
+                _this.minorsSearchResults.innerHTML = resultsPair[1];
+            }
+            else {
+                _this.searchResultsContainer.classList.add('hidden');
+                _this.majorsSearchResults.innerHTML = '';
+                _this.minorsSearchResults.innerHTML = '';
+            }
         });
     }
     SearchBar.prototype.getResults = function (text) {
         text = text.toLowerCase();
-        var valid = this.items.filter(function (f) {
+        var filterFunction = function (f) {
             var first = f["f"].toLowerCase();
             var last = f["l"].toLowerCase();
-            return first.includes(text)
-                || last.includes(text)
-                || (first + " " + last).includes(text)
-                || (last + " " + first).includes(text);
-        }).sort(function (a, b) {
+            return first.startsWith(text)
+                || last.startsWith(text)
+                || (first + " " + last).startsWith(text)
+                || (last + " " + first).startsWith(text);
+        };
+        var sortFunction = function (a, b) {
+            var a_s = a["s"];
+            var b_s = b["s"];
+            if (a_s != b_s)
+                return b_s - a_s;
             var r = a["f"].localeCompare(b["f"]);
             return r !== 0 ? r : a["l"].localeCompare(b["l"]);
-        });
-        var htmlStrings = valid.map(function (f) {
+        };
+        var validMLB = this.mlbItems.filter(filterFunction).sort(sortFunction);
+        var validMilb = this.milbItems.filter(filterFunction).sort(sortFunction);
+        if (validMLB.length == 0 && validMilb.length == 0)
+            return null;
+        var elementMap = function (f) {
             var id = f["o"];
-            var teamString = id > 0 ? "  (" + getParentAbbr(id) + ")" : "";
-            return "<li><a href=\"./player?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a>").concat(teamString, "</li>");
-        });
-        return htmlStrings.join("\n");
+            var teamString = id > 0 ? getParentAbbr(id) : "";
+            return "<li><a href=\"./player?id=".concat(f["id"], "\">").concat(f["f"][0].toUpperCase() + f["f"].substring(1), " ").concat(f["l"][0].toUpperCase() + f["l"].substring(1), "</a><div class=\"teamsearch team").concat(id, "\">").concat(teamString, "</div></li>");
+        };
+        var htmlMajorsStrings = validMLB.map(elementMap).join("\n");
+        var htmlMinorsStrings = validMilb.map(elementMap).join("\n");
+        return [htmlMajorsStrings, htmlMinorsStrings];
     };
     return SearchBar;
 }());

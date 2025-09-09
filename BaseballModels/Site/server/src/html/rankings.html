@@ -12,10 +12,19 @@
     <div id="search">
         <div class="column center">
             <input id="searchBar" type="text" placeholder="Search for Player" autocomplete="off">
-            <nav>
-                <ul id="searchResults" class="hidden">
+            <nav id="searchResultsContainer" class="hidden">
+                <div>
+                    <p>MLB Players</p>
+                    <ul id="majorsSearchResults" class="searchResults">
 
-                </ul>
+                    </ul>
+                </div>
+                <div>
+                    <p>MiLB Players</p>
+                    <ul id="minorsSearchResults" class="searchResults">
+
+                    </ul>
+                </div>
             </nav>
         </div>
     </div>

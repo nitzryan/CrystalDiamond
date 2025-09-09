@@ -1,19 +1,46 @@
 @import url("main.css");
 
-#searchResults {
-    max-height: 10em;
-    overflow: hidden;
-    overflow-y: scroll;
+#searchResultsContainer {
+    
     position: fixed;
-    background-color: var(--background-low);
-    padding-right: 1em;
-    padding-left: 0.5em;
-    list-style-type: none;
+    top: 3em;
+    background-color: var(--background-high);
+
+    display: flex;
+    flex-direction: row;
     z-index: 100;
 }
 
-#searchResults li a {
-    color: var(--background-high);
+.searchResults {
+    max-height: 10em;
+    width: 15em;
+    overflow: hidden;
+    overflow-y: scroll;
+    list-style-type: none;
+    scrollbar-color: var(--text-high) var(--background-low);
+}
+
+.searchResults {
+    padding-left: .5em;
+}
+
+.searchResults li {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding-right: 0.5em;
+    margin-bottom: 0.25em;
+}
+
+#searchResultsContainer li a {
+    color: var(--text-high);
+}
+
+nav p {
+    margin-top: 0.1em;
+    margin-bottom: 0.1em;
+    text-align: center;
+    color: var(--text-high)
 }
 
 #banner {
@@ -32,12 +59,23 @@
     align-items: center;
 }
 
-#search:not(:focus-within) nav {
+/* #search:not(:focus-within) nav {
     display: none;
-}
+} */
 
 #searchBar {
     font-size: 1.5em;
+}
+
+.teamsearch {
+    border: 2px solid currentColor;
+    font-weight: bold;
+    width: 3em;
+    text-align: center;
+}
+
+.teamsearch.team0 {
+    border: 0;
 }
 
 #colorbar {

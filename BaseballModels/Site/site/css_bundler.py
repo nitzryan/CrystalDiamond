@@ -20,5 +20,6 @@ if __name__ == "__main__":
     with open(f"../server/src/css/{outfilename}", "w") as outfile:
         outfile.write(getFileContents("src/css/main.css"))
         outfile.write(getFileContents("src/css/banner.css"))
+        outfile.write(getFileContents("src/css/team_codes.css"))
         for infile in infiles:
             outfile.write(getFileContents(f"src/css/{infile}"))
