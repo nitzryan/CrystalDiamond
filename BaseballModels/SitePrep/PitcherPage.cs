@@ -11,7 +11,8 @@ namespace SitePrep
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
 
-            siteDb.PitcherStats.RemoveRange(siteDb.PitcherStats);
+            siteDb.PitcherYearStats.RemoveRange(siteDb.PitcherYearStats);
+            siteDb.PitcherMonthStats.RemoveRange(siteDb.PitcherMonthStats);
             siteDb.SaveChanges();
             siteDb.ChangeTracker.Clear();
 
@@ -87,11 +88,36 @@ namespace SitePrep
                     {
                         float hrRate = stats.Outs > 0 ? (float)(stats.HR) / stats.Outs * 27 : stats.HR * 27;
 
-                        siteDb.PitcherStats.Add(new PitcherStats
+                        siteDb.PitcherYearStats.Add(new PitcherYearStats
                         {
                             MlbId = p.MlbId,
                             LevelId = stats.LevelId,
                             Year = stats.Year,
+                            TeamId = stats.TeamId,
+                            LeagueId = stats.LeagueId,
+                            IP = $"{stats.Outs / 3}.{stats.Outs % 3}",
+                            ERA = (float)Math.Round(stats.ERA, 2),
+                            FIP = (float)Math.Round(stats.FIP, 2),
+                            HR9 = (float)Math.Round(hrRate, 1),
+                            BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
+                            KPerc = (float)Math.Round(stats.KPerc * 100, 1),
+                            GOPerc = (float)Math.Round(stats.GBRatio * 100, 1),
+                        });
+                    }
+
+                    // Month Stats
+                    var monthStats = db.Player_Pitcher_MonthAdvanced.Where(f => f.MlbId == player.MlbId)
+                        .OrderBy(f => f.Year).ThenBy(f => f.Month).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
+                    foreach (var stats in monthStats)
+                    {
+                        float hrRate = stats.Outs > 0 ? (float)(stats.HR) / stats.Outs * 27 : stats.HR * 27;
+
+                        siteDb.PitcherMonthStats.Add(new PitcherMonthStats
+                        {
+                            MlbId = p.MlbId,
+                            LevelId = stats.LevelId,
+                            Year = stats.Year,
+                            Month = stats.Month,
                             TeamId = stats.TeamId,
                             LeagueId = stats.LeagueId,
                             IP = $"{stats.Outs / 3}.{stats.Outs % 3}",

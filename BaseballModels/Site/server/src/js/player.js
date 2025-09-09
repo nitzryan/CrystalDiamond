@@ -38,11 +38,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 function getHitterStats(hitterObject) {
     var stats = [];
     var statsArray = getJsonArray(hitterObject, "hit_stats");
+    var statsMonthArray = getJsonArray(hitterObject, "hit_month_stats");
+    statsArray = statsArray.concat(statsMonthArray);
     statsArray.forEach(function (f) {
         var fObj = f;
         var hs = {
             level: getJsonNumber(fObj, "levelId"),
             year: getJsonNumber(fObj, "year"),
+            month: getJsonNumberNullable(fObj, "month"),
             team: getJsonNumber(fObj, "teamId"),
             league: getJsonNumber(fObj, "leagueId"),
             pa: getJsonNumber(fObj, "PA"),
@@ -59,16 +62,34 @@ function getHitterStats(hitterObject) {
         };
         stats.push(hs);
     });
+    stats.sort(function (a, b) {
+        if (a.year < b.year)
+            return -1;
+        if (a.year > b.year)
+            return 1;
+        if (a.month === null && b.month === null)
+            return b.level - a.level;
+        if (a.month === null)
+            return -1;
+        if (b.month === null)
+            return 1;
+        if (a.month === b.month)
+            return b.level - a.level;
+        return a.month - b.month;
+    });
     return stats;
 }
 function getPitcherStats(pitcherObject) {
     var stats = [];
     var statsArray = getJsonArray(pitcherObject, "pit_stats");
+    var statsMonthArray = getJsonArray(pitcherObject, "pit_month_stats");
+    statsArray = statsArray.concat(statsMonthArray);
     statsArray.forEach(function (f) {
         var fObj = f;
         var ps = {
             level: getJsonNumber(fObj, "levelId"),
             year: getJsonNumber(fObj, "year"),
+            month: getJsonNumberNullable(fObj, "month"),
             team: getJsonNumber(fObj, "teamId"),
             league: getJsonNumber(fObj, "leagueId"),
             ip: getJsonString(fObj, "IP"),
@@ -80,6 +101,21 @@ function getPitcherStats(pitcherObject) {
             gorate: getJsonNumber(fObj, "GOPerc")
         };
         stats.push(ps);
+    });
+    stats.sort(function (a, b) {
+        if (a.year < b.year)
+            return -1;
+        if (a.year > b.year)
+            return 1;
+        if (a.month === null && b.month === null)
+            return b.level - a.level;
+        if (a.month === null)
+            return -1;
+        if (b.month === null)
+            return 1;
+        if (a.month === b.month)
+            return b.level - a.level;
+        return a.month - b.month;
     });
     return stats;
 }
@@ -123,19 +159,122 @@ function getPerson(obj) {
     };
     return p;
 }
+function tableUpdateCallback(tablebody, monthcol, year, type) {
+    var rows = Array.from(tablebody.getElementsByTagName('tr'));
+    rows.forEach(function (f) {
+        var y = f.dataset.year;
+        var t = f.dataset.type;
+        if (year !== y)
+            return;
+        if (type === t)
+            f.classList.add('hidden');
+        else
+            f.classList.remove('hidden');
+    });
+    var any_monthly = rows.reduce(function (a, b) {
+        if (a)
+            return true;
+        var t = b.dataset.type;
+        return (t === 'month') && (!b.classList.contains('hidden'));
+    }, false);
+    if (any_monthly)
+        monthcol.classList.remove('collapse');
+    else
+        monthcol.classList.add('collapse');
+}
 function updateHitterStats(hitterStats) {
     var stats_body = getElementByIdStrict('h_stats_body');
+    var hcol_month = getElementByIdStrict('hcol_month');
+    var prevYear = null;
+    var prevYearMonthly = null;
     hitterStats.forEach(function (f) {
         var tr = document.createElement('tr');
-        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
+        var isFirst = false;
+        if (f.month !== null) {
+            if (f.year != prevYearMonthly) {
+                isFirst = true;
+                prevYearMonthly = f.year;
+            }
+            tr.classList.add('hidden');
+        }
+        else {
+            if (f.year != prevYear) {
+                isFirst = true;
+                prevYear = f.year;
+            }
+        }
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
+        tr.dataset.year = f.year.toString();
+        tr.dataset.type = f.month === null ? "year" : "month";
+        if (isFirst) {
+            tr.classList.add('row_first');
+            var button_td = tr.getElementsByTagName('td')[0];
+            var button = document.createElement('button');
+            button.classList.add('table_button');
+            if (f.month === null) {
+                button.innerText = '+';
+                button.classList.add('table_expand');
+                button.addEventListener('click', function () {
+                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'year');
+                });
+            }
+            else {
+                button.innerText = '-';
+                button.classList.add('table_retract');
+                button.addEventListener('click', function () {
+                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'month');
+                });
+            }
+            button_td.appendChild(button);
+        }
         stats_body.appendChild(tr);
     });
 }
 function updatePitcherStats(pitcherStats) {
     var stats_body = getElementByIdStrict('p_stats_body');
+    var pcol_month = getElementByIdStrict('pcol_month');
+    var prevYear = null;
+    var prevYearMonthly = null;
     pitcherStats.forEach(function (f) {
         var tr = document.createElement('tr');
-        tr.innerHTML = "\n            <td>".concat(f.year, "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
+        var isFirst = false;
+        if (f.month !== null) {
+            if (f.year != prevYearMonthly) {
+                isFirst = true;
+                prevYearMonthly = f.year;
+            }
+            tr.classList.add('hidden');
+        }
+        else {
+            if (f.year != prevYear) {
+                isFirst = true;
+                prevYear = f.year;
+            }
+        }
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
+        tr.dataset.year = f.year.toString();
+        tr.dataset.type = f.month === null ? "year" : "month";
+        if (isFirst) {
+            tr.classList.add('row_first');
+            var button_td = tr.getElementsByTagName('td')[0];
+            var button = document.createElement('button');
+            button.classList.add('table_button');
+            if (f.month === null) {
+                button.innerText = '+';
+                button.classList.add('table_expand');
+                button.addEventListener('click', function () {
+                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'year');
+                });
+            }
+            else {
+                button.innerText = '-';
+                button.classList.add('table_retract');
+                button.addEventListener('click', function () {
+                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'month');
+                });
+            }
+            button_td.appendChild(button);
+        }
         stats_body.append(tr);
     });
 }
@@ -276,10 +415,11 @@ var hitterModels;
 var pitcherModels;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var id, player_data, player_search_data, pd, hitterStats, pitcherStats, player_team, age, round, _a;
+        var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    datesJsonPromise = retrieveJson('../../assets/dates.json.gz');
                     id = getQueryParam("id");
                     player_data = fetch("/player/".concat(id));
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
@@ -330,6 +470,15 @@ function main() {
                     return [4, player_search_data];
                 case 4:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    return [4, datesJsonPromise];
+                case 5:
+                    datesJson = _b.sent();
+                    endYear = datesJson["endYear"];
+                    endMonth = datesJson["endMonth"];
+                    hitter_title_element = getElementByIdStrict('hitter_stats_title');
+                    pitcher_title_element = getElementByIdStrict('pitcher_stats_title');
+                    hitter_title_element.textContent = "Hitter Stats through ".concat(MONTH_CODES[endMonth], " ").concat(endYear);
+                    pitcher_title_element.textContent = "Pitcher Stats through ".concat(MONTH_CODES[endMonth], " ").concat(endYear);
                     return [2];
             }
         });

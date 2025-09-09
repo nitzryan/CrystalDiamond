@@ -13,7 +13,8 @@ namespace SitePrep
 
             siteDb.PlayerModel.RemoveRange(siteDb.PlayerModel);
             siteDb.Player.RemoveRange(siteDb.Player);
-            siteDb.HitterStats.RemoveRange(siteDb.HitterStats);
+            siteDb.HitterYearStats.RemoveRange(siteDb.HitterYearStats);
+            siteDb.HitterMonthStats.RemoveRange(siteDb.HitterMonthStats);
             siteDb.SaveChanges();
             siteDb.ChangeTracker.Clear();
 
@@ -81,7 +82,7 @@ namespace SitePrep
                     var annualStats = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
                     foreach (var stats in annualStats)
                     {
-                        siteDb.HitterStats.Add(new HitterStats
+                        siteDb.HitterYearStats.Add(new HitterYearStats
                         {
                             MlbId = p.MlbId,
                             LevelId = stats.LevelId,
@@ -101,6 +102,34 @@ namespace SitePrep
                             CS = stats.CS,
                         });
                     }
+
+                    // Month Stats
+                    var monthStats = db.Player_Hitter_MonthAdvanced.Where(f => f.MlbId == player.MlbId)
+                        .OrderBy(f => f.Year).ThenBy(f => f.Month).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
+                    foreach (var stats in monthStats)
+                    {
+                        siteDb.HitterMonthStats.Add(new HitterMonthStats
+                        {
+                            MlbId = p.MlbId,
+                            LevelId = stats.LevelId,
+                            Year = stats.Year,
+                            Month = stats.Month,
+                            TeamId = stats.TeamId,
+                            LeagueId = stats.LeagueId,
+                            PA = stats.PA,
+                            AVG = (float)Math.Round(stats.AVG, 3),
+                            OBP = (float)Math.Round(stats.OBP, 3),
+                            SLG = (float)Math.Round(stats.SLG, 3),
+                            ISO = (float)Math.Round(stats.ISO, 3),
+                            WRC = (int)Math.Round(stats.WRC, 0),
+                            HR = stats.HR,
+                            BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
+                            KPerc = (float)Math.Round(stats.KPerc * 100, 1),
+                            SB = stats.SB,
+                            CS = stats.CS,
+                        });
+                    }
+
                     progressBar.Tick();
                 }
             }

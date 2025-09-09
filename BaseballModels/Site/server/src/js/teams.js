@@ -45,7 +45,7 @@ function main() {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    datesJsonPromise = retrieveJson('../../assets/ranking/dates.json.gz');
+                    datesJsonPromise = retrieveJson('../../assets/dates.json.gz');
                     try {
                         month = getQueryParam('month');
                         year = getQueryParam('year');

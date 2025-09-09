@@ -1,6 +1,7 @@
 type HitterStats = {
     level : number,
     year : number,
+    month : number | null,
     team : number,
     league : number,
     pa : number,
@@ -45,6 +46,7 @@ type Person = {
 type PitcherStats = {
     level : number,
     year : number,
+    month : number | null,
     team : number,
     league : number,
     ip : string,
@@ -60,12 +62,16 @@ function getHitterStats(hitterObject : JsonObject) : HitterStats[]
 {
     let stats : HitterStats[] = []
     let statsArray : JsonArray = getJsonArray(hitterObject, "hit_stats")
+    
+    let statsMonthArray : JsonArray = getJsonArray(hitterObject, "hit_month_stats")
+    statsArray = statsArray.concat(statsMonthArray)
 
     statsArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const hs : HitterStats = {
             level : getJsonNumber(fObj, "levelId"),
             year : getJsonNumber(fObj, "year"),
+            month : getJsonNumberNullable(fObj, "month"),
             team : getJsonNumber(fObj, "teamId"),
             league : getJsonNumber(fObj, "leagueId"),
             pa : getJsonNumber(fObj, "PA"),
@@ -83,6 +89,23 @@ function getHitterStats(hitterObject : JsonObject) : HitterStats[]
         stats.push(hs)
     })
 
+    stats.sort((a,b) => {
+        if (a.year < b.year)
+            return -1
+        if (a.year > b.year)
+            return 1
+
+        if (a.month === null && b.month === null)
+            return b.level - a.level
+        if (a.month === null)
+            return -1
+        if (b.month === null)
+            return 1
+        if (a.month === b.month)
+            return b.level - a.level
+        return a.month - b.month
+    })
+
     return stats
 }
 
@@ -91,11 +114,15 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
     let stats : PitcherStats[] = []
     let statsArray : JsonArray = getJsonArray(pitcherObject, "pit_stats")
 
+    let statsMonthArray : JsonArray = getJsonArray(pitcherObject, "pit_month_stats")
+    statsArray = statsArray.concat(statsMonthArray)
+
     statsArray.forEach(f => {
         const fObj : JsonObject = f as JsonObject;
         const ps : PitcherStats = {
             level : getJsonNumber(fObj, "levelId"),
             year : getJsonNumber(fObj, "year"),
+            month : getJsonNumberNullable(fObj, "month"),
             team : getJsonNumber(fObj, "teamId"),
             league : getJsonNumber(fObj, "leagueId"),
             ip : getJsonString(fObj, "IP"),
@@ -107,6 +134,23 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
             gorate : getJsonNumber(fObj, "GOPerc")
         }
         stats.push(ps)
+    })
+
+    stats.sort((a,b) => {
+        if (a.year < b.year)
+            return -1
+        if (a.year > b.year)
+            return 1
+
+        if (a.month === null && b.month === null)
+            return b.level - a.level
+        if (a.month === null)
+            return -1
+        if (b.month === null)
+            return 1
+        if (a.month === b.month)
+            return b.level - a.level
+        return a.month - b.month
     })
 
     return stats
@@ -165,13 +209,68 @@ function getPerson(obj : JsonObject)
     return p
 }
 
+function tableUpdateCallback(tablebody : HTMLElement, monthcol : HTMLElement, year : string, type : string)
+{
+    var rows = Array.from(tablebody.getElementsByTagName('tr'))
+    rows.forEach(f => {
+        const y = f.dataset.year
+        const t = f.dataset.type
+
+        if (year !== y)
+            return
+
+        if (type === t)
+            f.classList.add('hidden')
+        else
+            f.classList.remove('hidden')
+    })
+
+    // Only show the month column if any monthly values are shown
+    const any_monthly = rows.reduce((a,b) => {
+        if (a)
+            return true
+        
+        const t = b.dataset.type
+        return (t === 'month') && (!b.classList.contains('hidden'))
+    }, false)
+    if (any_monthly)
+        monthcol.classList.remove('collapse')
+    else
+        monthcol.classList.add('collapse')
+}
+
 function updateHitterStats(hitterStats : HitterStats[])
 {
     const stats_body = getElementByIdStrict('h_stats_body')
+    const hcol_month = getElementByIdStrict('hcol_month')
+
+    let prevYear : number | null = null
+    let prevYearMonthly : number | null = null
+
     hitterStats.forEach(f => {
         const tr = document.createElement('tr')
+        let isFirst = false
+        if (f.month !== null)
+        {
+            if (f.year != prevYearMonthly)
+            {
+                isFirst = true
+                prevYearMonthly = f.year
+            }
+            tr.classList.add('hidden')
+        }
+        else {
+            if (f.year != prevYear)
+            {
+                isFirst = true
+                prevYear = f.year
+            }
+        }
+        
         tr.innerHTML = `
+            <td></td>
             <td>${f.year}</td>
+            <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${getTeamAbbr(f.team, f.year)}</td>
             <td>${getLeagueAbbr(f.league)}</td>
@@ -187,6 +286,40 @@ function updateHitterStats(hitterStats : HitterStats[])
             <td class="align_right">${f.sb}</td>
             <td class="align_right">${f.cs}</td>
         `
+
+        tr.dataset.year = f.year.toString()
+        tr.dataset.type = f.month === null ? "year" : "month"
+
+        if (isFirst)
+        {
+            tr.classList.add('row_first')
+            
+            let button_td = tr.getElementsByTagName('td')[0]
+            let button = document.createElement('button')
+            
+            button.classList.add('table_button')
+            
+            if (f.month === null)
+            {
+                button.innerText = '+'
+                button.classList.add('table_expand')
+                
+                button.addEventListener('click', () => {
+                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'year')
+                })
+            } else {
+                button.innerText = '-'
+                button.classList.add('table_retract')
+                
+                button.addEventListener('click', () => {
+                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'month')
+                })
+            }
+            
+
+            button_td.appendChild(button)
+        }
+
         stats_body.appendChild(tr)
     })
 }
@@ -194,10 +327,35 @@ function updateHitterStats(hitterStats : HitterStats[])
 function updatePitcherStats(pitcherStats : PitcherStats[])
 {
     const stats_body = getElementByIdStrict('p_stats_body')
+    const pcol_month = getElementByIdStrict('pcol_month')
+
+    let prevYear : number | null = null
+    let prevYearMonthly : number | null = null
+
     pitcherStats.forEach(f => {
         const tr = document.createElement('tr')
+        let isFirst = false
+        if (f.month !== null)
+        {
+            if (f.year != prevYearMonthly)
+            {
+                isFirst = true
+                prevYearMonthly = f.year
+            }
+            tr.classList.add('hidden')
+        }
+        else {
+            if (f.year != prevYear)
+            {
+                isFirst = true
+                prevYear = f.year
+            }
+        }
+        
         tr.innerHTML = `
+            <td></td>
             <td>${f.year}</td>
+            <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${getTeamAbbr(f.team, f.year)}</td>
             <td>${getLeagueAbbr(f.league)}</td>
@@ -209,6 +367,40 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
             <td class="align_right">${f.kperc.toFixed(1)}</td>
             <td class="align_right">${f.gorate.toFixed(1)}</td>
         `
+
+        tr.dataset.year = f.year.toString()
+        tr.dataset.type = f.month === null ? "year" : "month"
+
+        if (isFirst)
+        {
+            tr.classList.add('row_first')
+            
+            let button_td = tr.getElementsByTagName('td')[0]
+            let button = document.createElement('button')
+            
+            button.classList.add('table_button')
+            
+            if (f.month === null)
+            {
+                button.innerText = '+'
+                button.classList.add('table_expand')
+                
+                button.addEventListener('click', () => {
+                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'year')
+                })
+            } else {
+                button.innerText = '-'
+                button.classList.add('table_retract')
+                
+                button.addEventListener('click', () => {
+                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'month')
+                })
+            }
+            
+
+            button_td.appendChild(button)
+        }
+
         stats_body.append(tr)
     })
 }
@@ -384,6 +576,7 @@ let pitcherModels : Model[]
 
 async function main()
 {
+    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
     const id = getQueryParam("id")
     var player_data = fetch(`/player/${id}`)
 
@@ -441,6 +634,15 @@ async function main()
     })
 
     searchBar = new SearchBar(await player_search_data)
+
+    // Update stats date
+    const datesJson = await datesJsonPromise
+    const endYear = datesJson["endYear"] as number
+    const endMonth = datesJson["endMonth"] as number
+    let hitter_title_element = getElementByIdStrict('hitter_stats_title')
+    let pitcher_title_element = getElementByIdStrict('pitcher_stats_title')
+    hitter_title_element.textContent = `Hitter Stats through ${MONTH_CODES[endMonth]} ${endYear}`
+    pitcher_title_element.textContent = `Pitcher Stats through ${MONTH_CODES[endMonth]} ${endYear}`
 }
 
 main()

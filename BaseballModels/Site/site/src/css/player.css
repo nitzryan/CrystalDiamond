@@ -59,3 +59,16 @@
     align-items: center;
     margin-top: 7.5vh;
 }
+
+.table_button {
+    background-color: transparent;
+    border: 0;
+}
+
+.col_selector {
+    width: 2em;
+}
+
+.table_button {
+    width: 100%;
+}

@@ -13,10 +13,7 @@
             //if (!ModelAggregation.Main())
             //    return;
 
-            if (!GenerateRankings.Main(year, month))
-                return;
-
-            //if (!ClearPlayers.Main())
+            //if (!GenerateRankings.Main(year, month))
             //    return;
 
             if (!HitterPage.Main())
@@ -25,11 +22,11 @@
             if (!PitcherPage.Main())
                 return;
 
-            if (!OrgMap.Main())
-                return;
+            //if (!OrgMap.Main())
+            //    return;
 
-            if (!SearchIndex.Main())
-                return;
+            //if (!SearchIndex.Main())
+            //    return;
         }
     }
 }

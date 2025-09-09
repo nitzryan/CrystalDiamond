@@ -3,7 +3,7 @@
     internal class Program
     {
         const int START_YEAR = 2005;
-        const int END_YEAR = 2024;
+        const int END_YEAR = 2025;
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
@@ -39,8 +39,8 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                //if (!CalculateAnnualOPS.Main(year))
-                //    return;
+                if (!CalculateAnnualOPS.Main(year))
+                    return;
 
                 //while (!await UpdateParents.Main(year))
                 //{ }

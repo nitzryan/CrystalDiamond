@@ -15,6 +15,14 @@
     display: none !important;
 }
 
+.vis_hidden {
+    visibility: hidden;
+}
+
+col.collapse {
+    visibility: collapse;
+}
+
 body {
     background-color: var(--background-high);
     color: var(--text-high);
@@ -72,6 +80,14 @@ th {
     padding-left: 0.4em;
     padding-right: 0.4em;
     text-align: center;
+}
+
+tr.row_first {
+    border-top: 3px solid var(--text-high);
+}
+
+col.col_left {
+    border-left: 3px solid var(--text-low);
 }
 
 a {

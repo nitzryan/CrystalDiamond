@@ -53,29 +53,33 @@ app.get('/player/:id', async (req, res) => {
             if (row.isHitter == 1)
             {
                 promiseHitter = Promise.all([
-                    dbAll("SELECT * FROM HitterStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
+                    dbAll("SELECT * FROM HitterYearStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
+                    dbAll("SELECT * FROM HitterMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "H"])
                 ]);
             }
             if (row.isPitcher == 1)
             {
                 promisePitcher = Promise.all([
-                    dbAll("SELECT * FROM PitcherStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
+                    dbAll("SELECT * FROM PitcherYearStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
+                    dbAll("SELECT * FROM PitcherMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "P"])
                 ]);
             }
             if (row.isHitter == 1)
             {
-                const [hitStats, hitModels] = await promiseHitter
+                const [hitStats, hitMonthStats, hitModels] = await promiseHitter
 
                 row["hit_stats"] = await hitStats;
+                row["hit_month_stats"] = await hitMonthStats;
                 row["hit_models"] = await hitModels;
             }
             if (row.isPitcher == 1)
             {
-                const [pitStats, pitModels] = await promisePitcher
+                const [pitStats, pitMonthStats, pitModels] = await promisePitcher
 
                 row["pit_stats"] = await pitStats;
+                row["pit_month_stats"] = await pitMonthStats;
                 row["pit_models"] = await pitModels;
             }
 

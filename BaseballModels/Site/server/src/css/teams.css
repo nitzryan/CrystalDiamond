@@ -15,6 +15,14 @@
     display: none !important;
 }
 
+.vis_hidden {
+    visibility: hidden;
+}
+
+col.collapse {
+    visibility: collapse;
+}
+
 body {
     background-color: var(--background-high);
     color: var(--text-high);
@@ -74,6 +82,14 @@ th {
     text-align: center;
 }
 
+tr.row_first {
+    border-top: 3px solid var(--text-high);
+}
+
+col.col_left {
+    border-left: 3px solid var(--text-low);
+}
+
 a {
     text-decoration: none;
 }
@@ -99,6 +115,7 @@ button:hover {
     background-color: var(--text-high);
     color: var(--background-high);
 }
+
 
 #searchResults {
     max-height: 10em;

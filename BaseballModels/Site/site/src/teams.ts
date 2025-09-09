@@ -5,7 +5,7 @@ let year : number | null = null
 let teamId : number | null = null
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/ranking/dates.json.gz')
+    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
     try {
         month = getQueryParam('month')
         year = getQueryParam('year')
