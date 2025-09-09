@@ -166,11 +166,14 @@ function getModels(obj : JsonObject, name : string) : Model[]
         const probString = getJsonString(fObj, "probs");
         const probArray : number[] = probString.split(',').map(Number)
 
+        var rank = fObj["rank"]
+
         const m : Model = {
             year : getJsonNumber(fObj, "year"),
             month : getJsonNumber(fObj, "month"),
             probs : probArray,
-            rank : getJsonNumberNullable(fObj, "rank")
+            // @ts-ignore
+            rank : fObj["rank"],
         }
         models.push(m);
     })
@@ -611,7 +614,7 @@ async function main()
     updateElementText("player_position", person.position)
     updateElementText("player_status", person.status)
 
-    if (person.parentId !== null)
+    if (person.parentId !== null && person.parentId !== 0)
     {
         const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
         player_team.innerText = getParentName(person.parentId)

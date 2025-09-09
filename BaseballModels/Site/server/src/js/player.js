@@ -126,11 +126,12 @@ function getModels(obj, name) {
         var fObj = f;
         var probString = getJsonString(fObj, "probs");
         var probArray = probString.split(',').map(Number);
+        var rank = fObj["rank"];
         var m = {
             year: getJsonNumber(fObj, "year"),
             month: getJsonNumber(fObj, "month"),
             probs: probArray,
-            rank: getJsonNumberNullable(fObj, "rank")
+            rank: fObj["rank"],
         };
         models.push(m);
     });
@@ -448,7 +449,7 @@ function main() {
                     updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
                     updateElementText("player_position", person.position);
                     updateElementText("player_status", person.status);
-                    if (person.parentId !== null) {
+                    if (person.parentId !== null && person.parentId !== 0) {
                         player_team = getElementByIdStrict("player_team");
                         player_team.innerText = getParentName(person.parentId);
                         player_team.href = "teams.html?team=".concat(person.parentId);
