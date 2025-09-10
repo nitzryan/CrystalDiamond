@@ -635,6 +635,9 @@ async function main()
 
     searchBar = new SearchBar(await player_search_data)
 
+    if (id === 444461)
+        throw new Error("Selenium Test Error")
+
     // Update stats date
     const datesJson = await datesJsonPromise
     const endYear = datesJson["endYear"] as number

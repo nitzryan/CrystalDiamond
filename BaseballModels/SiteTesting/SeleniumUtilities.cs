@@ -1,11 +1,12 @@
 ﻿using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 
 namespace SiteTesting
 {
     internal class SeleniumUtilities
     {
-        public static bool WaitForPageLoad(IWebDriver driver, string page)
+        public static bool WaitForPageLoad(ChromeDriver driver, string page)
         {
             driver.Navigate().GoToUrl(page);
             try {
@@ -21,6 +22,17 @@ namespace SiteTesting
             {
                 return false;
             }
+        }
+
+        public static (bool, string) AnyErrors(ChromeDriver driver)
+        {
+            ILogs logs = driver.Manage().Logs;
+            var entries = logs.GetLog(LogType.Browser);
+            var errorLogs = entries.Where(f => f.Level == LogLevel.Severe).Select(f => f.Message);
+            if (errorLogs.Any())
+                return (true, errorLogs.First());
+
+            return (false, "");
         }
     }
 }

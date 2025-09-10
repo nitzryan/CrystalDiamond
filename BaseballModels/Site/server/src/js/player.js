@@ -467,6 +467,8 @@ function main() {
                     return [4, player_search_data];
                 case 4:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    if (id === 444461)
+                        throw new Error("Selenium Test Error");
                     return [4, datesJsonPromise];
                 case 5:
                     datesJson = _b.sent();

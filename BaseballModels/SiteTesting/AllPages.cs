@@ -4,44 +4,93 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using SiteDb;
 
+[assembly: LevelOfParallelism(Config.levels)]
 namespace SiteTesting
 {
+    
+    [Parallelizable(ParallelScope.All)]
     [TestFixture]
     public class Tests
     {
-        private IWebDriver driver;
-        private SqliteDbContext db;
-        private SiteDbContext siteDb;
-
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
-                .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-                .Options;
+                    .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
+                    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+                    .Options;
 
         public static readonly DbContextOptions<SiteDbContext> SITEDB_OPTIONS = new DbContextOptionsBuilder<SiteDbContext>()
         .UseSqlite("Data Source=../../../../SiteDb/Site.db;")
         .Options;
 
-        [SetUp]
+        private static readonly Dictionary<string, ChromeDriver> driverDict = new();
+        private static readonly object LockObject = new();
+        private static SqliteDbContext db = new(DB_OPTIONS);
+        private static SiteDbContext siteDb = new (SITEDB_OPTIONS);
+
+        [OneTimeSetUp]
         public void Setup()
         {
-            driver = new ChromeDriver();
-            db = new(DB_OPTIONS);
-            siteDb = new(SITEDB_OPTIONS);
+            lock(LockObject)
+            {
+                for (var i = 0; i < Config.levels; i++)
+                {
+                    var workerIdString = $"ParallelWorker#{i + 1}";
+                    if (!driverDict.ContainsKey(workerIdString))
+                    {
+                        var chromeOptions = new ChromeOptions();
+                        chromeOptions.AddArgument("--headless");
+                        chromeOptions.AddArgument("--disable-gpu");
+                        chromeOptions.AddArgument("--disable-extensions");
+
+                        driverDict[workerIdString] = new ChromeDriver(chromeOptions);
+                    }
+                }
+            }
         }
 
         [Test]
         public void Player()
         {
-            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, "http://127.0.0.1:3000/player?id=805805");
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driverDict[TestContext.CurrentContext.WorkerId], "http://127.0.0.1:3000/player?id=805805");
             Assert.That(pageLoaded, "Player not loaded");
         }
 
-        [TearDown]
+        [Test, TestCaseSource(nameof(AllPlayerIds))]
+        public void LoadPlayersNoErrors(int id)
+        {
+            string url = $"http://127.0.0.1:3000/player?id={id}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{id} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{id} error: {msg}");
+        }
+
+        static int[] AllPlayerIds()
+        {
+            return [.. siteDb.Player.Select(f => f.MlbId)];
+        }
+
+        [OneTimeTearDown]
         public void Teardown()
         {
-            driver?.Quit();
-            driver?.Dispose();
+            lock (LockObject)
+            {
+                for (var i = 0; i < Config.levels; i++)
+                {
+                    var workerIdString = $"ParallelWorker#{i + 1}";
+                    if (!driverDict.ContainsKey(workerIdString))
+                    {
+                        driverDict[workerIdString]?.Quit();
+                        driverDict[workerIdString]?.Dispose();
+                        driverDict.Remove(workerIdString);
+                    }
+                }
+            }
         }
     }
+}
+
+public static class Config
+{
+    public const int levels = 8;
 }
