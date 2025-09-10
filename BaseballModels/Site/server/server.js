@@ -1,7 +1,7 @@
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose()
-const path = require('path');
-const { start } = require('repl');
+const path = require('path')
+const favicon = require('serve-favicon')
 const app = express()
 const port = 3000
 
@@ -18,6 +18,8 @@ app.use('/css', express.static('src/css'))
 app.use('/html', express.static('src/html'))
 app.use('/js', express.static('src/js'))
 app.use('/assets', express.static('assets'))
+
+app.use(favicon(path.join(__dirname, 'assets', 'favicon.ico')))
 
 app.get('/player', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/player.html"))

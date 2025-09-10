@@ -204,7 +204,15 @@ function updateHitterStats(hitterStats) {
                 prevYear = f.year;
             }
         }
-        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
+        var teamAbbr = "";
+        try {
+            teamAbbr = getTeamAbbr(f.team, f.year);
+        }
+        catch (e) {
+            if (f.league != 134 && f.league != 130)
+                throw e;
+        }
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
         tr.dataset.year = f.year.toString();
         tr.dataset.type = f.month === null ? "year" : "month";
         if (isFirst) {
@@ -252,7 +260,15 @@ function updatePitcherStats(pitcherStats) {
                 prevYear = f.year;
             }
         }
-        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(getTeamAbbr(f.team, f.year), "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
+        var teamAbbr = "";
+        try {
+            teamAbbr = getTeamAbbr(f.team, f.year);
+        }
+        catch (e) {
+            if (f.league != 134 && f.league != 130)
+                throw e;
+        }
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
         tr.dataset.year = f.year.toString();
         tr.dataset.type = f.month === null ? "year" : "month";
         if (isFirst) {
@@ -467,8 +483,6 @@ function main() {
                     return [4, player_search_data];
                 case 4:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
-                    if (id === 444461)
-                        throw new Error("Selenium Test Error");
                     return [4, datesJsonPromise];
                 case 5:
                     datesJson = _b.sent();

@@ -270,12 +270,22 @@ function updateHitterStats(hitterStats : HitterStats[])
             }
         }
         
+        let teamAbbr : string = ""
+        // VSL/DSL has some teams that split orgs
+        try {
+            teamAbbr = getTeamAbbr(f.team, f.year)
+        } catch(e)
+        {
+            if (f.league != 134 && f.league != 130) // If not VSL/DSL, it is an error
+                throw e
+        }
+
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
             <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
-            <td>${getTeamAbbr(f.team, f.year)}</td>
+            <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
             <td class="align_right">${f.pa}</td>
             <td class="align_right">${f.avg.toFixed(3)}</td>
@@ -355,12 +365,22 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
             }
         }
         
+        let teamAbbr : string = ""
+        // VSL/DSL has some teams that split orgs
+        try {
+            teamAbbr = getTeamAbbr(f.team, f.year)
+        } catch(e)
+        {
+            if (f.league != 134 && f.league != 130) // If not VSL/DSL, it is an error
+                throw e
+        }
+
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
             <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
-            <td>${getTeamAbbr(f.team, f.year)}</td>
+            <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
             <td class="align_right">${f.ip}</td>
             <td class="align_right">${f.era.toFixed(2)}</td>
@@ -634,9 +654,6 @@ async function main()
     })
 
     searchBar = new SearchBar(await player_search_data)
-
-    if (id === 444461)
-        throw new Error("Selenium Test Error")
 
     // Update stats date
     const datesJson = await datesJsonPromise
