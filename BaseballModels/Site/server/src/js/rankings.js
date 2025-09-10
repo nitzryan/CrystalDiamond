@@ -273,7 +273,14 @@ var SearchBar = (function () {
         this.majorsSearchResults = getElementByIdStrict('majorsSearchResults');
         this.minorsSearchResults = getElementByIdStrict('minorsSearchResults');
         this.searchResultsContainer = getElementByIdStrict('searchResultsContainer');
+        function removeAccents(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
         var players = json["players"];
+        players.forEach(function (f) {
+            f["fstLoc"] = removeAccents(f["f"]).toLowerCase();
+            f["lstLoc"] = removeAccents(f["l"]).toLowerCase();
+        });
         this.mlbItems = players.filter(function (f) { return (f["s"] & 2) === 2; });
         this.milbItems = players.filter(function (f) { return (f["s"] & 2) === 0; });
         this.current_count = 0;
@@ -299,8 +306,8 @@ var SearchBar = (function () {
     SearchBar.prototype.getResults = function (text) {
         text = text.toLowerCase();
         var filterFunction = function (f) {
-            var first = f["f"].toLowerCase();
-            var last = f["l"].toLowerCase();
+            var first = f["fstLoc"];
+            var last = f["lstLoc"];
             return first.startsWith(text)
                 || last.startsWith(text)
                 || (first + " " + last).startsWith(text)

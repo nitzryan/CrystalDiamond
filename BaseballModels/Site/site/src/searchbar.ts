@@ -15,7 +15,18 @@ class SearchBar
         this.minorsSearchResults = getElementByIdStrict('minorsSearchResults')
         this.searchResultsContainer = getElementByIdStrict('searchResultsContainer')
 
-        const players = json["players"] as JsonArray
+        function removeAccents(str : string) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        let players = json["players"] as JsonArray
+        players.forEach(f => {
+            // @ts-ignore
+            f["fstLoc"] = removeAccents(f["f"]).toLowerCase()
+            // @ts-ignore
+            f["lstLoc"] = removeAccents(f["l"]).toLowerCase()
+        })
+
         // @ts-ignore
         this.mlbItems = players.filter(f => (f["s"] & 2) === 2)
         // @ts-ignore
@@ -56,9 +67,9 @@ class SearchBar
         const filterFunction = (f : JsonValue)  => 
         {
             // @ts-ignore
-            const first : string = f["f"].toLowerCase()
+            const first : string = f["fstLoc"]
             // @ts-ignore
-            const last : string = f["l"].toLowerCase()
+            const last : string = f["lstLoc"]
 
             return first.startsWith(text) 
                 || last.startsWith(text) 
