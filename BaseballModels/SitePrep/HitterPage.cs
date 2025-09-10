@@ -32,9 +32,6 @@ namespace SitePrep
                     foreach (var opw in opws)
                     {
                         var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelName.Equals(opw.ModelName));
-                        if (!ranks.Any() && opw.Month == 0)
-                            ranks = siteDb.PlayerRank.Where(f => f.MlbId == opw.MlbId && f.ModelName.Equals(opw.ModelName))
-                                .OrderBy(f => f.Year).ThenBy(f => f.Month);
 
                         siteDb.Add(new PlayerModel
                         {

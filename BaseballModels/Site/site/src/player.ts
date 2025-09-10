@@ -549,12 +549,8 @@ function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
     const hitter_war = hitterModels.map(war_map)
     const pitcher_war = pitcherModels.map(war_map)
 
-    let hitter_ranks : Point[] = []
-    let pitcher_ranks : Point[] = []
-    try {
-        hitter_ranks = hitterModels.map(rank_map)
-        pitcher_ranks = pitcherModels.map(rank_map)
-    } catch (e) {}
+    let hitter_ranks = hitterModels.filter(f => f.rank !== null).map(rank_map)
+    let pitcher_ranks = pitcherModels.filter(f => f.rank !== null).map(rank_map)
 
     const datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks)
     line_graph = new LineGraph(model_graph, datasets, lineCallback)

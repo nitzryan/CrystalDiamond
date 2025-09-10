@@ -390,13 +390,8 @@ function setupModel(hitterModels, pitcherModels) {
     };
     var hitter_war = hitterModels.map(war_map);
     var pitcher_war = pitcherModels.map(war_map);
-    var hitter_ranks = [];
-    var pitcher_ranks = [];
-    try {
-        hitter_ranks = hitterModels.map(rank_map);
-        pitcher_ranks = pitcherModels.map(rank_map);
-    }
-    catch (e) { }
+    var hitter_ranks = hitterModels.filter(function (f) { return f.rank !== null; }).map(rank_map);
+    var pitcher_ranks = pitcherModels.filter(function (f) { return f.rank !== null; }).map(rank_map);
     var datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
     line_graph = new LineGraph(model_graph, datasets, lineCallback);
     setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
