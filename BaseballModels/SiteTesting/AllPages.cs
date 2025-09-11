@@ -26,33 +26,32 @@ namespace SiteTesting
         private static SqliteDbContext db = new(DB_OPTIONS);
         private static SiteDbContext siteDb = new (SITEDB_OPTIONS);
 
+        public const string DEFAULT_DRIVER_STR = "default";
+
         [OneTimeSetUp]
         public void Setup()
         {
             lock(LockObject)
             {
+                var chromeOptions = new ChromeOptions();
+                chromeOptions.AddArgument("--headless");
+                chromeOptions.AddArgument("--disable-gpu");
+                chromeOptions.AddArgument("--disable-extensions");
                 for (var i = 0; i < Config.levels; i++)
                 {
                     var workerIdString = $"ParallelWorker#{i + 1}";
                     if (!driverDict.ContainsKey(workerIdString))
                     {
-                        var chromeOptions = new ChromeOptions();
-                        chromeOptions.AddArgument("--headless");
-                        chromeOptions.AddArgument("--disable-gpu");
-                        chromeOptions.AddArgument("--disable-extensions");
-
                         driverDict[workerIdString] = new ChromeDriver(chromeOptions);
                     }
                 }
+
+                if (!driverDict.ContainsKey(DEFAULT_DRIVER_STR))
+                    driverDict[DEFAULT_DRIVER_STR] = new ChromeDriver(chromeOptions);
             }
         }
 
-        [Test]
-        public void Player()
-        {
-            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driverDict[TestContext.CurrentContext.WorkerId], "http://127.0.0.1:3000/player?id=805805");
-            Assert.That(pageLoaded, "Player not loaded");
-        }
+        // Player
 
         [Test, TestCaseSource(nameof(AllPlayerIds))]
         public void LoadPlayersNoErrors(int id)
@@ -70,6 +69,55 @@ namespace SiteTesting
             return [.. siteDb.Player.Select(f => f.MlbId)];
         }
 
+        // Ranking
+
+        [Test]
+        public void DefaultRanking()
+        {
+            var driver = driverDict[DEFAULT_DRIVER_STR];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, "http://127.0.0.1:3000/rankings");
+            Assert.That(pageLoaded, "Player not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"Ranking error: {msg}");
+        }
+
+        [Test, TestCaseSource(nameof(AllRanks))]
+        public void LoadRanksNoErrors(int year, int month)
+        {
+            string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{year}-{month} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{month} error: {msg}");
+        }
+
+        static IEnumerable<object> AllRanks()
+        {
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month }).Distinct();
+            foreach (var d in dates)
+                yield return new object[] { d.Year, d.Month };
+        }
+
+        // Teams
+        [Test, TestCaseSource(nameof(AllTeamRanks))]
+        public void LoadTeamRanksNoErrors(int year, int month, int teamId)
+        {
+            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{year}-{month} team {teamId} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{month} team {teamId} error: {msg}");
+        }
+
+        static IEnumerable<object> AllTeamRanks()
+        {
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.TeamId }).Distinct().Where(f => f.TeamId != 0);
+            foreach (var d in dates)
+                yield return new object[] { d.Year, d.Month, d.TeamId };
+        }
+
         [OneTimeTearDown]
         public void Teardown()
         {
@@ -78,12 +126,19 @@ namespace SiteTesting
                 for (var i = 0; i < Config.levels; i++)
                 {
                     var workerIdString = $"ParallelWorker#{i + 1}";
-                    if (!driverDict.ContainsKey(workerIdString))
+                    if (driverDict.ContainsKey(workerIdString))
                     {
                         driverDict[workerIdString]?.Quit();
                         driverDict[workerIdString]?.Dispose();
                         driverDict.Remove(workerIdString);
                     }
+                }
+
+                if (driverDict.ContainsKey(DEFAULT_DRIVER_STR))
+                {
+                    driverDict[DEFAULT_DRIVER_STR]?.Quit();
+                    driverDict[DEFAULT_DRIVER_STR]?.Dispose();
+                    driverDict.Remove(DEFAULT_DRIVER_STR);
                 }
             }
         }
@@ -92,5 +147,5 @@ namespace SiteTesting
 
 public static class Config
 {
-    public const int levels = 8;
+    public const int levels = 2;
 }
