@@ -446,3 +446,9 @@ nav p {
 .table_button {
     width: 100%;
 }
+
+#playerInTraining {
+    text-align: center;
+    font-size: 1.25em;
+    margin-top: 2em;
+}

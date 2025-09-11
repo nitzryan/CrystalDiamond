@@ -14,6 +14,7 @@ CREATE TABLE "Player" (
 	"draftBonus" INTEGER,
 	"isHitter" INTEGER NOT NULL,
 	"isPitcher" INTEGER NOT NULL,
+	"inTraining" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId")
 );
 

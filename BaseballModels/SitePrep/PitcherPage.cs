@@ -75,7 +75,8 @@ namespace SitePrep
                         DraftRound = bio.DraftPick > 0 ? bio.DraftRound : null,
                         DraftBonus = bio.DraftPick > 0 ? bio.DraftBonus : null,
                         IsPitcher = 1,
-                        IsHitter = 0
+                        IsHitter = 0,
+                        InTraining = db.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
                     });
 
                     // Annual Stats

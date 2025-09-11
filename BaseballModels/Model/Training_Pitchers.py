@@ -58,3 +58,8 @@ if __name__ == "__main__":
         cursor = db.cursor()
         cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", ("Pitcher", 1, best_loss, i, num_layers, hidden_size))
         db.commit()
+    
+    # Insert hitters that were trained on so that they can be marked on the site
+    cursor = db.cursor()
+    cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,0)", [(p.mlbId,) for p in pitchers])
+    db.commit()

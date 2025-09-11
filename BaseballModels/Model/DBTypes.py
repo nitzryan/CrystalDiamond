@@ -980,3 +980,19 @@ class DB_Site_PlayerBio:
 
 
 ##############################################################################################
+class DB_PlayersInTrainingData:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.isHitter = values[1]
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.isHitter)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PlayersInTrainingData']:
+		items = cursor.execute("SELECT * FROM PlayersInTrainingData " + conditional, values).fetchall()
+		return [DB_PlayersInTrainingData(i) for i in items]
+
+
+##############################################################################################

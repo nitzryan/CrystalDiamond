@@ -13,17 +13,17 @@
             //if (!ModelAggregation.Main())
             //    return;
 
-            //if (!GenerateRankings.Main(year, month))
-            //    return;
+            if (!GenerateRankings.Main(year, month))
+                return;
 
-            //if (!HitterPage.Main())
-            //    return;
+            if (!HitterPage.Main())
+                return;
 
-            //if (!PitcherPage.Main())
-            //    return;
+            if (!PitcherPage.Main())
+                return;
 
-            //if (!OrgMap.Main())
-            //    return;
+            if (!OrgMap.Main())
+                return;
 
             if (!SearchIndex.Main())
                 return;

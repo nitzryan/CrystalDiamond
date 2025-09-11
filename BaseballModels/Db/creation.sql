@@ -592,6 +592,12 @@ CREATE TABLE "Site_PlayerBio" (
 	PRIMARY KEY ("id")
 );
 
+CREATE TABLE "PlayersInTrainingData" (
+	"mlbId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	PRIMARY KEY ("mlbId", "isHitter")
+);
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",

@@ -17,6 +17,7 @@ namespace SiteDb
 		public int? DraftBonus {get; set;}
 		public required int IsHitter {get; set;}
 		public required int IsPitcher {get; set;}
+		public required int InTraining {get; set;}
 
 		public Player Clone()
 		{
@@ -37,6 +38,7 @@ namespace SiteDb
 				DraftBonus = this.DraftBonus,
 				IsHitter = this.IsHitter,
 				IsPitcher = this.IsPitcher,
+				InTraining = this.InTraining,
 				
 			};
 		}

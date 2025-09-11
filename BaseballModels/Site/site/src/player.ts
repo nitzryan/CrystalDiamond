@@ -41,6 +41,7 @@ type Person = {
     parentId : number | null;
     isHitter : boolean;
     isPitcher : boolean;
+    inTraining : boolean;
 }
 
 type PitcherStats = {
@@ -206,7 +207,8 @@ function getPerson(obj : JsonObject)
         draft : draft,
         parentId : getJsonNumber(obj, "orgId"),
         isHitter : obj["isHitter"] as boolean,
-        isPitcher : obj["isPitcher"] as boolean
+        isPitcher : obj["isPitcher"] as boolean,
+        inTraining : obj["inTraining"] as boolean,
     }
 
     return p
@@ -605,6 +607,7 @@ async function main()
     const pd = await (await player_data).json() as JsonObject
     person = getPerson(pd)
 
+    // Include stats
     let hitterStats = person.isHitter ? getHitterStats(pd) : []
     let pitcherStats = person.isPitcher ? getPitcherStats(pd) : []
 
@@ -619,6 +622,7 @@ async function main()
         getElementByIdStrict('pitcher_stats').classList.remove('hidden')
     }
     
+    // Get Models
     hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 
@@ -629,6 +633,13 @@ async function main()
     updateElementText("player_name", `${person.firstName} ${person.lastName}`)
     updateElementText("player_position", person.position)
     updateElementText("player_status", person.status)
+
+    // Hide training warning for players not in training data
+    if (!person.inTraining)
+    {
+        const trainingWarning = getElementByIdStrict('playerInTraining')
+        trainingWarning.classList.add('hidden')
+    }
 
     if (person.parentId !== null && person.parentId !== 0)
     {

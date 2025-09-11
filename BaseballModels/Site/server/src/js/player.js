@@ -156,7 +156,8 @@ function getPerson(obj) {
         draft: draft,
         parentId: getJsonNumber(obj, "orgId"),
         isHitter: obj["isHitter"],
-        isPitcher: obj["isPitcher"]
+        isPitcher: obj["isPitcher"],
+        inTraining: obj["inTraining"],
     };
     return p;
 }
@@ -427,7 +428,7 @@ var hitterModels;
 var pitcherModels;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
+        var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, trainingWarning, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -460,6 +461,10 @@ function main() {
                     updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
                     updateElementText("player_position", person.position);
                     updateElementText("player_status", person.status);
+                    if (!person.inTraining) {
+                        trainingWarning = getElementByIdStrict('playerInTraining');
+                        trainingWarning.classList.add('hidden');
+                    }
                     if (person.parentId !== null && person.parentId !== 0) {
                         player_team = getElementByIdStrict("player_team");
                         player_team.innerText = getParentName(person.parentId);
