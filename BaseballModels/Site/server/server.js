@@ -3,9 +3,10 @@ const sqlite3 = require('sqlite3').verbose()
 const path = require('path')
 const favicon = require('serve-favicon')
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
+const host = process.env.HOST || "0.0.0.0"
 
-const db = new sqlite3.Database('../../SiteDb/Site.db', (err) => {
+const db = new sqlite3.Database('assets/Site.db', (err) => {
     if (err) {
         console.error('Error opening database:', err.message);
     } else {
@@ -134,6 +135,6 @@ app.get('/rankingsRequest', (req, res) => {
     }
 })
 
-app.listen(port, () => {
+app.listen(port, host, () => {
     console.log(`Server running on port=${port}`)
 })

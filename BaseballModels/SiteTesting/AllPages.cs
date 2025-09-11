@@ -147,5 +147,5 @@ namespace SiteTesting
 
 public static class Config
 {
-    public const int levels = 2;
+    public const int levels = 6;
 }
