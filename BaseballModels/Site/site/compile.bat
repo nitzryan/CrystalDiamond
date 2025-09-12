@@ -10,6 +10,7 @@ REM Create CSS Files
 python css_bundler.py player.css player.css
 python css_bundler.py rankings.css ranking.css
 python css_bundler.py teams.css ranking.css
+python css_bundler.py home.css home.css
 
 REM Compile typescript
 tsc -b

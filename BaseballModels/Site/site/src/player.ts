@@ -238,10 +238,14 @@ function tableUpdateCallback(tablebody : HTMLElement, monthcol : HTMLElement, ye
         const t = b.dataset.type
         return (t === 'month') && (!b.classList.contains('hidden'))
     }, false)
+
+    var monthly_elements = document.getElementsByClassName('table_month')
     if (any_monthly)
-        monthcol.classList.remove('collapse')
+        for (let i = 0; i < monthly_elements.length; i++)
+            monthly_elements[i].classList.remove('hidden')
     else
-        monthcol.classList.add('collapse')
+        for (let i = 0; i < monthly_elements.length; i++)
+            monthly_elements[i].classList.add('hidden')
 }
 
 function updateHitterStats(hitterStats : HitterStats[])
@@ -285,7 +289,7 @@ function updateHitterStats(hitterStats : HitterStats[])
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
-            <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
+            <td class='table_month hidden'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
@@ -380,7 +384,7 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
-            <td>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
+            <td class='table_month hidden'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
