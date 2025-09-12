@@ -2,7 +2,7 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
         "module": "none",
-        "outFile": "../server/src/js/player.js",
+        "outFile": "../server/src/js/home.js",
         "outDir": "dist",
         "rootDir": "src",
     },
