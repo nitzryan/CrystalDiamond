@@ -35,7 +35,7 @@ app.get("/rankings/", (req, res) => {
 })
 
 app.get('/', (req, res) => {
-    res.redirect('/rankings/')
+    res.sendFile(path.join(__dirname, "src/html/rankings.html"))
 })
 
 const dbAll = (sql, params) => {
