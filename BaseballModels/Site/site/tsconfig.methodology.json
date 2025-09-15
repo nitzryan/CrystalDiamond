@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "none",
+        "outFile": "../server/src/js/methodology.js",
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["src/methodology.ts", "src/searchbar.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+}

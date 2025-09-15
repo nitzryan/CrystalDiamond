@@ -1,0 +1,1 @@
+getElementByIdStrict('nav_methodology').classList.add('selected')

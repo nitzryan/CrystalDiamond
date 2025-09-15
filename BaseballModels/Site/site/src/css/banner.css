@@ -59,9 +59,9 @@ nav p {
     align-items: center;
 }
 
-/* #search:not(:focus-within) nav {
+#search:not(:focus-within) nav {
     display: none;
-} */
+}
 
 #searchBar {
     font-size: 1.5em;

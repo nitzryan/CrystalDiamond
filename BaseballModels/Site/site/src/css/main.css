@@ -36,7 +36,6 @@ canvas {
 .column {
     display: flex;
     flex-direction: column;
-    /* width: 100%; */
 }
 
 .center {
@@ -114,4 +113,38 @@ button {
 button:hover {
     background-color: var(--text-high);
     color: var(--background-high);
+}
+
+h1 {
+    text-align: center;
+
+}
+
+h2 {
+    text-align: center;
+}
+
+figure {
+    text-align: center;
+}
+
+figcaption {
+    margin-top: 0.25em;
+}
+
+figcaption a {
+    color: var(--text-high);
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+p, details {
+    text-align: justify;
+    margin: 1em 5em;
+    line-height: 1.5;
+}
+
+.section p, details {
+    text-indent: 2em;
+    font-size: 1.2em;
 }

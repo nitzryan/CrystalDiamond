@@ -16,5 +16,6 @@
         {"path": "./tsconfig.rankings.json"},
         {"path": "./tsconfig.teams.json"},
         {"path": "./tsconfig.home.json"},
+        {"path": "./tsconfig.methodology.json"},
     ],
 }

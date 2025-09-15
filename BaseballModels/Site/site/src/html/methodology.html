@@ -6,15 +6,124 @@
         <title>Methodology</title>
         <link rel="stylesheet" type="text/css" href="../css/home.css">
         <link href="favicon.ico" rel="icon" type="image/x-icon"/>
+        <script type="text/javascript" src="../js/methodology.js" defer></script>
     </head>
     <body>
         <!-- BANNER -->
-        <div class="center">
-            <div id="model_overview">
+        <div class="column center">
+            <div class="section">
                 <h1>Model Overview</h1>
-                <img src="./assets/model/Model_Overview.svg", alt="High-Level Model Architexture">
+                <figure>
+                    <img src="./assets/model/Model.svg", alt="High-Level Model Architecture">
+                    <figcaption>
+                        High-Level view of model
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="section">
                 <h2>Inputs (X)</h2>
-                <p>For a player, a stats input is generated for each of the </p>
+                <p>For a player, a stats input is generated each month, as well as one upon player signing.
+                    When a player plays at multiple levels in a given year, the stats are combined, with the level
+                    being the weighted average of the levels for the month.  All stats are normalized to the league
+                    at which the player is at, so rather than having a player's AVG, it instead has their AVG as a multiple
+                    of the average AVG at that league for that period.
+                </p>
+                <details>
+                    <summary class="paragraph">The following stats are used to create the inputs</summary>
+                        Both<ul>
+                            <li>Age at signing</li>
+                            <li>Draft Pick</li>
+                            <li>Draft Signing Rank</li>
+                            <li>Age</li>
+                            <li>Level</li>
+                            <li>Month</li>
+                            <li>PA</li>
+                            <li>League PA as % of largest month</li>
+                            <li>Player Injured Status</li>
+                            <li>Park Run Factor</li>
+                            <li>Park HR Factor</li>
+                        </ul>
+                        Hitters<ul>
+                            <li>AVG</li>
+                            <li>OBP</li>
+                            <li>ISO</li>
+                            <li>wOBA</li>
+                            <li>HR%</li>
+                            <li>BB%</li>
+                            <li>K%</li>
+                            <li>SB%</li>
+                            <li>SB attempts per PA</li>
+                            <li>% of games started at each position</li>
+                        </ul>
+                        Pitchers<ul>
+                            <li>ERA</li>
+                            <li>FIP</li>
+                            <li>wOBA</li>
+                            <li>HR%</li>
+                            <li>BB%</li>
+                            <li>K%</li>
+                            <li>Groundout%</li>
+                        </ul>
+                </details>
+            </div>
+            <div class="section">
+                <h2>RNN</h2>
+                <p>The main portion of the model lies in a Stacked RNN, label as RNN in the high level view.
+                    The RNN takes in two inputs, the input state and the previous hidden state, and returns an updated 
+                    hidden state.  This output is then fed into the next month of the model, as well as to
+                    the player state to make predictions with.  A diagram of a stacked RNN in showed below.
+                </p>
+                <figure>
+                    <img src="./assets/model/Stacked_RNN.png" alt="Stacked RNN Architecture">
+                    <figcaption>
+                        Stacked RNN architecture from 
+                        <a href="https://en.wikipedia.org/wiki/Recurrent_neural_network#Stacked_RNN">Wikipedia</a>
+                    </figcaption>
+                </figure>
+            </div>
+            <div class="section">
+                <h2>Player Model and Output (Y)</h2>
+                <p>
+                    The output of the RNN, the hidden stateh<sub>x</sub>, is used to create the player state, and that
+                    state is used to create the outputs for the model.  Once the model reaches the player state,
+                    it then diverges into predicting a number of different outputs.  The player state then generates
+                    a number of pre-output states, which are then used to create a number of different outputs.
+                </p>
+                <p>
+                    Once the model has reached the pre-output states, it is no longer a densely connected network
+                    with each node being influenced by each other node.  For output M, outputs Y<sub>M0</sub>
+                    through Y<sub>MN</sub> are generated only using pre-output states Z<sub>M0</sub> through Z<sub>MN</sub>,
+                    and no influence from other pre-output blocks.  This segregates each output into its own block,
+                    with this block translating the player state into a prediction that can be tested.
+                </p>
+                 <figure>
+                    <img src="./assets/model/Model_Player.svg" alt="Player Model and Output Architecture">
+                    <figcaption>
+                        Model Architecture from hidden state to outputs.  In each stage, N is not necessarily the same value as the previous stage
+                    </figcaption>
+                </figure>
+                <p>
+                    For the model outputs, they are done using classification using softmax to get the probability of each class.
+                    Doing classification for the predictions is done for two reasons. The first is that it allows
+                    for a probability distribution to be shown rather that just a number, so this model can differentiate between
+                    a player that is likely to be an MLB player but unlikely to be a star and a player who has a chance
+                    to be a star but is unlikely to make the show.  The second is that the distribution of player outcomes is not normal:
+                    the range of Hitter WAR during control was -4.3 to 53.9.  In training networks, using L2 loss (taking the error squared)
+                    generally gives better results than just the error, but in this case it would result in overvaluing players because
+                    a few superstars would generate a large model loss.  Instead, WAR is put into a number of different buckets and
+                    the model generates a probability that the player ended up in each bucket.
+                </p>
+                <p>The model currently generates 4 different outputs: WAR through control, peak seasonal WAR during control,
+                    the total PA/outs for a hitter/pitcher, and the highest level that a player achieved.  Noteably, all of these
+                    are predicted during the same model run, and since all predictions converge at the player state to propogate their
+                    loss through the model, this results in errors in level prediction affecting the model for WAR prediction and vica versa.
+                    Somewhat surprisingly, predicting the player's level and the player's WAR generates a better WAR
+                    prediction than just predicting their WAR.  The likely reason for this is that it allows for the model
+                    to better differentiate between players in the lower buckets; for the lowest&mdash;&le;0 WAR&mdash;the player could have
+                    made the majors and had a few hundred PAs but not made it work, or they could have flamed out after hitting
+                    .150 in the DSL.  While they both are in the same bucket, the MLB player was much closer to providing positive WAR
+                    than the DSL one, so this gives the model that insight between them.
+                </p>
             </div>
         </div>
         
