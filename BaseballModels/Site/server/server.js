@@ -34,6 +34,10 @@ app.get("/rankings/", (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/rankings.html"))
 })
 
+app.get("/methodology/", (req, res) => {
+    res.sendFile(path.join(__dirname, "src/html/methodology.html"))
+})
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/rankings.html"))
 })
