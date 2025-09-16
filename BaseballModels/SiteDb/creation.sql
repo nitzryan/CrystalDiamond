@@ -116,6 +116,22 @@ CREATE TABLE "PlayerRank" (
 	PRIMARY KEY("mlbId", "year", "month", "modelName")
 );
 
+CREATE TABLE "HomeData" (
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"rankType" INTEGER NOT NULL,
+	"mlbId" INTEGER NOT NULL,
+	"data" TEXT NOT NULL,
+	"rank" INTEGER NOT NULL,
+	PRIMARY KEY("year", "month", "rankType", "rank")
+);
+
+CREATE TABLE "HomeDataType" (
+	"type" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("type")
+);
+
 CREATE INDEX "idx_PlayerRankOverall" ON "PlayerRank" (
 	"year", "month", "rank"
 );
