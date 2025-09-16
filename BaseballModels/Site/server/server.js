@@ -39,7 +39,7 @@ app.get("/methodology/", (req, res) => {
 })
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, "src/html/rankings.html"))
+    res.sendFile(path.join(__dirname, "src/html/home.html"))
 })
 
 const dbAll = (sql, params) => {
@@ -136,6 +136,27 @@ app.get('/rankingsRequest', (req, res) => {
                 res.json(rows)
             })
         }
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in rankingsRequest: " + e)
+    }
+})
+
+app.get('/homedata', async (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+
+        let dataPromise = Promise.all([
+            dbAll(`SELECT hd.*, p.firstName, p.lastName, p.position, p.orgId FROM HomeData as hd
+                INNER JOIN Player as p ON hd.mlbId = p.mlbId
+                WHERE hd.year=? AND hd.month=?`, [year,month]),
+            dbAll("SELECT * FROM HomeDataType", [])
+        ])
+        
+        const [hd, hdt] = await dataPromise
+        res.send({"types": hdt, "data": hd})
     }
     catch (e)
     {

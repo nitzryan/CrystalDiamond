@@ -1,5 +1,3 @@
-let searchBar : SearchBar | null = null
-
 let month : number | null = null
 let year : number | null = null
 let teamId : number | null = null

@@ -35,7 +35,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var searchBar = null;
 var month = null;
 var year = null;
 var teamId = null;
@@ -271,6 +270,7 @@ function setupRankings(month, year, team, num_elements) {
     }); });
     rankings_load.dispatchEvent(new Event('click'));
 }
+var searchBar = null;
 var SearchBar = (function () {
     function SearchBar(json) {
         var _this = this;

@@ -425,7 +425,6 @@ var model_graph = getElementByIdStrict("projWarGraph");
 var line_graph;
 var pie_graph;
 var keyControls;
-var searchBar;
 var person;
 var hitterModels;
 var pitcherModels;
@@ -506,6 +505,7 @@ function main() {
     });
 }
 main();
+var searchBar = null;
 var SearchBar = (function () {
     function SearchBar(json) {
         var _this = this;

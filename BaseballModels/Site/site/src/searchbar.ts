@@ -1,3 +1,5 @@
+let searchBar : SearchBar | null = null
+
 class SearchBar
 {
     private mlbItems: JsonArray

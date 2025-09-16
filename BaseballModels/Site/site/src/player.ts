@@ -593,7 +593,6 @@ const model_graph = getElementByIdStrict("projWarGraph") as HTMLCanvasElement
 let line_graph : LineGraph
 let pie_graph : PieGraph
 let keyControls : KeyControls
-let searchBar : SearchBar
 
 let person : Person
 let hitterModels : Model[]
