@@ -83,9 +83,9 @@ function main() {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    datesJsonPromise = retrieveJson('../../assets/dates.json.gz');
-                    player_search_data = retrieveJson('../../assets/player_search.json.gz');
-                    org_map_promise = retrieveJson("../../assets/map.json.gz");
+                    datesJsonPromise = retrieveJson('/assets/dates.json.gz');
+                    player_search_data = retrieveJson('/assets/player_search.json.gz');
+                    org_map_promise = retrieveJson("/assets/map.json.gz");
                     return [4, datesJsonPromise];
                 case 1:
                     datesJson = _b.sent();

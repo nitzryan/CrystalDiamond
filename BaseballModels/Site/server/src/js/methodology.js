@@ -35,17 +35,20 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-getElementByIdStrict('nav_methodology').classList.add('selected');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var player_search_data, _a;
+        var player_search_data, org_map_promise, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    player_search_data = retrieveJson('../../assets/player_search.json.gz');
+                    player_search_data = retrieveJson('/assets/player_search.json.gz');
+                    org_map_promise = retrieveJson("/assets/map.json.gz");
+                    return [4, org_map_promise];
+                case 1:
+                    org_map = _b.sent();
                     _a = SearchBar.bind;
                     return [4, player_search_data];
-                case 1:
+                case 2:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     return [2];
             }
@@ -53,6 +56,7 @@ function main() {
     });
 }
 main();
+getElementByIdStrict('nav_methodology').classList.add('selected');
 var searchBar = null;
 var SearchBar = (function () {
     function SearchBar(json) {

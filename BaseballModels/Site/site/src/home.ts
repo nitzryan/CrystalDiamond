@@ -70,9 +70,9 @@ function createHomeDataElements(home_data : JsonObject)
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const org_map_promise = retrieveJson("../../assets/map.json.gz")
+    const datesJsonPromise = retrieveJson('/assets/dates.json.gz')
+    const player_search_data = retrieveJson('/assets/player_search.json.gz')
+    const org_map_promise = retrieveJson("/assets/map.json.gz")
     
 
     const datesJson = await datesJsonPromise

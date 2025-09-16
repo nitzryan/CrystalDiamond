@@ -174,7 +174,7 @@ namespace SitePrep
                 int month = 4;
 
                 List<(int, int)> dates = new();
-                while (year <= endYear || (year == endYear && month <= endMonth))
+                while (year < endYear || (year == endYear && month <= endMonth))
                 {
                     dates.Add((month, year));
                     month++;
