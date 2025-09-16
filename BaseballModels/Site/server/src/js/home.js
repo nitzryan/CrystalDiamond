@@ -64,7 +64,8 @@ function createHomeDataElements(home_data) {
         var hd_array = getHomeData(current_hd);
         hd_array.forEach(function (f) {
             var li = document.createElement('li');
-            li.innerHTML = "<a href=./player?id=".concat(f.mlbId, ">").concat(f.name, "</a> ").concat(f.position, " ").concat(getParentAbbr(f.orgId), " ").concat(f.data);
+            li.innerHTML =
+                "\n            <div class='rankings_item'>\n                <div class='rankings_row'>\n                    <div class='rankings_name'><a href='./player?id=".concat(f.mlbId, "'>").concat(f.name, "</a></div>\n                    <div class='rankings_rightrow'>\n                        <div><a href='./teams?id=").concat(f.orgId, "'>").concat(getParentAbbr(f.orgId), "</a></div>\n                    </div>\n                </div>\n                <div class='rankings_row'>\n                    <div>").concat(f.data, "</div>\n                    <div class='rankings_rightrow'>\n                        <div>").concat(f.position, "</div>\n                    </div>\n                </div>\n            </div>\n            ");
             list.appendChild(li);
         });
         type_div.append(list);
@@ -101,6 +102,7 @@ function main() {
                     return [4, player_search_data];
                 case 5:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    getElementByIdStrict('nav_home').classList.add('selected');
                     return [2];
             }
         });

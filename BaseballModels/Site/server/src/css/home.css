@@ -406,4 +406,44 @@ nav p {
     background-color: rgb(18, 40, 75);
     color: rgb(255, 197, 47);
 }
+#homeDataContainer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+    row-gap: 3em;
+    gap: 10%;
+}
+
+#homeDataContainer > div {
+    width: 30%;
+    border: 0.25em solid var(--color-med);
+    border-radius: 2em;
+    padding-right: 2em;
+    margin-bottom: 1em;
+}
+
+.rankings_item {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1em;
+}
+
+.rankings_row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.rankings_rightrow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.rankings_item a {
+    color: var(--text-high);
+    font-weight: bold;
+}
 

@@ -43,7 +43,23 @@ function createHomeDataElements(home_data : JsonObject)
         const hd_array = getHomeData(current_hd)
         hd_array.forEach(f => {
             let li = document.createElement('li')
-            li.innerHTML = `<a href=./player?id=${f.mlbId}>${f.name}</a> ${f.position} ${getParentAbbr(f.orgId)} ${f.data}`
+            li.innerHTML = 
+            `
+            <div class='rankings_item'>
+                <div class='rankings_row'>
+                    <div class='rankings_name'><a href='./player?id=${f.mlbId}'>${f.name}</a></div>
+                    <div class='rankings_rightrow'>
+                        <div><a href='./teams?id=${f.orgId}'>${getParentAbbr(f.orgId)}</a></div>
+                    </div>
+                </div>
+                <div class='rankings_row'>
+                    <div>${f.data}</div>
+                    <div class='rankings_rightrow'>
+                        <div>${f.position}</div>
+                    </div>
+                </div>
+            </div>
+            `
             list.appendChild(li)
         })
 
@@ -66,6 +82,7 @@ async function main()
     createHomeDataElements(home_data)
     
     searchBar = new SearchBar(await player_search_data)
+    getElementByIdStrict('nav_home').classList.add('selected')
 }
 
 main()
