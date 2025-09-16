@@ -16,6 +16,7 @@ namespace SitePrep
         private const int GRADUATED_TYPE = 1;
         private const int MOST_IMPROVED_TYPE = 2;
         private const int LEAST_IMPROVED_TYPE = 3;
+        private const int BREAKOUT_TYPE = 4;
 
         public static bool Main()
         {
@@ -75,7 +76,7 @@ namespace SitePrep
                 }
                 siteDb.SaveChanges();
 
-                // Most-Improved/Degraded
+                // Most-Improved/Degraded/Breakout
                 siteDb.HomeDataType.Add(new HomeDataType
                 {
                     Name = "Most Improved",
@@ -85,6 +86,11 @@ namespace SitePrep
                 {
                     Name = "Least Improved",
                     Type = LEAST_IMPROVED_TYPE
+                });
+                siteDb.HomeDataType.Add(new HomeDataType
+                {
+                    Name = "Breakout Players",
+                    Type = BREAKOUT_TYPE
                 });
                 using (ProgressBar progressBar = new ProgressBar(datePairs.Count(), "Generating Most/Least Improved"))
                 {
@@ -99,7 +105,7 @@ namespace SitePrep
                                 && f.cur.Month == datePair.CurMonth 
                                 && f.prev.Year == datePair.PrevYear 
                                 && f.prev.Month == datePair.PrevMonth)
-                            .Select(f => new { f.cur.MlbId, delta = f.cur.War - f.prev.War })
+                            .Select(f => new { f.cur.MlbId, delta = f.cur.War - f.prev.War, prevWar = f.prev.War, curWar = f.cur.War })
                             .OrderByDescending(f => f.delta).ToList();
 
                         int length = Math.Min(10, players.Count());
@@ -112,7 +118,7 @@ namespace SitePrep
                                 Month = datePair.CurMonth,
                                 RankType = MOST_IMPROVED_TYPE,
                                 MlbId = player.MlbId,
-                                Data = player.delta.ToString("0.0") + " WAR",
+                                Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ") WAR",
                                 Rank = rank + 1
                             });
 
@@ -123,10 +129,27 @@ namespace SitePrep
                                 Month = datePair.CurMonth,
                                 RankType = LEAST_IMPROVED_TYPE,
                                 MlbId = revPlayer.MlbId,
-                                Data = revPlayer.delta.ToString("0.0") + " WAR",
+                                Data = revPlayer.curWar.ToString("0.0") + " (" + revPlayer.delta.ToString("0.0") + ") WAR",
                                 Rank = rank + 1
                             });
                         }
+
+                        // Breakout should go by multiple, with a 0.5 min floor
+                        players = [.. players.OrderByDescending(f => f.delta / Math.Max(f.prevWar, 0.5f))];
+                        for (var rank = 0; rank < length; rank++)
+                        {
+                            var player = players[rank];
+                            siteDb.Add(new HomeData
+                            {
+                                Year = datePair.CurYear,
+                                Month = datePair.CurMonth,
+                                RankType = BREAKOUT_TYPE,
+                                MlbId = player.MlbId,
+                                Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ") WAR",
+                                Rank = rank + 1
+                            });
+                        }
+
                         progressBar.Tick();
                     }
                 }
