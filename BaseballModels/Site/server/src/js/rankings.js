@@ -75,9 +75,6 @@ function main() {
                     return [4, player_search_data];
                 case 3:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
-                    return [4, selector];
-                case 4:
-                    _b.sent();
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
@@ -97,11 +94,75 @@ var month_select = getElementByIdStrict('month_select');
 var team_select = document.getElementById('team_select');
 var rankings_button = getElementByIdStrict('rankings_button');
 var rankings_error = getElementByIdStrict('rankings_error');
+var endYear = 0;
+var endMonth = 0;
+function setupSelector(args) {
+    endYear = args.endYear;
+    endMonth = args.endMonth;
+    for (var i = args.startYear; i <= endYear; i++) {
+        var opt = document.createElement('option');
+        opt.value = i.toString();
+        opt.innerText = i.toString();
+        year_select.appendChild(opt);
+    }
+    for (var i = 4; i <= 9; i++) {
+        var opt = document.createElement('option');
+        opt.value = i.toString();
+        opt.innerText = MONTH_CODES[i];
+        month_select.appendChild(opt);
+    }
+    year_select.value = args.year.toString();
+    month_select.value = args.month.toString();
+    year_select.addEventListener('change', selectorEventHandler);
+    month_select.addEventListener('change', selectorEventHandler);
+    if (team_select !== null && args.startTeam !== null) {
+        setupTeamSelector(args.startTeam);
+        team_select.addEventListener('change', selectorEventHandler);
+    }
+}
+function selectorEventHandler(ev) {
+    var selectedMonth = parseInt(month_select.value);
+    var selectedYear = parseInt(year_select.value);
+    if (endYear == selectedYear && endMonth < selectedMonth) {
+        rankings_button.classList.add('hidden');
+        rankings_error.classList.remove('hidden');
+    }
+    else {
+        rankings_error.classList.add('hidden');
+        rankings_button.classList.remove('hidden');
+    }
+}
+function setupTeamSelector(teamId) {
+    if (org_map === null)
+        throw new Error("org_map null at setupSelector");
+    if (team_select === null)
+        throw new Error('team_select null in setupTeamSelector');
+    var parents = org_map["parents"];
+    var teams = [];
+    for (var id in parents) {
+        teams.push({
+            id: parseInt(id),
+            abbr: parents[id]['abbr']
+        });
+    }
+    teams.sort(function (a, b) {
+        return a.abbr.localeCompare(b.abbr);
+    });
+    var elements = teams.map(function (f) {
+        var el = document.createElement('option');
+        el.value = f.id.toString();
+        el.innerText = f.abbr;
+        return el;
+    });
+    for (var _i = 0, elements_1 = elements; _i < elements_1.length; _i++) {
+        var el = elements_1[_i];
+        team_select.appendChild(el);
+    }
+    team_select.value = teamId.toString();
+}
 var rankings_header = getElementByIdStrict('rankings_header');
 var rankings_list = getElementByIdStrict('rankings_list');
 var rankings_load = getElementByIdStrict('rankings_load');
-var endYear = 0;
-var endMonth = 0;
 function createPlayer(obj) {
     var p = {
         name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
@@ -124,9 +185,6 @@ function createPlayerElement(player, year, month) {
     el.innerHTML =
         "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(player.war.toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
-    var element = document.createElement('li');
-    element.innerHTML = "<div><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a><div>").concat(player.position, "</div><div><div class='war'>").concat(player.war.toFixed(1), " WAR</div><div class='team").concat(player.team, "'>").concat(teamAbbr, "</span></div></div>");
-    return element;
 }
 var PlayerLoader = (function () {
     function PlayerLoader(year, month, teamId) {
@@ -172,74 +230,6 @@ var PlayerLoader = (function () {
     };
     return PlayerLoader;
 }());
-function selectorEventHandler(ev) {
-    var selectedMonth = parseInt(month_select.value);
-    var selectedYear = parseInt(year_select.value);
-    if (endYear == selectedYear && endMonth < selectedMonth) {
-        rankings_button.classList.add('hidden');
-        rankings_error.classList.remove('hidden');
-    }
-    else {
-        rankings_error.classList.add('hidden');
-        rankings_button.classList.remove('hidden');
-    }
-}
-function setupTeamSelector(teamId) {
-    if (org_map === null)
-        throw new Error("org_map null at setupSelector");
-    if (team_select === null)
-        throw new Error('team_select null in setupTeamSelector');
-    var parents = org_map["parents"];
-    var teams = [];
-    for (var id in parents) {
-        teams.push({
-            id: parseInt(id),
-            abbr: parents[id]['abbr']
-        });
-    }
-    teams.sort(function (a, b) {
-        return a.abbr.localeCompare(b.abbr);
-    });
-    var elements = teams.map(function (f) {
-        var el = document.createElement('option');
-        el.value = f.id.toString();
-        el.innerText = f.abbr;
-        return el;
-    });
-    for (var _i = 0, elements_1 = elements; _i < elements_1.length; _i++) {
-        var el = elements_1[_i];
-        team_select.appendChild(el);
-    }
-    team_select.value = teamId.toString();
-}
-function setupSelector(args) {
-    return __awaiter(this, void 0, void 0, function () {
-        var i, opt, i, opt;
-        return __generator(this, function (_a) {
-            for (i = args.startYear; i <= endYear; i++) {
-                opt = document.createElement('option');
-                opt.value = i.toString();
-                opt.innerText = i.toString();
-                year_select.appendChild(opt);
-            }
-            for (i = 4; i <= 9; i++) {
-                opt = document.createElement('option');
-                opt.value = i.toString();
-                opt.innerText = MONTH_CODES[i];
-                month_select.appendChild(opt);
-            }
-            year_select.value = args.year.toString();
-            month_select.value = args.month.toString();
-            year_select.addEventListener('change', selectorEventHandler);
-            month_select.addEventListener('change', selectorEventHandler);
-            if (team_select !== null && args.startTeam !== null) {
-                setupTeamSelector(args.startTeam);
-                team_select.addEventListener('change', selectorEventHandler);
-            }
-            return [2];
-        });
-    });
-}
 var playerLoader;
 function setupRankings(month, year, team, num_elements) {
     var _this = this;
@@ -436,6 +426,14 @@ function getQueryParam(name) {
         throw new Error("Unable to get query parameter ".concat(name));
     return Number(value);
 }
+function getQueryParamBackup(name, backup) {
+    try {
+        return getQueryParam(name);
+    }
+    catch (_) {
+        return backup;
+    }
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -506,6 +504,14 @@ function getParentAbbr(id) {
     var parents = org_map["parents"];
     var parent = parents[id];
     return parent["abbr"];
+}
+function getParentAbbrFallback(id, fallback) {
+    try {
+        return getParentAbbr(id);
+    }
+    catch (_) {
+        return fallback;
+    }
 }
 function getParentName(id) {
     if (org_map === null)

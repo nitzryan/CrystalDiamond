@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Baseball Models</title>
+        <title>Crystal Diamond</title>
         <link rel="stylesheet" type="text/css" href="../css/home.css">
         <link href="favicon.ico" rel="icon" type="image/x-icon"/>
         <script type="text/javascript" src="../js/home.js" defer></script>
@@ -37,7 +37,15 @@
     </div>
 </div>
 <div id="colorbar"></div>
-        <h1>Home</h1>
+        <h1 id="home_title">Home</h1>
+        <div id="rankings_selector" class="row center">
+            <select id="year_select"></select>
+            <select id="month_select"></select>
+            <div id="rankings_get">
+                <button id="rankings_button">Update</button>
+                <div id="rankings_error" class="hidden">Invalid Date</div>
+            </div>
+        </div>
         <div id="homeDataContainer">
 
         </div>

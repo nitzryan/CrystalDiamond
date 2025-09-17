@@ -32,7 +32,6 @@ async function main()
     setupRankings(month, year, null, 100)
     searchBar = new SearchBar(await player_search_data)
 
-    await selector
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
         const yr = year_select.value

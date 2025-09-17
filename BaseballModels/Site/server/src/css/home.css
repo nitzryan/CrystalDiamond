@@ -447,3 +447,16 @@ nav p {
     font-weight: bold;
 }
 
+#rankings_selector {
+    gap: 2em;
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+#rankings_selector * {
+    font-size: 1.25em;
+}
+
+#home_title {
+    margin-bottom: 0.25em;
+}

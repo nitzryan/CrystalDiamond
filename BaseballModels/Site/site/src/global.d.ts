@@ -10,6 +10,7 @@ declare function getElementByIdStrict(id : string) : HTMLElement
 declare function updateElementText(id: string, text : string) : void
 declare function getDateDelta(start : Date, end : Date) : number[]
 declare function getQueryParam(name : string) : number
+declare function getQueryParamBackup(name : string, backup : number) : number
 declare function retrieveJsonNullable(filename : string) : Promise<JsonObject | null>
 declare function retrieveJson(filename : string) : Promise<JsonObject>
 declare function getTeamAbbr(id : number, year : number) : string

@@ -676,6 +676,14 @@ function getQueryParam(name) {
         throw new Error("Unable to get query parameter ".concat(name));
     return Number(value);
 }
+function getQueryParamBackup(name, backup) {
+    try {
+        return getQueryParam(name);
+    }
+    catch (_) {
+        return backup;
+    }
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -746,6 +754,14 @@ function getParentAbbr(id) {
     var parents = org_map["parents"];
     var parent = parents[id];
     return parent["abbr"];
+}
+function getParentAbbrFallback(id, fallback) {
+    try {
+        return getParentAbbr(id);
+    }
+    catch (_) {
+        return fallback;
+    }
 }
 function getParentName(id) {
     if (org_map === null)

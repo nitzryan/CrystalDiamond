@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/home.ts", "src/searchbar.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+    "include": ["src/home.ts", "src/dateSelector.ts", "src/searchbar.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
 }

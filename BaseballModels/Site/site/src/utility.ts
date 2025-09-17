@@ -96,6 +96,16 @@ function getQueryParam(name : string) : number
     return Number(value);
 }
 
+function getQueryParamBackup(name : string, backup : number) : number
+{
+    try {
+        return getQueryParam(name)
+    } catch (_)
+    {
+        return backup
+    }
+}
+
 async function retrieveJsonNullable(filename : string) : Promise<JsonObject | null>
 {
     const response = await fetch(filename)
@@ -167,6 +177,16 @@ function getParentAbbr(id: number) : string
     const parents = org_map["parents"] as JsonObject
     const parent = parents[id] as JsonObject
     return parent["abbr"] as string
+}
+
+function getParentAbbrFallback(id : number, fallback : string) : string
+{
+    try {
+        return getParentAbbr(id)
+    } catch (_)
+    {
+        return fallback
+    }
 }
 
 function getParentName(id : number) : string

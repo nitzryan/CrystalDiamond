@@ -49,7 +49,7 @@ function createHomeDataElements(home_data : JsonObject)
                 <div class='rankings_row'>
                     <div class='rankings_name'><a href='./player?id=${f.mlbId}'>${f.name}</a></div>
                     <div class='rankings_rightrow'>
-                        <div><a href='./teams?id=${f.orgId}'>${getParentAbbr(f.orgId)}</a></div>
+                        <div><a href='./teams?id=${f.orgId}'>${getParentAbbrFallback(f.orgId, "")}</a></div>
                     </div>
                 </div>
                 <div class='rankings_row'>
@@ -74,15 +74,36 @@ async function main()
     const player_search_data = retrieveJson('/assets/player_search.json.gz')
     const org_map_promise = retrieveJson("/assets/map.json.gz")
     
-
     const datesJson = await datesJsonPromise
-    const home_data_response = fetch(`/homedata?year=${datesJson["endYear"]}&month=${datesJson["endMonth"]}`)
+    const endYear = datesJson["endYear"] as number
+    const endMonth = datesJson["endMonth"] as number
+    const year = getQueryParamBackup("year", endYear)
+    const month = getQueryParamBackup("month", endMonth)
+
+    const home_data_response = fetch(`/homedata?year=${year}&month=${month}`)
     const home_data = await(await home_data_response).json() as JsonObject
     org_map = await org_map_promise
     createHomeDataElements(home_data)
     
+    
+    setupSelector({
+        month : month,
+        year : year,
+        endYear : endYear,
+        endMonth : endMonth,
+        startYear : datesJson["startYear"] as number,
+        startTeam : null
+    })
+
     searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_home').classList.add('selected')
+
+    rankings_button.addEventListener('click', (event) => {
+        const mnth = month_select.value
+        const yr = year_select.value
+        
+        window.location.href = `./?year=${yr}&month=${mnth}`
+    })
 }
 
 main()

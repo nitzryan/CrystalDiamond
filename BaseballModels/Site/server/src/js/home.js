@@ -65,7 +65,7 @@ function createHomeDataElements(home_data) {
         hd_array.forEach(function (f) {
             var li = document.createElement('li');
             li.innerHTML =
-                "\n            <div class='rankings_item'>\n                <div class='rankings_row'>\n                    <div class='rankings_name'><a href='./player?id=".concat(f.mlbId, "'>").concat(f.name, "</a></div>\n                    <div class='rankings_rightrow'>\n                        <div><a href='./teams?id=").concat(f.orgId, "'>").concat(getParentAbbr(f.orgId), "</a></div>\n                    </div>\n                </div>\n                <div class='rankings_row'>\n                    <div>").concat(f.data, "</div>\n                    <div class='rankings_rightrow'>\n                        <div>").concat(f.position, "</div>\n                    </div>\n                </div>\n            </div>\n            ");
+                "\n            <div class='rankings_item'>\n                <div class='rankings_row'>\n                    <div class='rankings_name'><a href='./player?id=".concat(f.mlbId, "'>").concat(f.name, "</a></div>\n                    <div class='rankings_rightrow'>\n                        <div><a href='./teams?id=").concat(f.orgId, "'>").concat(getParentAbbrFallback(f.orgId, ""), "</a></div>\n                    </div>\n                </div>\n                <div class='rankings_row'>\n                    <div>").concat(f.data, "</div>\n                    <div class='rankings_rightrow'>\n                        <div>").concat(f.position, "</div>\n                    </div>\n                </div>\n            </div>\n            ");
             list.appendChild(li);
         });
         type_div.append(list);
@@ -79,7 +79,7 @@ function createHomeDataElements(home_data) {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, org_map_promise, datesJson, home_data_response, home_data, _a;
+        var datesJsonPromise, player_search_data, org_map_promise, datesJson, endYear, endMonth, year, month, home_data_response, home_data, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -89,7 +89,11 @@ function main() {
                     return [4, datesJsonPromise];
                 case 1:
                     datesJson = _b.sent();
-                    home_data_response = fetch("/homedata?year=".concat(datesJson["endYear"], "&month=").concat(datesJson["endMonth"]));
+                    endYear = datesJson["endYear"];
+                    endMonth = datesJson["endMonth"];
+                    year = getQueryParamBackup("year", endYear);
+                    month = getQueryParamBackup("month", endMonth);
+                    home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month));
                     return [4, home_data_response];
                 case 2: return [4, (_b.sent()).json()];
                 case 3:
@@ -98,17 +102,102 @@ function main() {
                 case 4:
                     org_map = _b.sent();
                     createHomeDataElements(home_data);
+                    setupSelector({
+                        month: month,
+                        year: year,
+                        endYear: endYear,
+                        endMonth: endMonth,
+                        startYear: datesJson["startYear"],
+                        startTeam: null
+                    });
                     _a = SearchBar.bind;
                     return [4, player_search_data];
                 case 5:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     getElementByIdStrict('nav_home').classList.add('selected');
+                    rankings_button.addEventListener('click', function (event) {
+                        var mnth = month_select.value;
+                        var yr = year_select.value;
+                        window.location.href = "./?year=".concat(yr, "&month=").concat(mnth);
+                    });
                     return [2];
             }
         });
     });
 }
 main();
+var rankings_selector = getElementByIdStrict('rankings_selector');
+var year_select = getElementByIdStrict('year_select');
+var month_select = getElementByIdStrict('month_select');
+var team_select = document.getElementById('team_select');
+var rankings_button = getElementByIdStrict('rankings_button');
+var rankings_error = getElementByIdStrict('rankings_error');
+var endYear = 0;
+var endMonth = 0;
+function setupSelector(args) {
+    endYear = args.endYear;
+    endMonth = args.endMonth;
+    for (var i = args.startYear; i <= endYear; i++) {
+        var opt = document.createElement('option');
+        opt.value = i.toString();
+        opt.innerText = i.toString();
+        year_select.appendChild(opt);
+    }
+    for (var i = 4; i <= 9; i++) {
+        var opt = document.createElement('option');
+        opt.value = i.toString();
+        opt.innerText = MONTH_CODES[i];
+        month_select.appendChild(opt);
+    }
+    year_select.value = args.year.toString();
+    month_select.value = args.month.toString();
+    year_select.addEventListener('change', selectorEventHandler);
+    month_select.addEventListener('change', selectorEventHandler);
+    if (team_select !== null && args.startTeam !== null) {
+        setupTeamSelector(args.startTeam);
+        team_select.addEventListener('change', selectorEventHandler);
+    }
+}
+function selectorEventHandler(ev) {
+    var selectedMonth = parseInt(month_select.value);
+    var selectedYear = parseInt(year_select.value);
+    if (endYear == selectedYear && endMonth < selectedMonth) {
+        rankings_button.classList.add('hidden');
+        rankings_error.classList.remove('hidden');
+    }
+    else {
+        rankings_error.classList.add('hidden');
+        rankings_button.classList.remove('hidden');
+    }
+}
+function setupTeamSelector(teamId) {
+    if (org_map === null)
+        throw new Error("org_map null at setupSelector");
+    if (team_select === null)
+        throw new Error('team_select null in setupTeamSelector');
+    var parents = org_map["parents"];
+    var teams = [];
+    for (var id in parents) {
+        teams.push({
+            id: parseInt(id),
+            abbr: parents[id]['abbr']
+        });
+    }
+    teams.sort(function (a, b) {
+        return a.abbr.localeCompare(b.abbr);
+    });
+    var elements = teams.map(function (f) {
+        var el = document.createElement('option');
+        el.value = f.id.toString();
+        el.innerText = f.abbr;
+        return el;
+    });
+    for (var _i = 0, elements_1 = elements; _i < elements_1.length; _i++) {
+        var el = elements_1[_i];
+        team_select.appendChild(el);
+    }
+    team_select.value = teamId.toString();
+}
 var searchBar = null;
 var SearchBar = (function () {
     function SearchBar(json) {
@@ -264,6 +353,14 @@ function getQueryParam(name) {
         throw new Error("Unable to get query parameter ".concat(name));
     return Number(value);
 }
+function getQueryParamBackup(name, backup) {
+    try {
+        return getQueryParam(name);
+    }
+    catch (_) {
+        return backup;
+    }
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -334,6 +431,14 @@ function getParentAbbr(id) {
     var parents = org_map["parents"];
     var parent = parents[id];
     return parent["abbr"];
+}
+function getParentAbbrFallback(id, fallback) {
+    try {
+        return getParentAbbr(id);
+    }
+    catch (_) {
+        return fallback;
+    }
 }
 function getParentName(id) {
     if (org_map === null)
