@@ -11,6 +11,7 @@ namespace SiteDb
 		public DbSet<PitcherMonthStats> PitcherMonthStats {get; set;}
 		public DbSet<PlayerModel> PlayerModel {get; set;}
 		public DbSet<PlayerRank> PlayerRank {get; set;}
+		public DbSet<TeamRank> TeamRank {get; set;}
 		public DbSet<HomeData> HomeData {get; set;}
 		public DbSet<HomeDataType> HomeDataType {get; set;}
 
@@ -25,6 +26,7 @@ namespace SiteDb
 			modelBuilder.Entity<PitcherMonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelName});
 			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelName,f.Year,f.Month});
+			modelBuilder.Entity<TeamRank>().HasKey(f => new {f.TeamId,f.ModelName,f.Year,f.Month});
 			modelBuilder.Entity<HomeData>().HasKey(f => new {f.Year,f.Month,f.RankType,f.Rank});
 			modelBuilder.Entity<HomeDataType>().HasKey(f => new {f.Type});
 		}

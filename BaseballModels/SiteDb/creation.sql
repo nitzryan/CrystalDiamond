@@ -116,6 +116,22 @@ CREATE TABLE "PlayerRank" (
 	PRIMARY KEY("mlbId", "year", "month", "modelName")
 );
 
+CREATE TABLE "TeamRank" (
+	"teamId" INTEGER NOT NULL,
+	"modelName" TEXT NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"value" REAL NOT NULL,
+	"highestRank" INTEGER NOT NULL,
+	"top10" INTEGER NOT NULL,
+	"top50" INTEGER NOT NULL,
+	"top100" INTEGER NOT NULL,
+	"top200" INTEGER NOT NULL,
+	"top500" INTEGER NOT NULL,
+	"rank" INTEGER NOT NULL,
+	PRIMARY KEY("teamId", "year", "month", "modelName")
+);
+
 CREATE TABLE "HomeData" (
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,

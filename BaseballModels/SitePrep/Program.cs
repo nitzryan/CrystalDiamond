@@ -1,4 +1,6 @@
-﻿namespace SitePrep
+﻿using SiteDb;
+
+namespace SitePrep
 {
     internal class Program
     {
@@ -13,26 +15,29 @@
             //if (!ModelAggregation.Main())
             //    return;
 
-            if (!GenerateRankings.Main(year, month))
+            //if (!GenerateRankings.Main(year, month))
+            //    return;
+
+            if (!GenerateTeamRank.Main())
                 return;
 
-            if (!HitterPage.Main())
-                return;
+            //if (!HitterPage.Main())
+            //    return;
 
-            if (!PitcherPage.Main())
-                return;
+            //if (!PitcherPage.Main())
+            //    return;
 
-            if (!OrgMap.Main())
-                return;
+            //if (!OrgMap.Main())
+            //    return;
 
-            if (!SearchIndex.Main())
-                return;
+            //if (!SearchIndex.Main())
+            //    return;
 
-            if (!Homepage.Main())
-                return;
+            //if (!Homepage.Main())
+            //    return;
 
-            if (!MoveDbToServer.Main())
-                return;
+            //if (!MoveDbToServer.Main())
+            //    return;
         }
     }
 }
