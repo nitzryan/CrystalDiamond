@@ -36,8 +36,8 @@ namespace SitePrep
             //if (!Homepage.Main())
             //    return;
 
-            //if (!MoveDbToServer.Main())
-            //    return;
+            if (!MoveDbToServer.Main())
+                return;
         }
     }
 }

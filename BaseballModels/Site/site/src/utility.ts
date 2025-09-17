@@ -96,6 +96,16 @@ function getQueryParam(name : string) : number
     return Number(value);
 }
 
+function getQueryParamNullable(name : string) : number | null
+{
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get(name)
+    if (value === null)
+        return null
+        
+    return Number(value);
+}
+
 function getQueryParamBackup(name : string, backup : number) : number
 {
     try {

@@ -143,6 +143,25 @@ app.get('/rankingsRequest', (req, res) => {
     }
 })
 
+app.get('/teamRanks', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        
+        db.all(`
+            SELECT * FROM TeamRank
+            WHERE year=? AND month=?
+            ORDER BY rank ASC
+            `,
+        [year, month], (err, rows) => {
+            res.json(rows)
+        })
+    } catch (e)
+    {
+        res.status(500).send("Error in teamRanks: " + e)
+    }
+})
+
 app.get('/homedata', async (req, res) => {
     try {
         const year = req.query.year

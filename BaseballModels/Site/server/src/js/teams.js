@@ -38,55 +38,120 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var month = null;
 var year = null;
 var teamId = null;
+var rankings_overall = document.getElementById('rankings_overall');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, selector, _a;
+        var datesJsonPromise, player_search_data, datesJson, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     datesJsonPromise = retrieveJson('../../assets/dates.json.gz');
-                    try {
-                        month = getQueryParam('month');
-                        year = getQueryParam('year');
-                        teamId = getQueryParam('team');
-                    }
-                    catch (error) { }
+                    month = getQueryParamNullable('month');
+                    year = getQueryParamNullable('year');
+                    teamId = getQueryParamNullable('team');
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
                     return [4, datesJsonPromise];
                 case 1:
                     datesJson = _b.sent();
+                    return [4, retrieveJson("../../assets/map.json.gz")];
+                case 2:
+                    org_map = _b.sent();
                     endYear = datesJson["endYear"];
                     endMonth = datesJson["endMonth"];
                     if (month === null || year === null) {
                         month = endMonth;
                         year = endYear;
                     }
-                    if (teamId === null)
-                        teamId = 142;
-                    return [4, retrieveJson("../../assets/map.json.gz")];
-                case 2:
-                    org_map = _b.sent();
-                    selector = setupSelector({
+                    if (teamId === null) {
+                        createOverviewPage(datesJson);
+                    }
+                    else {
+                        createTeamPage(datesJson);
+                    }
+                    _a = SearchBar.bind;
+                    return [4, player_search_data];
+                case 3:
+                    searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    getElementByIdStrict('nav_teams').classList.add('selected');
+                    rankings_overall.addEventListener('click', function () {
+                        var mnth = month_select.value;
+                        var yr = year_select.value;
+                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth);
+                    });
+                    return [2];
+            }
+        });
+    });
+}
+function createTeamPage(datesJson) {
+    return __awaiter(this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            if (month === null || year === null || teamId === null)
+                throw new Error("Null values in createTeamPage");
+            setupSelector({
+                month: month,
+                year: year,
+                endYear: endYear,
+                endMonth: endMonth,
+                startYear: datesJson["startYear"],
+                startTeam: teamId
+            });
+            setupRankings(month, year, teamId, 30);
+            rankings_button.addEventListener('click', function (event) {
+                var mnth = month_select.value;
+                var yr = year_select.value;
+                var tm = team_select === null || team_select === void 0 ? void 0 : team_select.value;
+                window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth, "&team=").concat(tm);
+            });
+            document.title = "".concat(getParentAbbr(teamId), " ").concat(MONTH_CODES[month], " ").concat(year, " Rankings");
+            return [2];
+        });
+    });
+}
+function TeamOverviewMap(team) {
+    team = team;
+    var id = team["teamId"];
+    var el = document.createElement('li');
+    el.innerHTML =
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./teams?team=".concat(id, "'>").concat(getParentName(id), "</a></div>\n                <div class='rankings_rightrow'>\n                    <div>Highest Rank: ").concat(team["highestRank"], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(team["value"].toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(team["top10"], "</div>\n                    <div>").concat(team["top50"], "</div>\n                    <div>").concat(team["top100"], "</div>\n                    <div>").concat(team["top200"], "</div>\n                    <div>").concat(team["top500"], "</div>\n                </div>\n            </div>\n        </div>\n        ");
+    return el;
+}
+function createOverviewPage(datesJson) {
+    return __awaiter(this, void 0, void 0, function () {
+        var team_rankings_data, elements;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (month === null || year === null)
+                        throw new Error("Null values in createTeamPage");
+                    setupSelector({
                         month: month,
                         year: year,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: teamId
+                        startTeam: null
                     });
-                    setupRankings(month, year, teamId, 30);
-                    _a = SearchBar.bind;
-                    return [4, player_search_data];
+                    return [4, fetch("./teamRanks?year=".concat(year, "&month=").concat(month))];
+                case 1: return [4, (_a.sent()).json()];
+                case 2: return [4, (_a.sent())];
                 case 3:
-                    searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    team_rankings_data = _a.sent();
+                    elements = team_rankings_data.map(TeamOverviewMap);
+                    elements.forEach(function (f) {
+                        rankings_list.appendChild(f);
+                    });
+                    rankings_header.innerText = "Team Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
+                    rankings_load.classList.add('hidden');
+                    team_select === null || team_select === void 0 ? void 0 : team_select.classList.add('hidden');
+                    rankings_overall.classList.add('hidden');
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
                         var tm = team_select === null || team_select === void 0 ? void 0 : team_select.value;
-                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth, "&team=").concat(tm);
+                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth);
                     });
-                    getElementByIdStrict('nav_teams').classList.add('selected');
-                    document.title = "".concat(getParentAbbr(teamId), " ").concat(MONTH_CODES[month], " ").concat(year, " Rankings");
+                    document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Team Rankings");
                     return [2];
             }
         });
@@ -429,6 +494,13 @@ function getQueryParam(name) {
     var value = params.get(name);
     if (value === null)
         throw new Error("Unable to get query parameter ".concat(name));
+    return Number(value);
+}
+function getQueryParamNullable(name) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        return null;
     return Number(value);
 }
 function getQueryParamBackup(name, backup) {

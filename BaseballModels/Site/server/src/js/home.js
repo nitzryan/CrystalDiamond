@@ -353,6 +353,13 @@ function getQueryParam(name) {
         throw new Error("Unable to get query parameter ".concat(name));
     return Number(value);
 }
+function getQueryParamNullable(name) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        return null;
+    return Number(value);
+}
 function getQueryParamBackup(name, backup) {
     try {
         return getQueryParam(name);

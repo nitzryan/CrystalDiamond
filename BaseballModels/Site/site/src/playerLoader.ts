@@ -92,7 +92,6 @@ class PlayerLoader
 
         return players.map(f => {
             return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month)
-            
         })
     }
 }
