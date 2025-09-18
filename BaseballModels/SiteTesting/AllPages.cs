@@ -118,6 +118,25 @@ namespace SiteTesting
                 yield return new object[] { d.Year, d.Month, d.TeamId };
         }
 
+        // Team ranks
+        [Test, TestCaseSource(nameof(AllTeamRankings))]
+        public void LoadTeamRankingsNoErrors(int year, int month)
+        {
+            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{year}-{month} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{month} error: {msg}");
+        }
+
+        static IEnumerable<object> AllTeamRankings()
+        {
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month }).Distinct();
+            foreach (var d in dates)
+                yield return new object[] { d.Year, d.Month };
+        }
+
         [OneTimeTearDown]
         public void Teardown()
         {
