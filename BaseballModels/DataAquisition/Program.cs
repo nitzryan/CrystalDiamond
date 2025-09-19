@@ -29,8 +29,8 @@
                     //if (!CalculateLevelStats.Main(year, month))
                     //    return;
 
-                    if (!CalculateMonthStats.Main(year, month))
-                        return;
+                    //if (!CalculateMonthStats.Main(year, month))
+                    //    return;
 
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
@@ -39,8 +39,8 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                if (!CalculateAnnualOPS.Main(year))
-                    return;
+                //if (!CalculateAnnualOPS.Main(year))
+                //    return;
 
                 //while (!await UpdateParents.Main(year))
                 //{ }
@@ -50,17 +50,17 @@
             //if (!UpdateServiceTime.Main())
             //    return;
 
-            //if (!FangraphsData.Main(years))
+            //if (!await FangraphsData.Main(years))
             //    return;
 
             //if (!UpdateCareers.Main(years))
             //    return;
 
-            //if (!ModelPlayers.Main())
-            //    return;
+            if (!ModelPlayers.Main())
+                return;
 
-            //if (!ModelPlayerWar.Main())
-            //    return;
+            if (!ModelPlayerWar.Main())
+                return;
 
             //if (!await TransactionLog.Main())
             //    return;

@@ -18,6 +18,9 @@ namespace Db
 		public required float WarPitcher {get; set;}
 		public required float PeakWarHitter {get; set;}
 		public required float PeakWarPitcher {get; set;}
+		public required float ValueHitter {get; set;}
+		public required float ValuePitcher {get; set;}
+		public required float ValueStarterPerc {get; set;}
 		public required int TotalPA {get; set;}
 		public required int TotalOuts {get; set;}
 		public required float RateOff {get; set;}
@@ -44,6 +47,9 @@ namespace Db
 				WarPitcher = this.WarPitcher,
 				PeakWarHitter = this.PeakWarHitter,
 				PeakWarPitcher = this.PeakWarPitcher,
+				ValueHitter = this.ValueHitter,
+				ValuePitcher = this.ValuePitcher,
+				ValueStarterPerc = this.ValueStarterPerc,
 				TotalPA = this.TotalPA,
 				TotalOuts = this.TotalOuts,
 				RateOff = this.RateOff,

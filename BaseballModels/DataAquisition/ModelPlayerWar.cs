@@ -26,10 +26,13 @@ namespace DataAquisition
                                 Year = p.Year,
                                 IsHitter = p.IsHitter,
                                 PA = p.PA,
-                                WAR = p.WAR,
+                                WAR_h = p.WAR_h,
+                                WAR_s = p.WAR_s,
+                                WAR_r = p.WAR_r,
                                 OFF = p.OFF,
                                 DEF = p.DEF,
-                                BSR = p.BSR
+                                BSR = p.BSR,
+                                REP = p.REP
                             });
                         }
                         progressBar.Tick();

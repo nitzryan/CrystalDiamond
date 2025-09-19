@@ -118,10 +118,13 @@ CREATE TABLE "Model_PlayerWar" (
 	"Year"	INTEGER NOT NULL,
 	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
-	"WAR" REAL NOT NULL,
+	"WAR_h" REAL NOT NULL,
+	"WAR_s" REAL NOT NULL,
+	"WAR_r" REAL NOT NULL,
 	"OFF"	REAL NOT NULL,
 	"DEF"	REAL NOT NULL,
 	"BSR"	REAL NOT NULL,
+	"REP"   REAL NOT NULL,
 	PRIMARY KEY("mlbId","Year","isHitter")
 );
 
@@ -142,6 +145,9 @@ CREATE TABLE "Model_Players" (
 	"warPitcher" REAL NOT NULL,
 	"peakWarHitter" REAL NOT NULL,
 	"peakWarPitcher" REAL NOT NULL,
+	"valueHitter" REAL NOT NULL,
+	"valuePitcher" REAL NOT NULL,
+	"valueStarterPerc" REAL NOT NULL,
 	"totalPA" INTEGER NOT NULL,
 	"totalOuts" INTEGER NOT NULL,
 	"rateOff" REAL NOT NULL,
@@ -526,10 +532,13 @@ CREATE TABLE "Player_YearlyWar" (
 	"year"	INTEGER NOT NULL,
 	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
-	"WAR"	REAL NOT NULL,
+	"WAR_h"	REAL NOT NULL,
+	"WAR_s" REAL NOT NULL,
+	"WAR_r" REAL NOT NULL,
 	"OFF"	REAL NOT NULL,
 	"DEF"	REAL NOT NULL,
 	"BSR"	REAL NOT NULL,
+	"REP"   REAL NOT NULL,
 	PRIMARY KEY("mlbId","year","isHitter")
 );
 
@@ -571,9 +580,10 @@ CREATE TABLE "Ranking_Prospect" (
 	"mlbId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"model" TEXT NOT NULL,
+	"modelIdx" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "year", "month", "model")
+	PRIMARY KEY ("mlbId", "year", "month", "modelIdx", "isHitter")
 );
 
 CREATE TABLE "Site_PlayerBio" (
@@ -592,10 +602,18 @@ CREATE TABLE "Site_PlayerBio" (
 	PRIMARY KEY ("id")
 );
 
+CREATE TABLE "ModelIdx" (
+	"id" INTEGER NOT NULL,
+	"pitcherModelName" TEXT NOT NULL,
+	"hitterModelName" TEXT NOT NULL,
+	"modelName" TEXT NOT NULL,
+	PRIMARY KEY("id")
+);
+
 CREATE TABLE "PlayersInTrainingData" (
 	"mlbId" INTEGER NOT NULL,
-	"isHitter" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "isHitter")
+	"modelIdx" INTEGER NOT NULL,
+	PRIMARY KEY ("mlbId", "modelIdx")
 );
 
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (

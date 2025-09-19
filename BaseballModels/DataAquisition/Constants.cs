@@ -1,6 +1,7 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 
 namespace DataAquisition
 {
@@ -24,6 +25,15 @@ namespace DataAquisition
         // Set these to set start/stop
         //public const int CURRENT_YEAR = 2024;
         //public const int CURRENT_MONTH = 9;
+
+        // VALUATION
+        public const float HITTER_WAR_INFLECTION = 2;
+        public const float HITTER_WAR_LOWER_RATE = 6;
+        public const float HITTER_WAR_UPPER_RATE = 9;
+        public const float STARTER_WAR_INFLECTION = 2;
+        public const float STARTER_WAR_LOWER_RATE = 6;
+        public const float STARTER_WAR_UPPER_RATE = 9;
+        public const float RELIEVER_WAR_RATE = 9;
 
         // Transaction ToIL Status
         public const int TL_SUSP = 1;

@@ -1,4 +1,5 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore.Migrations;
 using ShellProgressBar;
 
 namespace DataAquisition
@@ -89,24 +90,44 @@ namespace DataAquisition
                         float totalPitcherWar = 0;
                         float peakPitcherWar = 0;
                         int totalOuts = 0;
+
+                        float hitterValue = 0;
+                        float starterValue = 0;
+                        float relieverValue = 0;
+                        float valueStarterPerc = 0;
                         
                         if (hitterWar.Any())
                         {
-                            totalHitterWar = hitterWar.Sum(f => f.WAR);
-                            peakHitterWar = hitterWar.Max(f => f.WAR);
+                            totalHitterWar = hitterWar.Sum(f => f.WAR_h);
+                            peakHitterWar = hitterWar.Max(f => f.WAR_h);
                             totalPA = hitterWar.Sum(f => f.PA);
                             int tmpPA = totalPA > 0 ? totalPA : 1; // Prevent divide by 0
 
                             rateBSR = hitterWar.Sum(f => f.BSR) / tmpPA;
                             rateOFF = hitterWar.Sum(f => f.OFF) / tmpPA;
                             rateDEF = hitterWar.Sum(f => f.DEF) / tmpPA;
+
+                            hitterValue = hitterWar.Sum(f => f.WAR_h > Constants.HITTER_WAR_INFLECTION ?
+                                (Constants.HITTER_WAR_INFLECTION * Constants.HITTER_WAR_LOWER_RATE) + ((f.WAR_h - Constants.HITTER_WAR_INFLECTION) * Constants.HITTER_WAR_UPPER_RATE) :
+                                Constants.HITTER_WAR_LOWER_RATE * f.WAR_h);
                             
                         }
                         if (pitcherWar.Any())
                         {
-                            totalPitcherWar = pitcherWar.Sum(f => f.WAR);
-                            peakPitcherWar = pitcherWar.Max(f => f.WAR);
+                            totalPitcherWar = pitcherWar.Sum(f => f.WAR_s + f.WAR_r);
+                            peakPitcherWar = pitcherWar.Max(f => f.WAR_s + f.WAR_r);
                             totalOuts = pitcherWar.Sum(f => f.PA);
+
+                            starterValue = pitcherWar.Sum(f => f.WAR_s > Constants.STARTER_WAR_INFLECTION ?
+                                (Constants.STARTER_WAR_INFLECTION * Constants.STARTER_WAR_LOWER_RATE) + ((f.WAR_s - Constants.STARTER_WAR_INFLECTION) * Constants.STARTER_WAR_UPPER_RATE) :
+                                Constants.STARTER_WAR_LOWER_RATE * f.WAR_s);
+
+                            relieverValue = pitcherWar.Sum(f => f.WAR_r * Constants.RELIEVER_WAR_RATE);
+
+                            if (starterValue + relieverValue != 0)
+                                valueStarterPerc = starterValue / (starterValue + relieverValue);
+                            else if (starterValue > 0)
+                                valueStarterPerc = 1;
                         }
 
                         // Get Highest Level
@@ -124,13 +145,16 @@ namespace DataAquisition
                             LastMLBSeason = lastMlbSeason,
                             AgeAtSigningYear = ageAtSigning,
                             DraftPick = player.DraftPick != null ? player.DraftPick.Value : 2000,
-                            DraftSignRank = player.DraftPick != null ? 
+                            DraftSignRank = player.DraftPick != null ?
                                 db.Draft_Results.Where(f => f.Year == player.SigningYear && f.Pick == player.DraftPick.Value).Single().BonusRank
                                 : 2000,
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,
                             PeakWarHitter = peakHitterWar,
                             PeakWarPitcher = peakPitcherWar,
+                            ValueHitter = hitterValue,
+                            ValuePitcher = starterValue + relieverValue,
+                            ValueStarterPerc = valueStarterPerc,
                             TotalPA = totalPA,
                             TotalOuts = totalOuts,
                             RateOff = rateOFF,
