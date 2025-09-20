@@ -2,16 +2,18 @@ from sklearn.decomposition import PCA # type: ignore
 from typing import TypeVar, Optional, Callable
 from DBTypes import *
 from Constants import db, DTYPE
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS, HITTER_TOTAL_WAR_BUCKETS
-from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS, PITCHER_PEAK_WAR_BUCKETS, PITCHER_TOTAL_WAR_BUCKETS
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
+from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS, PITCHER_PEAK_WAR_BUCKETS
 import math
 import torch
 from tqdm import tqdm
 import random
+from Prep_Map import Prep_Map
+from Output_Map import Output_Map
 
 _T = TypeVar('T')
 class Data_Prep:
-    def __init__(self):
+    def __init__(self, prep_map : 'Prep_Map', output_map : 'Output_Map'):
         # Mutators
         self.off_mutator_scale = 0.05
         self.bsr_mutator_scale = 0.05
@@ -28,13 +30,16 @@ class Data_Prep:
         
         self.pit_mutator_scale = 0.05
         
+        self.prep_map = prep_map
+        self.output_map = output_map
+        
         cursor = db.cursor()
         # Bios
         hitters = DB_Model_Players.Select_From_DB(cursor, "WHERE isHitter=1 AND signingYear<=?", (Data_Prep.__Cutoff_Year,))
-        self.__Create_PCA_Norms(Data_Prep.__Map_Bio, hitters, "hitbio", Data_Prep.__Bio_Size)
+        self.__Create_PCA_Norms(self.prep_map.map_bio, hitters, "hitbio", self.prep_map.bio_size)
         
         pitchers = DB_Model_Players.Select_From_DB(cursor, "WHERE isPitcher=1 AND signingYear<=?", (Data_Prep.__Cutoff_Year,))
-        self.__Create_PCA_Norms(Data_Prep.__Map_Bio, pitchers, "pitbio", Data_Prep.__Bio_Size)
+        self.__Create_PCA_Norms(self.prep_map.map_bio, pitchers, "pitbio", self.prep_map.bio_size)
         
         # Get all stats <=2024 to get means/stds to normalize
         # Restrict so new data doesn't change old conversions which would break model
@@ -42,76 +47,28 @@ class Data_Prep:
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         
         # Age and level information, keep stats individual
-        self.__Create_PCA_Norms(Data_Prep.__Map_HitterLevel, hitter_stats, "hitlevel", Data_Prep.__HitterLevel_Size)
-        self.__Create_PCA_Norms(Data_Prep.__Map_PitcherLevel, pitcher_stats, "pitlevel", Data_Prep.__PitcherLevel_Size)
+        self.__Create_PCA_Norms(self.prep_map.map_hitterlvl, hitter_stats, "hitlevel", self.prep_map.hitterlvl_size)
+        self.__Create_PCA_Norms(self.prep_map.map_pitcherlvl, pitcher_stats, "pitlevel", self.prep_map.pitcherlvl_size)
         
         # Stats for playing time
-        self.__Create_PCA_Norms(Data_Prep.__Map_HitterPT, hitter_stats, "hitpt", Data_Prep.__Hitter_PT_Size)
-        self.__Create_PCA_Norms(Data_Prep.__Map_PitcherPT, pitcher_stats, "pitpt", Data_Prep.__Pitcher_PT_Size)
+        self.__Create_PCA_Norms(self.prep_map.map_hitterpt, hitter_stats, "hitpt", self.prep_map.hitterpt_size)
+        self.__Create_PCA_Norms(self.prep_map.map_pitcherpt, pitcher_stats, "pitpt", self.prep_map.pitcherpt_size)
         
         # Stats for evaluating performance
-        self.__Create_PCA_Norms(Data_Prep.__Map_OFF, hitter_stats, "off", Data_Prep.__OFF_Size)
-        self.__Create_PCA_Norms(Data_Prep.__Map_BSR, hitter_stats, "bsr", Data_Prep.__BSR_Size)
-        self.__Create_PCA_Norms(Data_Prep.__Map_DEF, hitter_stats, "def", Data_Prep.__DEF_Size)
+        self.__Create_PCA_Norms(self.prep_map.map_off, hitter_stats, "off", self.prep_map.off_size)
+        self.__Create_PCA_Norms(self.prep_map.map_bsr, hitter_stats, "bsr", self.prep_map.bsr_size)
+        self.__Create_PCA_Norms(self.prep_map.map_def, hitter_stats, "def", self.prep_map.def_size)
         
-        self.__Create_PCA_Norms(Data_Prep.__Map_Pit, pitcher_stats, "pit", Data_Prep.__Pit_Size)
-        
-    __Map_Bio : Callable[[DB_Model_Players], list[float]] = \
-        lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)]
-        
-    __Map_OFF : Callable[[DB_Model_HitterStats], list[float]] = \
-        lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wOBARatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio]
-    
-    __Map_BSR : Callable[[DB_Model_HitterStats], list[float]] = \
-        lambda h : [h.SBRateRatio, h.SBPercRatio]
-    
-    __Map_DEF : Callable[[DB_Model_HitterStats], list[float]] = \
-        lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH]
-    
-    __Map_HitterPT : Callable[[DB_Model_HitterStats], list[float]] = \
-        lambda h : [h.PA, h.MonthFrac, h.InjStatus]
-        
-    __Map_PitcherPT : Callable[[DB_Model_PitcherStats], list[float]] = \
-        lambda p : [p.BF, p.MonthFrac, p.InjStatus]
-    
-    __Map_HitterLevel : Callable[[DB_Model_HitterStats], list[float]] = \
-        lambda h : [h.Age, h.LevelId, h.Month]
-    
-    __Map_PitcherLevel : Callable[[DB_Model_PitcherStats], list[float]] = \
-        lambda p : [p.Age, p.LevelId, p.Month]
-        
-    __Map_Pit : Callable[[DB_Model_PitcherStats], list[float]] = \
-        lambda p : [p.ParkRunFactor, p.ParkHRFactor, p.GBPercRatio, p.ERARatio, p.FIPRatio, p.wOBARatio, p.HRPercRatio, p.BBPercRatio, p.KPercRatio]
-    
-    __Map_FirstSeason_Hit : Callable[[DB_Model_HitterStats, float], list[float]] = \
-        lambda h, y : 1 if h.Year == y else 0
-        
-    __Map_FirstSeason_Pit : Callable[[DB_Model_PitcherStats, float], list[float]] = \
-        lambda p, y : 1 if p.Year == y else 0
-    
-    # Comments are explained variance ratios
-    __Bio_Size = 2 # Hitter [0.711, 0.282, 0.007]
-                    #Pitcher [0.702, 0.289, 0.009]
-    
-    __HitterLevel_Size = 3
-    __Hitter_PT_Size = 3
-    __OFF_Size = 7 # [0.393, 0.168, 0.117, 0.114, 0.104, 0.078, 0.021, 0.006, 0.001]
-    __BSR_Size = 2 # [0.722, 0.278]
-    __DEF_Size = 9 # [0.152, 0.138, 0.127, 0.113, 0.11, 0.105, 0.101, 0.095, 0.059]
-    __FirstSeason_Size = 1
-    
-    __PitcherLevel_Size = 3
-    __Pitcher_PT_Size = 3
-    __Pit_Size = 8 # [0.309, 0.127, 0.114, 0.108, 0.103, 0.094, 0.063, 0.053, 0.028]
+        self.__Create_PCA_Norms(self.prep_map.map_pit, pitcher_stats, "pit", self.prep_map.pit_size)
     
     __Cutoff_Year = 2024
     
     def Transform_HitterStats(self, stats : list[DB_Model_HitterStats], hitter : DB_Model_Players) -> torch.Tensor:
-        level_stats = torch.tensor([Data_Prep.__Map_HitterLevel(x) for x in stats], dtype=DTYPE)
-        pt_stats = torch.tensor([Data_Prep.__Map_HitterPT(x) for x in stats], dtype=DTYPE)
-        off_stats = torch.tensor([Data_Prep.__Map_OFF(x) for x in stats], dtype=DTYPE)
-        bsr_stats = torch.tensor([Data_Prep.__Map_BSR(x) for x in stats], dtype=DTYPE)
-        def_stats = torch.tensor([Data_Prep.__Map_DEF(x) for x in stats], dtype=DTYPE)
+        level_stats = torch.tensor([self.prep_map.map_hitterlvl(x) for x in stats], dtype=DTYPE)
+        pt_stats = torch.tensor([self.prep_map.map_hitterpt(x) for x in stats], dtype=DTYPE)
+        off_stats = torch.tensor([self.prep_map.map_off(x) for x in stats], dtype=DTYPE)
+        bsr_stats = torch.tensor([self.prep_map.map_bsr(x) for x in stats], dtype=DTYPE)
+        def_stats = torch.tensor([self.prep_map.map_def(x) for x in stats], dtype=DTYPE)
 
         level_pca = torch.from_numpy(getattr(self, "__hitlevel_pca").transform(level_stats))
         pt_pca = torch.from_numpy(getattr(self, "__hitpt_pca").transform(pt_stats))
@@ -119,38 +76,36 @@ class Data_Prep:
         bsr_pca = torch.from_numpy(getattr(self, "__bsr_pca").transform(bsr_stats))
         def_pca = torch.from_numpy(getattr(self, "__def_pca").transform(def_stats))
         
-        isSigningYear = torch.tensor([Data_Prep.__Map_FirstSeason_Hit(x, hitter.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
+        isSigningYear = torch.tensor([self.prep_map.map_hit_first(x, hitter.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
         
         return torch.cat((isSigningYear, level_pca, pt_pca, off_pca, bsr_pca, def_pca), dim=1)
     
     def Transform_PitcherStats(self, stats : list[DB_Model_PitcherStats], pitcher : DB_Model_Players) -> torch.Tensor:
-        level_stats = torch.tensor([Data_Prep.__Map_PitcherLevel(x) for x in stats], dtype=DTYPE)
-        pt_stats = torch.tensor([Data_Prep.__Map_PitcherPT(x) for x in stats], dtype=DTYPE)
-        pit_stats = torch.tensor([Data_Prep.__Map_Pit(x) for x in stats], dtype=DTYPE)
+        level_stats = torch.tensor([self.prep_map.map_pitcherlvl(x) for x in stats], dtype=DTYPE)
+        pt_stats = torch.tensor([self.prep_map.map_pitcherpt(x) for x in stats], dtype=DTYPE)
+        pit_stats = torch.tensor([self.prep_map.map_pit(x) for x in stats], dtype=DTYPE)
         
         level_pca = torch.from_numpy(getattr(self, "__pitlevel_pca").transform(level_stats))
         pt_pca = torch.from_numpy(getattr(self, "__pitpt_pca").transform(pt_stats))
         pit_pca = torch.from_numpy(getattr(self, "__pit_pca").transform(pit_stats))
         
-        isSigningYear = torch.tensor([Data_Prep.__Map_FirstSeason_Pit(x, pitcher.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
+        isSigningYear = torch.tensor([self.prep_map.map_pit_first(x, pitcher.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
         
         return torch.cat((isSigningYear, level_pca, pt_pca, pit_pca), dim=1)
     
-    @staticmethod
-    def Get_Hitter_Size() -> int:
-        return Data_Prep.__Bio_Size + Data_Prep.__HitterLevel_Size + Data_Prep.__OFF_Size + Data_Prep.__BSR_Size + Data_Prep.__DEF_Size + Data_Prep.__Hitter_PT_Size + Data_Prep.__FirstSeason_Size + 1
+    def Get_Hitter_Size(self) -> int:
+        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.hitfirst_size + 1
     
-    @staticmethod
-    def Get_Pitcher_Size() -> int:
-        return Data_Prep.__Bio_Size + Data_Prep.__PitcherLevel_Size + Data_Prep.__Pit_Size + Data_Prep.__Pitcher_PT_Size + Data_Prep.__FirstSeason_Size + 1
+    def Get_Pitcher_Size(self) -> int:
+        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.pitfirst_size + 1
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
-        bio_stats = torch.tensor([Data_Prep.__Map_Bio(hitter)], dtype=DTYPE)
+        bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
         bio_pca = torch.from_numpy(getattr(self, "__hitbio_pca").transform(bio_stats))
         return bio_pca
     
     def __Transform_PitcherData(self, pitcher : DB_Model_Players) -> torch.Tensor:
-        bio_stats = torch.tensor([Data_Prep.__Map_Bio(pitcher)], dtype=DTYPE)
+        bio_stats = torch.tensor([self.prep_map.map_bio(pitcher)], dtype=DTYPE)
         bio_pca = torch.from_numpy(getattr(self, "__pitbio_pca").transform(bio_stats))
         return bio_pca
     
@@ -199,16 +154,16 @@ class Data_Prep:
                     torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long))))
             
             # Input
-            input = torch.zeros(l, Data_Prep.Get_Hitter_Size())
+            input = torch.zeros(l, self.Get_Hitter_Size())
             input[0,0] = 1 # Initialization step, no stats here
-            input[:,1:Data_Prep.__Bio_Size + 1] = self.__Transform_HitterData(hitter) # Hitter Bio
+            input[:,1:self.prep_map.bio_size + 1] = self.__Transform_HitterData(hitter) # Hitter Bio
             if l > 1:
-                input[1:, Data_Prep.__Bio_Size + 1:] = self.Transform_HitterStats(stats, hitter) # Month Stats
+                input[1:, self.prep_map.bio_size + 1:] = self.Transform_HitterStats(stats, hitter) # Month Stats
             inputs.append(input)
             
             # Output
             output = torch.zeros(l, 4, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(hitter.warHitter), HITTER_TOTAL_WAR_BUCKETS)
+            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_hitter(hitter)), self.output_map.buckets_hitter)
             output[:,1] = torch.bucketize(torch.tensor(hitter.peakWarHitter), HITTER_PEAK_WAR_BUCKETS)
             output[:,2] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
             output[:,3] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
@@ -246,16 +201,16 @@ class Data_Prep:
                     torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long))))
             
             # Input
-            input = torch.zeros(l, Data_Prep.Get_Pitcher_Size())
+            input = torch.zeros(l, self.Get_Pitcher_Size())
             input[0,0] = 1 # Initialization step, no stats here
-            input[:,1:Data_Prep.__Bio_Size + 1] = self.__Transform_PitcherData(pitcher) # Pitcher Bio
+            input[:,1:self.prep_map.bio_size + 1] = self.__Transform_PitcherData(pitcher) # Pitcher Bio
             if l > 1:
-                input[1:, Data_Prep.__Bio_Size + 1:] = self.Transform_PitcherStats(stats, pitcher) # Month Stats
+                input[1:, self.prep_map.bio_size + 1:] = self.Transform_PitcherStats(stats, pitcher) # Month Stats
             inputs.append(input)
             
             # Output
             output = torch.zeros(l, 4, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(pitcher.warPitcher), PITCHER_TOTAL_WAR_BUCKETS)
+            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher(pitcher)), self.output_map.buckets_pitcher)
             output[:,1] = torch.bucketize(torch.tensor(pitcher.peakWarPitcher), PITCHER_PEAK_WAR_BUCKETS)
             output[:,2] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
             output[:,3] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
@@ -300,31 +255,31 @@ class Data_Prep:
         mutators = torch.zeros(size=(batch_size, max_input_size, self.Get_Hitter_Size()))
         for n in tqdm(range(batch_size), leave=False, desc="Generating Hitter Mutators"):
             for m in range(max_input_size):
-                player_header = [0] * (Data_Prep.__Bio_Size + 1)
+                player_header = [0] * (self.prep_map.bio_size + 1)
                 
-                firstyear_mutator = [0] * Data_Prep.__FirstSeason_Size
-                level_mutator = [0] * Data_Prep.__HitterLevel_Size
-                pt_mutator = [0] * Data_Prep.__Hitter_PT_Size
-                off_mutator = [0] * Data_Prep.__OFF_Size
-                bsr_mutator = [0] * Data_Prep.__BSR_Size
-                def_mutator = [0] * Data_Prep.__DEF_Size
+                firstyear_mutator = [0] * self.prep_map.hitfirst_size
+                level_mutator = [0] * self.prep_map.hitterlvl_size
+                pt_mutator = [0] * self.prep_map.hitterpt_size
+                off_mutator = [0] * self.prep_map.off_size
+                bsr_mutator = [0] * self.prep_map.bsr_size
+                def_mutator = [0] * self.prep_map.def_size
                 
-                for i in range(Data_Prep.__FirstSeason_Size):
+                for i in range(self.prep_map.hitfirst_size):
                     firstyear_mutator[i] = 0
-                for i in range(Data_Prep.__HitterLevel_Size):
+                for i in range(self.prep_map.hitterlvl_size):
                     level_mutator[i] = self.hitlvl_mutator_scale * random.gauss(0, level_stds[i])
-                for i in range(Data_Prep.__Hitter_PT_Size):
+                for i in range(self.prep_map.hitterpt_size):
                     pt_mutator[i] = self.hitpt_mutator_scale * random.gauss(0, pt_stds[i])
-                for i in range(Data_Prep.__OFF_Size):
+                for i in range(self.prep_map.off_size):
                     off_mutator[i] = self.off_mutator_scale * random.gauss(0, off_stds[i])
-                for i in range(Data_Prep.__BSR_Size):
+                for i in range(self.prep_map.bsr_size):
                     bsr_mutator[i] = self.bsr_mutator_scale * random.gauss(0, bsr_stds[i])
-                for i in range(Data_Prep.__DEF_Size):
+                for i in range(self.prep_map.def_size):
                     def_mutator[i] = self.def_mutator_scale * random.gauss(0, def_stds[i])
                     
                 mutators[n,m] = torch.tensor(player_header + firstyear_mutator + level_mutator + pt_mutator + off_mutator + bsr_mutator + def_mutator)
             
-            for i in range(Data_Prep.__Bio_Size):
+            for i in range(self.prep_map.bio_size):
                 mutators[1+i,:] = self.hitbio_mutator_scale * random.gauss(0, bio_stds[i])
         
         return mutators
@@ -339,25 +294,25 @@ class Data_Prep:
         mutators = torch.zeros(size=(batch_size, max_input_size, self.Get_Pitcher_Size()))
         for n in tqdm(range(batch_size), leave=False, desc="Generating Pitcher Mutators"):
             for m in range(max_input_size):
-                player_header = [0] * (Data_Prep.__Bio_Size + 1)
+                player_header = [0] * (self.prep_map.bio_size + 1)
                 
-                firstyear_mutator = [0] * Data_Prep.__FirstSeason_Size
-                level_mutator = [0] * Data_Prep.__PitcherLevel_Size
-                pt_mutator = [0] * Data_Prep.__Pitcher_PT_Size
-                pit_mutator = [0] * Data_Prep.__Pit_Size
+                firstyear_mutator = [0] * self.prep_map.pitfirst_size
+                level_mutator = [0] * self.prep_map.pitcherlvl_size
+                pt_mutator = [0] * self.prep_map.pitcherpt_size
+                pit_mutator = [0] * self.prep_map.pit_size
                 
-                for i in range(Data_Prep.__FirstSeason_Size):
+                for i in range(self.prep_map.pitfirst_size):
                     firstyear_mutator[i] = 0
-                for i in range(Data_Prep.__PitcherLevel_Size):
+                for i in range(self.prep_map.pitcherlvl_size):
                     level_mutator[i] = self.pitlvl_mutator_scale * random.gauss(0, level_stds[i])
-                for i in range(Data_Prep.__Pitcher_PT_Size):
+                for i in range(self.prep_map.pitcherpt_size):
                     pt_mutator[i] = self.pitpt_mutator_scale * random.gauss(0, pt_stds[i])
-                for i in range(Data_Prep.__Pit_Size):
+                for i in range(self.prep_map.pit_size):
                     pit_mutator[i] = self.pit_mutator_scale * random.gauss(0, pit_stds[i])
                     
                 mutators[n,m] = torch.tensor(player_header + firstyear_mutator + level_mutator + pt_mutator + pit_mutator)
             
-            for i in range(Data_Prep.__Bio_Size):
+            for i in range(self.prep_map.bio_size):
                 mutators[1+i,:] = self.pitbio_mutator_scale * random.gauss(0, bio_stds[i])
         
         return mutators

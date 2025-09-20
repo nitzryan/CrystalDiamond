@@ -53,8 +53,8 @@
             //if (!await FangraphsData.Main(years))
             //    return;
 
-            //if (!UpdateCareers.Main(years))
-            //    return;
+            if (!UpdateCareers.Main(years))
+                return;
 
             if (!ModelPlayers.Main())
                 return;

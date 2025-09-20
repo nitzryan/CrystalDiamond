@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from Output_Map import Output_Map
 
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS, HITTER_TOTAL_WAR_BUCKETS
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
 
 class RNN_Model(nn.Module):
-    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor):
+    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map):
         super().__init__()
         
         self.pre1 = nn.Linear(input_size, input_size)
@@ -14,7 +15,7 @@ class RNN_Model(nn.Module):
         
         self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_war2 = nn.Linear(hidden_size // 2, len(HITTER_TOTAL_WAR_BUCKETS))
+        self.linear_war2 = nn.Linear(hidden_size // 2, len(output_map.buckets_hitter))
         self.linear_pwar1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pwar2 = nn.Linear(hidden_size // 2, len(HITTER_PEAK_WAR_BUCKETS))
         self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
