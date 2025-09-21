@@ -126,16 +126,20 @@ function getModels(obj, name) {
         var fObj = f;
         var probString = getJsonString(fObj, "probs");
         var probArray = probString.split(',').map(Number);
-        var rank = fObj["rank"];
         var m = {
             year: getJsonNumber(fObj, "year"),
             month: getJsonNumber(fObj, "month"),
             probs: probArray,
+            modelId: getJsonNumber(fObj, "modelId"),
             rank: fObj["rank"],
         };
         models.push(m);
     });
-    return models;
+    var models_list = [];
+    MODEL_VALUES.forEach(function (f) {
+        models_list.push(models.filter(function (g) { return g.modelId === f; }));
+    });
+    return models_list;
 }
 function getPerson(obj) {
     var draftPick = obj["draftPick"];
@@ -299,22 +303,27 @@ function updatePitcherStats(pitcherStats) {
         stats_body.append(tr);
     });
 }
-var HITTER_WAR_BUCKETS = [0, 0.5, 3, 7.5, 15, 25, 35];
-var HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"];
+var WAR_BUCKETS = [0, 0.5, 3, 7.5, 15, 25, 35];
+var WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"];
+var VALUE_BUCKETS = [0, 2.5, 12.5, 35, 75, 150, 250];
+var VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M", "200M+"];
 function piePointGenerator(model) {
     var points = [];
-    for (var i = 0; i < HITTER_WAR_LABELS.length; i++) {
-        points.push({ y: model.probs[i], label: HITTER_WAR_LABELS[i] });
+    for (var i = 0; i < WAR_LABELS.length; i++) {
+        if (modelIsWAR(model.modelId))
+            points.push({ y: model.probs[i], label: WAR_LABELS[i] });
+        else if (modelIsValue(model.modelId))
+            points.push({ y: model.probs[i], label: VALUE_LABELS[i] });
     }
     return points;
 }
-function lineCallback(index) {
+function lineCallback(index, modelId) {
     var model;
     if (line_graph.graphIsHitter()) {
-        model = hitterModels[index];
+        model = hitterModels[modelId - 1][index];
     }
     else {
-        model = pitcherModels[index];
+        model = pitcherModels[modelId - 1][index];
     }
     if (model !== null) {
         if (pie_graph === null)
@@ -322,80 +331,104 @@ function lineCallback(index) {
         var title_text = model.month == 0 ?
             "Iniitial Outcome Distribution" :
             "".concat(model.month, "-").concat(model.year, " Outcome Distribution");
-        pie_graph.updateChart(model.probs, title_text);
+        if (modelIsWAR(modelId))
+            pie_graph.updateChart(model.probs, title_text, WAR_LABELS);
+        else if (modelIsValue(modelId))
+            pie_graph.updateChart(model.probs, title_text, VALUE_LABELS);
     }
     else {
         throw new Error("Model was not set for hitter or pitcher");
     }
 }
-function getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks) {
+function getDatasets(hitter_war_list, hitter_ranks_list, pitcher_war_list, pitcher_ranks_list) {
     var datasets = [];
-    if (hitter_war.length > 0)
-        datasets.push({
-            points: hitter_war,
-            title: 'Hitter WAR',
-            isLog: false,
-            isHitter: true
-        });
-    if (hitter_ranks.length > 0)
-        datasets.push({
-            points: hitter_ranks,
-            title: "Rank",
-            isLog: true,
-            isHitter: true
-        });
-    if (pitcher_war.length > 0)
-        datasets.push({
-            points: pitcher_war,
-            title: 'Pitcher WAR',
-            isLog: false,
-            isHitter: false
-        });
-    if (pitcher_ranks.length > 0)
-        datasets.push({
-            points: pitcher_ranks,
-            title: "Rank",
-            isLog: true,
-            isHitter: false
-        });
+    if (hitter_ranks_list.length !== hitter_war_list.length)
+        throw new Error("getDatasets: Hitter War vs Ranks length mismatch");
+    for (var i = 0; i < hitter_war_list.length; i++) {
+        if (hitter_war_list[i].length > 0) {
+            datasets.push({
+                points: hitter_war_list[i],
+                title: MODEL_STRINGS[i],
+                modelId: MODEL_VALUES[i],
+                isLog: false,
+                isHitter: true
+            });
+        }
+        if (hitter_ranks_list[i].length > 0) {
+            datasets.push({
+                points: hitter_ranks_list[i],
+                title: MODEL_STRINGS[i] + " Rank",
+                modelId: MODEL_VALUES[i],
+                isLog: true,
+                isHitter: true
+            });
+        }
+    }
+    if (pitcher_ranks_list.length !== pitcher_war_list.length)
+        throw new Error("getDatasets: Pitcher War vs Ranks length mismatch");
+    for (var i = 0; i < pitcher_war_list.length; i++) {
+        if (pitcher_war_list[i].length > 0) {
+            datasets.push({
+                points: pitcher_war_list[i],
+                title: MODEL_STRINGS[i],
+                modelId: MODEL_VALUES[i],
+                isLog: false,
+                isHitter: false
+            });
+        }
+        if (pitcher_ranks_list[i].length > 0) {
+            datasets.push({
+                points: pitcher_ranks_list[i],
+                title: MODEL_STRINGS[i] + " Rank",
+                modelId: MODEL_VALUES[i],
+                isLog: true,
+                isHitter: false
+            });
+        }
+    }
     return datasets;
 }
-function setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks) {
+function setupSelector(hitter_war_list, hitter_ranks_list, pitcher_war_list, pitcher_ranks_list) {
     var graph_selector = getElementByIdStrict('graph_selector');
-    if (hitter_war.length > 0) {
-        var opt = document.createElement('option');
-        opt.text = "Hitter WAR";
-        opt.value = graph_selector.children.length.toString();
-        graph_selector.appendChild(opt);
+    for (var i = 0; i < hitter_war_list.length; i++) {
+        if (hitter_war_list[i].length > 0) {
+            var opt = document.createElement('option');
+            opt.text = "Hitter " + MODEL_STRINGS[i];
+            opt.value = graph_selector.children.length.toString();
+            graph_selector.appendChild(opt);
+        }
+        if (hitter_ranks_list[i].length > 0) {
+            var opt = document.createElement('option');
+            opt.text = "Hitter " + MODEL_STRINGS[i] + " Rank";
+            opt.value = graph_selector.children.length.toString();
+            graph_selector.appendChild(opt);
+        }
     }
-    if (hitter_ranks.length > 0) {
-        var opt = document.createElement('option');
-        opt.text = "Hitter Rank";
-        opt.value = graph_selector.children.length.toString();
-        graph_selector.appendChild(opt);
-    }
-    if (pitcher_war.length > 0) {
-        var opt = document.createElement('option');
-        opt.text = "Pitcher WAR";
-        opt.value = graph_selector.children.length.toString();
-        graph_selector.appendChild(opt);
-    }
-    if (pitcher_ranks.length > 0) {
-        var opt = document.createElement('option');
-        opt.text = "Pitcher Rank";
-        opt.value = graph_selector.children.length.toString();
-        graph_selector.appendChild(opt);
+    for (var i = 0; i < pitcher_war_list.length; i++) {
+        if (pitcher_war_list[i].length > 0) {
+            var opt = document.createElement('option');
+            opt.text = "Pitcher " + MODEL_STRINGS[i];
+            opt.value = graph_selector.children.length.toString();
+            graph_selector.appendChild(opt);
+        }
+        if (pitcher_ranks_list[i].length > 0) {
+            var opt = document.createElement('option');
+            opt.text = "Pitcher " + MODEL_STRINGS[i] + " Rank";
+            opt.value = graph_selector.children.length.toString();
+            graph_selector.appendChild(opt);
+        }
     }
     graph_selector.value = "0";
     graph_selector.addEventListener('change', function () {
         line_graph.setDataset(parseInt(graph_selector.value));
+        line_graph.fireCallback();
     });
 }
 function setupModel(hitterModels, pitcherModels) {
-    var war_map = function (f) {
+    var war_map = function (f, buckets) {
         var war = 0;
         for (var i = 0; i < f.probs.length; i++)
-            war += f.probs[i] * HITTER_WAR_BUCKETS[i];
+            war += f.probs[i] * buckets[i];
         var label = f.month == 0 ? 'Initial' : "".concat(f.month, "-").concat(f.year);
         var p = { y: war, label: label };
         return p;
@@ -408,16 +441,33 @@ function setupModel(hitterModels, pitcherModels) {
         var p = { y: f.rank, label: year == 0 ? "Initial" : "".concat(month, "-").concat(year) };
         return p;
     };
-    var hitter_war = hitterModels.map(war_map);
-    var pitcher_war = pitcherModels.map(war_map);
-    var hitter_ranks = hitterModels.filter(function (f) { return f.rank !== null; }).map(rank_map);
-    var pitcher_ranks = pitcherModels.filter(function (f) { return f.rank !== null; }).map(rank_map);
-    var datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
+    var hitter_war_points = [];
+    var pitcher_war_points = [];
+    for (var _i = 0, MODEL_VALUES_1 = MODEL_VALUES; _i < MODEL_VALUES_1.length; _i++) {
+        var idx = MODEL_VALUES_1[_i];
+        if (modelIsWAR(idx)) {
+            if (hitterModels.length > 0)
+                hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
+            if (pitcherModels.length > 0)
+                pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
+        }
+        else if (modelIsValue(idx)) {
+            if (hitterModels.length > 0)
+                hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
+            if (pitcherModels.length > 0)
+                pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
+        }
+        else
+            throw new Error("setupModel: model is neither WAR nor VALUE");
+    }
+    var hitter_rank_points = hitterModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
+    var pitcher_rank_points = pitcherModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
+    var datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
     line_graph = new LineGraph(model_graph, datasets, lineCallback);
-    setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks);
+    setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
     var pie_points = person.isHitter ?
-        piePointGenerator(hitterModels[hitterModels.length - 1]) :
-        piePointGenerator(pitcherModels[pitcherModels.length - 1]);
+        piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
+        piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1]);
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
 }
 var model_pie = getElementByIdStrict("projWarPie");
@@ -805,6 +855,14 @@ function formatModelString(val, modelId) {
         return "$".concat(val.toFixed(0), "M");
     throw new Error("Invalid formatModelString modelId: ".concat(modelId));
 }
+var MODEL_VALUES = [1, 2, 3, 4];
+var MODEL_STRINGS = ["Base WAR", "Base Value", "Stats Only WAR", "Stats Only Value"];
+function modelIsWAR(modelId) {
+    return modelId == 1 || modelId == 3;
+}
+function modelIsValue(modelId) {
+    return modelId == 2 || modelId == 4;
+}
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
@@ -896,7 +954,7 @@ var LineGraph = (function () {
                         var firstPoint = points[0];
                         var index = firstPoint.index;
                         _this.highlight_index(index);
-                        _this.callback(index);
+                        _this.callback(index, _this.getSelectedModel());
                     }
                 },
                 scales: {
@@ -923,11 +981,17 @@ var LineGraph = (function () {
         if ((x_inc === -1 && this.pointIdx > 0) || (x_inc === 1 && this.pointIdx < this.points.length - 1)) {
             this.pointIdx += x_inc;
             this.highlight_index(this.pointIdx);
-            this.callback(this.pointIdx);
+            this.callback(this.getAdjustedPointIndex(), this.getSelectedModel());
         }
     };
     LineGraph.prototype.fireCallback = function () {
-        this.callback(this.pointIdx);
+        this.callback(this.getAdjustedPointIndex(), this.getSelectedModel());
+    };
+    LineGraph.prototype.getAdjustedPointIndex = function () {
+        var index = this.pointIdx;
+        if (this.datasets[this.datasetIdx].isLog)
+            index++;
+        return index;
     };
     LineGraph.prototype.graphIsHitter = function () {
         return this.datasets[this.datasetIdx].isHitter;
@@ -941,6 +1005,9 @@ var LineGraph = (function () {
         this.chart.update();
         if (this.points.length > 0)
             this.highlight_index(this.points.length - 1);
+    };
+    LineGraph.prototype.getSelectedModel = function () {
+        return this.datasets[this.datasetIdx].modelId;
     };
     return LineGraph;
 }());
@@ -1000,9 +1067,10 @@ var PieGraph = (function () {
             }
         });
     }
-    PieGraph.prototype.updateChart = function (values, title_text) {
+    PieGraph.prototype.updateChart = function (values, title_text, labels) {
         this.points.forEach(function (f, idx) { f.y = values[idx]; });
         this.chart.data.datasets[0].data = values;
+        this.chart.data.labels = labels;
         this.chart.options.plugins.title.text = title_text;
         this.chart.update();
     };

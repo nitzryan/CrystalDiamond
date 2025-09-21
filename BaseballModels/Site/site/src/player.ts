@@ -21,6 +21,7 @@ type Model = {
     year : number,
     month : number,
     probs : number[],
+    modelId : number,
     rank: number | null
 }
 
@@ -157,7 +158,7 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
     return stats
 }
 
-function getModels(obj : JsonObject, name : string) : Model[]
+function getModels(obj : JsonObject, name : string) : Model[][]
 {
     let models : Model[] = []
     let modelArray : JsonArray = getJsonArray(obj, name)
@@ -167,19 +168,23 @@ function getModels(obj : JsonObject, name : string) : Model[]
         const probString = getJsonString(fObj, "probs");
         const probArray : number[] = probString.split(',').map(Number)
 
-        var rank = fObj["rank"]
-
         const m : Model = {
             year : getJsonNumber(fObj, "year"),
             month : getJsonNumber(fObj, "month"),
             probs : probArray,
+            modelId : getJsonNumber(fObj, "modelId"),
             // @ts-ignore
             rank : fObj["rank"],
         }
         models.push(m);
     })
 
-    return models;
+    let models_list : Model[][] = []
+    MODEL_VALUES.forEach(f => {
+        models_list.push(models.filter(g => g.modelId === f))
+    })
+
+    return models_list;
 }
 
 function getPerson(obj : JsonObject)
@@ -434,28 +439,33 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
     })
 }
 
-const HITTER_WAR_BUCKETS = [0,0.5,3,7.5,15,25,35]
-const HITTER_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
+const WAR_BUCKETS = [0,0.5,3,7.5,15,25,35]
+const WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
+const VALUE_BUCKETS = [0, 2.5, 12.5, 35, 75, 150, 250]
+const VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M", "200M+"]
 
 function piePointGenerator(model : Model) : Point[]
 {
     let points : Point[] = []
-    for (let i = 0; i < HITTER_WAR_LABELS.length; i++)
+    for (let i = 0; i < WAR_LABELS.length; i++)
     {
-        points.push({y: model.probs[i], label:HITTER_WAR_LABELS[i]})
+        if (modelIsWAR(model.modelId))
+            points.push({y: model.probs[i], label:WAR_LABELS[i]})
+        else if (modelIsValue(model.modelId))
+            points.push({y: model.probs[i], label:VALUE_LABELS[i]})
     }
     return points
 }
 
-function lineCallback(index : number)
+function lineCallback(index : number, modelId : number)
 {
     let model : Model
     if (line_graph.graphIsHitter())
     {
-        model = hitterModels[index]
+        model = hitterModels[modelId - 1][index]
     } else
     {
-        model = pitcherModels[index]
+        model = pitcherModels[modelId - 1][index]
     }
 
     if (model !== null)
@@ -466,97 +476,132 @@ function lineCallback(index : number)
         const title_text : string = model.month == 0 ? 
             "Iniitial Outcome Distribution" :
             `${model.month}-${model.year} Outcome Distribution`
-        pie_graph.updateChart(model.probs, title_text)
+        
+        if (modelIsWAR(modelId))
+            pie_graph.updateChart(model.probs, title_text, WAR_LABELS)
+        else if (modelIsValue(modelId))
+            pie_graph.updateChart(model.probs, title_text, VALUE_LABELS)
     } else {
         throw new Error("Model was not set for hitter or pitcher")
     }
 }
 
-function getDatasets(hitter_war : Point[], hitter_ranks : Point[], pitcher_war : Point[], pitcher_ranks : Point[]) : GraphDataset[]
+function getDatasets(hitter_war_list : Point[][], hitter_ranks_list : Point[][], pitcher_war_list : Point[][], pitcher_ranks_list : Point[][]) : GraphDataset[]
 {
     let datasets : GraphDataset[] = []
-    if (hitter_war.length > 0)
-        datasets.push({
-            points: hitter_war,
-            title: 'Hitter WAR',
-            isLog: false,
-            isHitter : true
-        })
-    if (hitter_ranks.length > 0)
-        datasets.push({
-            points: hitter_ranks,
-            title: "Rank",
-            isLog: true,
-            isHitter: true
-        })
-    if (pitcher_war.length > 0)
-        datasets.push({
-            points: pitcher_war,
-            title: 'Pitcher WAR',
-            isLog: false,
-            isHitter : false
-        })
-    if (pitcher_ranks.length > 0)
-        datasets.push({
-            points: pitcher_ranks,
-            title: "Rank",
-            isLog: true,
-            isHitter: false
-        })
+    if (hitter_ranks_list.length !== hitter_war_list.length)
+        throw new Error("getDatasets: Hitter War vs Ranks length mismatch")
+
+    for (let i = 0; i < hitter_war_list.length; i++)
+    {
+        if (hitter_war_list[i].length > 0)
+        {
+            datasets.push({
+                points: hitter_war_list[i],
+                title: MODEL_STRINGS[i],
+                modelId: MODEL_VALUES[i],
+                isLog: false,
+                isHitter : true
+            })
+        }
+        if (hitter_ranks_list[i].length > 0)
+        {
+            datasets.push({
+                points: hitter_ranks_list[i],
+                title: MODEL_STRINGS[i] + " Rank",
+                modelId: MODEL_VALUES[i],
+                isLog: true,
+                isHitter: true
+            })
+        }
+    }
+
+    if (pitcher_ranks_list.length !== pitcher_war_list.length)
+        throw new Error("getDatasets: Pitcher War vs Ranks length mismatch")
+    for (let i = 0; i < pitcher_war_list.length; i++)
+    {
+        if (pitcher_war_list[i].length > 0)
+        {
+            datasets.push({
+                points: pitcher_war_list[i],
+                title: MODEL_STRINGS[i],
+                modelId: MODEL_VALUES[i],
+                isLog: false,
+                isHitter : false
+            })
+        }
+        if (pitcher_ranks_list[i].length > 0)
+        {
+            datasets.push({
+                points: pitcher_ranks_list[i],
+                title: MODEL_STRINGS[i] + " Rank",
+                modelId: MODEL_VALUES[i],
+                isLog: true,
+                isHitter: false
+            })
+        }
+    }
 
     return datasets
 }
 
-function setupSelector(hitter_war : Point[], hitter_ranks : Point[], pitcher_war : Point[], pitcher_ranks : Point[])
+function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][], pitcher_war_list : Point[][], pitcher_ranks_list : Point[][])
 {
     let graph_selector = getElementByIdStrict('graph_selector') as HTMLSelectElement
 
-    if (hitter_war.length > 0)
+    for (let i = 0; i < hitter_war_list.length; i++)
     {
-        let opt = document.createElement('option') as HTMLOptionElement
-        opt.text = "Hitter WAR"
-        opt.value = graph_selector.children.length.toString()
+        if (hitter_war_list[i].length > 0)
+        {
+            let opt = document.createElement('option') as HTMLOptionElement
+            opt.text = "Hitter " + MODEL_STRINGS[i]
+            opt.value = graph_selector.children.length.toString()
 
-        graph_selector.appendChild(opt)
+            graph_selector.appendChild(opt)
+        }
+        if (hitter_ranks_list[i].length > 0)
+        {
+            let opt = document.createElement('option') as HTMLOptionElement
+            opt.text = "Hitter " + MODEL_STRINGS[i] + " Rank"
+            opt.value = graph_selector.children.length.toString()
+
+            graph_selector.appendChild(opt)
+        }
     }
-    if (hitter_ranks.length > 0)
+    for (let i = 0; i < pitcher_war_list.length; i++)
     {
-        let opt = document.createElement('option') as HTMLOptionElement
-        opt.text = "Hitter Rank"
-        opt.value = graph_selector.children.length.toString()
+        if (pitcher_war_list[i].length > 0)
+        {
+            let opt = document.createElement('option') as HTMLOptionElement
+            opt.text = "Pitcher " + MODEL_STRINGS[i]
+            opt.value = graph_selector.children.length.toString()
 
-        graph_selector.appendChild(opt)
-    }
-    if (pitcher_war.length > 0)
-    {
-        let opt = document.createElement('option') as HTMLOptionElement
-        opt.text = "Pitcher WAR"
-        opt.value = graph_selector.children.length.toString()
+            graph_selector.appendChild(opt)
+        }
+        if (pitcher_ranks_list[i].length > 0)
+        {
+            let opt = document.createElement('option') as HTMLOptionElement
+            opt.text = "Pitcher " + MODEL_STRINGS[i] + " Rank"
+            opt.value = graph_selector.children.length.toString()
 
-        graph_selector.appendChild(opt)
-    }
-    if (pitcher_ranks.length > 0)
-    {
-        let opt = document.createElement('option') as HTMLOptionElement
-        opt.text = "Pitcher Rank"
-        opt.value = graph_selector.children.length.toString()
-
-        graph_selector.appendChild(opt)
+            graph_selector.appendChild(opt)
+        }
     }
 
     graph_selector.value = "0"
 
     graph_selector.addEventListener('change', () => {
         line_graph.setDataset(parseInt(graph_selector.value))
+        line_graph.fireCallback()
     })
 }
 
-function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
+function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
 {
-    let war_map = (f: Model) => {
+    let war_map = (f: Model, buckets : number[]) => {
         let war = 0;
         for (let i = 0; i < f.probs.length; i++)
-            war += f.probs[i] * HITTER_WAR_BUCKETS[i];
+            war += f.probs[i] * buckets[i];
 
         const label : string = f.month == 0 ? 'Initial' : `${f.month}-${f.year}`
         const p : Point = {y: war, label : label}
@@ -572,19 +617,41 @@ function setupModel(hitterModels : Model[], pitcherModels : Model[]) : void
         return p
     }
     
-    const hitter_war = hitterModels.map(war_map)
-    const pitcher_war = pitcherModels.map(war_map)
+    let hitter_war_points : Point[][] = []
+    let pitcher_war_points : Point[][] = []
+    
+    for (var idx of MODEL_VALUES)
+    {
+        if (modelIsWAR(idx))
+        {
+            if (hitterModels.length > 0)
+                hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
+            if (pitcherModels.length > 0)
+                pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
+        }
+            
+        else if (modelIsValue(idx))
+        {
+            if (hitterModels.length > 0)
+                hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, VALUE_BUCKETS)))
+            if (pitcherModels.length > 0)
+                pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, VALUE_BUCKETS)))
+        }
+        else
+            throw new Error("setupModel: model is neither WAR nor VALUE")
 
-    let hitter_ranks = hitterModels.filter(f => f.rank !== null).map(rank_map)
-    let pitcher_ranks = pitcherModels.filter(f => f.rank !== null).map(rank_map)
+    }
 
-    const datasets = getDatasets(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks)
+    let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
+    let pitcher_rank_points : Point[][] = pitcherModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
+
+    const datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
     line_graph = new LineGraph(model_graph, datasets, lineCallback)
-    setupSelector(hitter_war, hitter_ranks, pitcher_war, pitcher_ranks)
+    setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
 
     const pie_points = person.isHitter ? 
-        piePointGenerator(hitterModels[hitterModels.length - 1]) :
-        piePointGenerator(pitcherModels[pitcherModels.length - 1])
+        piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
+        piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1])
     pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
 }
 
@@ -595,8 +662,8 @@ let pie_graph : PieGraph
 let keyControls : KeyControls
 
 let person : Person
-let hitterModels : Model[]
-let pitcherModels : Model[]
+let hitterModels : Model[][]
+let pitcherModels : Model[][]
 
 async function main()
 {

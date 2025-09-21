@@ -61,10 +61,11 @@ class PieGraph
         })
     }
 
-    updateChart(values : number[], title_text : string)
+    updateChart(values : number[], title_text : string, labels : string[])
     {
         this.points.forEach((f, idx) => {f.y = values[idx]})
         this.chart.data.datasets[0].data = values
+        this.chart.data.labels = labels
         this.chart.options.plugins.title.text = title_text
         this.chart.update()
     }

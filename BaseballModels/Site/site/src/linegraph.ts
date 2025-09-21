@@ -6,6 +6,7 @@ type GraphDataset = {
     title : string,
     isLog : boolean,
     isHitter : boolean,
+    modelId : number,
 }
 
 type GraphObj = {
@@ -20,10 +21,10 @@ class LineGraph
     private points : Point[]
     private datasetIdx : number
     private pointIdx : number
-    private callback : (index : number) => void
+    private callback : (index : number, modelId : number) => void
     private readonly chart : any
 
-    constructor(element : HTMLCanvasElement, datasets : GraphDataset[], callback : (index : number) => void, colorscale : string[] | null = null)
+    constructor(element : HTMLCanvasElement, datasets : GraphDataset[], callback : (index : number, modelId : number) => void, colorscale : string[] | null = null)
     {
         this.datasets = datasets
         this.datasetIdx = 0
@@ -124,7 +125,7 @@ class LineGraph
                         const firstPoint = points[0]
                         const index = firstPoint.index;
                         this.highlight_index(index)
-                        this.callback(index)
+                        this.callback(index, this.getSelectedModel())
                     }
                 },
                 scales: {
@@ -158,13 +159,22 @@ class LineGraph
         {
             this.pointIdx += x_inc
             this.highlight_index(this.pointIdx)
-            this.callback(this.pointIdx)
+            this.callback(this.getAdjustedPointIndex(), this.getSelectedModel())
         }
     }
 
     fireCallback() : void
     {
-        this.callback(this.pointIdx)
+        
+        this.callback(this.getAdjustedPointIndex(), this.getSelectedModel())
+    }
+
+    private getAdjustedPointIndex() : number
+    {
+        let index = this.pointIdx
+        if (this.datasets[this.datasetIdx].isLog)
+            index++
+        return index
     }
 
     graphIsHitter() : boolean
@@ -183,5 +193,10 @@ class LineGraph
 
         if (this.points.length > 0)
             this.highlight_index(this.points.length - 1);
+    }
+
+    getSelectedModel() : number
+    {
+        return this.datasets[this.datasetIdx].modelId
     }
 }
