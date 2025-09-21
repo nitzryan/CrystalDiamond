@@ -175,14 +175,14 @@ function createPlayer(obj) {
     };
     return p;
 }
-function createPlayerElement(player, year, month) {
+function createPlayerElement(player, year, month, modelId) {
     var el = document.createElement('li');
     var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(player.war.toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, modelId), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
 }
 var PlayerLoader = (function () {
@@ -222,7 +222,7 @@ var PlayerLoader = (function () {
                         this.exhaustedElements = (players.length != num_elements);
                         this.index += players.length;
                         return [2, players.map(function (f) {
-                                return createPlayerElement(createPlayer(f), _this.year, _this.month);
+                                return createPlayerElement(createPlayer(f), _this.year, _this.month, _this.model);
                             })];
                 }
             });
@@ -547,6 +547,13 @@ function getOrdinalNumber(num) {
     if (lastDigit === 3 && last2Digits !== 13)
         return num + "rd";
     return num + "th";
+}
+function formatModelString(val, modelId) {
+    if (modelId == 1 || modelId == 3)
+        return "".concat(val.toFixed(1), " WAR");
+    else if (modelId == 2 || modelId == 4)
+        return "$".concat(val.toFixed(0), "M");
+    throw new Error("Invalid formatModelString modelId: ".concat(modelId));
 }
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };

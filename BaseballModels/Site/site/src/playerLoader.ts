@@ -28,7 +28,7 @@ function createPlayer(obj : JsonObject)
     return p
 }
 
-function createPlayerElement(player : Player, year : number, month : number) : HTMLLIElement
+function createPlayerElement(player : Player, year : number, month : number, modelId : number) : HTMLLIElement
 {
     const el = document.createElement('li') as HTMLLIElement
     const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
@@ -47,7 +47,7 @@ function createPlayerElement(player : Player, year : number, month : number) : H
                 </div>
             </div>
             <div class='rankings_row'>
-                <div>${player.war.toFixed(1)} WAR</div>
+                <div>${formatModelString(player.war, modelId)}</div>
                 <div class='rankings_rightrow'>
                     <div>${player.position}</div>
                     <div>${ageInYears}yrs</div>
@@ -93,7 +93,7 @@ class PlayerLoader
         this.index += players.length
 
         return players.map(f => {
-            return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month)
+            return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month, this.model)
         })
     }
 }

@@ -147,7 +147,7 @@ namespace SitePrep
                             foreach (var pwa in initial_pwa)
                             {
                                 List<PlayerWar> pw = [];
-                                var opwas = db.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId)
+                                var opwas = db.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
                                     .OrderBy(f => f.Year).ThenBy(f => f.Month)
                                     .Select(f => new PlayerWar
                                     {
@@ -177,7 +177,7 @@ namespace SitePrep
                                 var mp = db.Model_Players.Where(f => f.MlbId == pwa.MlbId).Single();
                                 if (mp.LastProspectYear != pw.Last().Year || mp.LastProspectMonth != pw.Last().Month)
                                 {
-                                    var last = pw.Last();
+                                    var last = pw.Where(f => f.isHitter == pwa.isHitter).Last();
                                     // Check if player exhausted prospect status
                                     if (mp.LastProspectYear <= endYear)
                                     {
@@ -240,7 +240,7 @@ namespace SitePrep
 
                                         // Player is prospect now
                                         // Get first value that is <= currentDate
-                                        PlayerWar current = playerWarList.Where(f => f.Year < year || (f.Year == year && f.Month <= month))
+                                        PlayerWar current = playerWarList.Where(f => (f.isHitter == first.isHitter) && (f.Year < year || (f.Year == year && f.Month <= month)))
                                             .OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).First();
 
 

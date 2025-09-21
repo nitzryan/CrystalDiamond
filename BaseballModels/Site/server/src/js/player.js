@@ -798,6 +798,13 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
+function formatModelString(val, modelId) {
+    if (modelId == 1 || modelId == 3)
+        return "".concat(val.toFixed(1), " WAR");
+    else if (modelId == 2 || modelId == 4)
+        return "$".concat(val.toFixed(0), "M");
+    throw new Error("Invalid formatModelString modelId: ".concat(modelId));
+}
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
