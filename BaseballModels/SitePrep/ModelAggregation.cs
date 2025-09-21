@@ -21,11 +21,11 @@ namespace SitePrep
                 using (SqliteDbContext db = new(Constants.DB_OPTIONS))
                 {
                     var opw = db.Output_PlayerWar.Where(f => f.ModelIdx == 0);
-                    using (ProgressBar progressBar = new ProgressBar(opw.Count(), "Aggregating Hitter Model Results"))
+                    using (ProgressBar progressBar = new ProgressBar(opw.Count(), "Aggregating Model Results"))
                     {
                         foreach (var o in opw)
                         {
-                            var model_results = db.Output_PlayerWar.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.ModelName.Equals(o.ModelName));
+                            var model_results = db.Output_PlayerWar.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model && f.IsHitter == o.IsHitter);
                             int size = model_results.Count();
                             if (size == 0)
                                 throw new Exception("No elements in model_results, should not happen");
@@ -33,7 +33,8 @@ namespace SitePrep
                             Db.Output_PlayerWarAggregation owa = new()
                             {
                                 MlbId = o.MlbId,
-                                ModelName = o.ModelName,
+                                Model = o.Model,
+                                IsHitter = o.IsHitter,
                                 Year = o.Year,
                                 Month = o.Month,
                                 Prob0 = 0,

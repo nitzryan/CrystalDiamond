@@ -3,7 +3,7 @@ namespace SiteDb
 	public class TeamRank
 	{
 		public required int TeamId {get; set;}
-		public required string ModelName {get; set;}
+		public required int ModelId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Value {get; set;}
@@ -20,7 +20,7 @@ namespace SiteDb
 			return new TeamRank
 			{
 				TeamId = this.TeamId,
-				ModelName = this.ModelName,
+				ModelId = this.ModelId,
 				Year = this.Year,
 				Month = this.Month,
 				Value = this.Value,

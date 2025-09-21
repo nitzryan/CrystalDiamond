@@ -26,17 +26,18 @@ namespace SitePrep
                     var bio = playerTuple.sbi;
 
                     // Model Output
-                    var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.ModelName.Equals("P")).OrderBy(f => f.Year).ThenBy(f => f.Month);
+                    var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 0).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     foreach (var opw in opws)
                     {
-                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelName.Equals(opw.ModelName));
+                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model && f.IsHitter == opw.IsHitter);
 
                         siteDb.Add(new PlayerModel
                         {
                             MlbId = player.MlbId,
                             Year = opw.Year,
                             Month = opw.Month,
-                            ModelName = opw.ModelName,
+                            ModelId = opw.Model,
+                            IsHitter = opw.IsHitter,
                             Probs = $"{opw.Prob0.ToString("0.000")}," +
                                     $"{opw.Prob1.ToString("0.000")}," +
                                     $"{opw.Prob2.ToString("0.000")}," +

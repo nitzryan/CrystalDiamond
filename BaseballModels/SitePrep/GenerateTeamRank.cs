@@ -13,21 +13,22 @@ namespace SitePrep
                 siteDb.SaveChanges();
                 siteDb.ChangeTracker.Clear();
 
-                var combos = siteDb.PlayerRank.Select(f => new { f.Year, f.Month }).Distinct();
+                var combos = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
                 using (ProgressBar progressBar = new ProgressBar(combos.Count(), "Creating TeamRanks"))
                 {
                     foreach (var combo in combos)
                     {
                         int year = combo.Year;
                         int month = combo.Month;
+                        int model = combo.ModelId;
                         //string model = combo.ModelName;
 
-                        var teamRanks = siteDb.PlayerRank.Where(f => f.Year == year && f.Month == month && f.TeamId != 0)
+                        var teamRanks = siteDb.PlayerRank.Where(f => f.Year == year && f.Month == month && f.TeamId != 0 && f.ModelId == model)
                             .GroupBy(f => f.TeamId)
                             .Select(g => new TeamRank
                             {
                                 TeamId = g.Key,
-                                ModelName = "1",
+                                ModelId = model,
                                 Year = g.First().Year,
                                 Month = g.First().Month,
                                 Value = g.Sum(f => f.War),

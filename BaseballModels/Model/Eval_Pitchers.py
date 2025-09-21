@@ -16,7 +16,7 @@ if __name__ == "__main__":
     
     for model_name, model_id in tqdm(model_idxs, desc="Evaluating Architectures"):
         cursor = db.cursor()
-        cursor.execute("DELETE FROM Output_PlayerWar WHERE modelName=?", (model_name,))
+        cursor.execute("DELETE FROM Output_PlayerWar WHERE model=? AND isHitter=?", (model_id,0))
         db.commit()
     
         if model_id == 1 or model_id == 2:
@@ -74,6 +74,6 @@ if __name__ == "__main__":
                 cursor = db.cursor()
                 for dbd in db_data:
                     vals = [tuple(x) for x in dbd.tolist()]
-                    cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,'{model_name}',?,?,?,?,?,?,?,?,?,?)", vals)
+                    cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?)", vals)
                 db.commit()
                 

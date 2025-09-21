@@ -26,32 +26,32 @@
 
                 foreach (int month in months)
                 {
-                    //if (!CalculateLevelStats.Main(year, month))
-                    //    return;
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
 
-                    //if (!CalculateMonthStats.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                    //if (!CalculateMonthRatios.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
                 }
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
-                //if (!CalculateAnnualOPS.Main(year))
-                //    return;
+                if (!CalculateAnnualOPS.Main(year))
+                    return;
 
-                //while (!await UpdateParents.Main(year))
-                //{ }
+                while (!await UpdateParents.Main(year))
+                { }
 
             }
 
-            //if (!UpdateServiceTime.Main())
-            //    return;
+            if (!UpdateServiceTime.Main())
+                return;
 
-            //if (!await FangraphsData.Main(years))
-            //    return;
+            if (!await FangraphsData.Main(years))
+                return;
 
             if (!UpdateCareers.Main(years))
                 return;
@@ -62,20 +62,20 @@
             if (!ModelPlayerWar.Main())
                 return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
-            //if (!UpdatePlayerOrgMap.Main())
-            //    return;
+            if (!UpdatePlayerOrgMap.Main())
+                return;
 
-            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
-            //while (!await GetLeagues.Main())
-            //{ }
+            while (!await GetLeagues.Main())
+            { }
 
-            //while (!await SitePlayerBio.Main(END_YEAR))
-            //{ }
+            while (!await SitePlayerBio.Main(END_YEAR))
+            { }
         }
     }
 }

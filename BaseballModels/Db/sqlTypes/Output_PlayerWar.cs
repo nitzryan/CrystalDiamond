@@ -3,7 +3,8 @@ namespace Db
 	public class Output_PlayerWar
 	{
 		public required int MlbId {get; set;}
-		public required string ModelName {get; set;}
+		public required int Model {get; set;}
+		public required int IsHitter {get; set;}
 		public required int ModelIdx {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
@@ -20,7 +21,8 @@ namespace Db
 			return new Output_PlayerWar
 			{
 				MlbId = this.MlbId,
-				ModelName = this.ModelName,
+				Model = this.Model,
+				IsHitter = this.IsHitter,
 				ModelIdx = this.ModelIdx,
 				Year = this.Year,
 				Month = this.Month,

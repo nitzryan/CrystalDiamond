@@ -3,7 +3,8 @@ namespace SiteDb
 	public class PlayerRank
 	{
 		public required int MlbId {get; set;}
-		public required string ModelName {get; set;}
+		public required int ModelId {get; set;}
+		public required int IsHitter {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float War {get; set;}
@@ -18,7 +19,8 @@ namespace SiteDb
 			return new PlayerRank
 			{
 				MlbId = this.MlbId,
-				ModelName = this.ModelName,
+				ModelId = this.ModelId,
+				IsHitter = this.IsHitter,
 				Year = this.Year,
 				Month = this.Month,
 				War = this.War,

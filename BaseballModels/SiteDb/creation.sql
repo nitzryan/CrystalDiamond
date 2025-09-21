@@ -96,15 +96,17 @@ CREATE TABLE "PlayerModel" (
 	"mlbId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"modelName" TEXT NOT NULL,
+	"modelId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
 	"probs" TEXT NOT NULL,
 	"rank" INTEGER,
-	PRIMARY KEY("mlbId","year","month","modelName")
+	PRIMARY KEY("mlbId","year","month","modelId", "isHitter")
 );
 
 CREATE TABLE "PlayerRank" (
 	"mlbId" INTEGER NOT NULL,
-	"modelName" TEXT NOT NULL,
+	"modelId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"war" REAL NOT NULL,
@@ -113,12 +115,12 @@ CREATE TABLE "PlayerRank" (
 	"rank" INTEGER NOT NULL,
 	"teamRank" INTEGER NOT NULL,
 	"highestLevel" INTEGER NOT NULL,
-	PRIMARY KEY("mlbId", "year", "month", "modelName")
+	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
 
 CREATE TABLE "TeamRank" (
 	"teamId" INTEGER NOT NULL,
-	"modelName" TEXT NOT NULL,
+	"modelId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"value" REAL NOT NULL,
@@ -129,7 +131,13 @@ CREATE TABLE "TeamRank" (
 	"top200" INTEGER NOT NULL,
 	"top500" INTEGER NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY("teamId", "year", "month", "modelName")
+	PRIMARY KEY("teamId", "year", "month", "modelId")
+);
+
+CREATE TABLE "Models" (
+	"modelId" INTEGER NOT NULL,
+	"name" TEXT NOT NULL,
+	PRIMARY KEY("modelId")
 );
 
 CREATE TABLE "HomeData" (

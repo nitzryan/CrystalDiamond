@@ -168,7 +168,8 @@ CREATE TABLE "Model_TrainingHistory" (
 
 CREATE TABLE "Output_PlayerWar" (
 	"mlbId"	INTEGER NOT NULL,
-	"modelName" TEXT NOT NULL,
+	"model" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
 	"modelIdx"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
@@ -179,12 +180,13 @@ CREATE TABLE "Output_PlayerWar" (
 	"prob4"	REAL NOT NULL,
 	"prob5"	REAL NOT NULL,
 	"prob6"	REAL NOT NULL,
-	PRIMARY KEY("mlbId", "modelName","modelIdx","year","month")
+	PRIMARY KEY("mlbId", "model", "isHitter", "modelIdx","year","month")
 );
 
 CREATE TABLE "Output_PlayerWarAggregation" (
 	"mlbId"	INTEGER NOT NULL,
-	"modelName"	TEXT NOT NULL,
+	"model"	INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
 	"prob0"	REAL NOT NULL,
@@ -194,7 +196,7 @@ CREATE TABLE "Output_PlayerWarAggregation" (
 	"prob4"	REAL NOT NULL,
 	"prob5"	REAL NOT NULL,
 	"prob6"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","modelName","year","month")
+	PRIMARY KEY("mlbId","model", "isHitter", "year","month")
 );
 
 CREATE TABLE "Park_Factors" (
@@ -697,7 +699,7 @@ CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
 );
 
 CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
-	"modelName",
+	"model",
 	"modelIdx",
 	"mlbId",
 	"year",

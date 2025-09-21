@@ -98,8 +98,8 @@ namespace SitePrep
                     {
                         var players = siteDb.PlayerRank
                             .Join(siteDb.PlayerRank, 
-                                prev => new { prev.MlbId, prev.ModelName },
-                                cur => new { cur.MlbId, cur.ModelName },
+                                prev => new { prev.MlbId, prev.ModelId, prev.IsHitter },
+                                cur => new { cur.MlbId, cur.ModelId, cur.IsHitter },
                                 (prev, cur) => new {prev, cur})
                             .Where(f => f.cur.Year == datePair.CurYear 
                                 && f.cur.Month == datePair.CurMonth 

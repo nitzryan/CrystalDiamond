@@ -5,7 +5,8 @@ namespace SiteDb
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
-		public required string ModelName {get; set;}
+		public required int ModelId {get; set;}
+		public required int IsHitter {get; set;}
 		public required string Probs {get; set;}
 		public int? Rank {get; set;}
 
@@ -16,7 +17,8 @@ namespace SiteDb
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
-				ModelName = this.ModelName,
+				ModelId = this.ModelId,
+				IsHitter = this.IsHitter,
 				Probs = this.Probs,
 				Rank = this.Rank,
 				

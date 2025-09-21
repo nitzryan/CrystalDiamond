@@ -1,11 +1,11 @@
 ﻿using Db;
-using System.Numerics;
 
 namespace SitePrep
 {
     internal class Utilities
     {
         private static List<float> WAR_BUCKETS = [0, 0.5f, 3, 7.5f, 15, 25, 35];
+        private static List<float> VALUE_BUCKETS = [0, 2.5f, 12.5f, 35, 75, 150, 250];
 
         public static void LogException(Exception e)
         {
@@ -22,6 +22,26 @@ namespace SitePrep
                 (opwa.Prob4 * WAR_BUCKETS[4]) +
                 (opwa.Prob5 * WAR_BUCKETS[5]) +
                 (opwa.Prob6 * WAR_BUCKETS[6]);
+        }
+
+        public static float GetValue(Output_PlayerWarAggregation opwa)
+        {
+            return (opwa.Prob1 * VALUE_BUCKETS[1]) +
+                (opwa.Prob2 * VALUE_BUCKETS[2]) +
+                (opwa.Prob3 * VALUE_BUCKETS[3]) +
+                (opwa.Prob4 * VALUE_BUCKETS[4]) +
+                (opwa.Prob5 * VALUE_BUCKETS[5]) +
+                (opwa.Prob6 * VALUE_BUCKETS[6]);
+        }
+
+        public static float GetModelValue(Output_PlayerWarAggregation opwa, int modelId)
+        {
+            if (modelId == 1 || modelId == 3)
+                return GetWar(opwa);
+            if (modelId == 2 || modelId == 4)
+                return GetValue(opwa);
+
+            throw new Exception($"Model not found for GetModelValue: {modelId}");
         }
 
         public static Func<List<int>, Player_Hitter_GameLog, List<int>> PositionAggregation = (l, gl) =>
