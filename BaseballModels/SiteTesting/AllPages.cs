@@ -82,9 +82,9 @@ namespace SiteTesting
         }
 
         [Test, TestCaseSource(nameof(AllRanks))]
-        public void LoadRanksNoErrors(int year, int month)
+        public void LoadRanksNoErrors(int year, int month, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}";
+            string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&model={modelId}";
             var driver = driverDict[TestContext.CurrentContext.WorkerId];
             bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
             Assert.That(pageLoaded, $"{year}-{month} not loaded");
@@ -94,16 +94,16 @@ namespace SiteTesting
 
         static IEnumerable<object> AllRanks()
         {
-            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month }).Distinct();
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
             foreach (var d in dates)
-                yield return new object[] { d.Year, d.Month };
+                yield return new object[] { d.Year, d.Month, d.ModelId };
         }
 
         // Teams
         [Test, TestCaseSource(nameof(AllTeamRanks))]
-        public void LoadTeamRanksNoErrors(int year, int month, int teamId)
+        public void LoadTeamRanksNoErrors(int year, int month, int teamId, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}";
+            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}&model={modelId}";
             var driver = driverDict[TestContext.CurrentContext.WorkerId];
             bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
             Assert.That(pageLoaded, $"{year}-{month} team {teamId} not loaded");
@@ -113,16 +113,16 @@ namespace SiteTesting
 
         static IEnumerable<object> AllTeamRanks()
         {
-            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.TeamId }).Distinct().Where(f => f.TeamId != 0);
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.TeamId, f.ModelId }).Distinct().Where(f => f.TeamId != 0);
             foreach (var d in dates)
-                yield return new object[] { d.Year, d.Month, d.TeamId };
+                yield return new object[] { d.Year, d.Month, d.TeamId, d.ModelId };
         }
 
         // Team ranks
         [Test, TestCaseSource(nameof(AllTeamRankings))]
-        public void LoadTeamRankingsNoErrors(int year, int month)
+        public void LoadTeamRankingsNoErrors(int year, int month, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}";
+            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&model={modelId}";
             var driver = driverDict[TestContext.CurrentContext.WorkerId];
             bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
             Assert.That(pageLoaded, $"{year}-{month} not loaded");
@@ -132,9 +132,9 @@ namespace SiteTesting
 
         static IEnumerable<object> AllTeamRankings()
         {
-            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month }).Distinct();
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
             foreach (var d in dates)
-                yield return new object[] { d.Year, d.Month };
+                yield return new object[] { d.Year, d.Month, d.ModelId };
         }
 
         [OneTimeTearDown]

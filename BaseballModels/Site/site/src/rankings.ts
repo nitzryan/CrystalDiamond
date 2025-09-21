@@ -1,27 +1,24 @@
-let month : number | null = null
-let year : number | null = null
+let month : number
+let year : number
+let modelId : number
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    try {
-        month = getQueryParam('month')
-        year = getQueryParam('year')
-    } catch (error) {}
     
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     const datesJson = await datesJsonPromise
 
     endYear = datesJson["endYear"] as number
     endMonth = datesJson["endMonth"] as number
-    if (month === null || year === null)
-    {
-        month = endMonth
-        year = endYear
-    }
+    
+    month = getQueryParamBackup("month", endMonth)
+    year = getQueryParamBackup("year", endYear)
+    modelId = getQueryParamBackup("model", 1)
 
-    const selector = setupSelector({
+    setupSelector({
         month : month,
         year : year,
+        modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -29,14 +26,14 @@ async function main()
     })
     org_map = await retrieveJson("../../assets/map.json.gz")
     
-    setupRankings(month, year, null, 100)
+    setupRankings(month, year, modelId, null, 100)
     searchBar = new SearchBar(await player_search_data)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
         const yr = year_select.value
-        
-        window.location.href = `./rankings?year=${yr}&month=${mnth}`
+        const model = model_select.value
+        window.location.href = `./rankings?year=${yr}&month=${mnth}&model=${model}`
     })
 
     getElementByIdStrict('nav_rankings').classList.add('selected')

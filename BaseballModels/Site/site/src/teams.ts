@@ -1,14 +1,13 @@
-let month : number | null = null
-let year : number | null = null
+let month : number
+let year : number
+let modelId : number
 let teamId : number | null = null
 let rankings_overall = document.getElementById('rankings_overall') as HTMLButtonElement
 
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    month = getQueryParamNullable('month')
-    year = getQueryParamNullable('year')
-    teamId = getQueryParamNullable('team')
+    
     
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     const datesJson = await datesJsonPromise
@@ -16,11 +15,20 @@ async function main()
 
     endYear = datesJson["endYear"] as number
     endMonth = datesJson["endMonth"] as number
-    if (month === null || year === null)
-    {
-        month = endMonth
-        year = endYear
-    }
+    month = getQueryParamBackup('month', endMonth)
+    year = getQueryParamBackup('year', endYear)
+    modelId = getQueryParamBackup("model", 1)
+    teamId = getQueryParamNullable('team')
+    
+    setupSelector({
+        month : month,
+        year : year,
+        modelId : modelId,
+        endYear : endYear,
+        endMonth : endMonth,
+        startYear : datesJson["startYear"] as number,
+        startTeam : teamId
+    })
     if (teamId === null)
     {
         createOverviewPage(datesJson)
@@ -40,26 +48,18 @@ async function main()
 
 async function createTeamPage(datesJson : JsonObject)
 {
-    if (month === null || year === null || teamId === null)
-        throw new Error("Null values in createTeamPage")
-
-    setupSelector({
-        month : month,
-        year : year,
-        endYear : endYear,
-        endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
-        startTeam : teamId
-    })
+    if (teamId === null)
+        throw new Error("Null month in createTeamPage")
     
-    setupRankings(month, year, teamId, 30)
+    setupRankings(month, year, modelId, teamId, 30)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
         const yr = year_select.value
         const tm = team_select?.value
+        const model = model_select.value
         
-        window.location.href = `./teams?year=${yr}&month=${mnth}&team=${tm}`
+        window.location.href = `./teams?year=${yr}&month=${mnth}&team=${tm}&model=${model}`
     })
 
     document.title = `${getParentAbbr(teamId)} ${MONTH_CODES[month]} ${year} Rankings`
@@ -99,19 +99,7 @@ function TeamOverviewMap(team : JsonValue) : HTMLLIElement
 
 async function createOverviewPage(datesJson : JsonObject)
 {
-    if (month === null || year === null)
-        throw new Error("Null values in createTeamPage")
-
-    setupSelector({
-        month : month,
-        year : year,
-        endYear : endYear,
-        endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
-        startTeam : null
-    })
-
-    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}`)).json()) as JsonArray
+    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}`)).json()) as JsonArray
     let elements = team_rankings_data.map(TeamOverviewMap)
     elements.forEach(f => {
         rankings_list.appendChild(f)
@@ -125,9 +113,9 @@ async function createOverviewPage(datesJson : JsonObject)
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
         const yr = year_select.value
-        const tm = team_select?.value
+        const model = model_select.value
         
-        window.location.href = `./teams?year=${yr}&month=${mnth}`
+        window.location.href = `./teams?year=${yr}&month=${mnth}$model=${model}`
     })
 
     document.title = `${MONTH_CODES[month]} ${year} Team Rankings`

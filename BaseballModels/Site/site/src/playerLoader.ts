@@ -65,14 +65,16 @@ class PlayerLoader
     private exhaustedElements : boolean = false
     private year : number
     private month : number
+    private model : number
     private teamId : number | null
 
-    constructor(year : number, month : number, teamId : number | null = null)
+    constructor(year : number, month : number, model : number, teamId : number | null = null)
     {
         this.index = 0
         this.year = year
         this.month = month
         this.teamId = teamId
+        this.model = model
     }
 
     async getElements(num_elements : number) : Promise<HTMLLIElement[]>
@@ -82,8 +84,8 @@ class PlayerLoader
 
         const endRank = this.index + num_elements
         const response = this.teamId !== null ?
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}`) : 
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}`)
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}`) : 
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}`)
 
         const players = await response.json() as JsonArray
 
@@ -97,9 +99,9 @@ class PlayerLoader
 }
 
 let playerLoader : PlayerLoader
-function setupRankings(month : number, year : number, team : number | null, num_elements : number)
+function setupRankings(month : number, year : number, model : number, team : number | null, num_elements : number)
 {
-    playerLoader = new PlayerLoader(year, month, team)
+    playerLoader = new PlayerLoader(year, month, model, team)
 
     if (team === null)
         rankings_header.innerText = `Rankings for ${MONTH_CODES[month]} ${year}`

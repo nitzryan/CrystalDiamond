@@ -79,6 +79,7 @@ async function main()
     const endMonth = datesJson["endMonth"] as number
     const year = getQueryParamBackup("year", endYear)
     const month = getQueryParamBackup("month", endMonth)
+    const modelId = getQueryParamBackup("model", 1)
 
     const home_data_response = fetch(`/homedata?year=${year}&month=${month}`)
     const home_data = await(await home_data_response).json() as JsonObject
@@ -89,6 +90,7 @@ async function main()
     setupSelector({
         month : month,
         year : year,
+        modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -101,8 +103,9 @@ async function main()
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
         const yr = year_select.value
+        const model = model_select.value
         
-        window.location.href = `./?year=${yr}&month=${mnth}`
+        window.location.href = `./?year=${yr}&month=${mnth}&model=${model}`
     })
 }
 

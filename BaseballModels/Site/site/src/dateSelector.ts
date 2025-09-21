@@ -1,6 +1,7 @@
 const rankings_selector = getElementByIdStrict('rankings_selector')
 const year_select = getElementByIdStrict('year_select') as HTMLSelectElement
 const month_select = getElementByIdStrict('month_select') as HTMLSelectElement
+const model_select = getElementByIdStrict('model_select') as HTMLSelectElement
 const team_select = document.getElementById('team_select') as HTMLSelectElement | null
 const rankings_button = getElementByIdStrict('rankings_button') as HTMLButtonElement
 const rankings_error = getElementByIdStrict('rankings_error')
@@ -11,6 +12,7 @@ let endMonth : number = 0
 type SelectorArgs = {
     month : number,
     year : number,
+    modelId : number,
     startYear : number,
     endYear : number, 
     endMonth : number,
@@ -20,7 +22,7 @@ function setupSelector(args : SelectorArgs)
 {
     endYear = args.endYear
     endMonth = args.endMonth
-    
+
     for (let i = args.startYear; i <= endYear; i++)
     {
         let opt = document.createElement('option')
@@ -39,6 +41,7 @@ function setupSelector(args : SelectorArgs)
 
     year_select.value = args.year.toString()
     month_select.value = args.month.toString()
+    model_select.value = args.modelId.toString()
 
     year_select.addEventListener('change', selectorEventHandler)
     month_select.addEventListener('change', selectorEventHandler)

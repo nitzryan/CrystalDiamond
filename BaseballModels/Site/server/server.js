@@ -66,7 +66,7 @@ app.get('/player/:id', async (req, res) => {
                 promiseHitter = Promise.all([
                     dbAll("SELECT * FROM HitterYearStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM HitterMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
-                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "H"])
+                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND isHitter=1 ORDER BY YEAR ASC, Month ASC", [req.params.id])
                 ]);
             }
             if (row.isPitcher == 1)
@@ -74,7 +74,7 @@ app.get('/player/:id', async (req, res) => {
                 promisePitcher = Promise.all([
                     dbAll("SELECT * FROM PitcherYearStats WHERE mlbId=? ORDER BY YEAR ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM PitcherMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
-                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND modelName=? ORDER BY YEAR ASC, Month ASC", [req.params.id, "P"])
+                    dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND isHitter=0 ORDER BY YEAR ASC, Month ASC", [req.params.id])
                 ]);
             }
             if (row.isHitter == 1)
@@ -113,15 +113,16 @@ app.get('/rankingsRequest', (req, res) => {
         const startRank = req.query.startRank
         const endRank = req.query.endRank
         const teamId = req.query.teamId
+        const model = req.query.model
 
         if (teamId !== undefined)
         {
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
                 INNER JOIN Player as p on pr.mlbId=p.mlbId
-                WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? 
+                WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? AND pr.modelId=?
                 ORDER BY teamRank ASC`, 
-            [year,month,teamId,startRank,endRank], (err, rows) => {
+            [year,month,teamId,startRank,endRank,model], (err, rows) => {
             
                 res.json(rows)
             })
@@ -129,9 +130,9 @@ app.get('/rankingsRequest', (req, res) => {
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
                 INNER JOIN Player as p on pr.mlbId=p.mlbId 
-                WHERE year=? AND month=? AND rank>=? AND rank<=? 
+                WHERE year=? AND month=? AND rank>=? AND rank<=? AND pr.modelId=?
                 ORDER BY rank ASC`, 
-            [year,month,startRank,endRank], (err, rows) => {
+            [year,month,startRank,endRank,model], (err, rows) => {
 
                 res.json(rows)
             })
@@ -147,13 +148,14 @@ app.get('/teamRanks', (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
+        const model = req.query.model
         
         db.all(`
             SELECT * FROM TeamRank
-            WHERE year=? AND month=?
+            WHERE year=? AND month=? AND modelId=?
             ORDER BY rank ASC
             `,
-        [year, month], (err, rows) => {
+        [year, month, model], (err, rows) => {
             res.json(rows)
         })
     } catch (e)
@@ -166,11 +168,12 @@ app.get('/homedata', async (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
+        const model = req.query.model
 
         let dataPromise = Promise.all([
             dbAll(`SELECT hd.*, p.firstName, p.lastName, p.position, p.orgId FROM HomeData as hd
                 INNER JOIN Player as p ON hd.mlbId = p.mlbId
-                WHERE hd.year=? AND hd.month=?`, [year,month]),
+                WHERE hd.year=? AND hd.month=? AND hd.modelId=?`, [year,month,model]),
             dbAll("SELECT * FROM HomeDataType", [])
         ])
         

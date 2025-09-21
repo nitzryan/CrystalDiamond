@@ -79,7 +79,7 @@ function createHomeDataElements(home_data) {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, org_map_promise, datesJson, endYear, endMonth, year, month, home_data_response, home_data, _a;
+        var datesJsonPromise, player_search_data, org_map_promise, datesJson, endYear, endMonth, year, month, modelId, home_data_response, home_data, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -93,6 +93,7 @@ function main() {
                     endMonth = datesJson["endMonth"];
                     year = getQueryParamBackup("year", endYear);
                     month = getQueryParamBackup("month", endMonth);
+                    modelId = getQueryParamBackup("model", 1);
                     home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month));
                     return [4, home_data_response];
                 case 2: return [4, (_b.sent()).json()];
@@ -105,6 +106,7 @@ function main() {
                     setupSelector({
                         month: month,
                         year: year,
+                        modelId: modelId,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
@@ -118,7 +120,8 @@ function main() {
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
-                        window.location.href = "./?year=".concat(yr, "&month=").concat(mnth);
+                        var model = model_select.value;
+                        window.location.href = "./?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
                     });
                     return [2];
             }
@@ -129,6 +132,7 @@ main();
 var rankings_selector = getElementByIdStrict('rankings_selector');
 var year_select = getElementByIdStrict('year_select');
 var month_select = getElementByIdStrict('month_select');
+var model_select = getElementByIdStrict('model_select');
 var team_select = document.getElementById('team_select');
 var rankings_button = getElementByIdStrict('rankings_button');
 var rankings_error = getElementByIdStrict('rankings_error');
@@ -151,6 +155,7 @@ function setupSelector(args) {
     }
     year_select.value = args.year.toString();
     month_select.value = args.month.toString();
+    model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
     if (team_select !== null && args.startTeam !== null) {
