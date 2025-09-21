@@ -29,7 +29,7 @@ namespace SiteDb
 			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelId,f.IsHitter,f.Year,f.Month});
 			modelBuilder.Entity<TeamRank>().HasKey(f => new {f.TeamId,f.ModelId,f.Year,f.Month});
 			modelBuilder.Entity<Models>().HasKey(f => new {f.ModelId});
-			modelBuilder.Entity<HomeData>().HasKey(f => new {f.Year,f.Month,f.RankType,f.Rank});
+			modelBuilder.Entity<HomeData>().HasKey(f => new {f.Year,f.Month,f.RankType,f.ModelId,f.Rank});
 			modelBuilder.Entity<HomeDataType>().HasKey(f => new {f.Type});
 		}
 	}

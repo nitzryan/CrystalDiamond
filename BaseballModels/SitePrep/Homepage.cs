@@ -11,6 +11,7 @@ namespace SitePrep
             public required int PrevMonth { get; set; }
             public required int CurYear { get; set; }
             public required int CurMonth { get; set; }
+            public required int ModelId { get; set; }
         }
 
         private const int GRADUATED_TYPE = 1;
@@ -29,7 +30,7 @@ namespace SitePrep
                 siteDb.ChangeTracker.Clear();
 
                 // Get dates
-                var dates = siteDb.PlayerRank.Select(f => new { f.Month, f.Year }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
+                var dates = siteDb.PlayerRank.Select(f => new { f.Month, f.Year, f.ModelId }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
                 List<DatePair> datePairs = new(dates.Count() - 1);
                 for (var i = 1; i < dates.Count(); i++)
                 {
@@ -40,7 +41,8 @@ namespace SitePrep
                         PrevYear = prevDate.Year,
                         PrevMonth = prevDate.Month,
                         CurYear = currentDate.Year,
-                        CurMonth = currentDate.Month
+                        CurMonth = currentDate.Month,
+                        ModelId = currentDate.ModelId
                     });
                 }
 
@@ -54,7 +56,7 @@ namespace SitePrep
                 {
                     foreach (var datePair in datePairs)
                     {
-                        var players = siteDb.PlayerRank.Where(f => f.Year == datePair.PrevYear && f.Month == datePair.PrevMonth)
+                        var players = siteDb.PlayerRank.Where(f => f.Year == datePair.PrevYear && f.Month == datePair.PrevMonth && f.ModelId == datePair.ModelId)
                             .Where(f => !siteDb.PlayerRank.Any(pr => pr.MlbId == f.MlbId && pr.Year == datePair.CurYear && pr.Month == datePair.CurMonth))
                             .OrderByDescending(f => f.War).ToList();
 
@@ -66,6 +68,7 @@ namespace SitePrep
                                 Year = datePair.CurYear,
                                 Month = datePair.CurMonth,
                                 RankType = GRADUATED_TYPE,
+                                ModelId = datePair.ModelId,
                                 MlbId = player.MlbId,
                                 Data = player.War.ToString("0.0") + " WAR",
                                 Rank = rank + 1
@@ -117,6 +120,7 @@ namespace SitePrep
                                 Year = datePair.CurYear,
                                 Month = datePair.CurMonth,
                                 RankType = MOST_IMPROVED_TYPE,
+                                ModelId = datePair.ModelId,
                                 MlbId = player.MlbId,
                                 Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ") WAR",
                                 Rank = rank + 1
@@ -128,6 +132,7 @@ namespace SitePrep
                                 Year = datePair.CurYear,
                                 Month = datePair.CurMonth,
                                 RankType = LEAST_IMPROVED_TYPE,
+                                ModelId = datePair.ModelId,
                                 MlbId = revPlayer.MlbId,
                                 Data = revPlayer.curWar.ToString("0.0") + " (" + revPlayer.delta.ToString("0.0") + ") WAR",
                                 Rank = rank + 1
@@ -144,6 +149,7 @@ namespace SitePrep
                                 Year = datePair.CurYear,
                                 Month = datePair.CurMonth,
                                 RankType = BREAKOUT_TYPE,
+                                ModelId = datePair.ModelId,
                                 MlbId = player.MlbId,
                                 Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ") WAR",
                                 Rank = rank + 1

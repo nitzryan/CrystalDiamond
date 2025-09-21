@@ -144,10 +144,11 @@ CREATE TABLE "HomeData" (
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"rankType" INTEGER NOT NULL,
+	"modelId" INTEGER NOT NULL,
 	"mlbId" INTEGER NOT NULL,
 	"data" TEXT NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY("year", "month", "rankType", "rank")
+	PRIMARY KEY("year", "month", "modelId", "rankType", "rank")
 );
 
 CREATE TABLE "HomeDataType" (
