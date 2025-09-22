@@ -149,6 +149,9 @@ p, details {
     font-size: 1.2em;
 }
 
+#error_msg {
+    font-size: 1.4em;
+}
 
 #searchResultsContainer {
     

@@ -148,3 +148,7 @@ p, details {
     text-indent: 2em;
     font-size: 1.2em;
 }
+
+#error_msg {
+    font-size: 1.4em;
+}

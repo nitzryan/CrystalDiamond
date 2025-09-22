@@ -17,5 +17,6 @@
         {"path": "./tsconfig.teams.json"},
         {"path": "./tsconfig.home.json"},
         {"path": "./tsconfig.methodology.json"},
+        {"path": "./tsconfig.error.json"}
     ],
 }

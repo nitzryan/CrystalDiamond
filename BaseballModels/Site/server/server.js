@@ -1,6 +1,7 @@
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose()
 const path = require('path')
+const fs = require('fs').promises;
 const favicon = require('serve-favicon')
 const app = express()
 const port = process.env.PORT || 3000
@@ -184,6 +185,20 @@ app.get('/homedata', async (req, res) => {
     {
         res.status(500).send("Error in rankingsRequest: " + e)
     }
+})
+
+app.get('/brew', async (req, res) => {
+    let html = await fs.readFile(path.join(__dirname, "src/html/error.html"), "utf8")
+    html = html.replace("<!-- ERROR TEXT -->", `<p class='center_text'>Short and stout</p>`)
+    html = html.replace("<!-- ERROR CODE -->", "418")
+    res.status(418).type('html').send(html)
+})
+
+app.use(async (req, res, next) => {
+    let html = await fs.readFile(path.join(__dirname, "src/html/error.html"), "utf8")
+    html = html.replace("<!-- ERROR TEXT -->", `<p class='center_text'>Unable to find ${req.originalUrl}</p>`)
+    html = html.replace("<!-- ERROR CODE -->", "404")
+    res.status(404).type('html').send(html)
 })
 
 app.listen(port, host, () => {
