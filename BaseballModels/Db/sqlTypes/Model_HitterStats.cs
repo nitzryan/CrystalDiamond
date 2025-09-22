@@ -8,6 +8,7 @@ namespace Db
 		public required float Age {get; set;}
 		public required int PA {get; set;}
 		public required int InjStatus {get; set;}
+		public required int TrainMask {get; set;}
 		public required float MonthFrac {get; set;}
 		public required float LevelId {get; set;}
 		public required float ParkRunFactor {get; set;}
@@ -41,6 +42,7 @@ namespace Db
 				Age = this.Age,
 				PA = this.PA,
 				InjStatus = this.InjStatus,
+				TrainMask = this.TrainMask,
 				MonthFrac = this.MonthFrac,
 				LevelId = this.LevelId,
 				ParkRunFactor = this.ParkRunFactor,

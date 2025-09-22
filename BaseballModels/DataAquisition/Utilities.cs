@@ -161,6 +161,16 @@ namespace DataAquisition
             LeagueId = a.TeamId
         };
 
+        public static int GetModelMask(Db.Model_Players player, int year, int month)
+        {
+            int mask = 0;
+
+            if (player.LastProspectYear > year || (player.LastProspectYear == year && player.LastProspectMonth >= month))
+                mask += 1;
+
+            return mask;
+        }
+
         public static void LogException(Exception e)
         {
             Console.WriteLine(e.Message);

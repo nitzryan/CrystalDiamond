@@ -43,8 +43,13 @@ namespace DataAquisition
                         }
                         else if (p.pcs.MlbRookieYear != null && p.pcs.MlbRookieMonth != null)
                         {
+                            lastProspectMonth = p.pcs.MlbRookieMonth.Value - 1;
                             lastProspectYear = p.pcs.MlbRookieYear.Value;
-                            lastProspectMonth = p.pcs.MlbRookieMonth.Value;
+                            if (lastProspectMonth == 3)
+                            {
+                                lastProspectMonth = 9;
+                                lastProspectYear--;
+                            }
                         }
                         else if (p.pcs.ServiceLapseYear != null)
                         {

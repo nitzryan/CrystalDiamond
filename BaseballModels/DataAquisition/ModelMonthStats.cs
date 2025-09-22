@@ -34,6 +34,7 @@ namespace DataAquisition
                             Age = -1,
                             InjStatus = -1,
                             PA = -1,
+                            TrainMask = -1,
                             MonthFrac = -1,
                             ParkHRFactor = -1,
                             ParkRunFactor = -1,
@@ -112,8 +113,6 @@ namespace DataAquisition
                                     while (prevYear < r.Year || (prevYear == r.Year && prevMonth < r.Month))
                                     {
                                         // Fill Hitter Gaps
-                                        //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
-                                        
                                         if (Utilities.GamesAtLevel(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear, db))
                                             db.Model_HitterStats.Add(new Model_HitterStats
                                             {
@@ -122,6 +121,7 @@ namespace DataAquisition
                                                 Month = prevMonth,
                                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                                 PA = 0,
+                                                TrainMask = Utilities.GetModelMask(hitter, prevYear, prevMonth),
                                                 InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
                                                 MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear, db),
                                                 LevelId = prevLevelInt,
@@ -159,6 +159,7 @@ namespace DataAquisition
  
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.PA = stat.AB + stat.BB + stat.HBP;
+                                currentData.TrainMask = Utilities.GetModelMask(hitter, r.Year, r.Month);
                                 currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
                                 currentData.ParkHRFactor = stat.ParkHRFactor;
                                 currentData.ParkRunFactor = stat.ParkRunFactor;
@@ -219,7 +220,8 @@ namespace DataAquisition
                                         Year = prevYear,
                                         Month = prevMonth,
                                         Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
-                                        PA = 0,
+                                        PA = Utilities.GetModelMask(hitter, prevYear, prevMonth),
+                                        TrainMask = Utilities.GetModelMask(hitter, prevYear, prevMonth),
                                         InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, hitter.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db),
                                         LevelId = pLevelInt,
@@ -271,6 +273,7 @@ namespace DataAquisition
                                         Month = m,
                                         Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                         PA = 0,
+                                        TrainMask = Utilities.GetModelMask(hitter, y, m),
                                         InjStatus = Utilities.GetInjStatus(m, y, hitter.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db),
                                         LevelId = MISSING_LEVEL,
@@ -329,6 +332,7 @@ namespace DataAquisition
                             MlbId = player.MlbId,
                             Age = -1,
                             BF = -1,
+                            TrainMask = -1,
                             InjStatus = -1,
                             MonthFrac = -1,
                             ParkHRFactor = -1,
@@ -396,6 +400,7 @@ namespace DataAquisition
                                                 Month = prevMonth,
                                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                                 BF = 0,
+                                                TrainMask = Utilities.GetModelMask(pitcher, prevYear, prevMonth),
                                                 InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
                                                 MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear, db),
                                                 LevelId = prevLevelInt,
@@ -422,6 +427,7 @@ namespace DataAquisition
 
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.BF = stat.BattersFaced;
+                                currentData.TrainMask = Utilities.GetModelMask(pitcher, r.Year, r.Month);
                                 currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
                                 currentData.ParkHRFactor = stat.ParkHRFactor;
                                 currentData.ParkRunFactor = stat.ParkRunFactor;
@@ -473,6 +479,7 @@ namespace DataAquisition
                                         Month = prevMonth,
                                         Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                         BF = 0,
+                                        TrainMask = Utilities.GetModelMask(pitcher, prevYear, prevMonth),
                                         InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, pitcher.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db),
                                         LevelId = pLevelInt,
@@ -513,6 +520,7 @@ namespace DataAquisition
                                         Month = m,
                                         Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                         BF = 0,
+                                        TrainMask = Utilities.GetModelMask(pitcher, y, m),
                                         InjStatus = Utilities.GetInjStatus(m, y, pitcher.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db),
                                         LevelId = MISSING_LEVEL,

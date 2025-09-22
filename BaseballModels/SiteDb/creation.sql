@@ -161,6 +161,6 @@ CREATE INDEX "idx_PlayerRankOverall" ON "PlayerRank" (
 	"year", "month", "rank"
 );
 
-CREATE INDEX idx_PlayerRankTeam ON "PlayerRank" (
+CREATE INDEX "idx_PlayerRankTeam" ON "PlayerRank" (
 	"teamId", "year", "month", "teamRank"
 );

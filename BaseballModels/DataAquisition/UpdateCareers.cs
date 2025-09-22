@@ -70,48 +70,6 @@ namespace DataAquisition
                 }
                 db.SaveChanges();
 
-                // Set Career Start Year/Month
-                //foreach (var pcs in db.Player_CareerStatus.Where(f => f.CareerStartYear == null))
-                //{
-                //    int hitterStartYear = 10000;
-                //    int pitcherStartYear = 10000;
-                //    int hitterStartMonth = 13;
-                //    int pitcherStartMonth = 13;
-                    
-                //    if (pcs.IsHitter == 1)
-                //    {
-                //        var dates = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
-                //            .OrderBy(f => f.Year).ThenBy(f => f.Month);
-                //        if (dates.Any())
-                //        {
-                //            var firstDate = dates.First();
-                //            hitterStartYear = firstDate.Year;
-                //            hitterStartMonth = firstDate.Month;
-                //        }  
-                //    }
-
-                //    if (pcs.IsPitcher == 1)
-                //    {
-                //        var dates = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId).Select(f => new { f.Year, f.Month })
-                //            .OrderBy(f => f.Year).ThenBy(f => f.Month);
-                //        if (dates.Any())
-                //        {
-                //            var firstDate = dates.First();
-                //            pitcherStartYear = firstDate.Year;
-                //            pitcherStartMonth = firstDate.Month;
-                //        }
-                //    }
-
-                //    int startYear = Math.Min(hitterStartYear, pitcherStartYear);
-                //    int startMonth = Math.Min(hitterStartMonth, pitcherStartMonth);
-                //    if (startYear < 10000)
-                //    {
-                //        pcs.CareerStartYear = startYear;
-                //        pcs.CareerStartMonth = startMonth;
-                //    }
-                //}
-                //db.SaveChanges();
-
                 // Get MLB Start Year
                 foreach (var pcs in db.Player_CareerStatus)
                 {
@@ -216,7 +174,7 @@ namespace DataAquisition
                             break; // Reached for pitcher first
 
                         AB += stat.AB;
-                        if (AB >= 150)
+                        if (AB >= 130)
                         {
                             pcs.MlbRookieYear = stat.Year;
                             pcs.MlbRookieMonth = stat.Month;
