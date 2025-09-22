@@ -81,7 +81,7 @@ async function main()
     const month = getQueryParamBackup("month", endMonth)
     const modelId = getQueryParamBackup("model", 1)
 
-    const home_data_response = fetch(`/homedata?year=${year}&month=${month}`)
+    const home_data_response = fetch(`/homedata?year=${year}&month=${month}&model=${modelId}`)
     const home_data = await(await home_data_response).json() as JsonObject
     org_map = await org_map_promise
     createHomeDataElements(home_data)

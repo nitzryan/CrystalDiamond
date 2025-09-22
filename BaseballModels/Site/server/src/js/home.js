@@ -94,7 +94,7 @@ function main() {
                     year = getQueryParamBackup("year", endYear);
                     month = getQueryParamBackup("month", endMonth);
                     modelId = getQueryParamBackup("model", 1);
-                    home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month));
+                    home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId));
                     return [4, home_data_response];
                 case 2: return [4, (_b.sent()).json()];
                 case 3:
