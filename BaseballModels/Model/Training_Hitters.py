@@ -1,13 +1,13 @@
 import sys
-from Data_Prep import Data_Prep
+from Data_Prep import Data_Prep, Hitter_IO
 from sklearn.model_selection import train_test_split # type: ignore
 import torch
 from Hitter_Dataset import Hitter_Dataset
-from Hitter_Model import RNN_Model, Classification_Loss
+from Hitter_Model import RNN_Model, Classification_Loss, Stats_L1_Loss
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
-from Constants import device, experimental_db
+from Constants import device, db
 import Prep_Map
 import Output_Map
 
@@ -16,11 +16,11 @@ if __name__ == "__main__":
     if num_models < 0:
         exit(1)
     
-    cursor = experimental_db.cursor()
+    cursor = db.cursor()
     cursor.execute("DELETE FROM PlayersInTrainingData")
-    experimental_db.commit()
+    db.commit()
         
-    cursor = experimental_db.cursor()
+    cursor = db.cursor()
     model_idxs = cursor.execute("SELECT hitterModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
@@ -35,28 +35,36 @@ if __name__ == "__main__":
             output_map = Output_Map.value_map
         
         data_prep = Data_Prep(prep_map, output_map)
-        hitters, inputs, outputs, max_input_size, dates = data_prep.Generate_IO_Hitters("WHERE (lastMLBSeason<?) AND isHitter=?", (2025,1))
+        hitter_io_list = data_prep.Generate_IO_Hitters("WHERE (lastMLBSeason<?) AND isHitter=?", (2025,1))
         
         batch_size = 1000
-        hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, max_input_size)
+        hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Hitter_IO.GetMaxLength(hitter_io_list))
         
-        cursor = experimental_db.cursor()
+        cursor = db.cursor()
         cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
-        experimental_db.commit()
+        db.commit()
         for i in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
             best_loss = 10
             while best_loss > 4.75: # Throw away trainings that get stuck in local minima
-                x_train, x_test, y_train, y_test = train_test_split(inputs, outputs, test_size=0.25, random_state=i)
+                io_train : list[Hitter_IO]
+                io_test : list[Hitter_IO]
+                io_train, io_test = train_test_split(hitter_io_list, test_size=0.25, random_state=0)
 
-                train_lengths = torch.tensor([len(seq) for seq in x_train])
-                test_lengths = torch.tensor([len(seq) for seq in x_test])
+                train_lengths = torch.tensor([io.length for io in io_train])
+                test_lengths = torch.tensor([io.length for io in io_test])
 
-                x_train_padded = torch.nn.utils.rnn.pad_sequence(x_train)
-                x_test_padded = torch.nn.utils.rnn.pad_sequence(x_test)
-                y_train_padded = torch.nn.utils.rnn.pad_sequence(y_train)
-                y_test_padded = torch.nn.utils.rnn.pad_sequence(y_test)
-                train_hitters_dataset = Hitter_Dataset(x_train_padded, train_lengths, y_train_padded)
-                test_hitters_dataset = Hitter_Dataset(x_test_padded, test_lengths, y_test_padded)
+                x_train_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in io_train])
+                x_test_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in io_test])
+                y_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_train])
+                y_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_test])
+                y_stats_train_padded = torch.nn.utils.rnn.pad_sequence([io.stat_output for io in io_train])
+                y_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.stat_output for io in io_test])
+                mask_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_train])
+                mask_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_test])
+                mask_level_train_padded = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_train])
+                mask_level_test_padded = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_test])
+                train_hitters_dataset = Hitter_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_stats_train_padded, mask_prospect_train_padded, mask_level_train_padded)
+                test_hitters_dataset = Hitter_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_stats_test_padded, mask_prospect_test_padded, mask_level_test_padded)
                 
                 # Setup Model
                 num_layers = 3
@@ -67,19 +75,20 @@ if __name__ == "__main__":
                 optimizer = torch.optim.Adam(network.parameters(), lr=0.003)
                 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=5)
                 loss_function = Classification_Loss
+                loss_function_stats = Stats_L1_Loss
                 
                 num_epochs = 500
                 training_generator = torch.utils.data.DataLoader(train_hitters_dataset, batch_size=batch_size, shuffle=True)
                 testing_generator = torch.utils.data.DataLoader(test_hitters_dataset, batch_size=batch_size, shuffle=False)
                 
                 model_name_pt = f"{model_name}_{i}"
-                best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_hitters_dataset), len(test_hitters_dataset), loss_function, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
+                best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_hitters_dataset), len(test_hitters_dataset), loss_function, loss_function_stats, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
             
-            cursor = experimental_db.cursor()
+            cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_loss, i, num_layers, hidden_size))
-            experimental_db.commit()
+            db.commit()
             
         # Insert hitters that were trained on so that they can be marked on the site
-        cursor = experimental_db.cursor()
-        cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?)", [(h.mlbId,model_id) for h in hitters])
-        experimental_db.commit()
+        cursor = db.cursor()
+        cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?)", [(h.mlbId,model_id) for h in hitter_io_list.hitters])
+        db.commit()

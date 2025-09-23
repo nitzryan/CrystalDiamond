@@ -8,7 +8,7 @@ if (use_cuda):
 else:
   device = torch.device("cpu")
   
-db = sqlite3.connect('../Db/Experiment.db')
+db = sqlite3.connect('../Db/BaseballStats.db')
 experimental_db = sqlite3.connect('../Db/Experiment.db')
 
 DTYPE = torch.float32

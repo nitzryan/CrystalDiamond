@@ -22,6 +22,11 @@ class RNN_Model(nn.Module):
         self.linear_level2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS))
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
+        
+        # Predict next month stats
+        self.linear_stats1 = nn.Linear(hidden_size, hidden_size // 2)
+        self.linear_stats2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_stats_size)
+        
         self.mutators = mutators
         self.nonlin = F.relu
         #self.nonlin = F.leaky_relu
@@ -62,15 +67,48 @@ class RNN_Model(nn.Module):
         # Generate PA Predictions
         output_pa = self.nonlin(self.linear_pa1(output))
         output_pa = self.linear_pa2(output_pa)
-        # output = self.linear(output)
-        return output_war, output_pwar, output_level, output_pa
+        
+        # Generate Stats Predictions
+        output_stats = self.nonlin(self.linear_stats1(output))
+        output_stats = self.linear_stats2(output_stats)
+        
+        return output_war, output_pwar, output_level, output_pa, output_stats
     
-def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, actual_pwar, actual_level, actual_pa, lengths):
+def Stats_L1_Loss(pred_stats, actual_stats, masks):
+    actual_stats = actual_stats[:, :pred_stats.size(1)]
+    masks = masks[:,:pred_stats.size(1)]
+    
+    batch_size = actual_stats.size(0)
+    time_steps = actual_stats.size(1)
+    output_size = actual_stats.size(2)
+    mask_size = masks.size(2)
+    
+    pred_stats = pred_stats.reshape((batch_size * time_steps, mask_size, output_size))
+    actual_stats = actual_stats.reshape((batch_size * time_steps, output_size))
+    masks = masks.reshape((batch_size * time_steps, mask_size))
+    
+    loss = nn.L1Loss(reduction='none')
+    loss_0 = loss(pred_stats[:,0,:], actual_stats).sum(dim=1) * masks[:,0]
+    loss_1 = loss(pred_stats[:,1,:], actual_stats).sum(dim=1) * masks[:,1]
+    loss_2 = loss(pred_stats[:,2,:], actual_stats).sum(dim=1) * masks[:,2]
+    loss_3 = loss(pred_stats[:,3,:], actual_stats).sum(dim=1) * masks[:,3]
+    loss_4 = loss(pred_stats[:,4,:], actual_stats).sum(dim=1) * masks[:,4]
+    loss_5 = loss(pred_stats[:,5,:], actual_stats).sum(dim=1) * masks[:,5]
+    loss_6 = loss(pred_stats[:,6,:], actual_stats).sum(dim=1) * masks[:,6]
+    loss_7 = loss(pred_stats[:,7,:], actual_stats).sum(dim=1) * masks[:,7]
+    
+    total_loss = loss_0.sum() + loss_1.sum() + loss_2.sum() + loss_3.sum() + loss_4.sum() + loss_5.sum() + loss_6.sum() + loss_7.sum()
+    return total_loss * 0.1
+        
+
+    
+def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, actual_pwar, actual_level, actual_pa, lengths, masks):
     # Reshape into format required by CrossEntropyLoss
     actual_war = actual_war[:,:pred_war.size(1)]
     actual_pwar = actual_pwar[:,:pred_pwar.size(1)]
     actual_level = actual_level[:,:pred_level.size(1)]
     actual_pa = actual_pa[:,:pred_pa.size(1)]
+    masks = masks[:,:pred_level.size(1)]
     
     batch_size = actual_war.size(0)
     time_steps = actual_war.size(1)
@@ -84,6 +122,8 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     actual_pwar = actual_pwar.reshape((batch_size * time_steps,))
     actual_level = actual_level.reshape((batch_size * time_steps,))
     actual_pa = actual_pa.reshape((batch_size * time_steps,))
+    
+    masks = masks.reshape((batch_size, time_steps,))
     
     pred_war = pred_war.reshape((batch_size * time_steps, num_classes_war))
     pred_pwar = pred_pwar.reshape((batch_size * time_steps, num_classes_pwar))
@@ -103,13 +143,13 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     loss_level = loss_level.reshape((batch_size, time_steps))
     loss_pa = loss_pa.reshape((batch_size, time_steps))
     
-    # Mask based off lenghts of actual predictions
-    batch_size, max_steps = loss_war.size()
-    mask = torch.arange(max_steps, device=lengths.device).unsqueeze(0) < lengths.unsqueeze(1)
-    masked_loss_war = loss_war * mask
-    masked_loss_pwar = loss_pwar * mask
-    masked_loss_level = loss_level * mask
-    masked_loss_pa = loss_pa * mask
+    #batch_size, max_steps = loss_war.size()
+    #mask = torch.arange(max_steps, device=lengths.device).unsqueeze(0) < lengths.unsqueeze(1)
+    
+    masked_loss_war = loss_war * masks
+    masked_loss_pwar = loss_pwar * masks
+    masked_loss_level = loss_level * masks
+    masked_loss_pa = loss_pa * masks
     
     # Calculate total loss of each entry, masked values already zero
     loss_sums_war = masked_loss_war.sum(dim=1)

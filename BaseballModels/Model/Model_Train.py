@@ -3,25 +3,31 @@ import torch
 from tqdm import tqdm
 from Constants import device
 
-def train(network,  data_generator, num_elements, loss_function, optimizer, logging = 200, should_output=True):
+def train(network,  data_generator, num_elements, loss_function, loss_function_stats, optimizer, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
-  avg_loss = [0,0,0,0]
+  avg_loss = [0,0,0,0,0]
   num_batches = 0
-  for batch, (data, length, target_war, target_pwar, target_level, target_pa) in enumerate(data_generator):
+  for batch, (data, length, target_war, target_pwar, target_level, target_pa, target_stats, mask_labels, mask_stats) in enumerate(data_generator):
     data, length = data.to(device), length.to(device)
     target_war, target_pwar, target_level, target_pa = target_war.to(device), target_pwar.to(device), target_level.to(device), target_pa.to(device)
+    target_stats = target_stats.to(device)
+    mask_stats = mask_stats.to(device)
+    mask_labels = mask_labels.to(device)
     optimizer.zero_grad()
-    output_war, output_pwar, output_level, output_pa = network(data, length)
-    loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length)
+    output_war, output_pwar, output_level, output_pa, output_stats = network(data, length)
+    loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length, mask_labels)
     loss_war.backward(retain_graph=True)
     loss_pwar.backward(retain_graph=True)
     loss_level.backward(retain_graph=True)
-    loss_pa.backward()
+    loss_pa.backward(retain_graph=True)
+    loss_stats = loss_function_stats(output_stats, target_stats, mask_stats)
+    loss_stats.backward()
     optimizer.step()
     avg_loss[0] += loss_war.item()
     avg_loss[1] += loss_pwar.item()
     avg_loss[2] += loss_level.item()
     avg_loss[3] += loss_pa.item()
+    avg_loss[4] += loss_stats.item()
     num_batches += 1
     if should_output and ((batch+1)%logging == 0): print('Batch [%d/%d], Train Loss: %.4f' %(batch+1, len(data_generator.dataset)/len(output_war), avg_loss/num_batches))
   
@@ -29,28 +35,35 @@ def train(network,  data_generator, num_elements, loss_function, optimizer, logg
   avg_loss[1] /= num_elements
   avg_loss[2] /= num_elements
   avg_loss[3] /= num_elements
+  avg_loss[4] /= num_elements
   return avg_loss
 
-def test(network, test_loader, num_elements, loss_function):
+def test(network, test_loader, num_elements, loss_function, loss_function_stats):
   network.eval() #updates any network layers that behave differently in training and execution
-  avg_loss = [0,0,0,0]
+  avg_loss = [0,0,0,0,0]
   num_batches = 0
   with torch.no_grad():
-    for data, length, target_war, target_pwar, target_level, target_pa in test_loader:
+    for data, length, target_war, target_pwar, target_level, target_pa, target_stats, mask_labels, mask_stats in test_loader:
       data, length = data.to(device), length.to(device)
       target_war, target_pwar, target_level, target_pa = target_war.to(device), target_pwar.to(device), target_level.to(device), target_pa.to(device)
-      output_war, output_pwar, output_level, output_pa = network(data, length)
-      loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length)
+      target_stats = target_stats.to(device)
+      mask_stats = mask_stats.to(device)
+      mask_labels = mask_labels.to(device)
+      output_war, output_pwar, output_level, output_pa, output_stats = network(data, length)
+      loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length, mask_labels)
+      loss_stats = loss_function_stats(output_stats, target_stats, mask_stats)
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_pwar.item()
       avg_loss[2] += loss_level.item()
       avg_loss[3] += loss_pa.item()
+      avg_loss[4] += loss_stats.item()
       num_batches += 1
   
   avg_loss[0] /= num_elements
   avg_loss[1] /= num_elements
   avg_loss[2] /= num_elements
   avg_loss[3] /= num_elements
+  avg_loss[4] /= num_elements
   return avg_loss
 
 def count_parameters(model):
@@ -71,11 +84,11 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
-def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, loss_function, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt"):
+def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, loss_function, loss_function_stats, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt"):
   #Arrays to store training history
-  test_loss_history = [[],[],[],[]]
+  test_loss_history = [[],[],[],[],[]]
   epoch_counter = []
-  train_loss_history = [[],[],[],[]]
+  train_loss_history = [[],[],[],[],[]]
   last_loss = 999999
   best_loss = 999999
   best_epoch = 0
@@ -85,12 +98,12 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, training_generator, num_train, loss_function, optimizer, should_output=should_output)
-    test_loss = test(network, testing_generator, num_test, loss_function)
+    avg_loss = train(network, training_generator, num_train, loss_function, loss_function_stats, optimizer, should_output=should_output)
+    test_loss = test(network, testing_generator, num_test, loss_function, loss_function_stats)
     scheduler.step(test_loss[0])
     logResults(epoch, num_epochs, avg_loss[0], test_loss[0], logging_interval, should_output)
     
-    for n in range(4):
+    for n in range(5):
       train_loss_history[n].append(avg_loss[n])
       test_loss_history[n].append(test_loss[n])
     epoch_counter.append(epoch)
@@ -115,4 +128,5 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     graphLoss(epoch_counter, train_loss_history[1], test_loss_history[1], title="Peak WAR")
     graphLoss(epoch_counter, train_loss_history[2], test_loss_history[2], title="Level")
     graphLoss(epoch_counter, train_loss_history[3], test_loss_history[3], title="PA")
+    graphLoss(epoch_counter, train_loss_history[4], test_loss_history[4], title="Stats Prediction")
   return best_loss

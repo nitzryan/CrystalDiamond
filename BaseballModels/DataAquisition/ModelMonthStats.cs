@@ -220,7 +220,7 @@ namespace DataAquisition
                                         Year = prevYear,
                                         Month = prevMonth,
                                         Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
-                                        PA = Utilities.GetModelMask(hitter, prevYear, prevMonth),
+                                        PA = 0,
                                         TrainMask = Utilities.GetModelMask(hitter, prevYear, prevMonth),
                                         InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, hitter.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db),
