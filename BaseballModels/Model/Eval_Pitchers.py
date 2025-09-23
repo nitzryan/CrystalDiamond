@@ -3,7 +3,7 @@ import torch
 from Eval_Dataset import Eval_Dataset
 from Pitcher_Model import RNN_Model
 from tqdm import tqdm
-from Constants import device, db
+from Constants import device, experimental_db
 from DBTypes import DB_Model_TrainingHistory
 import torch.nn.functional as F
 import warnings
@@ -11,13 +11,13 @@ import Prep_Map
 import Output_Map
 
 if __name__ == "__main__":
-    cursor = db.cursor()
+    cursor = experimental_db.cursor()
     model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Evaluating Architectures"):
-        cursor = db.cursor()
+        cursor = experimental_db.cursor()
         cursor.execute("DELETE FROM Output_PlayerWar WHERE model=? AND isHitter=?", (model_id,0))
-        db.commit()
+        experimental_db.commit()
     
         if model_id == 1 or model_id == 2:
             prep_map = Prep_Map.base_prep_map
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         generator = torch.utils.data.DataLoader(eval_pitchers_dataset, batch_size=batch_size, shuffle=False)
         
         # Setup Model
-        cursor = db.cursor()
+        cursor = experimental_db.cursor()
         mth = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=?", (model_name,))
         num_layers = mth[0].NumLayers
         hidden_size = mth[0].HiddenSize
@@ -71,9 +71,9 @@ if __name__ == "__main__":
                 
                 db_data = torch.nn.utils.rnn.unpad_sequence(opw, length, batch_first=True)
                 
-                cursor = db.cursor()
+                cursor = experimental_db.cursor()
                 for dbd in db_data:
                     vals = [tuple(x) for x in dbd.tolist()]
                     cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?)", vals)
-                db.commit()
+                experimental_db.commit()
                 

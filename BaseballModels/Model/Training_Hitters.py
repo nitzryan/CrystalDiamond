@@ -7,7 +7,7 @@ from Hitter_Model import RNN_Model, Classification_Loss
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
-from Constants import device, db
+from Constants import device, experimental_db
 import Prep_Map
 import Output_Map
 
@@ -16,11 +16,11 @@ if __name__ == "__main__":
     if num_models < 0:
         exit(1)
     
-    cursor = db.cursor()
+    cursor = experimental_db.cursor()
     cursor.execute("DELETE FROM PlayersInTrainingData")
-    db.commit()
+    experimental_db.commit()
         
-    cursor = db.cursor()
+    cursor = experimental_db.cursor()
     model_idxs = cursor.execute("SELECT hitterModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
@@ -40,12 +40,12 @@ if __name__ == "__main__":
         batch_size = 1000
         hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, max_input_size)
         
-        cursor = db.cursor()
+        cursor = experimental_db.cursor()
         cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
-        db.commit()
+        experimental_db.commit()
         for i in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
             best_loss = 10
-            while best_loss > 6: # Throw away trainings that get stuck in local minima
+            while best_loss > 4.75: # Throw away trainings that get stuck in local minima
                 x_train, x_test, y_train, y_test = train_test_split(inputs, outputs, test_size=0.25, random_state=i)
 
                 train_lengths = torch.tensor([len(seq) for seq in x_train])
@@ -75,11 +75,11 @@ if __name__ == "__main__":
                 model_name_pt = f"{model_name}_{i}"
                 best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_hitters_dataset), len(test_hitters_dataset), loss_function, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
             
-            cursor = db.cursor()
+            cursor = experimental_db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_loss, i, num_layers, hidden_size))
-            db.commit()
+            experimental_db.commit()
             
         # Insert hitters that were trained on so that they can be marked on the site
-        cursor = db.cursor()
+        cursor = experimental_db.cursor()
         cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?)", [(h.mlbId,model_id) for h in hitters])
-        db.commit()
+        experimental_db.commit()

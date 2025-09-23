@@ -120,32 +120,33 @@ class DB_Model_HitterStats:
 		self.Age = values[3]
 		self.PA = values[4]
 		self.InjStatus = values[5]
-		self.MonthFrac = values[6]
-		self.LevelId = values[7]
-		self.ParkRunFactor = values[8]
-		self.ParkHRFactor = values[9]
-		self.AVGRatio = values[10]
-		self.OBPRatio = values[11]
-		self.ISORatio = values[12]
-		self.wOBARatio = values[13]
-		self.SBRateRatio = values[14]
-		self.SBPercRatio = values[15]
-		self.HRPercRatio = values[16]
-		self.BBPercRatio = values[17]
-		self.kPercRatio = values[18]
-		self.PercC = values[19]
-		self.Perc1B = values[20]
-		self.Perc2B = values[21]
-		self.Perc3B = values[22]
-		self.PercSS = values[23]
-		self.PercLF = values[24]
-		self.PercCF = values[25]
-		self.PercRF = values[26]
-		self.PercDH = values[27]
+		self.TrainMask = values[6]
+		self.MonthFrac = values[7]
+		self.LevelId = values[8]
+		self.ParkRunFactor = values[9]
+		self.ParkHRFactor = values[10]
+		self.AVGRatio = values[11]
+		self.OBPRatio = values[12]
+		self.ISORatio = values[13]
+		self.wOBARatio = values[14]
+		self.SBRateRatio = values[15]
+		self.SBPercRatio = values[16]
+		self.HRPercRatio = values[17]
+		self.BBPercRatio = values[18]
+		self.kPercRatio = values[19]
+		self.PercC = values[20]
+		self.Perc1B = values[21]
+		self.Perc2B = values[22]
+		self.Perc3B = values[23]
+		self.PercSS = values[24]
+		self.PercLF = values[25]
+		self.PercCF = values[26]
+		self.PercRF = values[27]
+		self.PercDH = values[28]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.Year,self.Month,self.Age,self.PA,self.InjStatus,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wOBARatio,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH)
+		return (self.mlbId,self.Year,self.Month,self.Age,self.PA,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wOBARatio,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_HitterStats']:
@@ -162,21 +163,22 @@ class DB_Model_PitcherStats:
 		self.Age = values[3]
 		self.BF = values[4]
 		self.InjStatus = values[5]
-		self.MonthFrac = values[6]
-		self.LevelId = values[7]
-		self.ParkRunFactor = values[8]
-		self.ParkHRFactor = values[9]
-		self.GBPercRatio = values[10]
-		self.ERARatio = values[11]
-		self.FIPRatio = values[12]
-		self.wOBARatio = values[13]
-		self.HRPercRatio = values[14]
-		self.BBPercRatio = values[15]
-		self.KPercRatio = values[16]
+		self.TrainMask = values[6]
+		self.MonthFrac = values[7]
+		self.LevelId = values[8]
+		self.ParkRunFactor = values[9]
+		self.ParkHRFactor = values[10]
+		self.GBPercRatio = values[11]
+		self.ERARatio = values[12]
+		self.FIPRatio = values[13]
+		self.wOBARatio = values[14]
+		self.HRPercRatio = values[15]
+		self.BBPercRatio = values[16]
+		self.KPercRatio = values[17]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.Year,self.Month,self.Age,self.BF,self.InjStatus,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.KPercRatio)
+		return (self.mlbId,self.Year,self.Month,self.Age,self.BF,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.KPercRatio)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_PitcherStats']:
