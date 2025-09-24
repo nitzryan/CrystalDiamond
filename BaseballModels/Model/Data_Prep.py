@@ -19,7 +19,8 @@ class Hitter_IO:
                  dates : torch.Tensor, 
                  prospect_mask : torch.Tensor,
                  stat_level_mask : torch.Tensor,
-                 stat_output : torch.Tensor):
+                 stat_output : torch.Tensor,
+                 position_output : torch.Tensor):
         
         self.hitter = hitter
         self.input = input
@@ -29,6 +30,7 @@ class Hitter_IO:
         self.prospect_mask = prospect_mask
         self.stat_level_mask = stat_level_mask
         self.stat_output = stat_output
+        self.position_output = position_output
         
     @staticmethod
     def GetMaxLength(io_list : list['Hitter_IO']) -> int:
@@ -41,20 +43,20 @@ _T = TypeVar('T')
 class Data_Prep:
     def __init__(self, prep_map : 'Prep_Map', output_map : 'Output_Map'):
         # Mutators
-        self.off_mutator_scale = 0.05
-        self.bsr_mutator_scale = 0.05
-        self.def_mutator_scale = 0.05
+        self.off_mutator_scale = 0.25
+        self.bsr_mutator_scale = 0.25
+        self.def_mutator_scale = 0.25
         
-        self.hitbio_mutator_scale = 0.05
-        self.pitbio_mutator_scale = 0.05
+        self.hitbio_mutator_scale = 0.25
+        self.pitbio_mutator_scale = 0.25
         
-        self.hitpt_mutator_scale = 0.05
-        self.pitpt_mutator_scale = 0.05
+        self.hitpt_mutator_scale = 0.25
+        self.pitpt_mutator_scale = 0.25
         
-        self.hitlvl_mutator_scale = 0.05
-        self.pitlvl_mutator_scale = 0.05
+        self.hitlvl_mutator_scale = 0.25
+        self.pitlvl_mutator_scale = 0.25
         
-        self.pit_mutator_scale = 0.05
+        self.pit_mutator_scale = 0.25
         
         self.prep_map = prep_map
         self.output_map = output_map
@@ -73,7 +75,7 @@ class Data_Prep:
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         
         # Not exact normalization, but zero-centered
-        self.hitter_outputstats_mean = torch.tensor([1] * self.output_map.hitter_stats_size, dtype=DTYPE)
+        self.hitter_outputstats_mean = torch.tensor([1] * (self.output_map.hitter_stats_size), dtype=DTYPE)
         self.hitter_outputstats_std = torch.tensor([0.5] * self.output_map.hitter_stats_size, dtype=DTYPE)
         
         # Age and level information, keep stats individual
@@ -206,10 +208,14 @@ class Data_Prep:
         
             # Stat Output
             stat_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
-            if (len(stats) > 0):
+            if len(stats) > 0:
                 stat_output[:-1, :] = self.Transform_HitterOutputStats(stats)
             
-            io.append(Hitter_IO(hitter=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output))
+            positions_output = torch.zeros(l, self.output_map.hitter_positions_size, dtype=torch.float)
+            for i, stat in enumerate(stats):
+                positions_output[i,:] = torch.tensor(self.output_map.map_hitter_positions(stat), dtype=torch.float)
+            
+            io.append(Hitter_IO(hitter=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output))
         
         return io
        
