@@ -3,6 +3,12 @@ import torch
 from tqdm import tqdm
 from Constants import device
 
+PWAR_LOSS_MULTIPLIER = 0.3
+LEVEL_LOSS_MULTIPLIER = 0.1
+PA_LOSS_MULTIPLIER = 0.2
+STATS_LOSS_MULTIPLIER = 0.1
+POSITION_LOSS_MULTIPLIER = 0.1
+
 def train(network,  data_generator, num_elements, loss_function, loss_function_stats, loss_function_position, optimizer, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0,0,0,0,0,0]
@@ -17,13 +23,22 @@ def train(network,  data_generator, num_elements, loss_function, loss_function_s
     optimizer.zero_grad()
     output_war, output_pwar, output_level, output_pa, output_stats, output_position = network(data, length)
     loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length, mask_labels)
+    
+    loss_pwar = PWAR_LOSS_MULTIPLIER * loss_pwar
+    loss_level = LEVEL_LOSS_MULTIPLIER * loss_level
+    loss_pa = PA_LOSS_MULTIPLIER * loss_pa
+    
     loss_war.backward(retain_graph=True)
     loss_pwar.backward(retain_graph=True)
     loss_level.backward(retain_graph=True)
     loss_pa.backward(retain_graph=True)
+    
     loss_stats = loss_function_stats(output_stats, target_stats, mask_stats)
+    loss_stats = STATS_LOSS_MULTIPLIER * loss_stats
     loss_stats.backward(retain_graph=True)
+    
     loss_position = loss_function_position(output_position, target_positions, mask_stats)
+    loss_position = POSITION_LOSS_MULTIPLIER * loss_position
     loss_position.backward()
     optimizer.step()
     avg_loss[0] += loss_war.item()
@@ -56,9 +71,17 @@ def test(network, test_loader, num_elements, loss_function, loss_function_stats,
       mask_stats = mask_stats.to(device)
       mask_labels = mask_labels.to(device)
       output_war, output_pwar, output_level, output_pa, output_stats, output_position = network(data, length)
+      
       loss_war, loss_pwar, loss_level, loss_pa = loss_function(output_war, output_pwar, output_level, output_pa, target_war, target_pwar, target_level, target_pa, length, mask_labels)
       loss_stats = loss_function_stats(output_stats, target_stats, mask_stats)
       loss_position = loss_function_position(output_position, target_positions, mask_stats)
+      
+      loss_pwar = PWAR_LOSS_MULTIPLIER * loss_pwar
+      loss_level = LEVEL_LOSS_MULTIPLIER * loss_level
+      loss_pa = PA_LOSS_MULTIPLIER * loss_pa
+      loss_stats = STATS_LOSS_MULTIPLIER * loss_stats
+      loss_position = POSITION_LOSS_MULTIPLIER * loss_position
+      
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_pwar.item()
       avg_loss[2] += loss_level.item()

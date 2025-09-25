@@ -93,7 +93,7 @@ def Stats_L1_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.MSELoss(reduction='none')
+    loss = nn.L1Loss(reduction='none')
     loss_0 = loss(pred_stats[:,0,:], actual_stats).sum(dim=1) * masks[:,0]
     loss_1 = loss(pred_stats[:,1,:], actual_stats).sum(dim=1) * masks[:,1]
     loss_2 = loss(pred_stats[:,2,:], actual_stats).sum(dim=1) * masks[:,2]
@@ -104,7 +104,7 @@ def Stats_L1_Loss(pred_stats, actual_stats, masks):
     loss_7 = loss(pred_stats[:,7,:], actual_stats).sum(dim=1) * masks[:,7]
     
     total_loss = loss_0.sum() + loss_1.sum() + loss_2.sum() + loss_3.sum() + loss_4.sum() + loss_5.sum() + loss_6.sum() + loss_7.sum()
-    return total_loss * 0.1
+    return total_loss
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
     actual_positions  = actual_positions[:, :pred_positions.size(1)]
@@ -181,4 +181,4 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     loss_sums_level = masked_loss_level.sum(dim=1)
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
-    return loss_sums_war.sum(), loss_sums_pwar.sum(), loss_sums_level.sum() * 0.2, loss_sums_pa.sum() * 0.5
+    return loss_sums_war.sum(), loss_sums_pwar.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
