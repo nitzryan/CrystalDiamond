@@ -14,8 +14,9 @@ class RNN_Model(nn.Module):
         self.pre3 = nn.Linear(input_size, input_size)
         
         self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
-        self.linear_war1 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_war2 = nn.Linear(hidden_size // 2, len(output_map.buckets_hitter))
+        self.linear_war1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_war2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter))
         self.linear_pwar1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pwar2 = nn.Linear(hidden_size // 2, len(HITTER_PEAK_WAR_BUCKETS))
         self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -28,7 +29,10 @@ class RNN_Model(nn.Module):
         self.linear_stats2 = nn.Linear(hidden_size, hidden_size)
         self.linear_stats3 = nn.Linear(hidden_size, hidden_size)
         self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_stats_size)
-        self.linear_positions = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
+        
+        self.linear_positions1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
         
         self.mutators = mutators
         self.nonlin = F.relu
@@ -57,7 +61,8 @@ class RNN_Model(nn.Module):
             
         # Generate War predictions
         output_war = self.nonlin(self.linear_war1(output))
-        output_war = self.linear_war2(output_war)
+        output_war = self.nonlin(self.linear_war2(output_war))
+        output_war = self.linear_war3(output_war)
         
         # Generate Peak War Predictions
         output_pwar = self.nonlin(self.linear_pwar1(output))
@@ -75,8 +80,11 @@ class RNN_Model(nn.Module):
         output_stats = self.nonlin(self.linear_stats1(output))
         output_stats = self.nonlin(self.linear_stats2(output_stats))
         output_stats = self.nonlin(self.linear_stats3(output_stats))
-        output_positions = self.linear_positions(output_stats)
         output_stats = self.linear_stats4(output_stats)
+        
+        output_positions = self.nonlin(self.linear_positions1(output))
+        output_positions = self.nonlin(self.linear_positions2(output_positions))
+        output_positions = self.linear_positions3(output_positions)
         
         return output_war, output_pwar, output_level, output_pa, output_stats, output_positions
     

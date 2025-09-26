@@ -44,7 +44,7 @@ if __name__ == "__main__":
         cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
         db.commit()
         
-        models = [(2,20),(2,25),(2,30),(2,15),(3,20),(3,25),(3,30),(3,15),(4,20),(4,25),(4,30),(4,15)]
+        models = [(2,8),(2,10),(2,12),(2,15),(2,20),(2,25),(3,8),(3,10),(3,12),(3,15),(3,20),(3,25)]
         for i, (num_layers, hidden_size) in enumerate(tqdm(models, desc="Training Hitter Models", leave=False)):
             best_loss = 10
             count = 0

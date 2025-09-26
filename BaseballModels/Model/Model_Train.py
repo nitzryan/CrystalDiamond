@@ -3,11 +3,11 @@ import torch
 from tqdm import tqdm
 from Constants import device
 
-PWAR_LOSS_MULTIPLIER = 0.3
-LEVEL_LOSS_MULTIPLIER = 0.1
-PA_LOSS_MULTIPLIER = 0.2
-STATS_LOSS_MULTIPLIER = 0.1
-POSITION_LOSS_MULTIPLIER = 0.1
+PWAR_LOSS_MULTIPLIER = 0.4
+LEVEL_LOSS_MULTIPLIER = 0.3
+PA_LOSS_MULTIPLIER = 0.4
+STATS_LOSS_MULTIPLIER = 0.2
+POSITION_LOSS_MULTIPLIER = 0.4
 
 def train(network,  data_generator, num_elements, loss_function, loss_function_stats, loss_function_position, optimizer, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
@@ -134,6 +134,11 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
   for epoch in iterable:
     avg_loss = train(network, training_generator, num_train, loss_function, loss_function_stats, loss_function_position, optimizer, should_output=should_output)
     test_loss = test(network, testing_generator, num_test, loss_function, loss_function_stats, loss_function_position)
+    
+    if (best_loss > 5):
+      scheduler.factor = 1
+    else:
+      scheduler.factor = 0.3
     scheduler.step(test_loss[LOSS_ITEM])
     logResults(epoch, num_epochs, avg_loss[LOSS_ITEM], test_loss[LOSS_ITEM], logging_interval, should_output)
     
