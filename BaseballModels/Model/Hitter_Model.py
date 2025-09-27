@@ -34,6 +34,16 @@ class RNN_Model(nn.Module):
         self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
         self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
         
+        # Predict next year stats
+        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_stats_size)
+        
+        self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
+        
         self.mutators = mutators
         self.nonlin = F.relu
         #self.nonlin = F.leaky_relu
@@ -86,7 +96,17 @@ class RNN_Model(nn.Module):
         output_positions = self.nonlin(self.linear_positions2(output_positions))
         output_positions = self.linear_positions3(output_positions)
         
-        return output_war, output_pwar, output_level, output_pa, output_stats, output_positions
+        # Generate Year Stats Predictions
+        output_yearStats = self.nonlin(self.linear_yearStats1(output))
+        output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
+        output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
+        output_yearStats = self.linear_stats4(output_yearStats)
+        
+        output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
+        output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
+        output_yearPositions = self.linear_positions3(output_yearPositions)
+        
+        return output_war, output_pwar, output_level, output_pa, output_stats, output_positions, output_yearStats, output_yearPositions
     
 def Stats_L1_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]

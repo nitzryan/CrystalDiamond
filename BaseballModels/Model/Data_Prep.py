@@ -10,6 +10,7 @@ from tqdm import tqdm
 import random
 from Prep_Map import Prep_Map
 from Output_Map import Output_Map
+from Output_StatAggregation import Aggregate_HitterStats
 
 class Hitter_IO:
     def __init__(self, hitter : DB_Model_Players, 
@@ -20,7 +21,10 @@ class Hitter_IO:
                  prospect_mask : torch.Tensor,
                  stat_level_mask : torch.Tensor,
                  stat_output : torch.Tensor,
-                 position_output : torch.Tensor):
+                 position_output : torch.Tensor,
+                 year_level_mask : torch.Tensor,
+                 year_stat_output : torch.Tensor,
+                 year_pos_output : torch.Tensor):
         
         self.hitter = hitter
         self.input = input
@@ -31,6 +35,9 @@ class Hitter_IO:
         self.stat_level_mask = stat_level_mask
         self.stat_output = stat_output
         self.position_output = position_output
+        self.year_level_mask = year_level_mask
+        self.year_stat_output = year_stat_output
+        self.year_pos_output = year_pos_output
         
     @staticmethod
     def GetMaxLength(io_list : list['Hitter_IO']) -> int:
@@ -215,7 +222,23 @@ class Data_Prep:
             for i, stat in enumerate(stats):
                 positions_output[i,:] = torch.tensor(self.output_map.map_hitter_positions(stat), dtype=torch.float)
             
-            io.append(Hitter_IO(hitter=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output))
+            # 1 Year aggregation
+            stat_year_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
+            pos_year_output = torch.zeros(l, self.output_map.hitter_positions_size, dtype=torch.float)
+            lvl_year_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
+            if len(stats) > 1:
+                start_month = stats[1].Month
+                start_year = stats[1].Year
+                for i, stat in enumerate(stats):
+                    if i == 0:
+                        (_l,_s,_p) = Aggregate_HitterStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats)
+                    else:
+                        (_l,_s,_p) = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats)
+                    lvl_year_mask[i,:] = _l
+                    stat_year_output[i,:] = _s
+                    pos_year_output[i,:] = _p
+            
+            io.append(Hitter_IO(hitter=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
         
         return io
        

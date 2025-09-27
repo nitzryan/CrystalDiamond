@@ -44,7 +44,10 @@ if __name__ == "__main__":
         cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
         db.commit()
         
-        models = [(2,8),(2,10),(2,12),(2,15),(2,20),(2,25),(3,8),(3,10),(3,12),(3,15),(3,20),(3,25)]
+        models = []
+        for nl in [3,4,5]:
+            for hs in [20,25,30,35,40,45]:
+                models.append((nl,hs))
         for i, (num_layers, hidden_size) in enumerate(tqdm(models, desc="Training Hitter Models", leave=False)):
             best_loss = 10
             count = 0
@@ -77,7 +80,7 @@ if __name__ == "__main__":
                 network = Hitter_Model.RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, hitting_mutators, output_map=data_prep.output_map)
                 network = network.to(device)
                 
-                optimizer = torch.optim.Adam(network.parameters(), lr=0.003)
+                optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
                 scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=5)
                 
                 num_epochs = 500
