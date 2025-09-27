@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 from Output_Map import Output_Map
 
@@ -47,6 +48,12 @@ class RNN_Model(nn.Module):
         self.mutators = mutators
         self.nonlin = F.relu
         #self.nonlin = F.leaky_relu
+        
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
