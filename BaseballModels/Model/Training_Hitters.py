@@ -32,9 +32,9 @@ if __name__ == "__main__":
         output_map = Output_Map.base_output_map
         
         data_prep = Data_Prep(prep_map, output_map)
-        hitter_io_list = data_prep.Generate_IO_Hitters("WHERE (lastMLBSeason<?) AND isHitter=?", (2025,1), use_cutoff=True)
+        hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
         
-        batch_size = 500
+        batch_size = 200
         hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
         
         cursor = db.cursor()
@@ -76,8 +76,8 @@ if __name__ == "__main__":
             network = Player_Model.RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, hitting_mutators, output_map=data_prep.output_map, is_hitter=True)
             network = network.to(device)
             
-            optimizer = torch.optim.Adam(network.parameters(), lr=0.003)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=5)
+            optimizer = torch.optim.Adam(network.parameters(), lr=0.004)
+            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=1)
             
             num_epochs = 500
             training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

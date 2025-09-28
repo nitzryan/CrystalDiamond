@@ -152,11 +152,7 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
   for epoch in iterable:
     avg_loss = train(network, training_generator, num_train, loss_function, loss_function_stats, loss_function_position, optimizer, should_output=should_output)
     test_loss = test(network, testing_generator, num_test, loss_function, loss_function_stats, loss_function_position)
-    
-    if (best_loss > 5):
-      scheduler.factor = 1
-    else:
-      scheduler.factor = 0.5
+
     scheduler.step(test_loss[LOSS_ITEM])
     logResults(epoch, num_epochs, avg_loss[LOSS_ITEM], test_loss[LOSS_ITEM], logging_interval, should_output)
     
@@ -173,10 +169,17 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     else:
       epochsSinceLastImprove += 1
       
-    if epochsSinceLastImprove >= early_stopping_cutoff:
+    if epoch > 100 and epochsSinceLastImprove >= early_stopping_cutoff:
       if should_output:
         print("Stopped Training Early")
       break
+    
+    # Allow model to change fast to get decent baseline, than adjust slower without waiting for scheduler
+    if optimizer.param_groups[0]['lr'] > 0.001 and best_loss < 5.3:
+      if should_output:
+        print("Reducing learning rate after intial fast learning period")
+      for param_group in optimizer.param_groups:
+        param_group['lr'] = 0.001
 
   if should_output:
     print(f"Best result at epoch={best_epoch} with loss={best_loss}")
