@@ -1,9 +1,9 @@
 import sys
-from Data_Prep import Data_Prep, Hitter_IO
+from Data_Prep import Data_Prep, Player_IO
 from sklearn.model_selection import train_test_split # type: ignore
 import torch
-from Hitter_Dataset import Hitter_Dataset
-import Hitter_Model
+from Player_Dataset import Player_Dataset
+import Player_Model
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
@@ -32,18 +32,18 @@ if __name__ == "__main__":
         output_map = Output_Map.base_output_map
         
         data_prep = Data_Prep(prep_map, output_map)
-        hitter_io_list = data_prep.Generate_IO_Hitters("WHERE (lastMLBSeason<?) AND isHitter=?", (2025,1))
+        hitter_io_list = data_prep.Generate_IO_Hitters("WHERE (lastMLBSeason<?) AND isHitter=?", (2025,1), use_cutoff=True)
         
         batch_size = 500
-        hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Hitter_IO.GetMaxLength(hitter_io_list))
+        hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
         
         cursor = db.cursor()
         cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
         db.commit()
         
         for i in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
-            io_train : list[Hitter_IO]
-            io_test : list[Hitter_IO]
+            io_train : list[Player_IO]
+            io_test : list[Player_IO]
             io_train, io_test = train_test_split(hitter_io_list, test_size=0.25, random_state=i)
 
             train_lengths = torch.tensor([io.length for io in io_train])
@@ -67,24 +67,24 @@ if __name__ == "__main__":
             y_year_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_test])
             y_year_position_train_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_train])
             y_year_position_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_test])
-            train_hitters_dataset = Hitter_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_stats_train_padded, y_position_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded)
-            test_hitters_dataset = Hitter_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_stats_test_padded, y_position_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded)
+            train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_stats_train_padded, y_position_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded)
+            test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_stats_test_padded, y_position_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded)
             
             # Setup Model
-            num_layers = 3
+            num_layers = 4
             hidden_size = 20
-            network = Hitter_Model.RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, hitting_mutators, output_map=data_prep.output_map)
+            network = Player_Model.RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, hitting_mutators, output_map=data_prep.output_map, is_hitter=True)
             network = network.to(device)
             
             optimizer = torch.optim.Adam(network.parameters(), lr=0.003)
             scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=5)
             
             num_epochs = 500
-            training_generator = torch.utils.data.DataLoader(train_hitters_dataset, batch_size=batch_size, shuffle=True)
-            testing_generator = torch.utils.data.DataLoader(test_hitters_dataset, batch_size=batch_size, shuffle=False)
+            training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             
             model_name_pt = f"{model_name}_{i}"
-            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_hitters_dataset), len(test_hitters_dataset), Hitter_Model.Classification_Loss, Hitter_Model.Stats_L1_Loss, Hitter_Model.Position_Classification_Loss, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
+            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), Player_Model.Classification_Loss, Player_Model.Stats_L1_Loss, Player_Model.Position_Classification_Loss, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
             
             cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_loss, i, num_layers, hidden_size))
@@ -92,5 +92,5 @@ if __name__ == "__main__":
             
         # Insert hitters that were trained on so that they can be marked on the site
         cursor = db.cursor()
-        cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?)", [(h.hitter.mlbId,model_id) for h in hitter_io_list])
+        cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?)", [(io.player.mlbId,model_id) for io in hitter_io_list])
         db.commit()
