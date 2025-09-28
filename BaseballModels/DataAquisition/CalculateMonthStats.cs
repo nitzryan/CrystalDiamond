@@ -103,6 +103,7 @@ namespace DataAquisition
             int totalER = 0;
             float totalRunFactor = 0;
             float totalHRFactor = 0;
+            int outsSP = 0;
 
             foreach (var gl in gameLogs)
             {
@@ -119,6 +120,8 @@ namespace DataAquisition
                 totalAO += gl.AO;
                 totalR += gl.R;
                 totalER += gl.ER;
+                if (gl.Started == 1)
+                    outsSP += gl.Outs;
 
                 if (adjustedParkFactors.ContainsKey(gl.HomeTeamId))
                 {
@@ -149,6 +152,7 @@ namespace DataAquisition
                 HBP = totalHBP,
                 BattersFaced = totalBF,
                 Outs = totalOuts,
+                SPPerc = totalOuts > 0 ? (float)(outsSP) / totalOuts : 0.5f,
                 GO = totalGO,
                 AO = totalAO,
                 R = totalR,

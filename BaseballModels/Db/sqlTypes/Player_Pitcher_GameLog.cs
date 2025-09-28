@@ -8,6 +8,7 @@ namespace Db
 		public required int Day {get; set;}
 		public required int Month {get; set;}
 		public required int Year {get; set;}
+		public required int Started {get; set;}
 		public required int BattersFaced {get; set;}
 		public required int Outs {get; set;}
 		public required int GO {get; set;}
@@ -36,6 +37,7 @@ namespace Db
 				Day = this.Day,
 				Month = this.Month,
 				Year = this.Year,
+				Started = this.Started,
 				BattersFaced = this.BattersFaced,
 				Outs = this.Outs,
 				GO = this.GO,

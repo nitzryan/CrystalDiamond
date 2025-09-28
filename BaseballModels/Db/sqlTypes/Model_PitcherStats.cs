@@ -13,6 +13,7 @@ namespace Db
 		public required float LevelId {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float ParkHRFactor {get; set;}
+		public required float SpPerc {get; set;}
 		public required float GBPercRatio {get; set;}
 		public required float ERARatio {get; set;}
 		public required float FIPRatio {get; set;}
@@ -36,6 +37,7 @@ namespace Db
 				LevelId = this.LevelId,
 				ParkRunFactor = this.ParkRunFactor,
 				ParkHRFactor = this.ParkHRFactor,
+				SpPerc = this.SpPerc,
 				GBPercRatio = this.GBPercRatio,
 				ERARatio = this.ERARatio,
 				FIPRatio = this.FIPRatio,

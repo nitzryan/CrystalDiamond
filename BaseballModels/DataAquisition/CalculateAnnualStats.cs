@@ -62,12 +62,14 @@ namespace DataAquisition
                 var pitcherData = db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => new { f.MlbId, f.LevelId, f.TeamId, f.LeagueId }).Distinct();
                 foreach (var d in pitcherData)
                 {
-                    var s = db.Player_Pitcher_GameLog.Where(f => f.MlbId == d.MlbId
+                    var games = db.Player_Pitcher_GameLog.Where(f => f.MlbId == d.MlbId
                                                     && f.LevelId == d.LevelId
                                                     && f.TeamId == d.TeamId
                                                     && f.LeagueId == d.LeagueId
-                                                    && f.Year == year)
-                        .Aggregate(Utilities.PitcherGameLogAggregation);
+                                                    && f.Year == year);
+
+                    var s = games.Aggregate(Utilities.PitcherGameLogAggregation);
+                    int outsSP = games.Where(f => f.Started == 1).Sum(f => f.Outs);
 
                     int pa = s.BattersFaced;
                     float leagueFipConstant = db.Level_PitcherStats.Where(f => f.Year == year && f.LevelId == d.LevelId).Select(f => f.FipConstant).Average();
@@ -81,6 +83,7 @@ namespace DataAquisition
                         Year = year,
                         TeamId = d.TeamId,
                         LeagueId = d.LeagueId,
+                        SPPerc = s.Outs > 0 ? (float)(outsSP) / s.Outs : 0.5f,
                         BF = s.BattersFaced,
                         Outs = s.Outs,
                         GBRatio = s.AO > 0 ? (float)s.GO / (s.GO + s.AO) : 1,

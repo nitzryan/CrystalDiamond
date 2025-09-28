@@ -196,7 +196,6 @@ namespace DataAquisition
                 var statArray = stat.EnumerateArray();
                 var statFirst = statArray.First();
                 var splits = statFirst.GetProperty("splits");
-                //var games = json.RootElement.GetProperty("stat").EnumerateArray().First().GetProperty("splits").EnumerateArray();
                 var games = splits.EnumerateArray();
 
                 // Go through each game
@@ -222,6 +221,7 @@ namespace DataAquisition
                         Month = gameMonth,
                         Year = Convert.ToInt32(gamedate[0]),
                         BattersFaced = stats.GetProperty("battersFaced").GetInt32(),
+                        Started = stats.GetProperty("gamesStarted").GetInt32(),
                         Outs = stats.GetProperty("outs").GetInt32(),
                         R = stats.GetProperty("runs").GetInt32(),
                         ER = stats.GetProperty("earnedRuns").GetInt32(),
@@ -383,16 +383,16 @@ namespace DataAquisition
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            try
-            {
-                await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error getting hitter game logs");
-                Utilities.LogException(e);
-                return false;
-            }
+            //try
+            //{
+            //    await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine("Error getting hitter game logs");
+            //    Utilities.LogException(e);
+            //    return false;
+            //}
 
             try
             {

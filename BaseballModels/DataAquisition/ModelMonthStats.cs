@@ -337,6 +337,7 @@ namespace DataAquisition
                             MonthFrac = -1,
                             ParkHRFactor = -1,
                             ParkRunFactor = -1,
+                            SpPerc = -1,
                             Year = -1,
                             Month = -1,
                             LevelId = -1,
@@ -364,6 +365,7 @@ namespace DataAquisition
                                 currentData.MonthFrac = (Utilities.GetGamesFrac(prevMonth, Utilities.ModelLevelToMlbLevel(level), prevYear, db) * prop) + (currentData.MonthFrac * invProp);
                                 currentData.ParkHRFactor = (stat.ParkHRFactor * prop) + (currentData.ParkHRFactor * invProp);
                                 currentData.ParkRunFactor = (stat.ParkRunFactor * prop) + (currentData.ParkRunFactor * invProp);
+                                currentData.SpPerc = (stat.SPPerc * prop) + (currentData.SpPerc * invProp);
                                 currentData.LevelId = (level * prop) + (currentData.LevelId * invProp);
                                 currentData.WOBARatio = (r.WOBARatio * prop) + (currentData.WOBARatio * invProp);
                                 currentData.HRPercRatio = (r.HRPercRatio * prop) + (currentData.HRPercRatio * invProp);
@@ -406,6 +408,7 @@ namespace DataAquisition
                                                 LevelId = prevLevelInt,
                                                 ParkHRFactor = 1,
                                                 ParkRunFactor = 1,
+                                                SpPerc = 0.5f,
                                                 WOBARatio = 1,
                                                 HRPercRatio = 1,
                                                 BBPercRatio = 1,
@@ -431,6 +434,7 @@ namespace DataAquisition
                                 currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
                                 currentData.ParkHRFactor = stat.ParkHRFactor;
                                 currentData.ParkRunFactor = stat.ParkRunFactor;
+                                currentData.SpPerc = stat.SPPerc;
                                 currentData.Year = r.Year;
                                 currentData.Month = r.Month;
                                 currentData.LevelId = level;
@@ -485,6 +489,7 @@ namespace DataAquisition
                                         LevelId = pLevelInt,
                                         ParkHRFactor = 1,
                                         ParkRunFactor = 1,
+                                        SpPerc = 0.5f,
                                         WOBARatio = 1,
                                         HRPercRatio = 1,
                                         BBPercRatio = 1,
@@ -524,6 +529,7 @@ namespace DataAquisition
                                         InjStatus = Utilities.GetInjStatus(m, y, pitcher.MlbId, db),
                                         MonthFrac = Utilities.GetGamesFrac(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y, db),
                                         LevelId = MISSING_LEVEL,
+                                        SpPerc = 0.5f,
                                         ParkHRFactor = 1,
                                         ParkRunFactor = 1,
                                         WOBARatio = 1,

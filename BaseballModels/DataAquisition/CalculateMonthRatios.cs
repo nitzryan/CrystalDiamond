@@ -71,6 +71,7 @@ namespace DataAquisition
                     Year = stat.Year,
                     Month = stat.Month,
                     LevelId = stat.LevelId,
+                    SPPerc = stat.SPPerc,
                     WOBARatio = advStat.WOBA / thisLevelStats.WOBA,
                     HRPercRatio = advStat.HRPerc / thisLevelStats.HRPerc,
                     BBPercRatio = advStat.BBPerc / thisLevelStats.BBPerc,

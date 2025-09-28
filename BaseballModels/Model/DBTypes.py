@@ -168,17 +168,18 @@ class DB_Model_PitcherStats:
 		self.LevelId = values[8]
 		self.ParkRunFactor = values[9]
 		self.ParkHRFactor = values[10]
-		self.GBPercRatio = values[11]
-		self.ERARatio = values[12]
-		self.FIPRatio = values[13]
-		self.wOBARatio = values[14]
-		self.HRPercRatio = values[15]
-		self.BBPercRatio = values[16]
-		self.KPercRatio = values[17]
+		self.SpPerc = values[11]
+		self.GBPercRatio = values[12]
+		self.ERARatio = values[13]
+		self.FIPRatio = values[14]
+		self.wOBARatio = values[15]
+		self.HRPercRatio = values[16]
+		self.BBPercRatio = values[17]
+		self.KPercRatio = values[18]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.Year,self.Month,self.Age,self.BF,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.KPercRatio)
+		return (self.mlbId,self.Year,self.Month,self.Age,self.BF,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.SpPerc,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.KPercRatio)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_PitcherStats']:
@@ -660,27 +661,28 @@ class DB_Player_Pitcher_GameLog:
 		self.day = values[3]
 		self.month = values[4]
 		self.year = values[5]
-		self.battersFaced = values[6]
-		self.outs = values[7]
-		self.GO = values[8]
-		self.AO = values[9]
-		self.R = values[10]
-		self.ER = values[11]
-		self.h = values[12]
-		self.k = values[13]
-		self.BB = values[14]
-		self.HBP = values[15]
-		self.hit2B = values[16]
-		self.hit3B = values[17]
-		self.HR = values[18]
-		self.levelId = values[19]
-		self.homeTeamId = values[20]
-		self.TeamId = values[21]
-		self.LeagueId = values[22]
+		self.started = values[6]
+		self.battersFaced = values[7]
+		self.outs = values[8]
+		self.GO = values[9]
+		self.AO = values[10]
+		self.R = values[11]
+		self.ER = values[12]
+		self.h = values[13]
+		self.k = values[14]
+		self.BB = values[15]
+		self.HBP = values[16]
+		self.hit2B = values[17]
+		self.hit3B = values[18]
+		self.HR = values[19]
+		self.levelId = values[20]
+		self.homeTeamId = values[21]
+		self.TeamId = values[22]
+		self.LeagueId = values[23]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.gameLogId,self.gameId,self.mlbId,self.day,self.month,self.year,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.levelId,self.homeTeamId,self.TeamId,self.LeagueId)
+		return (self.gameLogId,self.gameId,self.mlbId,self.day,self.month,self.year,self.started,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.levelId,self.homeTeamId,self.TeamId,self.LeagueId)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_GameLog']:
@@ -699,18 +701,19 @@ class DB_Player_Pitcher_MonthAdvanced:
 		self.leagueId = values[5]
 		self.BF = values[6]
 		self.Outs = values[7]
-		self.GBRatio = values[8]
-		self.ERA = values[9]
-		self.FIP = values[10]
-		self.KPerc = values[11]
-		self.BBPerc = values[12]
-		self.HRPerc = values[13]
-		self.HR = values[14]
-		self.wOBA = values[15]
+		self.SPPerc = values[8]
+		self.GBRatio = values[9]
+		self.ERA = values[10]
+		self.FIP = values[11]
+		self.KPerc = values[12]
+		self.BBPerc = values[13]
+		self.HRPerc = values[14]
+		self.HR = values[15]
+		self.wOBA = values[16]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.BF,self.Outs,self.GBRatio,self.ERA,self.FIP,self.KPerc,self.BBPerc,self.HRPerc,self.HR,self.wOBA)
+		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.BF,self.Outs,self.SPPerc,self.GBRatio,self.ERA,self.FIP,self.KPerc,self.BBPerc,self.HRPerc,self.HR,self.wOBA)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_MonthAdvanced']:
@@ -726,24 +729,25 @@ class DB_Player_Pitcher_MonthStats:
 		self.month = values[2]
 		self.levelId = values[3]
 		self.battersFaced = values[4]
-		self.outs = values[5]
-		self.GO = values[6]
-		self.AO = values[7]
-		self.R = values[8]
-		self.ER = values[9]
-		self.h = values[10]
-		self.k = values[11]
-		self.BB = values[12]
-		self.HBP = values[13]
-		self.hit2B = values[14]
-		self.hit3B = values[15]
-		self.HR = values[16]
-		self.ParkRunFactor = values[17]
-		self.ParkHRFactor = values[18]
+		self.Outs = values[5]
+		self.SPPerc = values[6]
+		self.GO = values[7]
+		self.AO = values[8]
+		self.R = values[9]
+		self.ER = values[10]
+		self.h = values[11]
+		self.k = values[12]
+		self.BB = values[13]
+		self.HBP = values[14]
+		self.hit2B = values[15]
+		self.hit3B = values[16]
+		self.HR = values[17]
+		self.ParkRunFactor = values[18]
+		self.ParkHRFactor = values[19]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.month,self.levelId,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.ParkRunFactor,self.ParkHRFactor)
+		return (self.mlbId,self.year,self.month,self.levelId,self.battersFaced,self.Outs,self.SPPerc,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.ParkRunFactor,self.ParkHRFactor)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_MonthStats']:
@@ -758,17 +762,18 @@ class DB_Player_Pitcher_MonthlyRatios:
 		self.year = values[1]
 		self.month = values[2]
 		self.levelId = values[3]
-		self.GBPercRatio = values[4]
-		self.ERARatio = values[5]
-		self.FIPRatio = values[6]
-		self.wOBARatio = values[7]
-		self.HRPercRatio = values[8]
-		self.BBPercRatio = values[9]
-		self.kPercRatio = values[10]
+		self.SPPerc = values[4]
+		self.GBPercRatio = values[5]
+		self.ERARatio = values[6]
+		self.FIPRatio = values[7]
+		self.wOBARatio = values[8]
+		self.HRPercRatio = values[9]
+		self.BBPercRatio = values[10]
+		self.kPercRatio = values[11]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.month,self.levelId,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio)
+		return (self.mlbId,self.year,self.month,self.levelId,self.SPPerc,self.GBPercRatio,self.ERARatio,self.FIPRatio,self.wOBARatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_MonthlyRatios']:
@@ -786,17 +791,18 @@ class DB_Player_Pitcher_YearAdvanced:
 		self.leagueId = values[4]
 		self.BF = values[5]
 		self.Outs = values[6]
-		self.GBRatio = values[7]
-		self.ERA = values[8]
-		self.FIP = values[9]
-		self.KPerc = values[10]
-		self.BBPerc = values[11]
-		self.HR = values[12]
-		self.wOBA = values[13]
+		self.SPPerc = values[7]
+		self.GBRatio = values[8]
+		self.ERA = values[9]
+		self.FIP = values[10]
+		self.KPerc = values[11]
+		self.BBPerc = values[12]
+		self.HR = values[13]
+		self.wOBA = values[14]
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.BF,self.Outs,self.GBRatio,self.ERA,self.FIP,self.KPerc,self.BBPerc,self.HR,self.wOBA)
+		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.BF,self.Outs,self.SPPerc,self.GBRatio,self.ERA,self.FIP,self.KPerc,self.BBPerc,self.HR,self.wOBA)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_YearAdvanced']:

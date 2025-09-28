@@ -98,6 +98,7 @@ namespace DataAquisition
                     Month = 0,
                     Year = 0,
                     BattersFaced = a.BattersFaced + b.BattersFaced,
+                    Started = a.Started + b.Started,
                     H = a.H + b.H,
                     Hit2B = a.Hit2B + b.Hit2B,
                     Hit3B = a.Hit3B + b.Hit3B,

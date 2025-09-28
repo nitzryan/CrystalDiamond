@@ -6,6 +6,7 @@ namespace Db
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
+		public required float SPPerc {get; set;}
 		public required float GBPercRatio {get; set;}
 		public required float ERARatio {get; set;}
 		public required float FIPRatio {get; set;}
@@ -22,6 +23,7 @@ namespace Db
 				Year = this.Year,
 				Month = this.Month,
 				LevelId = this.LevelId,
+				SPPerc = this.SPPerc,
 				GBPercRatio = this.GBPercRatio,
 				ERARatio = this.ERARatio,
 				FIPRatio = this.FIPRatio,

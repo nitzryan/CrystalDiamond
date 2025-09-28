@@ -9,6 +9,7 @@ namespace Db
 		public required int LeagueId {get; set;}
 		public required int BF {get; set;}
 		public required int Outs {get; set;}
+		public required float SPPerc {get; set;}
 		public required float GBRatio {get; set;}
 		public required float ERA {get; set;}
 		public required float FIP {get; set;}
@@ -28,6 +29,7 @@ namespace Db
 				LeagueId = this.LeagueId,
 				BF = this.BF,
 				Outs = this.Outs,
+				SPPerc = this.SPPerc,
 				GBRatio = this.GBRatio,
 				ERA = this.ERA,
 				FIP = this.FIP,
