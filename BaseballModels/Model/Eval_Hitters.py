@@ -1,7 +1,7 @@
 from Data_Prep import Data_Prep
 import torch
 from Eval_Dataset import Eval_Dataset
-from Hitter_Model import RNN_Model
+from Player_Model import RNN_Model
 from tqdm import tqdm
 from Constants import device, experimental_db
 from DBTypes import DB_Model_TrainingHistory

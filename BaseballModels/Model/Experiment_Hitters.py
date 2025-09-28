@@ -1,8 +1,8 @@
 from Data_Prep import Data_Prep
 from sklearn.model_selection import train_test_split # type: ignore
 import torch
-from Hitter_Dataset import Hitter_Dataset
-from Hitter_Model import RNN_Model, Classification_Loss
+from Player_Dataset import Hitter_Dataset
+from Player_Model import RNN_Model, Classification_Loss
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
