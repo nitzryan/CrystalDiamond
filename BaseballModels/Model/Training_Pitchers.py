@@ -20,20 +20,17 @@ if __name__ == "__main__":
     model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
-        if model_id == 1 or model_id == 2:
+        if model_id == 1:
             prep_map = Prep_Map.base_prep_map
-        elif model_id == 3 or model_id == 4:
+        elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
         
-        if model_id == 1 or model_id == 3:
-            output_map = Output_Map.war_map
-        if model_id == 2 or model_id == 4:
-            output_map = Output_Map.value_map
+        output_map = Output_Map.base_output_map
         
         data_prep = Data_Prep(prep_map, output_map)
         pitchers, inputs, outputs, max_input_size, dates = data_prep.Generate_IO_Pitchers("WHERE (lastMLBSeason<?) AND isPitcher=?", (2025,1))
         
-        batch_size = 1000
+        batch_size = 500
         pitching_mutators = data_prep.Generate_Pitching_Mutators(batch_size, max_input_size)
         
         cursor = experimental_db.cursor()

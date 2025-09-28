@@ -7,7 +7,7 @@ from Output_Map import Output_Map
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
 
 class RNN_Model(nn.Module):
-    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map):
+    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map, is_hitter : bool):
         super().__init__()
         
         self.pre1 = nn.Linear(input_size, input_size)
@@ -17,7 +17,10 @@ class RNN_Model(nn.Module):
         self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size)
         self.linear_war2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter))
+        self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
+        self.linear_value1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_value2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_value3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_value))
         self.linear_pwar1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pwar2 = nn.Linear(hidden_size // 2, len(HITTER_PEAK_WAR_BUCKETS))
         self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -29,21 +32,21 @@ class RNN_Model(nn.Module):
         self.linear_stats1 = nn.Linear(hidden_size, hidden_size)
         self.linear_stats2 = nn.Linear(hidden_size, hidden_size)
         self.linear_stats3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_stats_size)
+        self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
         
         self.linear_positions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
+        self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
         # Predict next year stats
         self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_stats_size)
+        self.linear_yearStats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
         
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * output_map.hitter_positions_size)
+        self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
         self.mutators = mutators
         self.nonlin = F.relu
@@ -81,6 +84,11 @@ class RNN_Model(nn.Module):
         output_war = self.nonlin(self.linear_war2(output_war))
         output_war = self.linear_war3(output_war)
         
+        # Generate Value predictions
+        output_value = self.nonlin(self.linear_value1(output))
+        output_value = self.nonlin(self.linear_value2(output_value))
+        output_value = self.linear_value3(output_value)
+        
         # Generate Peak War Predictions
         output_pwar = self.nonlin(self.linear_pwar1(output))
         output_pwar = self.linear_pwar2(output_pwar)
@@ -113,7 +121,7 @@ class RNN_Model(nn.Module):
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
         output_yearPositions = self.linear_positions3(output_yearPositions)
         
-        return output_war, output_pwar, output_level, output_pa, output_stats, output_positions, output_yearStats, output_yearPositions
+        return output_war, output_value, output_pwar, output_level, output_pa, output_stats, output_positions, output_yearStats, output_yearPositions
     
 def Stats_L1_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
@@ -168,8 +176,9 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
     return total_loss
     
     
-def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, actual_pwar, actual_level, actual_pa, lengths, masks):
+def Classification_Loss(pred_war, pred_value, pred_pwar, pred_level, pred_pa, actual_war, actual_value, actual_pwar, actual_level, actual_pa, masks):
     actual_war = actual_war[:,:pred_war.size(1)]
+    actual_value = actual_value[:,:pred_war.size(1)]
     actual_pwar = actual_pwar[:,:pred_pwar.size(1)]
     actual_level = actual_level[:,:pred_level.size(1)]
     actual_pa = actual_pa[:,:pred_pa.size(1)]
@@ -179,11 +188,13 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     time_steps = actual_war.size(1)
     
     num_classes_war = pred_war.size(2)
+    num_classes_value = pred_value.size(2)
     num_classes_pwar = pred_pwar.size(2)
     num_classes_level = pred_level.size(2)
     num_classes_pa = pred_pa.size(2)
     
     actual_war = actual_war.reshape((batch_size * time_steps,))
+    actual_value = actual_value.reshape((batch_size * time_steps,))
     actual_pwar = actual_pwar.reshape((batch_size * time_steps,))
     actual_level = actual_level.reshape((batch_size * time_steps,))
     actual_pa = actual_pa.reshape((batch_size * time_steps,))
@@ -191,29 +202,34 @@ def Classification_Loss(pred_war, pred_pwar, pred_level, pred_pa, actual_war, ac
     masks = masks.reshape((batch_size, time_steps,))
     
     pred_war = pred_war.reshape((batch_size * time_steps, num_classes_war))
+    pred_value = pred_value.reshape((batch_size * time_steps, num_classes_value))
     pred_pwar = pred_pwar.reshape((batch_size * time_steps, num_classes_pwar))
     pred_level = pred_level.reshape((batch_size * time_steps, num_classes_level))
     pred_pa = pred_pa.reshape((batch_size * time_steps, num_classes_pa))
     
     l = nn.CrossEntropyLoss(reduction='none')
     loss_war = l(pred_war, actual_war)
+    loss_value = l(pred_value, actual_value)
     loss_pwar = l(pred_pwar, actual_pwar)
     loss_level = l(pred_level, actual_level)
     loss_pa = l(pred_pa, actual_pa)
     
     loss_war = loss_war.reshape((batch_size, time_steps))
+    loss_value = loss_value.reshape((batch_size, time_steps))
     loss_pwar = loss_pwar.reshape((batch_size, time_steps))
     loss_level = loss_level.reshape((batch_size, time_steps))
     loss_pa = loss_pa.reshape((batch_size, time_steps))
     
     masked_loss_war = loss_war * masks
+    masked_loss_value = loss_value * masks
     masked_loss_pwar = loss_pwar * masks
     masked_loss_level = loss_level * masks
     masked_loss_pa = loss_pa * masks
     
     loss_sums_war = masked_loss_war.sum(dim=1)
+    loss_sums_value = masked_loss_value.sum(dim=1)
     loss_sums_pwar = masked_loss_pwar.sum(dim=1)
     loss_sums_level = masked_loss_level.sum(dim=1)
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
-    return loss_sums_war.sum(), loss_sums_pwar.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
+    return loss_sums_war.sum(), loss_sums_value.sum(), loss_sums_pwar.sum(), loss_sums_level.sum(), loss_sums_pa.sum()

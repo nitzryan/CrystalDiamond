@@ -10,10 +10,10 @@ from tqdm import tqdm
 import random
 from Prep_Map import Prep_Map
 from Output_Map import Output_Map
-from Output_StatAggregation import Aggregate_HitterStats
+from Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats
 
-class Hitter_IO:
-    def __init__(self, hitter : DB_Model_Players, 
+class Player_IO:
+    def __init__(self, player : DB_Model_Players, 
                  input : torch.Tensor, 
                  output : torch.Tensor,
                  length : int,
@@ -26,7 +26,7 @@ class Hitter_IO:
                  year_stat_output : torch.Tensor,
                  year_pos_output : torch.Tensor):
         
-        self.hitter = hitter
+        self.player = player
         self.input = input
         self.output = output
         self.length = length
@@ -40,11 +40,14 @@ class Hitter_IO:
         self.year_pos_output = year_pos_output
         
     @staticmethod
-    def GetMaxLength(io_list : list['Hitter_IO']) -> int:
+    def GetMaxLength(io_list : list['Player_IO']) -> int:
         max_length = 0
         for io in io_list:
             max_length = max(max_length, io.length)
         return max_length
+
+        
+        
 
 _T = TypeVar('T')
 class Data_Prep:
@@ -84,6 +87,8 @@ class Data_Prep:
         # Not exact normalization, but zero-centered
         self.hitter_outputstats_mean = torch.tensor([1] * (self.output_map.hitter_stats_size), dtype=DTYPE)
         self.hitter_outputstats_std = torch.tensor([0.5] * self.output_map.hitter_stats_size, dtype=DTYPE)
+        self.pitcher_outputstats_mean = torch.tensor([1] * (self.output_map.pitcher_stats_size), dtype=DTYPE)
+        self.pitcher_outputstats_std = torch.tensor([0.5] * self.output_map.pitcher_stats_size, dtype=DTYPE)
         
         # Age and level information, keep stats individual
         self.__Create_PCA_Norms(self.prep_map.map_hitterlvl, hitter_stats, "hitlevel", self.prep_map.hitterlvl_size)
@@ -137,6 +142,11 @@ class Data_Prep:
         output_normalized = (output_stats - self.hitter_outputstats_mean) / self.hitter_outputstats_std
         return output_normalized
     
+    def Transform_PitcherOutputStats(self, stats : list[DB_Model_PitcherStats]) -> torch.Tensor:
+        output_stats = torch.tensor([self.output_map.map_pitcher_output(x) for x in stats], dtype=DTYPE)
+        output_normalized = (output_stats - self.pitcher_outputstats_mean) / self.pitcher_outputstats_std
+        return output_normalized
+    
     def Get_Hitter_Size(self) -> int:
         return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.hitfirst_size + 1
     
@@ -168,12 +178,13 @@ class Data_Prep:
         #print([round(x, 3) for x in pca.explained_variance_ratio_])
         setattr(self, "__" + name + "_pca", pca)
         
-    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any]) -> list[Hitter_IO]:
+    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
         # Get Hitters
         cursor = db.cursor()
         hitters = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
         
-        io : list[Hitter_IO] = []
+        io : list[Player_IO] = []
+        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         for hitter in hitters:
             # Get Stats
             stats = DB_Model_HitterStats.Select_From_DB(cursor, '''
@@ -182,7 +193,7 @@ class Data_Prep:
                     Year<=:year
                 )
                 ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':hitter.mlbId,"year":Data_Prep.__Cutoff_Year})
+                {'mlbId':hitter.mlbId,"year":cutoff_year})
             l = len(stats) + 1
                 
             dates = torch.cat(
@@ -197,11 +208,12 @@ class Data_Prep:
                 input[1:, self.prep_map.bio_size + 1:] = self.Transform_HitterStats(stats, hitter) # Month Stats
             
             # Output
-            output = torch.zeros(l, 4, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_hitter(hitter)), self.output_map.buckets_hitter)
-            output[:,1] = torch.bucketize(torch.tensor(hitter.peakWarHitter), HITTER_PEAK_WAR_BUCKETS)
-            output[:,2] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
-            output[:,3] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
+            output = torch.zeros(l, 5, dtype=torch.long)
+            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_hitter_war(hitter)), self.output_map.buckets_hitter_war)
+            output[:,1] = torch.bucketize(torch.tensor(self.output_map.map_hitter_value(hitter)), self.output_map.buckets_hitter_value)
+            output[:,2] = torch.bucketize(torch.tensor(hitter.peakWarHitter), HITTER_PEAK_WAR_BUCKETS)
+            output[:,3] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
+            output[:,4] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -211,7 +223,7 @@ class Data_Prep:
             
             lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
             for i, stat in enumerate(stats):
-                lvl_mask[i,:] = torch.tensor(Output_Map.GetHitterOutputMasks(stat))
+                lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
         
             # Stat Output
             stat_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
@@ -238,38 +250,32 @@ class Data_Prep:
                     stat_year_output[i,:] = _s
                     pos_year_output[i,:] = _p
             
-            io.append(Hitter_IO(hitter=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
+            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
         
         return io
        
-    def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any]) -> tuple[list['DB_Model_Players'], list[torch.Tensor], list[torch.Tensor], int, list[torch.Tensor]]:
+    def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
         # Get Hitters
         cursor = db.cursor()
         pitchers = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
         
-        inputs = []
-        outputs = []
-        dates = []
-        max_length = 0
+        io : list[Player_IO] = []
         
+        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         for pitcher in pitchers:
             # Get Stats
             stats = DB_Model_PitcherStats.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND 
                 (
-                    Year<:year OR
-                    (Year=:year AND Month<=:month)
+                    Year<=:year
                 )
                 ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':pitcher.mlbId,"year":pitcher.lastProspectYear,"month":pitcher.lastProspectMonth})
+                {'mlbId':pitcher.mlbId,"year":cutoff_year})
             l = len(stats) + 1
-            if l > max_length:
-                max_length = l
                 
-            dates.append(
-                torch.cat(
+            dates = torch.cat(
                     (torch.tensor([(pitcher.mlbId, 0, 0)], dtype=torch.long),
-                    torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long))))
+                    torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long)))
             
             # Input
             input = torch.zeros(l, self.Get_Pitcher_Size())
@@ -277,17 +283,53 @@ class Data_Prep:
             input[:,1:self.prep_map.bio_size + 1] = self.__Transform_PitcherData(pitcher) # Pitcher Bio
             if l > 1:
                 input[1:, self.prep_map.bio_size + 1:] = self.Transform_PitcherStats(stats, pitcher) # Month Stats
-            inputs.append(input)
             
             # Output
-            output = torch.zeros(l, 4, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher(pitcher)), self.output_map.buckets_pitcher)
-            output[:,1] = torch.bucketize(torch.tensor(pitcher.peakWarPitcher), PITCHER_PEAK_WAR_BUCKETS)
-            output[:,2] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
-            output[:,3] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
-            outputs.append(output)
+            output = torch.zeros(l, 5, dtype=torch.long)
+            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_war(pitcher)), self.output_map.buckets_pitcher_war)
+            output[:,1] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_value(pitcher)), self.output_map.buckets_pitcher_value)
+            output[:,2] = torch.bucketize(torch.tensor(pitcher.peakWarPitcher), PITCHER_PEAK_WAR_BUCKETS)
+            output[:,3] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
+            output[:,4] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
         
-        return pitchers, inputs, outputs, max_length, dates 
+            # Masks
+            prospect_mask = torch.zeros(l, dtype=torch.float)
+            prospect_mask[0] = 1
+            for i, stat in enumerate(stats):
+                prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
+            
+            lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
+            for i, stat in enumerate(stats):
+                lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
+        
+            # Stat Output
+            stat_output = torch.zeros(l, self.output_map.pitcher_stats_size, dtype=torch.float)
+            if len(stats) > 0:
+                stat_output[:-1, :] = self.Transform_PitcherOutputStats(stats)
+            
+            positions_output = torch.zeros(l, self.output_map.pitcher_positions_size, dtype=torch.float)
+            for i, stat in enumerate(stats):
+                positions_output[i,:] = torch.tensor(self.output_map.map_pitcher_positions(stat), dtype=torch.float)
+            
+            # 1 Year aggregation
+            stat_year_output = torch.zeros(l, self.output_map.pitcher_stats_size, dtype=torch.float)
+            pos_year_output = torch.zeros(l, self.output_map.pitcher_positions_size, dtype=torch.float)
+            lvl_year_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
+            if len(stats) > 1:
+                start_month = stats[1].Month
+                start_year = stats[1].Year
+                for i, stat in enumerate(stats):
+                    if i == 0:
+                        (_l,_s,_p) = Aggregate_PitcherStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats)
+                    else:
+                        (_l,_s,_p) = Aggregate_PitcherStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats)
+                    lvl_year_mask[i,:] = _l
+                    stat_year_output[i,:] = _s
+                    pos_year_output[i,:] = _p
+            
+            io.append(Player_IO(player=pitcher, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
+        
+        return io
         
     def Update_Mutators(self, *, off_dev : Optional[float] = None, bsr_dev : Optional[float] = None, def_dev : Optional[float] = None, hitlevel_dev : Optional[float] = None, hitpt_dev : Optional[float] = None, 
                         hitbio_dev : Optional[float] = None, pitbio_dev : Optional[float] = None,

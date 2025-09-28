@@ -1,15 +1,15 @@
 import torch
-import warnings
 
-class Hitter_Dataset(torch.utils.data.Dataset):
+class Player_Dataset(torch.utils.data.Dataset):
     def __init__(self, data, lengths, labels, stats, positions, mask_labels, mask_stats, year_mask, year_stats, year_positions):
         self.data = data
         self.lengths = lengths
         
         self.twar_buckets = labels[:,:,0]
-        self.pwar_buckets = labels[:,:,1]
-        self.level_buckets = labels[:,:,2]
-        self.pa_buckets = labels[:,:,3]
+        self.value_buckets = labels[:,:,1]
+        self.pwar_buckets = labels[:,:,2]
+        self.level_buckets = labels[:,:,3]
+        self.pa_buckets = labels[:,:,4]
         
         self.stats = stats
         self.positions = positions
@@ -27,4 +27,4 @@ class Hitter_Dataset(torch.utils.data.Dataset):
         self.should_augment = should_augment
         
     def __getitem__(self, idx):
-        return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.pwar_buckets[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.stats[:,idx], self.positions[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx]
+        return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.value_buckets[:,idx], self.pwar_buckets[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.stats[:,idx], self.positions[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx]
