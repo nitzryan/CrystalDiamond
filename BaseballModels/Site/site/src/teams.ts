@@ -76,7 +76,7 @@ function TeamOverviewMap(team : JsonValue) : HTMLLIElement
         `
         <div class='rankings_item'>
             <div class='rankings_row'>
-                <div class='rankings_name'><a href='./teams?team=${id}'>${getParentName(id)}</a></div>
+                <div class='rankings_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}'>${getParentName(id)}</a></div>
                 <div class='rankings_rightrow'>
                     <div>Highest Rank: ${team["highestRank"]}</div>
                 </div>
@@ -115,7 +115,7 @@ async function createOverviewPage(datesJson : JsonObject)
         const yr = year_select.value
         const model = model_select.value
         
-        window.location.href = `./teams?year=${yr}&month=${mnth}$model=${model}`
+        window.location.href = `./teams?year=${yr}&month=${mnth}&model=${model}`
     })
 
     document.title = `${MONTH_CODES[month]} ${year} Team Rankings`

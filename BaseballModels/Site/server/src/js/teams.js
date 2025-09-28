@@ -113,7 +113,7 @@ function TeamOverviewMap(team) {
     var id = team["teamId"];
     var el = document.createElement('li');
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./teams?team=".concat(id, "'>").concat(getParentName(id), "</a></div>\n                <div class='rankings_rightrow'>\n                    <div>Highest Rank: ").concat(team["highestRank"], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(team["value"].toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(team["top10"], "</div>\n                    <div>").concat(team["top50"], "</div>\n                    <div>").concat(team["top100"], "</div>\n                    <div>").concat(team["top200"], "</div>\n                    <div>").concat(team["top500"], "</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./teams?team=".concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, "'>").concat(getParentName(id), "</a></div>\n                <div class='rankings_rightrow'>\n                    <div>Highest Rank: ").concat(team["highestRank"], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(team["value"].toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(team["top10"], "</div>\n                    <div>").concat(team["top50"], "</div>\n                    <div>").concat(team["top100"], "</div>\n                    <div>").concat(team["top200"], "</div>\n                    <div>").concat(team["top500"], "</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
 }
 function createOverviewPage(datesJson) {
@@ -138,7 +138,7 @@ function createOverviewPage(datesJson) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
                         var model = model_select.value;
-                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth, "$model=").concat(model);
+                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
                     });
                     document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Team Rankings");
                     return [2];
