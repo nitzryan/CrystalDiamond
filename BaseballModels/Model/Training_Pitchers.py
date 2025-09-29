@@ -39,7 +39,7 @@ if __name__ == "__main__":
         for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
             io_train : list[Player_IO]
             io_test : list[Player_IO]
-            io_train, io_test = train_test_split(pitcher_io_list, test_size=0.25, random_state=i)
+            io_train, io_test = train_test_split(pitcher_io_list, test_size=0.25, random_state=i + 1) # Seed +1 so that it doesn't match pretraining, which is 0
 
             train_lengths = torch.tensor([io.length for io in io_train])
             test_lengths = torch.tensor([io.length for io in io_test])

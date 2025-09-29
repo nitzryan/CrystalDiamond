@@ -20,8 +20,6 @@ class Player_IO:
                  dates : torch.Tensor, 
                  prospect_mask : torch.Tensor,
                  stat_level_mask : torch.Tensor,
-                 stat_output : torch.Tensor,
-                 position_output : torch.Tensor,
                  year_level_mask : torch.Tensor,
                  year_stat_output : torch.Tensor,
                  year_pos_output : torch.Tensor):
@@ -33,8 +31,6 @@ class Player_IO:
         self.dates = dates
         self.prospect_mask = prospect_mask
         self.stat_level_mask = stat_level_mask
-        self.stat_output = stat_output
-        self.position_output = position_output
         self.year_level_mask = year_level_mask
         self.year_stat_output = year_stat_output
         self.year_pos_output = year_pos_output
@@ -237,15 +233,6 @@ class Data_Prep:
             lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
             for i, stat in enumerate(stats):
                 lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
-        
-            # Stat Output
-            stat_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
-            if len(stats) > 0:
-                stat_output[:-1, :] = self.Transform_HitterOutputStats(stats)
-            
-            positions_output = torch.zeros(l, self.output_map.hitter_positions_size, dtype=torch.float)
-            for i, stat in enumerate(stats):
-                positions_output[i,:] = torch.tensor(self.output_map.map_hitter_positions(stat), dtype=torch.float)
             
             # 1 Year aggregation
             stat_year_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
@@ -263,7 +250,7 @@ class Data_Prep:
                     stat_year_output[i,:] = (_s - hit_stats_means) / hit_stats_devs
                     pos_year_output[i,:] = _p
             
-            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
+            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
         
         return io
        
@@ -316,15 +303,6 @@ class Data_Prep:
             lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
             for i, stat in enumerate(stats):
                 lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
-        
-            # Stat Output
-            stat_output = torch.zeros(l, self.output_map.pitcher_stats_size, dtype=torch.float)
-            if len(stats) > 0:
-                stat_output[:-1, :] = self.Transform_PitcherOutputStats(stats)
-            
-            positions_output = torch.zeros(l, self.output_map.pitcher_positions_size, dtype=torch.float)
-            for i, stat in enumerate(stats):
-                positions_output[i,:] = torch.tensor(self.output_map.map_pitcher_positions(stat), dtype=torch.float)
             
             # 1 Year aggregation
             stat_year_output = torch.zeros(l, self.output_map.pitcher_stats_size, dtype=torch.float)
@@ -342,7 +320,7 @@ class Data_Prep:
                     stat_year_output[i,:] = (_s - pit_stats_means) / pit_stats_devs
                     pos_year_output[i,:] = _p
             
-            io.append(Player_IO(player=pitcher, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, stat_output=stat_output, position_output=positions_output, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
+            io.append(Player_IO(player=pitcher, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
         
         return io
         

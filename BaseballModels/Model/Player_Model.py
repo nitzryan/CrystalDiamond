@@ -29,14 +29,14 @@ class RNN_Model(nn.Module):
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
         
         # Predict next month stats
-        self.linear_stats1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_stats2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_stats3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
+        # self.linear_stats1 = nn.Linear(hidden_size, hidden_size)
+        # self.linear_stats2 = nn.Linear(hidden_size, hidden_size)
+        # self.linear_stats3 = nn.Linear(hidden_size, hidden_size)
+        # self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
         
-        self.linear_positions1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+        # self.linear_positions1 = nn.Linear(hidden_size, hidden_size)
+        # self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
+        # self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
         # Predict next year stats
         self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
@@ -101,27 +101,17 @@ class RNN_Model(nn.Module):
         output_pa = self.nonlin(self.linear_pa1(output))
         output_pa = self.linear_pa2(output_pa)
         
-        # Generate Stats Predictions
-        output_stats = self.nonlin(self.linear_stats1(output))
-        output_stats = self.nonlin(self.linear_stats2(output_stats))
-        output_stats = self.nonlin(self.linear_stats3(output_stats))
-        output_stats = self.linear_stats4(output_stats)
-        
-        output_positions = self.nonlin(self.linear_positions1(output))
-        output_positions = self.nonlin(self.linear_positions2(output_positions))
-        output_positions = self.linear_positions3(output_positions)
-        
         # Generate Year Stats Predictions
         output_yearStats = self.nonlin(self.linear_yearStats1(output))
         output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
         output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
-        output_yearStats = self.linear_stats4(output_yearStats)
+        output_yearStats = self.linear_yearStats4(output_yearStats)
         
         output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
-        output_yearPositions = self.linear_positions3(output_yearPositions)
+        output_yearPositions = self.linear_yearPositions3(output_yearPositions)
         
-        return output_war, output_value, output_pwar, output_level, output_pa, output_stats, output_positions, output_yearStats, output_yearPositions
+        return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions
     
 def Stats_L1_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
