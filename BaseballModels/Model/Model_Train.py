@@ -149,7 +149,7 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     else:
       epochsSinceLastImprove += 1
       
-    if epoch > 400 and epochsSinceLastImprove >= early_stopping_cutoff:
+    if epochsSinceLastImprove >= early_stopping_cutoff:
       if should_output:
         print("Stopped Training Early")
       break

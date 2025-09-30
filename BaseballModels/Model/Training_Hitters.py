@@ -10,6 +10,7 @@ from tqdm import tqdm
 from Constants import device, db
 import Prep_Map
 import Output_Map
+import warnings
 
 if __name__ == "__main__":
     num_models = int(sys.argv[1])
@@ -53,10 +54,6 @@ if __name__ == "__main__":
             x_test_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in io_test])
             y_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_train])
             y_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_test])
-            y_stats_train_padded = torch.nn.utils.rnn.pad_sequence([io.stat_output for io in io_train])
-            y_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.stat_output for io in io_test])
-            y_position_train_padded = torch.nn.utils.rnn.pad_sequence([io.position_output for io in io_train])
-            y_position_test_padded = torch.nn.utils.rnn.pad_sequence([io.position_output for io in io_test])
             mask_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_train])
             mask_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_test])
             mask_level_train_padded = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_train])
@@ -67,17 +64,26 @@ if __name__ == "__main__":
             y_year_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_test])
             y_year_position_train_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_train])
             y_year_position_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_test])
-            train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_stats_train_padded, y_position_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded)
-            test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_stats_test_padded, y_position_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded)
+            train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded)
+            test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded)
             
             # Setup Model
             num_layers = 4
             hidden_size = 20
             network = Player_Model.RNN_Model(x_train_padded[0].shape[1], num_layers, hidden_size, hitting_mutators, output_map=data_prep.output_map, is_hitter=True)
+            
+            # Warning for loading model, but these are trusted
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning)
+                if model_id == 1:
+                    network.load_state_dict(torch.load("Models/default_hitter.pt"))
+                elif model_id == 2:
+                    network.load_state_dict(torch.load("Models/default_statsonly_hitter.pt"))
+                
             network = network.to(device)
             
-            optimizer = torch.optim.Adam(network.parameters(), lr=0.004)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=1)
+            optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
+            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=1)
             
             num_epochs = 500
             training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

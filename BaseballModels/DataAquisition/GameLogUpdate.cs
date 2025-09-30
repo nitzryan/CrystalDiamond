@@ -383,16 +383,16 @@ namespace DataAquisition
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            //try
-            //{
-            //    await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine("Error getting hitter game logs");
-            //    Utilities.LogException(e);
-            //    return false;
-            //}
+            try
+            {
+                await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error getting hitter game logs");
+                Utilities.LogException(e);
+                return false;
+            }
 
             try
             {
