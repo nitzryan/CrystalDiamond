@@ -1,5 +1,4 @@
-﻿using Db;
-using ShellProgressBar;
+﻿using ShellProgressBar;
 using SiteDb;
 
 namespace SitePrep
@@ -14,10 +13,88 @@ namespace SitePrep
             public required int ModelId { get; set; }
         }
 
+        private class PlayerWarChange {
+            public required int MlbId { get; set; }
+            public required float Delta { get; set; }
+            public required float Previous { get; set; }
+            public required float Current { get; set; }
+        }
+
         private const int GRADUATED_TYPE = 1;
         private const int MOST_IMPROVED_TYPE = 2;
         private const int LEAST_IMPROVED_TYPE = 3;
         private const int BREAKOUT_TYPE = 4;
+
+        private static void CreateChangeData(SiteDbContext siteDb, DatePair datePair, int isWar, List<PlayerWarChange> players)
+        {
+            int length = Math.Min(10, players.Count());
+            Func<float, string> GetValueString = val =>
+            {
+                if (isWar == 1)
+                    return val.ToString("0.0");
+                else
+                    return "$" + val.ToString("0");
+            };
+            Func<float, bool, string> GetDeltaString = (del, inc) =>
+            {
+                string s = " (";
+                if (inc)
+                    s += "+";
+
+                if (isWar == 1)
+                    return s + del.ToString("0.0") + ") WAR";
+                else
+                    return s + del.ToString("0") + ") M";
+            };
+
+            for (var rank = 0; rank < length; rank++)
+            {
+                var player = players[rank];
+                siteDb.HomeData.Add(new HomeData
+                {
+                    Year = datePair.CurYear,
+                    Month = datePair.CurMonth,
+                    RankType = MOST_IMPROVED_TYPE,
+                    ModelId = datePair.ModelId,
+                    MlbId = player.MlbId,
+                    Data = GetValueString(player.Current) + GetDeltaString(player.Delta, true),
+                    Rank = rank + 1,
+                    IsWar = isWar
+                });
+
+                var revPlayer = players[players.Count() - 1 - rank];
+                siteDb.HomeData.Add(new HomeData
+                {
+                    Year = datePair.CurYear,
+                    Month = datePair.CurMonth,
+                    RankType = LEAST_IMPROVED_TYPE,
+                    ModelId = datePair.ModelId,
+                    MlbId = revPlayer.MlbId,
+                    Data = GetValueString(revPlayer.Current) + GetDeltaString(revPlayer.Delta, false),
+                    Rank = rank + 1,
+                    IsWar = isWar
+                });
+            }
+
+            // Breakout should go by multiple, with a 0.5 min floor
+            float min_value = isWar == 1 ? 0.5f : 3.0f;
+            players = [.. players.OrderByDescending(f => f.Delta / Math.Max(f.Previous, min_value))];
+            for (var rank = 0; rank < length; rank++)
+            {
+                var player = players[rank];
+                siteDb.Add(new HomeData
+                {
+                    Year = datePair.CurYear,
+                    Month = datePair.CurMonth,
+                    RankType = BREAKOUT_TYPE,
+                    ModelId = datePair.ModelId,
+                    MlbId = player.MlbId,
+                    Data = GetValueString(player.Current) + GetDeltaString(player.Delta, true),
+                    Rank = rank + 1,
+                    IsWar = isWar
+                });
+            }
+        }
 
         public static bool Main()
         {
@@ -59,25 +136,43 @@ namespace SitePrep
                 {
                     foreach (var datePair in datePairs)
                     {
-                        var valueString = datePair.ModelId == 1 || datePair.ModelId == 3 ? " WAR" : "M";
                         var players = siteDb.PlayerRank.Where(f => f.Year == datePair.PrevYear && f.Month == datePair.PrevMonth && f.ModelId == datePair.ModelId)
-                            .Where(f => !siteDb.PlayerRank.Any(pr => pr.MlbId == f.MlbId && pr.Year == datePair.CurYear && pr.Month == datePair.CurMonth))
-                            .OrderByDescending(f => f.War).ToList();
+                            .Where(f => !siteDb.PlayerRank.Any(pr => pr.MlbId == f.MlbId && pr.Year == datePair.CurYear && pr.Month == datePair.CurMonth));
 
+                        var playerByWar = players.OrderByDescending(f => f.War).ToList();
                         int length = Math.Min(10, players.Count());
                         for (var rank = 0; rank < length; rank++)
                         {
-                            var player = players[rank];
+                            var player = playerByWar[rank];
                             siteDb.HomeData.Add(new HomeData{
                                 Year = datePair.CurYear,
                                 Month = datePair.CurMonth,
                                 RankType = GRADUATED_TYPE,
                                 ModelId = datePair.ModelId,
                                 MlbId = player.MlbId,
-                                Data = player.War.ToString("0.0") + valueString,
-                                Rank = rank + 1
+                                Data = player.War.ToString("0.0") + " WAR",
+                                Rank = rank + 1,
+                                IsWar = 1
                             });
                         }
+
+                        var playersByValue = players.OrderByDescending(f => f.Value).ToList();
+                        for (var rank = 0; rank < length; rank++)
+                        {
+                            var player = playersByValue[rank];
+                            siteDb.HomeData.Add(new HomeData
+                            {
+                                Year = datePair.CurYear,
+                                Month = datePair.CurMonth,
+                                RankType = GRADUATED_TYPE,
+                                ModelId = datePair.ModelId,
+                                MlbId = player.MlbId,
+                                Data = "$" + player.Value.ToString("0") + "M",
+                                Rank = rank + 1,
+                                IsWar = 0
+                            });
+                        }
+
                         progressBar.Tick();
                     }
                 }
@@ -103,66 +198,27 @@ namespace SitePrep
                 {
                     foreach (var datePair in datePairs)
                     {
-                        var valueString = datePair.ModelId == 1 || datePair.ModelId == 3 ? " WAR" : "M";
-                        var players = siteDb.PlayerRank
-                            .Join(siteDb.PlayerRank, 
+                        var datePlayers = siteDb.PlayerRank
+                            .Join(siteDb.PlayerRank,
                                 prev => new { prev.MlbId, prev.ModelId, prev.IsHitter },
                                 cur => new { cur.MlbId, cur.ModelId, cur.IsHitter },
-                                (prev, cur) => new {prev, cur})
-                            .Where(f => f.cur.Year == datePair.CurYear 
-                                && f.cur.Month == datePair.CurMonth 
-                                && f.prev.Year == datePair.PrevYear 
+                                (prev, cur) => new { prev, cur })
+                            .Where(f => f.cur.Year == datePair.CurYear
+                                && f.cur.Month == datePair.CurMonth
+                                && f.prev.Year == datePair.PrevYear
                                 && f.prev.Month == datePair.PrevMonth
-                                && f.cur.ModelId == datePair.ModelId)
-                            .Select(f => new { f.cur.MlbId, delta = f.cur.War - f.prev.War, prevWar = f.prev.War, curWar = f.cur.War })
-                            .OrderByDescending(f => f.delta).ToList();
+                                && f.cur.ModelId == datePair.ModelId);
 
-                        int length = Math.Min(10, players.Count());
-                        for (var rank = 0; rank < length; rank++)
-                        {
-                            var player = players[rank];
-                            siteDb.HomeData.Add(new HomeData
-                            {
-                                Year = datePair.CurYear,
-                                Month = datePair.CurMonth,
-                                RankType = MOST_IMPROVED_TYPE,
-                                ModelId = datePair.ModelId,
-                                MlbId = player.MlbId,
-                                Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ")" + valueString,
-                                Rank = rank + 1
-                            });
+                        var players = datePlayers
+                            .Select(f => new PlayerWarChange{ MlbId = f.cur.MlbId, Delta = f.cur.War - f.prev.War, Previous = f.prev.War, Current = f.cur.War })
+                            .OrderByDescending(f => f.Delta).ToList();
 
-                            var revPlayer = players[players.Count() - 1 - rank];
-                            siteDb.HomeData.Add(new HomeData
-                            {
-                                Year = datePair.CurYear,
-                                Month = datePair.CurMonth,
-                                RankType = LEAST_IMPROVED_TYPE,
-                                ModelId = datePair.ModelId,
-                                MlbId = revPlayer.MlbId,
-                                Data = revPlayer.curWar.ToString("0.0") + " (" + revPlayer.delta.ToString("0.0") + ")" + valueString,
-                                Rank = rank + 1
-                            });
-                        }
+                        CreateChangeData(siteDb, datePair, 1, players);
+                        players = datePlayers
+                            .Select(f => new PlayerWarChange { MlbId = f.cur.MlbId, Delta = f.cur.Value - f.prev.Value, Previous = f.prev.Value, Current = f.cur.Value })
+                            .OrderByDescending(f => f.Delta).ToList();
 
-                        // Breakout should go by multiple, with a 0.5 min floor
-                        float min_value = valueString == "M" ? 2.0f : 0.5f;
-                        players = [.. players.OrderByDescending(f => f.delta / Math.Max(f.prevWar, min_value))];
-                        for (var rank = 0; rank < length; rank++)
-                        {
-                            var player = players[rank];
-                            siteDb.Add(new HomeData
-                            {
-                                Year = datePair.CurYear,
-                                Month = datePair.CurMonth,
-                                RankType = BREAKOUT_TYPE,
-                                ModelId = datePair.ModelId,
-                                MlbId = player.MlbId,
-                                Data = player.curWar.ToString("0.0") + " (+" + player.delta.ToString("0.0") + ")" + valueString,
-                                Rank = rank + 1
-                            });
-                        }
-
+                        CreateChangeData(siteDb, datePair, 0, players);
                         progressBar.Tick();
                     }
                 }

@@ -40,14 +40,22 @@ namespace SitePrep
                             Month = opw.Month,
                             ModelId = opw.Model,
                             IsHitter = opw.IsHitter,
-                            Probs = $"{opw.Prob0.ToString("0.000")}," +
-                                    $"{opw.Prob1.ToString("0.000")}," +
-                                    $"{opw.Prob2.ToString("0.000")}," +
-                                    $"{opw.Prob3.ToString("0.000")}," +
-                                    $"{opw.Prob4.ToString("0.000")}," +
-                                    $"{opw.Prob5.ToString("0.000")}," +
-                                    $"{opw.Prob6.ToString("0.000")}",
-                            Rank = ranks.Any() ? ranks.First().Rank : null
+                            ProbsWar = $"{opw.War0.ToString("0.000")}," +
+                                    $"{opw.War1.ToString("0.000")}," +
+                                    $"{opw.War2.ToString("0.000")}," +
+                                    $"{opw.War3.ToString("0.000")}," +
+                                    $"{opw.War4.ToString("0.000")}," +
+                                    $"{opw.War5.ToString("0.000")}," +
+                                    $"{opw.War6.ToString("0.000")}",
+                            RankWar = ranks.Any() ? ranks.First().RankWar : null,
+                            ProbsValue = $"{opw.Value0.ToString("0.000")}," +
+                                    $"{opw.Value1.ToString("0.000")}," +
+                                    $"{opw.Value2.ToString("0.000")}," +
+                                    $"{opw.Value3.ToString("0.000")}," +
+                                    $"{opw.Value4.ToString("0.000")}," +
+                                    $"{opw.Value5.ToString("0.000")}," +
+                                    $"{opw.Value6.ToString("0.000")}",
+                            RankValue = ranks.Any() ? ranks.First().RankValue : null
                         });
                     }
 

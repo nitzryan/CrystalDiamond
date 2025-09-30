@@ -14,6 +14,7 @@ namespace SitePrep
             public required int MlbId;
             public required int ModelId;
             public required float War;
+            public required float Value;
             public required int Month;
             public required int Year;
             public required bool isHitter;
@@ -25,6 +26,7 @@ namespace SitePrep
             public required bool isHitter;
             public required string position;
             public required float War;
+            public required float Value;
             public required int ParentOrgId;
             public required int HighestLevel;
         }
@@ -134,7 +136,8 @@ namespace SitePrep
                             {
                                 MlbId = opwa.MlbId,
                                 ModelId = opwa.Model,
-                                War = Utilities.GetModelValue(opwa, model.Id),
+                                War = opwa.War,
+                                Value=opwa.Value,
                                 Month = p.SigningMonth.Value,
                                 Year = p.SigningYear.Value,
                                 isHitter = opwa.IsHitter == 1,
@@ -153,7 +156,8 @@ namespace SitePrep
                                     {
                                         MlbId = f.MlbId,
                                         ModelId = pwa.ModelId,
-                                        War = Utilities.GetModelValue(f, model.Id),
+                                        War = f.War,
+                                        Value = f.Value,
                                         Month = f.Month,
                                         Year = f.Year,
                                         isHitter = pwa.isHitter
@@ -186,6 +190,7 @@ namespace SitePrep
                                             MlbId = last.MlbId,
                                             ModelId = last.ModelId,
                                             War = last.War,
+                                            Value = last.Value,
                                             Month = mp.LastProspectMonth,
                                             Year = mp.LastProspectYear,
                                             isHitter = pwa.isHitter,
@@ -200,6 +205,7 @@ namespace SitePrep
                                                 MlbId = last.MlbId,
                                                 ModelId = last.ModelId,
                                                 War = last.War,
+                                                Value = last.Value,
                                                 Month = endMonth,
                                                 Year = endYear,
                                                 isHitter = pwa.isHitter,
@@ -293,6 +299,7 @@ namespace SitePrep
                                             ModelId = current.ModelId,
                                             isHitter = current.isHitter,
                                             War = current.War,
+                                            Value = current.Value,
                                             ParentOrgId = poms.Any() ? poms // Few players only played on VSL teams that were multiple teams (no parent)
                                                 .First().ParentOrgId : 0,
                                             position = position,
@@ -317,12 +324,15 @@ namespace SitePrep
                                         Month = month,
                                         ModelId = pmw.ModelId,
                                         IsHitter = pmw.isHitter ? 1 : 0,
-                                        Rank = r,
+                                        RankWar = r,
                                         War = pmw.War,
                                         Position = pmw.position,
                                         TeamId = pmw.ParentOrgId,
-                                        TeamRank = -1,
+                                        TeamRankWar = -1,
                                         HighestLevel = pmw.HighestLevel,
+                                        Value = pmw.Value,
+                                        RankValue = -1,
+                                        TeamRankValue = -1
                                     });
                                     rank++;
                                 }
@@ -332,13 +342,37 @@ namespace SitePrep
                                 foreach (var teamId in teamIds)
                                 {
                                     var teamRanks = ranks.Where(f => f.TeamId == teamId)
-                                        .OrderBy(f => f.Rank);
+                                        .OrderBy(f => f.RankWar);
 
                                     int teamRank = 1;
                                     foreach (var tr in teamRanks)
                                     {
                                         int r = teamRank;
-                                        tr.TeamRank = r;
+                                        tr.TeamRankWar = r;
+                                        teamRank++;
+                                    }
+                                }
+
+                                // Rank by value
+                                ranks = ranks.OrderByDescending(f => f.Value).ToList();
+                                rank = 1;
+                                foreach (var rnk in ranks)
+                                {
+                                    int r = rank;
+                                    rnk.RankValue = r;
+                                    rank++;
+                                }
+
+                                // Rank by team values
+                                foreach (var teamId in teamIds)
+                                {
+                                    var teamRanks = ranks.Where(f => f.TeamId == teamId)
+                                        .OrderBy(f => f.RankValue);
+                                    int teamRank = 1;
+                                    foreach (var tr in teamRanks)
+                                    {
+                                        int r = teamRank;
+                                        tr.TeamRankValue = r;
                                         teamRank++;
                                     }
                                 }

@@ -29,7 +29,7 @@ namespace SitePrep
                     var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 0).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     foreach (var opw in opws)
                     {
-                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model && f.IsHitter == opw.IsHitter);
+                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model);
 
                         siteDb.Add(new PlayerModel
                         {
@@ -38,16 +38,25 @@ namespace SitePrep
                             Month = opw.Month,
                             ModelId = opw.Model,
                             IsHitter = opw.IsHitter,
-                            Probs = $"{opw.Prob0.ToString("0.000")}," +
-                                    $"{opw.Prob1.ToString("0.000")}," +
-                                    $"{opw.Prob2.ToString("0.000")}," +
-                                    $"{opw.Prob3.ToString("0.000")}," +
-                                    $"{opw.Prob4.ToString("0.000")}," +
-                                    $"{opw.Prob5.ToString("0.000")}," +
-                                    $"{opw.Prob6.ToString("0.000")}",
-                            Rank = ranks.Any() ? ranks.First().Rank : null
+                            ProbsWar = $"{opw.War0.ToString("0.000")}," +
+                                    $"{opw.War1.ToString("0.000")}," +
+                                    $"{opw.War2.ToString("0.000")}," +
+                                    $"{opw.War3.ToString("0.000")}," +
+                                    $"{opw.War4.ToString("0.000")}," +
+                                    $"{opw.War5.ToString("0.000")}," +
+                                    $"{opw.War6.ToString("0.000")}",
+                            RankWar = ranks.Any() ? ranks.First().RankWar : null,
+                            ProbsValue = $"{opw.Value0.ToString("0.000")}," +
+                                    $"{opw.Value1.ToString("0.000")}," +
+                                    $"{opw.Value2.ToString("0.000")}," +
+                                    $"{opw.Value3.ToString("0.000")}," +
+                                    $"{opw.Value4.ToString("0.000")}," +
+                                    $"{opw.Value5.ToString("0.000")}," +
+                                    $"{opw.Value6.ToString("0.000")}",
+                            RankValue = ranks.Any() ? ranks.First().RankValue : null
                         });
                     }
+
                     // Demographic Data
                     // Check to make sure player isn't already in db (Two-Way Player)
                     Db.Player p = db.Player.Where(f => f.MlbId == player.MlbId).Single();

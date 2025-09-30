@@ -14,36 +14,6 @@ namespace SitePrep
             Console.Write(e.StackTrace);
         }
 
-        public static float GetWar(Output_PlayerWarAggregation opwa)
-        {
-            return (opwa.Prob1 * WAR_BUCKETS[1]) +
-                (opwa.Prob2 * WAR_BUCKETS[2]) +
-                (opwa.Prob3 * WAR_BUCKETS[3]) +
-                (opwa.Prob4 * WAR_BUCKETS[4]) +
-                (opwa.Prob5 * WAR_BUCKETS[5]) +
-                (opwa.Prob6 * WAR_BUCKETS[6]);
-        }
-
-        public static float GetValue(Output_PlayerWarAggregation opwa)
-        {
-            return (opwa.Prob1 * VALUE_BUCKETS[1]) +
-                (opwa.Prob2 * VALUE_BUCKETS[2]) +
-                (opwa.Prob3 * VALUE_BUCKETS[3]) +
-                (opwa.Prob4 * VALUE_BUCKETS[4]) +
-                (opwa.Prob5 * VALUE_BUCKETS[5]) +
-                (opwa.Prob6 * VALUE_BUCKETS[6]);
-        }
-
-        public static float GetModelValue(Output_PlayerWarAggregation opwa, int modelId)
-        {
-            if (modelId == 1 || modelId == 3)
-                return GetWar(opwa);
-            if (modelId == 2 || modelId == 4)
-                return GetValue(opwa);
-
-            throw new Exception($"Model not found for GetModelValue: {modelId}");
-        }
-
         public static Func<List<int>, Player_Hitter_GameLog, List<int>> PositionAggregation = (l, gl) =>
         {
             List<int> gamesAtPosition = [l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]];

@@ -98,8 +98,10 @@ CREATE TABLE "PlayerModel" (
 	"month" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
-	"probs" TEXT NOT NULL,
-	"rank" INTEGER,
+	"probsWar" TEXT NOT NULL,
+	"probsValue" TEXT NOT NULL,
+	"rankWar" INTEGER,
+	"rankValue" INTEGER,
 	PRIMARY KEY("mlbId","year","month","modelId", "isHitter")
 );
 
@@ -109,11 +111,14 @@ CREATE TABLE "PlayerRank" (
 	"isHitter" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"war" REAL NOT NULL,
 	"teamId" INTEGER NOT NULL,
 	"position" TEXT NOT NULL,
-	"rank" INTEGER NOT NULL,
-	"teamRank" INTEGER NOT NULL,
+	"war" REAL NOT NULL,
+	"rankWar" INTEGER NOT NULL,
+	"teamRankWar" INTEGER NOT NULL,
+	"value" REAL NOT NULL,
+	"rankValue" INTEGER NOT NULL,
+	"teamRankValue" INTEGER NOT NULL,
 	"highestLevel" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
@@ -121,6 +126,7 @@ CREATE TABLE "PlayerRank" (
 CREATE TABLE "TeamRank" (
 	"teamId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
+	"isWar" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"value" REAL NOT NULL,
@@ -131,7 +137,7 @@ CREATE TABLE "TeamRank" (
 	"top200" INTEGER NOT NULL,
 	"top500" INTEGER NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY("teamId", "year", "month", "modelId")
+	PRIMARY KEY("teamId", "year", "month", "modelId", "isWar")
 );
 
 CREATE TABLE "Models" (
@@ -145,10 +151,11 @@ CREATE TABLE "HomeData" (
 	"month" INTEGER NOT NULL,
 	"rankType" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
+	"isWar" INTEGER NOT NULL,
 	"mlbId" INTEGER NOT NULL,
 	"data" TEXT NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY("year", "month", "modelId", "rankType", "rank")
+	PRIMARY KEY("year", "month", "modelId", "isWar", "rankType", "rank")
 );
 
 CREATE TABLE "HomeDataType" (
@@ -157,10 +164,18 @@ CREATE TABLE "HomeDataType" (
 	PRIMARY KEY("type")
 );
 
-CREATE INDEX "idx_PlayerRankOverall" ON "PlayerRank" (
-	"year", "month", "rank"
+CREATE INDEX "idx_PlayerRankOverallWar" ON "PlayerRank" (
+	"year", "month", "rankWar"
 );
 
-CREATE INDEX "idx_PlayerRankTeam" ON "PlayerRank" (
-	"teamId", "year", "month", "teamRank"
+CREATE INDEX "idx_PlayerRankOverallValue" ON "PlayerRank" (
+	"year", "month", "rankValue"
+);
+
+CREATE INDEX "idx_PlayerRankTeamWar" ON "PlayerRank" (
+	"teamId", "year", "month", "teamRankWar"
+);
+
+CREATE INDEX "idx_PlayerRankTeamValue" ON "PlayerRank" (
+	"teamId", "year", "month", "teamRankValue"
 );

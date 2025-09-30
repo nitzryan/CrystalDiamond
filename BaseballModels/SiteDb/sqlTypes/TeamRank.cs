@@ -4,6 +4,7 @@ namespace SiteDb
 	{
 		public required int TeamId {get; set;}
 		public required int ModelId {get; set;}
+		public required int IsWar {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Value {get; set;}
@@ -21,6 +22,7 @@ namespace SiteDb
 			{
 				TeamId = this.TeamId,
 				ModelId = this.ModelId,
+				IsWar = this.IsWar,
 				Year = this.Year,
 				Month = this.Month,
 				Value = this.Value,

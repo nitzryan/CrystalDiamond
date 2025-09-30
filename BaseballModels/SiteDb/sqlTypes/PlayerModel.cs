@@ -7,8 +7,10 @@ namespace SiteDb
 		public required int Month {get; set;}
 		public required int ModelId {get; set;}
 		public required int IsHitter {get; set;}
-		public required string Probs {get; set;}
-		public int? Rank {get; set;}
+		public required string ProbsWar {get; set;}
+		public required string ProbsValue {get; set;}
+		public int? RankWar {get; set;}
+		public int? RankValue {get; set;}
 
 		public PlayerModel Clone()
 		{
@@ -19,8 +21,10 @@ namespace SiteDb
 				Month = this.Month,
 				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
-				Probs = this.Probs,
-				Rank = this.Rank,
+				ProbsWar = this.ProbsWar,
+				ProbsValue = this.ProbsValue,
+				RankWar = this.RankWar,
+				RankValue = this.RankValue,
 				
 			};
 		}

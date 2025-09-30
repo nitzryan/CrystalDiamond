@@ -37,24 +37,42 @@ namespace SitePrep
                                 IsHitter = o.IsHitter,
                                 Year = o.Year,
                                 Month = o.Month,
-                                Prob0 = 0,
-                                Prob1 = 0,
-                                Prob2 = 0,
-                                Prob3 = 0,
-                                Prob4 = 0,
-                                Prob5 = 0,
-                                Prob6 = 0
+                                War0 = 0,
+                                War1 = 0,
+                                War2 = 0,
+                                War3 = 0,
+                                War4 = 0,
+                                War5 = 0,
+                                War6 = 0,
+                                War = 0,
+                                Value0 = 0,
+                                Value1 = 0,
+                                Value2 = 0,
+                                Value3 = 0,
+                                Value4 = 0,
+                                Value5 = 0,
+                                Value6 = 0,
+                                Value = 0,
                             };
 
                             foreach (var result in model_results)
                             {
-                                owa.Prob0 += result.Prob0 / size;
-                                owa.Prob1 += result.Prob1 / size;
-                                owa.Prob2 += result.Prob2 / size;
-                                owa.Prob3 += result.Prob3 / size;
-                                owa.Prob4 += result.Prob4 / size;
-                                owa.Prob5 += result.Prob5 / size;
-                                owa.Prob6 += result.Prob6 / size;
+                                owa.War0 += result.War0 / size;
+                                owa.War1 += result.War1 / size;
+                                owa.War2 += result.War2 / size;
+                                owa.War3 += result.War3 / size;
+                                owa.War4 += result.War4 / size;
+                                owa.War5 += result.War5 / size;
+                                owa.War6 += result.War6 / size;
+                                owa.War += result.War / size;
+                                owa.Value0 += result.Value0 / size;
+                                owa.Value1 += result.Value1 / size;
+                                owa.Value2 += result.Value2 / size;
+                                owa.Value3 += result.Value3 / size;
+                                owa.Value4 += result.Value4 / size;
+                                owa.Value5 += result.Value5 / size;
+                                owa.Value6 += result.Value6 / size;
+                                owa.Value += result.Value / size;
                             }
 
                             items.Add(owa);
