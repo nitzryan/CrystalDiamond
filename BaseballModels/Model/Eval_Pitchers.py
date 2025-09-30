@@ -33,7 +33,8 @@ if __name__ == "__main__":
 
         dates_padded = torch.nn.utils.rnn.pad_sequence([io.dates for io in pitcher_io_list])
         x_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in pitcher_io_list])
-        eval_pitchers_dataset = Eval_Dataset(x_padded, lengths, dates_padded)
+        mask_prospect_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in pitcher_io_list])
+        eval_pitchers_dataset = Eval_Dataset(x_padded, lengths, dates_padded, mask_prospect_padded)
         batch_size = 1000
         generator = torch.utils.data.DataLoader(eval_pitchers_dataset, batch_size=batch_size, shuffle=False)
         
