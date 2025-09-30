@@ -131,7 +131,7 @@ function getModels(obj, name) {
             month: getJsonNumber(fObj, "month"),
             probs: probArray,
             modelId: getJsonNumber(fObj, "modelId"),
-            rank: fObj["rank"],
+            rank: fObj["rankWar"],
         };
         models.push(m);
     });

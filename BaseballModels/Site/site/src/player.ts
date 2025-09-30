@@ -174,7 +174,7 @@ function getModels(obj : JsonObject, name : string) : Model[][]
             probs : probArray,
             modelId : getJsonNumber(fObj, "modelId"),
             // @ts-ignore
-            rank : fObj["rank"],
+            rank : fObj["rankWar"],
         }
         models.push(m);
     })
