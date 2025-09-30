@@ -227,6 +227,13 @@ function getQueryParamBackup(name, backup) {
         return backup;
     }
 }
+function getQueryParamBackupStr(name, backup) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        return backup;
+    return value;
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -334,21 +341,14 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, modelId) {
-    if (modelId == 1 || modelId == 3)
+function formatModelString(val, isWar) {
+    if (isWar === 1)
         return "".concat(val.toFixed(1), " WAR");
-    else if (modelId == 2 || modelId == 4)
+    else
         return "$".concat(val.toFixed(0), "M");
-    throw new Error("Invalid formatModelString modelId: ".concat(modelId));
 }
-var MODEL_VALUES = [1, 2, 3, 4];
-var MODEL_STRINGS = ["Base WAR", "Base Value", "Stats Only WAR", "Stats Only Value"];
-function modelIsWAR(modelId) {
-    return modelId == 1 || modelId == 3;
-}
-function modelIsValue(modelId) {
-    return modelId == 2 || modelId == 4;
-}
+var MODEL_VALUES = [1, 2];
+var MODEL_STRINGS = ["Base", "Stats Only"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];

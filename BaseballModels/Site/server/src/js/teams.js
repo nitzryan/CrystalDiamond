@@ -39,10 +39,11 @@ var month;
 var year;
 var modelId;
 var teamId = null;
+var isWar;
 var rankings_overall = document.getElementById('rankings_overall');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, _a;
+        var datesJsonPromise, player_search_data, datesJson, mdl, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -58,12 +59,15 @@ function main() {
                     endMonth = datesJson["endMonth"];
                     month = getQueryParamBackup('month', endMonth);
                     year = getQueryParamBackup('year', endYear);
-                    modelId = getQueryParamBackup("model", 1);
+                    mdl = getQueryParamBackupStr("model", "1.1").split(".", 2).map(function (f) { return Number(f); });
+                    modelId = mdl[0];
+                    isWar = mdl[1];
                     teamId = getQueryParamNullable('team');
                     setupSelector({
                         month: month,
                         year: year,
                         modelId: modelId,
+                        isWar: isWar,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
@@ -95,7 +99,7 @@ function createTeamPage(datesJson) {
         return __generator(this, function (_a) {
             if (teamId === null)
                 throw new Error("Null month in createTeamPage");
-            setupRankings(month, year, modelId, teamId, 30);
+            setupRankings(month, year, modelId, isWar, teamId, 30);
             rankings_button.addEventListener('click', function (event) {
                 var mnth = month_select.value;
                 var yr = year_select.value;
@@ -111,9 +115,12 @@ function createTeamPage(datesJson) {
 function TeamOverviewMap(team) {
     team = team;
     var id = team["teamId"];
+    var value_string = isWar === 1 ?
+        team["value"].toFixed(1) + " WAR" :
+        "$" + team["value"].toFixed(0) + "M";
     var el = document.createElement('li');
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./teams?team=".concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, "'>").concat(getParentName(id), "</a></div>\n                <div class='rankings_rightrow'>\n                    <div>Highest Rank: ").concat(team["highestRank"], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(team["value"].toFixed(1), " WAR</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(team["top10"], "</div>\n                    <div>").concat(team["top50"], "</div>\n                    <div>").concat(team["top100"], "</div>\n                    <div>").concat(team["top200"], "</div>\n                    <div>").concat(team["top500"], "</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./teams?team=".concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar, "'>").concat(getParentName(id), "</a></div>\n                <div class='rankings_rightrow'>\n                    <div>Highest Rank: ").concat(team["highestRank"], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(value_string, "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(team["top10"], "</div>\n                    <div>").concat(team["top50"], "</div>\n                    <div>").concat(team["top100"], "</div>\n                    <div>").concat(team["top200"], "</div>\n                    <div>").concat(team["top500"], "</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
 }
 function createOverviewPage(datesJson) {
@@ -121,7 +128,7 @@ function createOverviewPage(datesJson) {
         var team_rankings_data, elements;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, fetch("./teamRanks?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId))];
+                case 0: return [4, fetch("./teamRanks?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar))];
                 case 1: return [4, (_a.sent()).json()];
                 case 2: return [4, (_a.sent())];
                 case 3:
@@ -173,7 +180,7 @@ function setupSelector(args) {
     }
     year_select.value = args.year.toString();
     month_select.value = args.month.toString();
-    model_select.value = args.modelId.toString();
+    model_select.value = args.modelId.toString() + "." + args.isWar.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
     if (team_select !== null && args.startTeam !== null) {
@@ -224,10 +231,10 @@ function setupTeamSelector(teamId) {
 var rankings_header = getElementByIdStrict('rankings_header');
 var rankings_list = getElementByIdStrict('rankings_list');
 var rankings_load = getElementByIdStrict('rankings_load');
-function createPlayer(obj) {
+function createPlayer(obj, isWar) {
     var p = {
         name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: getJsonNumber(obj, "war"),
+        war: isWar === 1 ? getJsonNumber(obj, "war") : getJsonNumber(obj, "value"),
         id: getJsonNumber(obj, "mlbId"),
         team: getJsonNumber(obj, "teamId"),
         position: getJsonString(obj, "position"),
@@ -237,18 +244,18 @@ function createPlayer(obj) {
     };
     return p;
 }
-function createPlayerElement(player, year, month, modelId) {
+function createPlayerElement(player, year, month, modelId, isWar) {
     var el = document.createElement('li');
     var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, modelId), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, isWar), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
 }
 var PlayerLoader = (function () {
-    function PlayerLoader(year, month, model, teamId) {
+    function PlayerLoader(year, month, model, isWar, teamId) {
         if (teamId === void 0) { teamId = null; }
         this.exhaustedElements = false;
         this.index = 0;
@@ -256,6 +263,7 @@ var PlayerLoader = (function () {
         this.month = month;
         this.teamId = teamId;
         this.model = model;
+        this.isWar = isWar;
     }
     PlayerLoader.prototype.getElements = function (num_elements) {
         return __awaiter(this, void 0, void 0, function () {
@@ -268,11 +276,11 @@ var PlayerLoader = (function () {
                             return [2, []];
                         endRank = this.index + num_elements;
                         if (!(this.teamId !== null)) return [3, 2];
-                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model))];
+                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model, ".").concat(this.isWar))];
                     case 1:
                         _a = _b.sent();
                         return [3, 4];
-                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model))];
+                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model, ".").concat(this.isWar))];
                     case 3:
                         _a = _b.sent();
                         _b.label = 4;
@@ -284,7 +292,7 @@ var PlayerLoader = (function () {
                         this.exhaustedElements = (players.length != num_elements);
                         this.index += players.length;
                         return [2, players.map(function (f) {
-                                return createPlayerElement(createPlayer(f), _this.year, _this.month, _this.model);
+                                return createPlayerElement(createPlayer(f, _this.isWar), _this.year, _this.month, _this.model, _this.isWar);
                             })];
                 }
             });
@@ -293,9 +301,9 @@ var PlayerLoader = (function () {
     return PlayerLoader;
 }());
 var playerLoader;
-function setupRankings(month, year, model, team, num_elements) {
+function setupRankings(month, year, model, isWar, team, num_elements) {
     var _this = this;
-    playerLoader = new PlayerLoader(year, month, model, team);
+    playerLoader = new PlayerLoader(year, month, model, isWar, team);
     if (team === null)
         rankings_header.innerText = "Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
     else
@@ -503,6 +511,13 @@ function getQueryParamBackup(name, backup) {
         return backup;
     }
 }
+function getQueryParamBackupStr(name, backup) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        return backup;
+    return value;
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -610,21 +625,14 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, modelId) {
-    if (modelId == 1 || modelId == 3)
+function formatModelString(val, isWar) {
+    if (isWar === 1)
         return "".concat(val.toFixed(1), " WAR");
-    else if (modelId == 2 || modelId == 4)
+    else
         return "$".concat(val.toFixed(0), "M");
-    throw new Error("Invalid formatModelString modelId: ".concat(modelId));
 }
-var MODEL_VALUES = [1, 2, 3, 4];
-var MODEL_STRINGS = ["Base WAR", "Base Value", "Stats Only WAR", "Stats Only Value"];
-function modelIsWAR(modelId) {
-    return modelId == 1 || modelId == 3;
-}
-function modelIsValue(modelId) {
-    return modelId == 2 || modelId == 4;
-}
+var MODEL_VALUES = [1, 2];
+var MODEL_STRINGS = ["Base", "Stats Only"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];

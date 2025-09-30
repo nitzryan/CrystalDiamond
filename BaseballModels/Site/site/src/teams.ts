@@ -2,6 +2,7 @@ let month : number
 let year : number
 let modelId : number
 let teamId : number | null = null
+let isWar : number
 let rankings_overall = document.getElementById('rankings_overall') as HTMLButtonElement
 
 async function main()
@@ -17,13 +18,16 @@ async function main()
     endMonth = datesJson["endMonth"] as number
     month = getQueryParamBackup('month', endMonth)
     year = getQueryParamBackup('year', endYear)
-    modelId = getQueryParamBackup("model", 1)
+    const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
+    modelId = mdl[0]
+    isWar = mdl[1]
     teamId = getQueryParamNullable('team')
     
     setupSelector({
         month : month,
         year : year,
         modelId : modelId,
+        isWar : isWar,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -32,7 +36,8 @@ async function main()
     if (teamId === null)
     {
         createOverviewPage(datesJson)
-    } else {
+    } else 
+    {
         createTeamPage(datesJson)
     }
 
@@ -51,7 +56,7 @@ async function createTeamPage(datesJson : JsonObject)
     if (teamId === null)
         throw new Error("Null month in createTeamPage")
     
-    setupRankings(month, year, modelId, teamId, 30)
+    setupRankings(month, year, modelId, isWar, teamId, 30)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value
@@ -71,18 +76,22 @@ function TeamOverviewMap(team : JsonValue) : HTMLLIElement
 
     const id = team["teamId"] as number
 
+    const value_string = isWar === 1 ?
+        (team["value"] as number).toFixed(1) + " WAR" :
+        "$" + (team["value"] as number).toFixed(0) + "M"
+
     let el = document.createElement('li')
     el.innerHTML = 
         `
         <div class='rankings_item'>
             <div class='rankings_row'>
-                <div class='rankings_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}'>${getParentName(id)}</a></div>
+                <div class='rankings_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></div>
                 <div class='rankings_rightrow'>
                     <div>Highest Rank: ${team["highestRank"]}</div>
                 </div>
             </div>
             <div class='rankings_row'>
-                <div>${(team["value"] as number).toFixed(1)} WAR</div>
+                <div>${value_string}</div>
                 <div class='rankings_rightrow'>
                     <div>${team["top10"]}</div>
                     <div>${team["top50"]}</div>
@@ -99,7 +108,7 @@ function TeamOverviewMap(team : JsonValue) : HTMLLIElement
 
 async function createOverviewPage(datesJson : JsonObject)
 {
-    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}`)).json()) as JsonArray
+    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}.${isWar}`)).json()) as JsonArray
     let elements = team_rankings_data.map(TeamOverviewMap)
     elements.forEach(f => {
         rankings_list.appendChild(f)

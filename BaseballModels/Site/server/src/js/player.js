@@ -124,7 +124,7 @@ function getModels(obj, name) {
     var modelArray = getJsonArray(obj, name);
     modelArray.forEach(function (f) {
         var fObj = f;
-        var probString = getJsonString(fObj, "probs");
+        var probString = getJsonString(fObj, "probsWar");
         var probArray = probString.split(',').map(Number);
         var m = {
             year: getJsonNumber(fObj, "year"),
@@ -310,9 +310,9 @@ var VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M"
 function piePointGenerator(model) {
     var points = [];
     for (var i = 0; i < WAR_LABELS.length; i++) {
-        if (modelIsWAR(model.modelId))
+        if (modelIsWar)
             points.push({ y: model.probs[i], label: WAR_LABELS[i] });
-        else if (modelIsValue(model.modelId))
+        else
             points.push({ y: model.probs[i], label: VALUE_LABELS[i] });
     }
     return points;
@@ -331,9 +331,9 @@ function lineCallback(index, modelId) {
         var title_text = model.month == 0 ?
             "Iniitial Outcome Distribution" :
             "".concat(model.month, "-").concat(model.year, " Outcome Distribution");
-        if (modelIsWAR(modelId))
+        if (modelIsWar)
             pie_graph.updateChart(model.probs, title_text, WAR_LABELS);
-        else if (modelIsValue(modelId))
+        else
             pie_graph.updateChart(model.probs, title_text, VALUE_LABELS);
     }
     else {
@@ -445,20 +445,18 @@ function setupModel(hitterModels, pitcherModels) {
     var pitcher_war_points = [];
     for (var _i = 0, MODEL_VALUES_1 = MODEL_VALUES; _i < MODEL_VALUES_1.length; _i++) {
         var idx = MODEL_VALUES_1[_i];
-        if (modelIsWAR(idx)) {
+        if (modelIsWar) {
             if (hitterModels.length > 0)
                 hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
             if (pitcherModels.length > 0)
                 pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
         }
-        else if (modelIsValue(idx)) {
+        else {
             if (hitterModels.length > 0)
                 hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
             if (pitcherModels.length > 0)
                 pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
         }
-        else
-            throw new Error("setupModel: model is neither WAR nor VALUE");
     }
     var hitter_rank_points = hitterModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var pitcher_rank_points = pitcherModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
@@ -478,6 +476,7 @@ var keyControls;
 var person;
 var hitterModels;
 var pitcherModels;
+var modelIsWar = true;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, trainingWarning, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
@@ -741,6 +740,13 @@ function getQueryParamBackup(name, backup) {
         return backup;
     }
 }
+function getQueryParamBackupStr(name, backup) {
+    var params = new URLSearchParams(window.location.search);
+    var value = params.get(name);
+    if (value === null)
+        return backup;
+    return value;
+}
 function retrieveJsonNullable(filename) {
     return __awaiter(this, void 0, void 0, function () {
         var response, compressedData, stream, data, text, json;
@@ -848,21 +854,14 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, modelId) {
-    if (modelId == 1 || modelId == 3)
+function formatModelString(val, isWar) {
+    if (isWar === 1)
         return "".concat(val.toFixed(1), " WAR");
-    else if (modelId == 2 || modelId == 4)
+    else
         return "$".concat(val.toFixed(0), "M");
-    throw new Error("Invalid formatModelString modelId: ".concat(modelId));
 }
-var MODEL_VALUES = [1, 2, 3, 4];
-var MODEL_STRINGS = ["Base WAR", "Base Value", "Stats Only WAR", "Stats Only Value"];
-function modelIsWAR(modelId) {
-    return modelId == 1 || modelId == 3;
-}
-function modelIsValue(modelId) {
-    return modelId == 2 || modelId == 4;
-}
+var MODEL_VALUES = [1, 2];
+var MODEL_STRINGS = ["Base", "Stats Only"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];

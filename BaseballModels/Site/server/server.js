@@ -114,27 +114,35 @@ app.get('/rankingsRequest', (req, res) => {
         const startRank = req.query.startRank
         const endRank = req.query.endRank
         const teamId = req.query.teamId
-        const model = req.query.model
+        const [model,isWar] = req.query.model.split(".",2)
 
         if (teamId !== undefined)
         {
+            if (isWar === "1")
+                rank_string = "teamRankWar"
+            else
+                rank_string = "teamRankValue"
+
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
                 INNER JOIN Player as p on pr.mlbId=p.mlbId
-                WHERE year=? AND month=? AND teamId=? AND teamRank>=? AND teamRank<=? AND pr.modelId=?
-                ORDER BY teamRank ASC`, 
+                WHERE year=? AND month=? AND teamId=? AND ${rank_string}>=? AND ${rank_string}<=? AND pr.modelId=?
+                ORDER BY ${rank_string} ASC`, 
             [year,month,teamId,startRank,endRank,model], (err, rows) => {
-            
                 res.json(rows)
             })
         } else {
+            if (isWar === "1")
+                rank_string = "rankWar"
+            else
+                rank_string = "rankValue"
+
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
                 INNER JOIN Player as p on pr.mlbId=p.mlbId 
-                WHERE year=? AND month=? AND rank>=? AND rank<=? AND pr.modelId=?
-                ORDER BY rank ASC`, 
+                WHERE year=? AND month=? AND ${rank_string}>=? AND ${rank_string}<=? AND pr.modelId=?
+                ORDER BY ${rank_string} ASC`, 
             [year,month,startRank,endRank,model], (err, rows) => {
-
                 res.json(rows)
             })
         }
@@ -149,14 +157,14 @@ app.get('/teamRanks', (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
-        const model = req.query.model
+        const [model,isWar] = req.query.model.split(".",2)
         
         db.all(`
             SELECT * FROM TeamRank
-            WHERE year=? AND month=? AND modelId=?
+            WHERE year=? AND month=? AND modelId=? AND isWar=?
             ORDER BY rank ASC
             `,
-        [year, month, model], (err, rows) => {
+        [year, month, model, isWar], (err, rows) => {
             res.json(rows)
         })
     } catch (e)
@@ -169,12 +177,12 @@ app.get('/homedata', async (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
-        const model = req.query.model
+        const [model,isWar] = req.query.model.split(".",2)
 
         let dataPromise = Promise.all([
             dbAll(`SELECT hd.*, p.firstName, p.lastName, p.position, p.orgId FROM HomeData as hd
                 INNER JOIN Player as p ON hd.mlbId = p.mlbId
-                WHERE hd.year=? AND hd.month=? AND hd.modelId=?`, [year,month,model]),
+                WHERE hd.year=? AND hd.month=? AND hd.modelId=? AND hd.isWar=?`, [year,month,model,isWar]),
             dbAll("SELECT * FROM HomeDataType", [])
         ])
         

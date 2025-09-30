@@ -13,11 +13,11 @@ type Player = {
     level : number,
 }
 
-function createPlayer(obj : JsonObject)
+function createPlayer(obj : JsonObject, isWar : number)
 {
     const p : Player = {
         name : getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war : getJsonNumber(obj, "war"),
+        war : isWar === 1 ? getJsonNumber(obj, "war") : getJsonNumber(obj, "value"),
         id : getJsonNumber(obj, "mlbId"),
         team : getJsonNumber(obj, "teamId"),
         position : getJsonString(obj, "position"),
@@ -28,7 +28,7 @@ function createPlayer(obj : JsonObject)
     return p
 }
 
-function createPlayerElement(player : Player, year : number, month : number, modelId : number) : HTMLLIElement
+function createPlayerElement(player : Player, year : number, month : number, modelId : number, isWar : number) : HTMLLIElement
 {
     const el = document.createElement('li') as HTMLLIElement
     const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
@@ -47,7 +47,7 @@ function createPlayerElement(player : Player, year : number, month : number, mod
                 </div>
             </div>
             <div class='rankings_row'>
-                <div>${formatModelString(player.war, modelId)}</div>
+                <div>${formatModelString(player.war, isWar)}</div>
                 <div class='rankings_rightrow'>
                     <div>${player.position}</div>
                     <div>${ageInYears}yrs</div>
@@ -66,15 +66,17 @@ class PlayerLoader
     private year : number
     private month : number
     private model : number
+    private isWar : number
     private teamId : number | null
 
-    constructor(year : number, month : number, model : number, teamId : number | null = null)
+    constructor(year : number, month : number, model : number, isWar: number, teamId : number | null = null)
     {
         this.index = 0
         this.year = year
         this.month = month
         this.teamId = teamId
         this.model = model
+        this.isWar = isWar
     }
 
     async getElements(num_elements : number) : Promise<HTMLLIElement[]>
@@ -84,8 +86,8 @@ class PlayerLoader
 
         const endRank = this.index + num_elements
         const response = this.teamId !== null ?
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}`) : 
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}`)
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}.${this.isWar}`) : 
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}.${this.isWar}`)
 
         const players = await response.json() as JsonArray
 
@@ -93,15 +95,15 @@ class PlayerLoader
         this.index += players.length
 
         return players.map(f => {
-            return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month, this.model)
+            return createPlayerElement(createPlayer(f as JsonObject, this.isWar), this.year, this.month, this.model, this.isWar)
         })
     }
 }
 
 let playerLoader : PlayerLoader
-function setupRankings(month : number, year : number, model : number, team : number | null, num_elements : number)
+function setupRankings(month : number, year : number, model : number, isWar : number, team : number | null, num_elements : number)
 {
-    playerLoader = new PlayerLoader(year, month, model, team)
+    playerLoader = new PlayerLoader(year, month, model, isWar, team)
 
     if (team === null)
         rankings_header.innerText = `Rankings for ${MONTH_CODES[month]} ${year}`

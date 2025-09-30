@@ -13,6 +13,7 @@ type SelectorArgs = {
     month : number,
     year : number,
     modelId : number,
+    isWar : number,
     startYear : number,
     endYear : number, 
     endMonth : number,
@@ -41,7 +42,7 @@ function setupSelector(args : SelectorArgs)
 
     year_select.value = args.year.toString()
     month_select.value = args.month.toString()
-    model_select.value = args.modelId.toString()
+    model_select.value = args.modelId.toString() + "." + args.isWar.toString()
 
     year_select.addEventListener('change', selectorEventHandler)
     month_select.addEventListener('change', selectorEventHandler)

@@ -1,6 +1,7 @@
 let month : number
 let year : number
 let modelId : number
+let isWar : number
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
@@ -13,12 +14,15 @@ async function main()
     
     month = getQueryParamBackup("month", endMonth)
     year = getQueryParamBackup("year", endYear)
-    modelId = getQueryParamBackup("model", 1)
+    const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
+    modelId = mdl[0]
+    isWar = mdl[1]
 
     setupSelector({
         month : month,
         year : year,
         modelId : modelId,
+        isWar : isWar,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -26,7 +30,7 @@ async function main()
     })
     org_map = await retrieveJson("../../assets/map.json.gz")
     
-    setupRankings(month, year, modelId, null, 100)
+    setupRankings(month, year, modelId, isWar, null, 100)
     searchBar = new SearchBar(await player_search_data)
 
     rankings_button.addEventListener('click', (event) => {
