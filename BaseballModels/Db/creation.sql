@@ -176,14 +176,52 @@ CREATE TABLE "Output_PlayerWar" (
 	"modelIdx"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
-	"prob0"	REAL NOT NULL,
-	"prob1"	REAL NOT NULL,
-	"prob2"	REAL NOT NULL,
-	"prob3"	REAL NOT NULL,
-	"prob4"	REAL NOT NULL,
-	"prob5"	REAL NOT NULL,
-	"prob6"	REAL NOT NULL,
+	"war0"	REAL NOT NULL,
+	"war1"	REAL NOT NULL,
+	"war2"	REAL NOT NULL,
+	"war3"	REAL NOT NULL,
+	"war4"	REAL NOT NULL,
+	"war5"	REAL NOT NULL,
+	"war6"	REAL NOT NULL,
+	"war" REAL NOT NULL,
+	"value0"	REAL NOT NULL,
+	"value1"	REAL NOT NULL,
+	"value2"	REAL NOT NULL,
+	"value3"	REAL NOT NULL,
+	"value4"	REAL NOT NULL,
+	"value5"	REAL NOT NULL,
+	"value6"	REAL NOT NULL,
+	"value" REAL NOT NULL,
 	PRIMARY KEY("mlbId", "model", "isHitter", "modelIdx","year","month")
+);
+
+CREATE TABLE "Output_HitterStats" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"modelIdx" INTEGER NOT NULL,
+	"AVG" REAL NOT NULL,
+	"OBP" REAL NOT NULL,
+	"ISO" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "levelId", "modelIdx")
+);
+
+CREATE TABLE "Output_PitcherStats" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"modelIdx" INTEGER NOT NULL,
+	"GB" REAL NOT NULL,
+	"ERA" REAL NOT NULL,
+	"FIP" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	"SP" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "levelId", "modelIdx")
 );
 
 CREATE TABLE "Output_PlayerWarAggregation" (
@@ -192,14 +230,50 @@ CREATE TABLE "Output_PlayerWarAggregation" (
 	"isHitter" INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
-	"prob0"	REAL NOT NULL,
-	"prob1"	REAL NOT NULL,
-	"prob2"	REAL NOT NULL,
-	"prob3"	REAL NOT NULL,
-	"prob4"	REAL NOT NULL,
-	"prob5"	REAL NOT NULL,
-	"prob6"	REAL NOT NULL,
+	"war0"	REAL NOT NULL,
+	"war1"	REAL NOT NULL,
+	"war2"	REAL NOT NULL,
+	"war3"	REAL NOT NULL,
+	"war4"	REAL NOT NULL,
+	"war5"	REAL NOT NULL,
+	"war6"	REAL NOT NULL,
+	"war" REAL NOT NULL,
+	"value0"	REAL NOT NULL,
+	"value1"	REAL NOT NULL,
+	"value2"	REAL NOT NULL,
+	"value3"	REAL NOT NULL,
+	"value4"	REAL NOT NULL,
+	"value5"	REAL NOT NULL,
+	"value6"	REAL NOT NULL,
+	"value" REAL NOT NULL,
 	PRIMARY KEY("mlbId","model", "isHitter", "year","month")
+);
+
+CREATE TABLE "Output_HitterStatsAggregation" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"AVG" REAL NOT NULL,
+	"OBP" REAL NOT NULL,
+	"ISO" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "levelId")
+);
+
+CREATE TABLE "Output_PitcherStatsAggregation" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"GB" REAL NOT NULL,
+	"ERA" REAL NOT NULL,
+	"FIP" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	"SP" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "levelId")
 );
 
 CREATE TABLE "Park_Factors" (

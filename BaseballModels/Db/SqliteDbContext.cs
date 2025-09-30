@@ -15,7 +15,11 @@ namespace Db
 		public DbSet<Model_Players> Model_Players {get; set;}
 		public DbSet<Model_TrainingHistory> Model_TrainingHistory {get; set;}
 		public DbSet<Output_PlayerWar> Output_PlayerWar {get; set;}
+		public DbSet<Output_HitterStats> Output_HitterStats {get; set;}
+		public DbSet<Output_PitcherStats> Output_PitcherStats {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
+		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
+		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Park_Factors> Park_Factors {get; set;}
 		public DbSet<Park_ScoringData> Park_ScoringData {get; set;}
 		public DbSet<Player> Player {get; set;}
@@ -60,7 +64,11 @@ namespace Db
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
 			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Output_HitterStats>().HasKey(f => new {f.MlbId,f.Model,f.LevelId,f.ModelIdx});
+			modelBuilder.Entity<Output_PitcherStats>().HasKey(f => new {f.MlbId,f.Model,f.LevelId,f.ModelIdx});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
+			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.LevelId});
+			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.LevelId});
 			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.TeamId,f.Year});
 			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.TeamId,f.Year,f.LeagueId});
 			modelBuilder.Entity<Player>().HasKey(f => new {f.MlbId});

@@ -22,3 +22,6 @@ HITTER_PA_BUCKETS = torch.tensor([0, 50, 200, 1000, 2000, np.inf], dtype=DTYPE)
 PITCHER_PEAK_WAR_BUCKETS = torch.tensor([0, 0.5, 1, 2, 3, 4, 5, 7, np.inf], dtype=DTYPE)
 PITCHER_LEVEL_BUCKETS = torch.tensor([1,2,3,4,5,6,7,8], dtype=DTYPE)
 PITCHER_BF_BUCKETS = torch.tensor([0, 50, 200, 1000, 2000, np.inf], dtype=DTYPE)
+
+WAR_BUCKET_AVG = [0,0.5,3,7.5,15,25,35]
+VALUE_BUCKET_AVG = [0,2.5,12.5,35,75,150,250]

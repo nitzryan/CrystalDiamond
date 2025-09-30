@@ -80,13 +80,9 @@ class Data_Prep:
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         
-        # Not exact normalization, but zero-centered
+        # Normalize output stats
         self.__Create_Standard_Norms(self.output_map.map_hitter_output, hitter_stats, "hitoutput")
         self.__Create_Standard_Norms(self.output_map.map_pitcher_output, pitcher_stats, "pitoutput")
-        # self.hitter_outputstats_mean = torch.tensor([1] * (self.output_map.hitter_stats_size), dtype=DTYPE)
-        # self.hitter_outputstats_std = torch.tensor([0.5] * self.output_map.hitter_stats_size, dtype=DTYPE)
-        # self.pitcher_outputstats_mean = torch.tensor([1] * (self.output_map.pitcher_stats_size), dtype=DTYPE)
-        # self.pitcher_outputstats_std = torch.tensor([0.5] * self.output_map.pitcher_stats_size, dtype=DTYPE)
         
         # Age and level information, keep stats individual
         self.__Create_PCA_Norms(self.prep_map.map_hitterlvl, hitter_stats, "hitlevel", self.prep_map.hitterlvl_size)
@@ -194,7 +190,7 @@ class Data_Prep:
         cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         hit_stats_means : torch.Tensor = getattr(self, "__hitoutput_means")
         hit_stats_devs : torch.Tensor = getattr(self, "__hitoutput_devs")
-        for hitter in hitters:
+        for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
             stats = DB_Model_HitterStats.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND 
@@ -264,7 +260,7 @@ class Data_Prep:
         pit_stats_devs : torch.Tensor = getattr(self, "__pitoutput_devs")
         
         cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
-        for pitcher in pitchers:
+        for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
             # Get Stats
             stats = DB_Model_PitcherStats.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND 
