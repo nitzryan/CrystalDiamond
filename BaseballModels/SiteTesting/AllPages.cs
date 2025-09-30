@@ -84,12 +84,16 @@ namespace SiteTesting
         [Test, TestCaseSource(nameof(AllRanks))]
         public void LoadRanksNoErrors(int year, int month, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&model={modelId}";
-            var driver = driverDict[TestContext.CurrentContext.WorkerId];
-            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
-            Assert.That(pageLoaded, $"{year}-{month} not loaded");
-            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
-            Assert.That(!errors, $"{year}-{month} error: {msg}");
+            List<int> isWarValues = [0, 1];
+            foreach (int isWar in isWarValues)
+            {
+                string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&model={modelId}.{isWar}";
+                var driver = driverDict[TestContext.CurrentContext.WorkerId];
+                bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+                Assert.That(pageLoaded, $"{year}-{month} not loaded");
+                var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+                Assert.That(!errors, $"{year}-{month} error: {msg}");
+            }
         }
 
         static IEnumerable<object> AllRanks()
@@ -103,12 +107,16 @@ namespace SiteTesting
         [Test, TestCaseSource(nameof(AllTeamRanks))]
         public void LoadTeamRanksNoErrors(int year, int month, int teamId, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}&model={modelId}";
-            var driver = driverDict[TestContext.CurrentContext.WorkerId];
-            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
-            Assert.That(pageLoaded, $"{year}-{month} team {teamId} not loaded");
-            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
-            Assert.That(!errors, $"{year}-{month} team {teamId} error: {msg}");
+            List<int> isWarValues = [0, 1];
+            foreach (int isWar in isWarValues)
+            {
+                string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}&model={modelId}.{isWar}";
+                var driver = driverDict[TestContext.CurrentContext.WorkerId];
+                bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+                Assert.That(pageLoaded, $"{year}-{month} team {teamId} not loaded");
+                var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+                Assert.That(!errors, $"{year}-{month} team {teamId} error: {msg}");
+            }
         }
 
         static IEnumerable<object> AllTeamRanks()
@@ -122,12 +130,16 @@ namespace SiteTesting
         [Test, TestCaseSource(nameof(AllTeamRankings))]
         public void LoadTeamRankingsNoErrors(int year, int month, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&model={modelId}";
-            var driver = driverDict[TestContext.CurrentContext.WorkerId];
-            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
-            Assert.That(pageLoaded, $"{year}-{month} not loaded");
-            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
-            Assert.That(!errors, $"{year}-{month} error: {msg}");
+            List<int> isWarValues = [0, 1];
+            foreach (int isWar in isWarValues)
+            {
+                string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&model={modelId}.{isWar}";
+                var driver = driverDict[TestContext.CurrentContext.WorkerId];
+                bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+                Assert.That(pageLoaded, $"{year}-{month} not loaded");
+                var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+                Assert.That(!errors, $"{year}-{month} error: {msg}");
+            }
         }
 
         static IEnumerable<object> AllTeamRankings()
