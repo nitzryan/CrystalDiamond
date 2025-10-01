@@ -114,9 +114,7 @@ class Data_Prep:
         bsr_pca = torch.from_numpy(getattr(self, "__bsr_pca").transform(bsr_stats))
         def_pca = torch.from_numpy(getattr(self, "__def_pca").transform(def_stats))
         
-        isSigningYear = torch.tensor([self.prep_map.map_hit_first(x, hitter.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
-        
-        return torch.cat((isSigningYear, level_pca, pt_pca, off_pca, bsr_pca, def_pca), dim=1)
+        return torch.cat((level_pca, pt_pca, off_pca, bsr_pca, def_pca), dim=1)
     
     def Transform_PitcherStats(self, stats : list[DB_Model_PitcherStats], pitcher : DB_Model_Players) -> torch.Tensor:
         level_stats = torch.tensor([self.prep_map.map_pitcherlvl(x) for x in stats], dtype=DTYPE)
@@ -127,9 +125,7 @@ class Data_Prep:
         pt_pca = torch.from_numpy(getattr(self, "__pitpt_pca").transform(pt_stats))
         pit_pca = torch.from_numpy(getattr(self, "__pit_pca").transform(pit_stats))
         
-        isSigningYear = torch.tensor([self.prep_map.map_pit_first(x, pitcher.signingYear) for x in stats], dtype=DTYPE).unsqueeze(-1)
-        
-        return torch.cat((isSigningYear, level_pca, pt_pca, pit_pca), dim=1)
+        return torch.cat((level_pca, pt_pca, pit_pca), dim=1)
     
     def Transform_HitterOutputStats(self, stats : list[DB_Model_HitterStats]) -> torch.Tensor:
         output_stats = torch.tensor([self.output_map.map_hitter_output(x) for x in stats], dtype=DTYPE)
@@ -144,10 +140,10 @@ class Data_Prep:
         return (output_stats - pit_stats_means) / pit_stats_devs
     
     def Get_Hitter_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.hitfirst_size + 1
+        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + 1
     
     def Get_Pitcher_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.pitfirst_size + 1
+        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + 1
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
@@ -359,15 +355,12 @@ class Data_Prep:
             for m in range(max_input_size):
                 player_header = [0] * (self.prep_map.bio_size + 1)
                 
-                firstyear_mutator = [0] * self.prep_map.hitfirst_size
                 level_mutator = [0] * self.prep_map.hitterlvl_size
                 pt_mutator = [0] * self.prep_map.hitterpt_size
                 off_mutator = [0] * self.prep_map.off_size
                 bsr_mutator = [0] * self.prep_map.bsr_size
                 def_mutator = [0] * self.prep_map.def_size
                 
-                for i in range(self.prep_map.hitfirst_size):
-                    firstyear_mutator[i] = 0
                 for i in range(self.prep_map.hitterlvl_size):
                     level_mutator[i] = self.hitlvl_mutator_scale * random.gauss(0, level_stds[i])
                 for i in range(self.prep_map.hitterpt_size):
@@ -379,7 +372,7 @@ class Data_Prep:
                 for i in range(self.prep_map.def_size):
                     def_mutator[i] = self.def_mutator_scale * random.gauss(0, def_stds[i])
                     
-                mutators[n,m] = torch.tensor(player_header + firstyear_mutator + level_mutator + pt_mutator + off_mutator + bsr_mutator + def_mutator)
+                mutators[n,m] = torch.tensor(player_header + level_mutator + pt_mutator + off_mutator + bsr_mutator + def_mutator)
             
             for i in range(self.prep_map.bio_size):
                 mutators[1+i,:] = self.hitbio_mutator_scale * random.gauss(0, bio_stds[i])
@@ -398,13 +391,10 @@ class Data_Prep:
             for m in range(max_input_size):
                 player_header = [0] * (self.prep_map.bio_size + 1)
                 
-                firstyear_mutator = [0] * self.prep_map.pitfirst_size
                 level_mutator = [0] * self.prep_map.pitcherlvl_size
                 pt_mutator = [0] * self.prep_map.pitcherpt_size
                 pit_mutator = [0] * self.prep_map.pit_size
                 
-                for i in range(self.prep_map.pitfirst_size):
-                    firstyear_mutator[i] = 0
                 for i in range(self.prep_map.pitcherlvl_size):
                     level_mutator[i] = self.pitlvl_mutator_scale * random.gauss(0, level_stds[i])
                 for i in range(self.prep_map.pitcherpt_size):
@@ -412,7 +402,7 @@ class Data_Prep:
                 for i in range(self.prep_map.pit_size):
                     pit_mutator[i] = self.pit_mutator_scale * random.gauss(0, pit_stds[i])
                     
-                mutators[n,m] = torch.tensor(player_header + firstyear_mutator + level_mutator + pt_mutator + pit_mutator)
+                mutators[n,m] = torch.tensor(player_header + level_mutator + pt_mutator + pit_mutator)
             
             for i in range(self.prep_map.bio_size):
                 mutators[1+i,:] = self.pitbio_mutator_scale * random.gauss(0, bio_stds[i])
