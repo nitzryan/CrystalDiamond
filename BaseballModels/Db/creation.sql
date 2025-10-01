@@ -116,6 +116,50 @@ CREATE TABLE "Model_PitcherStats" (
 	PRIMARY KEY("mlbId","Year","Month")
 );
 
+CREATE TABLE "Model_HitterValue" (
+	"mlbId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"War1Year" REAL NOT NULL,
+	"War2Year" REAL NOT NULL,
+	"War3Year" REAL NOT NULL,
+	"Off1Year" REAL NOT NULL,
+	"Off2Year" REAL NOT NULL,
+	"Off3Year" REAL NOT NULL,
+	"Bsr1Year" REAL NOT NULL,
+	"Bsr2Year" REAL NOT NULL,
+	"Bsr3Year" REAL NOT NULL,
+	"Def1Year" REAL NOT NULL,
+	"Def2Year" REAL NOT NULL,
+	"Def3Year" REAL NOT NULL,
+	"Rep1Year" REAL NOT NULL,
+	"Rep2Year" REAL NOT NULL,
+	"Rep3Year" REAL NOT NULL,
+	"Pa1Year" INTEGER NOT NULL,
+	"Pa2Year" INTEGER NOT NULL,
+	"Pa3Year" INTEGER NOT NULL,
+	PRIMARY KEY("mlbId", "Year", "Month")
+);
+
+CREATE TABLE "Model_PitcherValue" (
+	"mlbId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"WarSP1Year" REAL NOT NULL,
+	"WarSP2Year" REAL NOT NULL,
+	"WarSP3Year" REAL NOT NULL,
+	"WarRP1Year" REAL NOT NULL,
+	"WarRP2Year" REAL NOT NULL,
+	"WarRP3Year" REAL NOT NULL,
+	"IPSP1Year" REAL NOT NULL,
+	"IPSP2Year" REAL NOT NULL,
+	"IPSP3Year" REAL NOT NULL,
+	"IPRP1Year" REAL NOT NULL,
+	"IPRP2Year" REAL NOT NULL,
+	"IPRP3Year" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "Year", "Month")
+);
+
 CREATE TABLE "Model_PlayerWar" (
 	"mlbId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
@@ -616,6 +660,8 @@ CREATE TABLE "Player_YearlyWar" (
 	"year"	INTEGER NOT NULL,
 	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
+	"IP_SP" REAL NOT NULL,
+	"IP_RP" REAL NOT NULL,
 	"WAR_h"	REAL NOT NULL,
 	"WAR_s" REAL NOT NULL,
 	"WAR_r" REAL NOT NULL,
@@ -624,6 +670,24 @@ CREATE TABLE "Player_YearlyWar" (
 	"BSR"	REAL NOT NULL,
 	"REP"   REAL NOT NULL,
 	PRIMARY KEY("mlbId","year","isHitter")
+);
+
+CREATE TABLE "Player_MonthlyWar" (
+	"mlbId"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"isHitter"	INTEGER NOT NULL,
+	"PA"	INTEGER NOT NULL,
+	"IP_SP" REAL NOT NULL,
+	"IP_RP" REAL NOT NULL,
+	"WAR_h"	REAL NOT NULL,
+	"WAR_s" REAL NOT NULL,
+	"WAR_r" REAL NOT NULL,
+	"OFF"	REAL NOT NULL,
+	"DEF"	REAL NOT NULL,
+	"BSR"	REAL NOT NULL,
+	"REP"   REAL NOT NULL,
+	PRIMARY KEY("mlbId","year","month","isHitter")
 );
 
 CREATE TABLE "Pre05_Players" (

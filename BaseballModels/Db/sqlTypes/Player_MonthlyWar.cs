@@ -1,9 +1,10 @@
 namespace Db
 {
-	public class Player_YearlyWar
+	public class Player_MonthlyWar
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
+		public required int Month {get; set;}
 		public required int IsHitter {get; set;}
 		public required int PA {get; set;}
 		public required float IP_SP {get; set;}
@@ -16,12 +17,13 @@ namespace Db
 		public required float BSR {get; set;}
 		public required float REP {get; set;}
 
-		public Player_YearlyWar Clone()
+		public Player_MonthlyWar Clone()
 		{
-			return new Player_YearlyWar
+			return new Player_MonthlyWar
 			{
 				MlbId = this.MlbId,
 				Year = this.Year,
+				Month = this.Month,
 				IsHitter = this.IsHitter,
 				PA = this.PA,
 				IP_SP = this.IP_SP,
