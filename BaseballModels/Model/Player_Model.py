@@ -28,16 +28,6 @@ class RNN_Model(nn.Module):
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
         
-        # Predict next month stats
-        # self.linear_stats1 = nn.Linear(hidden_size, hidden_size)
-        # self.linear_stats2 = nn.Linear(hidden_size, hidden_size)
-        # self.linear_stats3 = nn.Linear(hidden_size, hidden_size)
-        # self.linear_stats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
-        
-        # self.linear_positions1 = nn.Linear(hidden_size, hidden_size)
-        # self.linear_positions2 = nn.Linear(hidden_size, hidden_size)
-        # self.linear_positions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
-        
         # Predict next year stats
         self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
@@ -47,6 +37,12 @@ class RNN_Model(nn.Module):
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+        
+        # Predict MLB Value
+        self.linear_mlb_value1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_mlb_value2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_mlb_value3 = nn.Linear(hidden_size, hidden_size)
+        self.linear_mlb_value4 = nn.Linear(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         self.mutators = mutators
         self.nonlin = F.relu
@@ -111,9 +107,15 @@ class RNN_Model(nn.Module):
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
         output_yearPositions = self.linear_yearPositions3(output_yearPositions)
         
-        return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions
+        # Generate MLB Value Predictions
+        output_mlbValue = self.nonlin(self.linear_mlb_value1(output))
+        output_mlbValue = self.nonlin(self.linear_mlb_value2(output_mlbValue))
+        output_mlbValue = self.nonlin(self.linear_mlb_value3(output_mlbValue))
+        output_mlbValue = self.linear_mlb_value4(output_mlbValue)
+        
+        return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
     
-def Stats_L1_Loss(pred_stats, actual_stats, masks):
+def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
     masks = masks[:,:pred_stats.size(1)]
     
@@ -138,6 +140,28 @@ def Stats_L1_Loss(pred_stats, actual_stats, masks):
     
     total_loss = loss_0.sum() + loss_1.sum() + loss_2.sum() + loss_3.sum() + loss_4.sum() + loss_5.sum() + loss_6.sum() + loss_7.sum()
     return total_loss
+      
+def Mlb_Value_Loss(pred_value, actual_value, masks):
+    actual_value = actual_value[:, :pred_value.size(1)]
+    masks = masks[:,:pred_value.size(1)]
+    
+    batch_size = actual_value.size(0)
+    time_steps = actual_value.size(1)
+    mask_size = masks.size(2)
+    output_size = actual_value.size(2) // mask_size # Group into years
+    
+    
+    pred_value = pred_value.reshape((batch_size * time_steps, mask_size, output_size))
+    actual_value = actual_value.reshape((batch_size * time_steps, mask_size, output_size))
+    masks = masks.reshape((batch_size * time_steps, mask_size))
+    
+    loss = nn.L1Loss(reduction='none')
+    loss_0 = loss(pred_value[:,0,:], actual_value[:,0,:]).sum(dim=1) * masks[:,0]
+    loss_1 = loss(pred_value[:,1,:], actual_value[:,1,:]).sum(dim=1) * masks[:,1]
+    loss_2 = loss(pred_value[:,2,:], actual_value[:,2,:]).sum(dim=1) * masks[:,2]
+    
+    return loss_0.sum() + loss_1.sum() + loss_2.sum()
+    
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
     actual_positions  = actual_positions[:, :pred_positions.size(1)]

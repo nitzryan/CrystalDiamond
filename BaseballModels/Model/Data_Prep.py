@@ -22,7 +22,9 @@ class Player_IO:
                  stat_level_mask : torch.Tensor,
                  year_level_mask : torch.Tensor,
                  year_stat_output : torch.Tensor,
-                 year_pos_output : torch.Tensor):
+                 year_pos_output : torch.Tensor,
+                 mlb_value_mask : torch.Tensor,
+                 mlb_value_stats : torch.Tensor):
         
         self.player = player
         self.input = input
@@ -34,6 +36,8 @@ class Player_IO:
         self.year_level_mask = year_level_mask
         self.year_stat_output = year_stat_output
         self.year_pos_output = year_pos_output
+        self.mlb_value_mask = mlb_value_mask
+        self.mlb_value_stats = mlb_value_stats
         
     @staticmethod
     def GetMaxLength(io_list : list['Player_IO']) -> int:
@@ -98,6 +102,12 @@ class Data_Prep:
         self.__Create_PCA_Norms(self.prep_map.map_def, hitter_stats, "def", self.prep_map.def_size)
         
         self.__Create_PCA_Norms(self.prep_map.map_pit, pitcher_stats, "pit", self.prep_map.pit_size)
+    
+        # Get Player value
+        hitter_values = DB_Model_HitterValue.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year - 2,)) # Need 3 years of data
+        pitcher_values = DB_Model_PitcherValue.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year - 2,))
+        self.__Create_Standard_Norms(self.output_map.map_mlb_hitter_values, hitter_values, "hittervalues")
+        self.__Create_Standard_Norms(self.output_map.map_mlb_pitcher_values, pitcher_values, "pitchervalues")
     
     __Cutoff_Year = 2024
     
@@ -186,6 +196,9 @@ class Data_Prep:
         cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         hit_stats_means : torch.Tensor = getattr(self, "__hitoutput_means")
         hit_stats_devs : torch.Tensor = getattr(self, "__hitoutput_devs")
+        
+        mlb_value_means : torch.Tensor = getattr(self, "__hittervalues_means")
+        mlb_value_devs : torch.Tensor = getattr(self, "__hittervalues_devs")
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
             stats = DB_Model_HitterStats.Select_From_DB(cursor, '''
@@ -196,6 +209,14 @@ class Data_Prep:
                 ORDER BY Year ASC, MONTH ASC''',
                 {'mlbId':hitter.mlbId,"year":cutoff_year})
             l = len(stats) + 1
+                
+            mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
+                WHERE mlbId=:mlbId AND
+                (
+                    Year<=:year
+                )
+                ORDER BY Year ASC, MONTH ASC''',
+                {'mlbId':hitter.mlbId,'year':cutoff_year})
                 
             dates = torch.cat(
                     (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
@@ -242,7 +263,20 @@ class Data_Prep:
                     stat_year_output[i,:] = (_s - hit_stats_means) / hit_stats_devs
                     pos_year_output[i,:] = _p
             
-            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output))
+            # MLB Value stats and mask
+            mlb_value_mask = torch.zeros(l, 3, dtype=torch.long)
+            mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
+            for i, value in enumerate(mlb_values):
+                mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
+                current_value_year = stats[i].Year
+                mlb_value_mask[i+1,0] = current_value_year < cutoff_year
+                mlb_value_mask[i:1,1] = current_value_year < (cutoff_year - 1)
+                mlb_value_mask[i:1,2] = current_value_year < (cutoff_year - 2)
+            if len(mlb_values) > 0:
+                mlb_value_mask[0] = mlb_value_mask[1]
+                mlb_value_stats[0] = mlb_value_stats[1]
+            
+            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
         
         return io
        

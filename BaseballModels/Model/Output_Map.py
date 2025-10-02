@@ -19,10 +19,14 @@ class Output_Map:
                  hitter_stats_size : int,
                  map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]],
                  hitter_positions_size : int,
-                 map_pitcher_output : Callable[[DB_Model_HitterStats], list[float]],
+                 map_pitcher_output : Callable[[DB_Model_PitcherStats], list[float]],
                  pitcher_stats_size : int,
-                 map_pitcher_positions : Callable[[DB_Model_HitterStats], list[float]],
-                 pitcher_positions_size : int
+                 map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]],
+                 pitcher_positions_size : int,
+                 map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[float]],
+                 mlb_hitter_values_size : int,
+                 map_mlb_pitcher_values : Callable[[DB_Model_PitcherValue], list[float]],
+                 mlb_pitcher_values_size : int
                  ):
         
         self.map_hitter_war = map_hitter_war
@@ -44,6 +48,11 @@ class Output_Map:
         self.pitcher_stats_size = pitcher_stats_size
         self.map_pitcher_positions = map_pitcher_positions
         self.pitcher_positions_size = pitcher_positions_size
+        
+        self.map_mlb_hitter_values = map_mlb_hitter_values
+        self.mlb_hitter_values_size = mlb_hitter_values_size
+        self.map_mlb_pitcher_values = map_mlb_pitcher_values
+        self.mlb_pitcher_values_size = mlb_pitcher_values_size
 
     @staticmethod
     def GetOutputMasks(stats : Union[DB_Model_HitterStats, DB_Model_PitcherStats]) -> list[float]:
@@ -81,6 +90,13 @@ __map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]] = \
 __pitcher_stats_size = 9
 __pitcher_positions_size = 2
     
+__map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[list[float]]] = \
+    lambda h : [h.War1Year, h.Off1Year, h.Def1Year, h.Bsr1Year, h.Rep1Year, h.Pa1Year, h.War2Year, h.Off2Year, h.Def2Year, h.Bsr2Year, h.Rep2Year, h.Pa2Year, h.War3Year, h.Off3Year, h.Def3Year, h.Bsr3Year, h.Rep3Year, h.Pa3Year]
+__mlb_hitter_values_size = 18
+__map_mlb_pitcher_values : Callable[[DB_Model_PitcherValue], list[list[float]]] = \
+    lambda p : [p.WarSP1Year, p.WarRP1Year, p.IPSP1Year, p.IPRP1Year, p.WarSP2Year, p.WarRP2Year, p.IPSP2Year, p.IPRP2Year, p.WarSP3Year, p.WarRP3Year, p.IPSP3Year, p.IPRP3Year]
+__mlb_pitcher_values_size = 12
+    
 base_output_map = Output_Map(
     map_hitter_war=lambda p : p.warHitter,
     map_hitter_value=lambda p : p.valueHitter,
@@ -97,7 +113,11 @@ base_output_map = Output_Map(
     map_pitcher_output=__map_pitcher_output,
     pitcher_stats_size=__pitcher_stats_size,
     map_pitcher_positions=__map_pitcher_positions,
-    pitcher_positions_size=__pitcher_positions_size
+    pitcher_positions_size=__pitcher_positions_size,
+    map_mlb_hitter_values=__map_mlb_hitter_values,
+    mlb_hitter_values_size=__mlb_hitter_values_size,
+    map_mlb_pitcher_values=__map_mlb_pitcher_values,
+    mlb_pitcher_values_size=__mlb_pitcher_values_size
 )
 
 # value_map = Output_Map(
