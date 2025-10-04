@@ -14,7 +14,9 @@ class Prep_Map:
                  map_pitcherlvl : Callable[[DB_Model_PitcherStats], list[float]], pitcherlvl_size : int,
                  map_pit : Callable[[DB_Model_PitcherStats], list[float]], pit_size : int,
                  map_hit_first : Callable[[DB_Model_HitterStats, float], list[float]], hitfirst_size : int,
-                 map_pit_first : Callable[[DB_Model_PitcherStats, float], list[float]], pitfirst_size : int
+                 map_pit_first : Callable[[DB_Model_PitcherStats, float], list[float]], pitfirst_size : int,
+                 map_mlb_hit_value : Callable[[DB_Player_MonthlyWar], list[float]], mlb_hit_value_size : int,
+                 map_mlb_pit_value : Callable[[DB_Player_MonthlyWar], list[float]], mlb_pit_value_size : int
                  ):
         
         self.map_bio = map_bio
@@ -41,6 +43,19 @@ class Prep_Map:
         self.hitfirst_size = hitfirst_size
         self.pitfirst_size = pitfirst_size
         
+        self.map_mlb_hit_value = map_mlb_hit_value
+        self.mlb_hit_value_size = mlb_hit_value_size
+        self.map_mlb_pit_value = map_mlb_pit_value
+        self.mlb_pit_value_size = mlb_pit_value_size
+        
+__map_mlb_hit_value : Callable[[DB_Player_MonthlyWar], list[float]] = \
+    lambda h : [h.PA, h.WAR_h, h.OFF, h.DEF, h.BSR, h.REP]    
+__map_mlb_pit_value : Callable[[DB_Player_MonthlyWar], list[float]] = \
+    lambda p : [p.IP_SP, p.IP_RP, p.WAR_s, p.WAR_r]
+__mlb_hit_value_size = 6
+__mlb_pit_value_size = 4
+       
+        
 # Comments are explained variance ratios
 base_prep_map = Prep_Map(
     map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
@@ -54,6 +69,10 @@ base_prep_map = Prep_Map(
     map_pit=lambda p : [p.ParkRunFactor, p.ParkHRFactor, p.GBPercRatio, p.ERARatio, p.FIPRatio, p.wOBARatio, p.HRPercRatio, p.BBPercRatio, p.KPercRatio],
     map_pit_first=lambda p, y : 1 if p.Year == y else 0,
     map_hit_first=lambda h, y : 1 if h.Year == y else 0,
+    map_mlb_hit_value=__map_mlb_hit_value,
+    map_mlb_pit_value=__map_mlb_pit_value,
+    mlb_hit_value_size=__mlb_hit_value_size,
+    mlb_pit_value_size=__mlb_pit_value_size,
     bio_size=2,# Hitter [0.711, 0.282, 0.007]
                     #Pitcher [0.702, 0.289, 0.009]
     hitterlvl_size=3,
@@ -80,6 +99,10 @@ statsonly_prep_map = Prep_Map(
     map_pit=lambda p : [p.ParkRunFactor, p.ParkHRFactor, p.GBPercRatio, p.ERARatio, p.FIPRatio, p.wOBARatio, p.HRPercRatio, p.BBPercRatio, p.KPercRatio],
     map_pit_first=lambda p, y : 1 if p.Year == y else 0,
     map_hit_first=lambda h, y : 1 if h.Year == y else 0,
+    map_mlb_hit_value=__map_mlb_hit_value,
+    map_mlb_pit_value=__map_mlb_pit_value,
+    mlb_hit_value_size=__mlb_hit_value_size,
+    mlb_pit_value_size=__mlb_pit_value_size,
     bio_size=1,
     hitterlvl_size=3,
     hitterpt_size=3,

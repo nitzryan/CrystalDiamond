@@ -119,14 +119,3 @@ base_output_map = Output_Map(
     map_mlb_pitcher_values=__map_mlb_pitcher_values,
     mlb_pitcher_values_size=__mlb_pitcher_values_size
 )
-
-# value_map = Output_Map(
-#     map_hitter=lambda p : p.valueHitter,
-#     map_pitcher=lambda p : p.valuePitcher,
-#     buckets_hitter=torch.tensor([0,5,20,50,100,200,np.inf], dtype=DTYPE),
-#     buckets_pitcher=torch.tensor([0,5,20,50,100,200,np.inf], dtype=DTYPE),
-#     map_hitter_output=__map_hitter_output,
-#     hitter_stats_size=__hitter_stats_size,
-#     map_hitter_positions=__map_hitter_positions,
-#     hitter_positions_size=__hitter_positions_size
-# )

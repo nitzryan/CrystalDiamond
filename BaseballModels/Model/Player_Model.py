@@ -150,7 +150,6 @@ def Mlb_Value_Loss(pred_value, actual_value, masks):
     mask_size = masks.size(2)
     output_size = actual_value.size(2) // mask_size # Group into years
     
-    
     pred_value = pred_value.reshape((batch_size * time_steps, mask_size, output_size))
     actual_value = actual_value.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))

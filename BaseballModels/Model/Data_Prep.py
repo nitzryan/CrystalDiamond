@@ -108,6 +108,12 @@ class Data_Prep:
         pitcher_values = DB_Model_PitcherValue.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year - 2,))
         self.__Create_Standard_Norms(self.output_map.map_mlb_hitter_values, hitter_values, "hittervalues")
         self.__Create_Standard_Norms(self.output_map.map_mlb_pitcher_values, pitcher_values, "pitchervalues")
+        
+        #Montly mlb input values
+        hitter_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=1", (Data_Prep.__Cutoff_Year))
+        pitcher_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=1", (Data_Prep.__Cutoff_Year))
+        self.__Create_Standard_Norms(self.prep_map.map_mlb_hit_value, hitter_month_values, "hittermonthvalues")
+        self.__Create_Standard_Norms(self.prep_map.map_mlb_pit_value, pitcher_month_values, "pitchermonthvalues")
     
     __Cutoff_Year = 2024
     
@@ -150,10 +156,10 @@ class Data_Prep:
         return (output_stats - pit_stats_means) / pit_stats_devs
     
     def Get_Hitter_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + 1
+        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.mlb_hit_value_size + 1
     
     def Get_Pitcher_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + 1
+        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.mlb_pit_value_size + 1
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
@@ -270,8 +276,8 @@ class Data_Prep:
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
                 current_value_year = stats[i].Year
                 mlb_value_mask[i+1,0] = current_value_year < cutoff_year
-                mlb_value_mask[i:1,1] = current_value_year < (cutoff_year - 1)
-                mlb_value_mask[i:1,2] = current_value_year < (cutoff_year - 2)
+                mlb_value_mask[i+1,1] = current_value_year < (cutoff_year - 1)
+                mlb_value_mask[i+1,2] = current_value_year < (cutoff_year - 2)
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
