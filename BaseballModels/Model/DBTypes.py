@@ -10,6 +10,8 @@ class DB_Draft_Results:
 		self.Bonus = values[5]
 		self.BonusRank = values[6]
 
+	NUM_ELEMENTS = 7
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.Year,self.Pick,self.Round,self.mlbId,self.Signed,self.Bonus,self.BonusRank)
@@ -28,6 +30,8 @@ class DB_League_Factors:
 		self.RunFactor = values[2]
 		self.HRFactor = values[3]
 
+	NUM_ELEMENTS = 4
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.LeagueId,self.Year,self.RunFactor,self.HRFactor)
@@ -45,6 +49,8 @@ class DB_Level_Factors:
 		self.Year = values[1]
 		self.RunFactor = values[2]
 		self.HRFactor = values[3]
+
+	NUM_ELEMENTS = 4
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -74,6 +80,8 @@ class DB_Level_HitterStats:
 		self.SBRate = values[12]
 		self.SBPerc = values[13]
 
+	NUM_ELEMENTS = 14
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.LevelId,self.Year,self.Month,self.AB,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc)
@@ -100,6 +108,8 @@ class DB_Level_PitcherStats:
 		self.GOPerc = values[10]
 		self.avg = values[11]
 		self.iso = values[12]
+
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -144,6 +154,8 @@ class DB_Model_HitterStats:
 		self.PercRF = values[27]
 		self.PercDH = values[28]
 
+	NUM_ELEMENTS = 29
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.Year,self.Month,self.Age,self.PA,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wOBARatio,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH)
@@ -176,6 +188,8 @@ class DB_Model_PitcherStats:
 		self.HRPercRatio = values[16]
 		self.BBPercRatio = values[17]
 		self.KPercRatio = values[18]
+
+	NUM_ELEMENTS = 19
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -212,6 +226,8 @@ class DB_Model_HitterValue:
 		self.Pa2Year = values[19]
 		self.Pa3Year = values[20]
 
+	NUM_ELEMENTS = 21
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.Year,self.Month,self.War1Year,self.War2Year,self.War3Year,self.Off1Year,self.Off2Year,self.Off3Year,self.Bsr1Year,self.Bsr2Year,self.Bsr3Year,self.Def1Year,self.Def2Year,self.Def3Year,self.Rep1Year,self.Rep2Year,self.Rep3Year,self.Pa1Year,self.Pa2Year,self.Pa3Year)
@@ -241,6 +257,8 @@ class DB_Model_PitcherValue:
 		self.IPRP2Year = values[13]
 		self.IPRP3Year = values[14]
 
+	NUM_ELEMENTS = 15
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.Year,self.Month,self.WarSP1Year,self.WarSP2Year,self.WarSP3Year,self.WarRP1Year,self.WarRP2Year,self.WarRP3Year,self.IPSP1Year,self.IPSP2Year,self.IPSP3Year,self.IPRP1Year,self.IPRP2Year,self.IPRP3Year)
@@ -265,6 +283,8 @@ class DB_Model_PlayerWar:
 		self.DEF = values[8]
 		self.BSR = values[9]
 		self.REP = values[10]
+
+	NUM_ELEMENTS = 11
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -304,6 +324,8 @@ class DB_Model_Players:
 		self.rateBsr = values[22]
 		self.rateDef = values[23]
 
+	NUM_ELEMENTS = 24
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.isHitter,self.isPitcher,self.signingYear,self.lastProspectYear,self.lastProspectMonth,self.lastMLBSeason,self.ageAtSigningYear,self.draftPick,self.draftSignRank,self.highestLevelHitter,self.highestLevelPitcher,self.warHitter,self.warPitcher,self.peakWarHitter,self.peakWarPitcher,self.valueHitter,self.valuePitcher,self.valueStarterPerc,self.totalPA,self.totalOuts,self.rateOff,self.rateBsr,self.rateDef)
@@ -323,6 +345,8 @@ class DB_Model_TrainingHistory:
 		self.ModelIdx = values[3]
 		self.NumLayers = values[4]
 		self.HiddenSize = values[5]
+
+	NUM_ELEMENTS = 6
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -363,6 +387,8 @@ class DB_Output_PlayerWar:
 		self.value6 = values[20]
 		self.value = values[21]
 
+	NUM_ELEMENTS = 22
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.model,self.isHitter,self.modelIdx,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.value0,self.value1,self.value2,self.value3,self.value4,self.value5,self.value6,self.value)
@@ -390,6 +416,8 @@ class DB_Output_HitterStats:
 		self.BB = values[8]
 		self.K = values[9]
 
+	NUM_ELEMENTS = 10
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.model,self.levelId,self.modelIdx,self.AVG,self.OBP,self.ISO,self.HR,self.BB,self.K)
@@ -414,6 +442,8 @@ class DB_Output_PitcherStats:
 		self.BB = values[8]
 		self.K = values[9]
 		self.SP = values[10]
+
+	NUM_ELEMENTS = 11
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -450,6 +480,8 @@ class DB_Output_PlayerWarAggregation:
 		self.value6 = values[19]
 		self.value = values[20]
 
+	NUM_ELEMENTS = 21
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.model,self.isHitter,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.value0,self.value1,self.value2,self.value3,self.value4,self.value5,self.value6,self.value)
@@ -472,6 +504,8 @@ class DB_Output_HitterStatsAggregation:
 		self.HR = values[6]
 		self.BB = values[7]
 		self.K = values[8]
+
+	NUM_ELEMENTS = 9
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -497,6 +531,8 @@ class DB_Output_PitcherStatsAggregation:
 		self.K = values[8]
 		self.SP = values[9]
 
+	NUM_ELEMENTS = 10
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.model,self.levelId,self.GB,self.ERA,self.FIP,self.HR,self.BB,self.K,self.SP)
@@ -516,6 +552,8 @@ class DB_Park_Factors:
 		self.Year = values[3]
 		self.RunFactor = values[4]
 		self.HRFactor = values[5]
+
+	NUM_ELEMENTS = 6
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -542,6 +580,8 @@ class DB_Park_ScoringData:
 		self.AwayOuts = values[9]
 		self.AwayRuns = values[10]
 		self.AwayHRs = values[11]
+
+	NUM_ELEMENTS = 12
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -573,6 +613,8 @@ class DB_Player:
 		self.useFirstName = values[14]
 		self.useLastName = values[15]
 
+	NUM_ELEMENTS = 16
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.fangraphsId,self.position,self.birthYear,self.birthMonth,self.birthDate,self.draftPick,self.signingYear,self.signingMonth,self.signingDate,self.signingBonus,self.bats,self.throws,self.isRetired,self.useFirstName,self.useLastName)
@@ -601,6 +643,8 @@ class DB_Player_CareerStatus:
 		self.ignorePlayer = values[12]
 		self.highestLevelPitcher = values[13]
 		self.highestLevelHitter = values[14]
+
+	NUM_ELEMENTS = 15
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -638,6 +682,8 @@ class DB_Player_Hitter_GameLog:
 		self.TeamId = values[20]
 		self.LeagueId = values[21]
 
+	NUM_ELEMENTS = 22
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.gameLogId,self.gameId,self.mlbId,self.Day,self.Month,self.Year,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.Position,self.LevelId,self.HomeTeamId,self.TeamId,self.LeagueId)
@@ -672,6 +718,8 @@ class DB_Player_Hitter_MonthAdvanced:
 		self.SB = values[18]
 		self.CS = values[19]
 		self.HR = values[20]
+
+	NUM_ELEMENTS = 21
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -713,6 +761,8 @@ class DB_Player_Hitter_MonthStats:
 		self.GamesRF = values[24]
 		self.GamesDH = values[25]
 
+	NUM_ELEMENTS = 26
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.Year,self.Month,self.LevelId,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.ParkRunFactor,self.ParkHRFactor,self.GamesC,self.Games1B,self.Games2B,self.Games3B,self.GamesSS,self.GamesLF,self.GamesCF,self.GamesRF,self.GamesDH)
@@ -749,6 +799,8 @@ class DB_Player_Hitter_MonthlyRatios:
 		self.PercRF = values[20]
 		self.PercDH = values[21]
 
+	NUM_ELEMENTS = 22
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.Year,self.Month,self.LevelId,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wOBARatio,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH)
@@ -780,6 +832,8 @@ class DB_Player_Hitter_YearAdvanced:
 		self.SB = values[15]
 		self.CS = values[16]
 
+	NUM_ELEMENTS = 17
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HR,self.BBPerc,self.KPerc,self.SB,self.CS)
@@ -798,6 +852,8 @@ class DB_Player_OrgMap:
 		self.month = values[2]
 		self.day = values[3]
 		self.parentOrgId = values[4]
+
+	NUM_ELEMENTS = 5
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -819,6 +875,8 @@ class DB_Transaction_Log:
 		self.day = values[4]
 		self.toIL = values[5]
 		self.parentOrgId = values[6]
+
+	NUM_ELEMENTS = 7
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -858,6 +916,8 @@ class DB_Player_Pitcher_GameLog:
 		self.TeamId = values[22]
 		self.LeagueId = values[23]
 
+	NUM_ELEMENTS = 24
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.gameLogId,self.gameId,self.mlbId,self.day,self.month,self.year,self.started,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.levelId,self.homeTeamId,self.TeamId,self.LeagueId)
@@ -888,6 +948,8 @@ class DB_Player_Pitcher_MonthAdvanced:
 		self.HRPerc = values[14]
 		self.HR = values[15]
 		self.wOBA = values[16]
+
+	NUM_ELEMENTS = 17
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -923,6 +985,8 @@ class DB_Player_Pitcher_MonthStats:
 		self.ParkRunFactor = values[18]
 		self.ParkHRFactor = values[19]
 
+	NUM_ELEMENTS = 20
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.year,self.month,self.levelId,self.battersFaced,self.Outs,self.SPPerc,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.ParkRunFactor,self.ParkHRFactor)
@@ -948,6 +1012,8 @@ class DB_Player_Pitcher_MonthlyRatios:
 		self.HRPercRatio = values[9]
 		self.BBPercRatio = values[10]
 		self.kPercRatio = values[11]
+
+	NUM_ELEMENTS = 12
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -978,6 +1044,8 @@ class DB_Player_Pitcher_YearAdvanced:
 		self.HR = values[13]
 		self.wOBA = values[14]
 
+	NUM_ELEMENTS = 15
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.BF,self.Outs,self.SPPerc,self.GBRatio,self.ERA,self.FIP,self.KPerc,self.BBPerc,self.HR,self.wOBA)
@@ -993,6 +1061,8 @@ class DB_Player_ServiceLapse:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.Year = values[1]
+
+	NUM_ELEMENTS = 2
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1011,6 +1081,8 @@ class DB_Player_ServiceTime:
 		self.year = values[1]
 		self.serviceYear = values[2]
 		self.serviceDays = values[3]
+
+	NUM_ELEMENTS = 4
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1038,6 +1110,8 @@ class DB_Player_YearlyWar:
 		self.DEF = values[10]
 		self.BSR = values[11]
 		self.REP = values[12]
+
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1067,6 +1141,8 @@ class DB_Player_MonthlyWar:
 		self.BSR = values[12]
 		self.REP = values[13]
 
+	NUM_ELEMENTS = 14
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.mlbId,self.year,self.month,self.isHitter,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DEF,self.BSR,self.REP)
@@ -1082,6 +1158,8 @@ class DB_Pre05_Players:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.careerStartYear = values[1]
+
+	NUM_ELEMENTS = 2
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1100,6 +1178,8 @@ class DB_Team_League_Map:
 		self.LeagueId = values[1]
 		self.Year = values[2]
 
+	NUM_ELEMENTS = 3
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.TeamId,self.LeagueId,self.Year)
@@ -1116,6 +1196,8 @@ class DB_Team_OrganizationMap:
 		self.teamId = values[0]
 		self.year = values[1]
 		self.parentOrgId = values[2]
+
+	NUM_ELEMENTS = 3
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1134,6 +1216,8 @@ class DB_Team_Parents:
 		self.abbr = values[1]
 		self.name = values[2]
 
+	NUM_ELEMENTS = 3
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.id,self.abbr,self.name)
@@ -1150,6 +1234,8 @@ class DB_Leagues:
 		self.id = values[0]
 		self.abbr = values[1]
 		self.name = values[2]
+
+	NUM_ELEMENTS = 3
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1170,6 +1256,8 @@ class DB_Ranking_Prospect:
 		self.modelIdx = values[3]
 		self.isHitter = values[4]
 		self.rank = values[5]
+
+	NUM_ELEMENTS = 6
 
                             
 	def To_Tuple(self) -> tuple[any]:
@@ -1197,6 +1285,8 @@ class DB_Site_PlayerBio:
 		self.draftBonus = values[10]
 		self.signingYear = values[11]
 
+	NUM_ELEMENTS = 12
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.id,self.position,self.isPitcher,self.isHitter,self.hasModel,self.parentId,self.levelId,self.status,self.draftPick,self.draftRound,self.draftBonus,self.signingYear)
@@ -1215,6 +1305,8 @@ class DB_ModelIdx:
 		self.hitterModelName = values[2]
 		self.modelName = values[3]
 
+	NUM_ELEMENTS = 4
+
                             
 	def To_Tuple(self) -> tuple[any]:
 		return (self.id,self.pitcherModelName,self.hitterModelName,self.modelName)
@@ -1230,6 +1322,8 @@ class DB_PlayersInTrainingData:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.modelIdx = values[1]
+
+	NUM_ELEMENTS = 2
 
                             
 	def To_Tuple(self) -> tuple[any]:

@@ -11,6 +11,7 @@ import random
 from Prep_Map import Prep_Map
 from Output_Map import Output_Map
 from Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats
+import DB_AdvancedStatements
 
 class Player_IO:
     def __init__(self, player : DB_Model_Players, 
@@ -207,14 +208,10 @@ class Data_Prep:
         mlb_value_devs : torch.Tensor = getattr(self, "__hittervalues_devs")
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
-            stats = DB_Model_HitterStats.Select_From_DB(cursor, '''
-                WHERE mlbId=:mlbId AND 
-                (
-                    Year<=:year
-                )
-                ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':hitter.mlbId,"year":cutoff_year})
-            l = len(stats) + 1
+            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
+                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? AND (isHitter=1 OR isHitter IS NULL)",
+                                                                     (hitter.mlbId, cutoff_year))
+            l = len(stats_monthlywar) + 1
                 
             mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND
@@ -223,6 +220,8 @@ class Data_Prep:
                 )
                 ORDER BY Year ASC, MONTH ASC''',
                 {'mlbId':hitter.mlbId,'year':cutoff_year})
+                
+            pmw = DB_Player_MonthlyWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1 ORDER BY YEAR ASC, MONTH ASC", (hitter.mlbId))
                 
             dates = torch.cat(
                     (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
@@ -233,7 +232,10 @@ class Data_Prep:
             input[0,0] = 1 # Initialization step, no stats here
             input[:,1:self.prep_map.bio_size + 1] = self.__Transform_HitterData(hitter) # Hitter Bio
             if l > 1:
-                input[1:, self.prep_map.bio_size + 1:] = self.Transform_HitterStats(stats, hitter) # Month Stats
+                input[1:, self.prep_map.bio_size + 1:-self.prep_map.mlb_hit_value_size] = self.Transform_HitterStats(stats, hitter) # Month Stats
+            
+            # MLB Value Stats
+            
             
             # Output
             output = torch.zeros(l, 5, dtype=torch.long)

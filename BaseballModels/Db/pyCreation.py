@@ -8,28 +8,6 @@ tables = cursor.fetchall()
 
 insert_tables = ["Model_TrainingHistory", "Output_PlayerWar"]
 
-class DB_Model_TrainingHistory:
-    def __init__(self, values : tuple[any]):
-        self.ModelName = values[0]
-        self.Year = values[1]
-        self.IsHitter = values[2]
-        self.TestLoss = values[3]
-        self.NumLayers = values[4]
-        self.HiddenSize = values[5]
-        self.ModelIdx = values[6]
-        
-    def To_Tuple(self) -> tuple[any]:
-        return (self.ModelName, self.Year, self.IsHitter, self.TestLoss, self.NumLayers, self.HiddenSize, self.ModelIdx)
-    
-    @staticmethod 
-    def Insert_Into_DB(cursor : 'sqlite3.Cursor', items : list['DB_Model_TrainingHistory']) -> None:
-        cursor.executemany("INSERT INTO Model_TrainingHistory VALUES(?,?,?,?,?,?,?)", [i.To_Tuple() for i in items])
-    
-    @staticmethod
-    def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: dict) -> list['DB_Model_TrainingHistory']:
-        items = cursor.execute("SELECT * FROM Model_TrainingHistory " + conditional, values).fetchall()
-        return [DB_Model_TrainingHistory(i) for i in items]
-
 with open("../Model/DBTypes.py", "w") as file:
     file.write("import sqlite3\n\n")
     for table, in tables:
@@ -45,6 +23,7 @@ with open("../Model/DBTypes.py", "w") as file:
             insert_string += "?,"
         tuple_string = tuple_string[:-1]
         insert_string = insert_string[:-1]
+        constructor_string += f"\n\tNUM_ELEMENTS = {len(vars)}\n"
             
         file.write(
 f'''class {class_name}:
