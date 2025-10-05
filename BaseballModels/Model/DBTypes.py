@@ -1129,23 +1129,22 @@ class DB_Player_MonthlyWar:
 		self.mlbId = values[0]
 		self.year = values[1]
 		self.month = values[2]
-		self.isHitter = values[3]
-		self.PA = values[4]
-		self.IP_SP = values[5]
-		self.IP_RP = values[6]
-		self.WAR_h = values[7]
-		self.WAR_s = values[8]
-		self.WAR_r = values[9]
-		self.OFF = values[10]
-		self.DEF = values[11]
-		self.BSR = values[12]
-		self.REP = values[13]
+		self.PA = values[3]
+		self.IP_SP = values[4]
+		self.IP_RP = values[5]
+		self.WAR_h = values[6]
+		self.WAR_s = values[7]
+		self.WAR_r = values[8]
+		self.OFF = values[9]
+		self.DEF = values[10]
+		self.BSR = values[11]
+		self.REP = values[12]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.month,self.isHitter,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DEF,self.BSR,self.REP)
+		return (self.mlbId,self.year,self.month,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DEF,self.BSR,self.REP)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_MonthlyWar']:

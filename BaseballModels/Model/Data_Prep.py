@@ -111,10 +111,12 @@ class Data_Prep:
         self.__Create_Standard_Norms(self.output_map.map_mlb_pitcher_values, pitcher_values, "pitchervalues")
         
         #Montly mlb input values
-        hitter_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=1", (Data_Prep.__Cutoff_Year))
-        pitcher_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=1", (Data_Prep.__Cutoff_Year))
-        self.__Create_Standard_Norms(self.prep_map.map_mlb_hit_value, hitter_month_values, "hittermonthvalues")
-        self.__Create_Standard_Norms(self.prep_map.map_mlb_pit_value, pitcher_month_values, "pitchermonthvalues")
+        hitter_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=1", (Data_Prep.__Cutoff_Year,))
+        pitcher_month_values = DB_Player_YearlyWar.Select_From_DB(cursor, "WHERE Year<=? AND isHitter=0", (Data_Prep.__Cutoff_Year,))
+        self.__Create_PCA_Norms(self.prep_map.map_mlb_hit_value, hitter_month_values, "hittermonthvalues", self.prep_map.mlb_hit_value_size) # Needed for input
+        self.__Create_PCA_Norms(self.prep_map.map_mlb_pit_value, pitcher_month_values, "pitchermonthvalues", self.prep_map.mlb_pit_value_size)
+        # self.__Create_Standard_Norms(self.prep_map.map_mlb_hit_value, hitter_month_values, "hittermonthvalues") # Needed for output
+        # self.__Create_Standard_Norms(self.prep_map.map_mlb_pit_value, pitcher_month_values, "pitchermonthvalues")
     
     __Cutoff_Year = 2024
     
@@ -143,6 +145,11 @@ class Data_Prep:
         pit_pca = torch.from_numpy(getattr(self, "__pit_pca").transform(pit_stats))
         
         return torch.cat((level_pca, pt_pca, pit_pca), dim=1)
+    
+    def Transform_HitterMlbValues(self, values : list[DB_Player_MonthlyWar]) -> torch.Tensor:
+        hitter_values = torch.tensor([self.prep_map.map_mlb_hit_value(v) for v in values], dtype=DTYPE)
+        values_pca = torch.from_numpy(getattr(self, "__hittermonthvalues_pca").transform(hitter_values))
+        return values_pca
     
     def Transform_HitterOutputStats(self, stats : list[DB_Model_HitterStats]) -> torch.Tensor:
         output_stats = torch.tensor([self.output_map.map_hitter_output(x) for x in stats], dtype=DTYPE)
@@ -209,7 +216,7 @@ class Data_Prep:
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
-                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? AND (isHitter=1 OR isHitter IS NULL)",
+                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
                                                                      (hitter.mlbId, cutoff_year))
             l = len(stats_monthlywar) + 1
                 
@@ -221,20 +228,18 @@ class Data_Prep:
                 ORDER BY Year ASC, MONTH ASC''',
                 {'mlbId':hitter.mlbId,'year':cutoff_year})
                 
-            pmw = DB_Player_MonthlyWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1 ORDER BY YEAR ASC, MONTH ASC", (hitter.mlbId))
-                
             dates = torch.cat(
                     (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
-                    torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long)))
+                    torch.tensor([(x.mlbId, x.Year, x.Month) for x, _ in stats_monthlywar], dtype=torch.long)))
             
             # Input
             input = torch.zeros(l, self.Get_Hitter_Size())
             input[0,0] = 1 # Initialization step, no stats here
             input[:,1:self.prep_map.bio_size + 1] = self.__Transform_HitterData(hitter) # Hitter Bio
             if l > 1:
-                input[1:, self.prep_map.bio_size + 1:-self.prep_map.mlb_hit_value_size] = self.Transform_HitterStats(stats, hitter) # Month Stats
-            
-            # MLB Value Stats
+                input[1:, self.prep_map.bio_size + 1:-self.prep_map.mlb_hit_value_size] = self.Transform_HitterStats([mhs for mhs, pwm in stats_monthlywar], hitter) # Month Stats
+                input[1:, -self.prep_map.mlb_hit_value_size:] = self.Transform_HitterMlbValues([pmw for mhs, pmw in stats_monthlywar])
+            stats = [mhs for mhs, pmw in stats_monthlywar]
             
             
             # Output
@@ -391,6 +396,7 @@ class Data_Prep:
         bsr_stds =[math.sqrt(x) for x in getattr(self, "__bsr_devs")]
         def_stds = [math.sqrt(x) for x in getattr(self, "__def_devs")]
         bio_stds = [math.sqrt(x) for x in getattr(self, "__hitbio_devs")]
+        mlbstat_stds = [math.sqrt(x) for x in getattr(self, "__hittermonthvalues_devs")]
         
         mutators = torch.zeros(size=(batch_size, max_input_size, self.Get_Hitter_Size()))
         for n in tqdm(range(batch_size), leave=False, desc="Generating Hitter Mutators"):
@@ -402,6 +408,7 @@ class Data_Prep:
                 off_mutator = [0] * self.prep_map.off_size
                 bsr_mutator = [0] * self.prep_map.bsr_size
                 def_mutator = [0] * self.prep_map.def_size
+                mlbstats_mutator = [0] * self.prep_map.mlb_hit_value_size
                 
                 for i in range(self.prep_map.hitterlvl_size):
                     level_mutator[i] = self.hitlvl_mutator_scale * random.gauss(0, level_stds[i])
@@ -413,8 +420,10 @@ class Data_Prep:
                     bsr_mutator[i] = self.bsr_mutator_scale * random.gauss(0, bsr_stds[i])
                 for i in range(self.prep_map.def_size):
                     def_mutator[i] = self.def_mutator_scale * random.gauss(0, def_stds[i])
+                for i in range(self.prep_map.mlb_hit_value_size):
+                    mlbstats_mutator[i] = 0.25 * random.gauss(0, mlbstat_stds[i])
                     
-                mutators[n,m] = torch.tensor(player_header + level_mutator + pt_mutator + off_mutator + bsr_mutator + def_mutator)
+                mutators[n,m] = torch.tensor(player_header + level_mutator + pt_mutator + off_mutator + bsr_mutator + def_mutator + mlbstats_mutator)
             
             for i in range(self.prep_map.bio_size):
                 mutators[1+i,:] = self.hitbio_mutator_scale * random.gauss(0, bio_stds[i])

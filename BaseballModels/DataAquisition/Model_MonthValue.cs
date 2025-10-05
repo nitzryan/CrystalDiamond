@@ -22,7 +22,7 @@ namespace DataAquisition
                     foreach (var id in hitterIds)
                     {
                         var mhs = db.Model_HitterStats.Where(f => f.MlbId == id).AsNoTracking().AsEnumerable();
-                        var pmw = db.Player_MonthlyWar.Where(f => f.MlbId == id && f.IsHitter == 1).AsNoTracking().AsEnumerable();
+                        var pmw = db.Player_MonthlyWar.Where(f => f.MlbId == id).AsNoTracking().AsEnumerable();
 
                         foreach (var m in mhs)
                         {
@@ -74,7 +74,7 @@ namespace DataAquisition
                     foreach (var id in pitcherIds)
                     {
                         var mhs = db.Model_PitcherStats.Where(f => f.MlbId == id).AsNoTracking().AsEnumerable();
-                        var pmw = db.Player_MonthlyWar.Where(f => f.MlbId == id && f.IsHitter == 0).AsNoTracking().AsEnumerable();
+                        var pmw = db.Player_MonthlyWar.Where(f => f.MlbId == id).AsNoTracking().AsEnumerable();
 
                         foreach (var m in mhs)
                         {

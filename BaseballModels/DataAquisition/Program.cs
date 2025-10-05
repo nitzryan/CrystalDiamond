@@ -56,11 +56,11 @@
             //if (!UpdateCareers.Main(years))
             //    return;
 
-            //if (!ModelPlayers.Main())
-            //    return;
+            if (!ModelPlayers.Main())
+                return;
 
-            //if (!ModelPlayerWar.Main())
-            //    return;
+            if (!ModelPlayerWar.Main())
+                return;
 
             //if (!await TransactionLog.Main())
             //    return;
@@ -68,8 +68,8 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
             if (!Model_MonthValue.Main())
                 return;

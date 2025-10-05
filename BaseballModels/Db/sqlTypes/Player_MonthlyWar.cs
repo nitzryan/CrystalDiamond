@@ -5,7 +5,6 @@ namespace Db
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
-		public required int IsHitter {get; set;}
 		public required int PA {get; set;}
 		public required float IP_SP {get; set;}
 		public required float IP_RP {get; set;}
@@ -24,7 +23,6 @@ namespace Db
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
-				IsHitter = this.IsHitter,
 				PA = this.PA,
 				IP_SP = this.IP_SP,
 				IP_RP = this.IP_RP,

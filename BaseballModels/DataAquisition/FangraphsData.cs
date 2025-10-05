@@ -1,4 +1,5 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
 
@@ -155,6 +156,9 @@ namespace DataAquisition
                         db.Player_MonthlyWar.RemoveRange(db.Player_MonthlyWar.Where(f => f.Year == year && f.Month == month));
                         db.SaveChanges();
 
+                        List<Player_MonthlyWar> playerMonthlyWarList = new();
+
+                        // Get starting pitcher data
                         HttpResponseMessage response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=pit&stats=sta&lg=all&qual=0&season={year}&month={month}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
                         {
@@ -162,6 +166,7 @@ namespace DataAquisition
                         }
                         string responseBody = await response.Content.ReadAsStringAsync();
                         JsonDocument json = JsonDocument.Parse(responseBody);
+                        
                         var startingPitchers = json.RootElement.GetProperty("data").EnumerateArray().Select(f => new
                         {
                             id = f.GetProperty("xMLBAMID").GetInt32(),
@@ -170,6 +175,7 @@ namespace DataAquisition
                             ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble())
                         });
 
+                        // Get relief pitching data
                         response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=pit&stats=rel&lg=all&qual=0&season={year}&month={month}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
                         {
@@ -185,19 +191,21 @@ namespace DataAquisition
                             ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble())
                         });
 
+                        // Aggregate Ids
                         var pitchersIds = startingPitchers.Select(f => f.id).ToList();
                         pitchersIds.AddRange(reliefPitchers.Select(f => f.id));
                         pitchersIds = pitchersIds.Distinct().ToList();
+
+                        // Create stats for each pitcher
                         foreach (var id in pitchersIds)
                         {
                             var starterData = startingPitchers.Where(f => f.id == id);
                             var relieverData = reliefPitchers.Where(f => f.id == id);
-                            db.Player_MonthlyWar.Add(new Player_MonthlyWar
+                            playerMonthlyWarList.Add(new Player_MonthlyWar
                             {
                                 MlbId = id,
                                 Year = year,
                                 Month = month,
-                                IsHitter = 0,
                                 PA = starterData.Sum(f => f.tbf) + relieverData.Sum(f => f.tbf),
                                 WAR_h = 0,
                                 WAR_s = starterData.Any() ? (float)starterData.First().war : 0,
@@ -211,6 +219,8 @@ namespace DataAquisition
                             });
                         }
 
+
+                        // Get hitter data
                         response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=np&stats=bat&lg=all&qual=0&season={year}&month={month}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
                         {
@@ -219,28 +229,42 @@ namespace DataAquisition
                         responseBody = await response.Content.ReadAsStringAsync();
                         json = JsonDocument.Parse(responseBody);
                         var hitters = json.RootElement.GetProperty("data").EnumerateArray();
+
                         foreach (var hitter in hitters)
                         {
-
-                            db.Player_MonthlyWar.Add(new Player_MonthlyWar
-                            {
-                                MlbId = hitter.GetProperty("xMLBAMID").GetInt32(),
-                                Year = year,
-                                Month = month,
-                                IsHitter = 1,
-                                PA = (int)hitter.GetProperty("PA").GetDouble(),
-                                WAR_h = (float)hitter.GetProperty("WAR").GetDouble(),
-                                WAR_s = 0,
-                                WAR_r = 0,
-                                OFF = (float)hitter.GetProperty("Batting").GetDouble(),
-                                DEF = (float)hitter.GetProperty("Defense").GetDouble(),
-                                BSR = (float)hitter.GetProperty("BaseRunning").GetDouble(),
-                                REP = (float)hitter.GetProperty("Replacement").GetDouble(),
-                                IP_SP = 0,
-                                IP_RP = 0,
-                            });
+                            // Check if player already has pitcher stats
+                            int hitterId = hitter.GetProperty("xMLBAMID").GetInt32();
+                            if (playerMonthlyWarList.Any(f => f.MlbId == hitterId)) 
+                            { // Modify if exists
+                                var pmw = playerMonthlyWarList.Single(f => f.MlbId == hitterId);
+                                pmw.PA = (int)hitter.GetProperty("PA").GetDouble();
+                                pmw.WAR_h = (float)hitter.GetProperty("WAR").GetDouble();
+                                pmw.OFF = (float)hitter.GetProperty("Batting").GetDouble();
+                                pmw.DEF = (float)hitter.GetProperty("Defense").GetDouble();
+                                pmw.BSR = (float)hitter.GetProperty("BaseRunning").GetDouble();
+                                pmw.REP = (float)hitter.GetProperty("Replacement").GetDouble();
+                            } else 
+                            { // Create if doesn't
+                                playerMonthlyWarList.Add(new Player_MonthlyWar
+                                {
+                                    MlbId = hitterId,
+                                    Year = year,
+                                    Month = month,
+                                    PA = (int)hitter.GetProperty("PA").GetDouble(),
+                                    WAR_h = (float)hitter.GetProperty("WAR").GetDouble(),
+                                    WAR_s = 0,
+                                    WAR_r = 0,
+                                    OFF = (float)hitter.GetProperty("Batting").GetDouble(),
+                                    DEF = (float)hitter.GetProperty("Defense").GetDouble(),
+                                    BSR = (float)hitter.GetProperty("BaseRunning").GetDouble(),
+                                    REP = (float)hitter.GetProperty("Replacement").GetDouble(),
+                                    IP_SP = 0,
+                                    IP_RP = 0,
+                                });
+                            }
                         }
 
+                        db.Player_MonthlyWar.AddRange(playerMonthlyWarList);
                         db.SaveChanges();
                         progressBar.Tick();
                     }

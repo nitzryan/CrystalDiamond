@@ -93,7 +93,7 @@ namespace Db
 			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Player_ServiceTime>().HasKey(f => new {f.MlbId,f.Year});
 			modelBuilder.Entity<Player_YearlyWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
-			modelBuilder.Entity<Player_MonthlyWar>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.IsHitter});
+			modelBuilder.Entity<Player_MonthlyWar>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Pre05_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Team_League_Map>().HasKey(f => new {f.TeamId,f.LeagueId,f.Year});
 			modelBuilder.Entity<Team_OrganizationMap>().HasKey(f => new {f.TeamId,f.Year});

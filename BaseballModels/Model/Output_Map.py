@@ -91,7 +91,7 @@ __pitcher_stats_size = 9
 __pitcher_positions_size = 2
     
 __map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[list[float]]] = \
-    lambda h : [h.War1Year, h.Off1Year, h.Def1Year, h.Bsr1Year, h.Rep1Year, h.Pa1Year, h.War2Year, h.Off2Year, h.Def2Year, h.Bsr2Year, h.Rep2Year, h.Pa2Year, h.War3Year, h.Off3Year, h.Def3Year, h.Bsr3Year, h.Rep3Year, h.Pa3Year]
+    lambda h : [h.War1Year, h.Off1Year, h.Bsr1Year, h.Def1Year, h.Rep1Year, h.Pa1Year, h.War2Year, h.Off2Year, h.Bsr2Year, h.Def2Year, h.Rep2Year, h.Pa2Year, h.War3Year, h.Off3Year, h.Bsr3Year, h.Def3Year, h.Rep3Year, h.Pa3Year]
 __mlb_hitter_values_size = 18
 __map_mlb_pitcher_values : Callable[[DB_Model_PitcherValue], list[list[float]]] = \
     lambda p : [p.WarSP1Year, p.WarRP1Year, p.IPSP1Year, p.IPRP1Year, p.WarSP2Year, p.WarRP2Year, p.IPSP2Year, p.IPRP2Year, p.WarSP3Year, p.WarRP3Year, p.IPSP3Year, p.IPRP3Year]

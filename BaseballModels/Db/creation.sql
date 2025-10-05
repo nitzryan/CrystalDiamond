@@ -676,7 +676,6 @@ CREATE TABLE "Player_MonthlyWar" (
 	"mlbId"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"isHitter"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
 	"IP_SP" REAL NOT NULL,
 	"IP_RP" REAL NOT NULL,
@@ -687,7 +686,7 @@ CREATE TABLE "Player_MonthlyWar" (
 	"DEF"	REAL NOT NULL,
 	"BSR"	REAL NOT NULL,
 	"REP"   REAL NOT NULL,
-	PRIMARY KEY("mlbId","year","month","isHitter")
+	PRIMARY KEY("mlbId","year","month")
 );
 
 CREATE TABLE "Pre05_Players" (
