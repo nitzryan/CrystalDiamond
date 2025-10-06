@@ -8,8 +8,10 @@ from Data_Prep import Data_Prep
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
 
 class RNN_Model(nn.Module):
-    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map, data_prep : Data_Prep, is_hitter : bool):
+    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, data_prep : Data_Prep, is_hitter : bool):
         super().__init__()
+        
+        output_map = data_prep.output_map
         
         self.pre1 = nn.Linear(input_size, input_size)
         self.pre2 = nn.Linear(input_size, input_size)
