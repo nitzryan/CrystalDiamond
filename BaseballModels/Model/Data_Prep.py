@@ -465,3 +465,10 @@ class Data_Prep:
                 mutators[1+i,:] = self.pitbio_mutator_scale * random.gauss(0, bio_stds[i])
         
         return mutators
+    
+    def Get_Pa_Offsets(self) -> tuple[float, float, float]:
+        mlb_value_means : torch.Tensor = getattr(self, "__hittervalues_means")
+        mlb_value_devs : torch.Tensor = getattr(self, "__hittervalues_devs")
+        
+        zero_offset = (-mlb_value_means) / mlb_value_devs
+        return zero_offset[-3].item(), zero_offset[-2].item(), zero_offset[-1].item()

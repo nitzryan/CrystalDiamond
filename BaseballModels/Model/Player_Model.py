@@ -3,11 +3,12 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Output_Map import Output_Map
+from Data_Prep import Data_Prep
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
 
 class RNN_Model(nn.Module):
-    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map, is_hitter : bool):
+    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, output_map : Output_Map, data_prep : Data_Prep, is_hitter : bool):
         super().__init__()
         
         self.pre1 = nn.Linear(input_size, input_size)
@@ -46,6 +47,8 @@ class RNN_Model(nn.Module):
         
         self.mutators = mutators
         self.nonlin = F.relu
+        self.pa_softplus = nn.Softplus()
+        self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
         #self.nonlin = F.leaky_relu
         
         for m in self.modules():
@@ -112,6 +115,14 @@ class RNN_Model(nn.Module):
         output_mlbValue = self.nonlin(self.linear_mlb_value2(output_mlbValue))
         output_mlbValue = self.nonlin(self.linear_mlb_value3(output_mlbValue))
         output_mlbValue = self.linear_mlb_value4(output_mlbValue)
+        # Apply softplus to pa prediction to limit to positive values
+        output_mlbValue = torch.cat([
+            output_mlbValue[:,:,:-3],
+            self.pa_softplus(output_mlbValue[:,:,-3]).unsqueeze(-1) + self.pa_offset1,
+            self.pa_softplus(output_mlbValue[:,:,-2]).unsqueeze(-1) + self.pa_offset2,
+            self.pa_softplus(output_mlbValue[:,:,-1]).unsqueeze(-1) + self.pa_offset3,
+            ],dim=-1
+        )
         
         return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
     
@@ -129,17 +140,10 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
     loss = nn.L1Loss(reduction='none')
-    loss_0 = loss(pred_stats[:,0,:], actual_stats).sum(dim=1) * masks[:,0]
-    loss_1 = loss(pred_stats[:,1,:], actual_stats).sum(dim=1) * masks[:,1]
-    loss_2 = loss(pred_stats[:,2,:], actual_stats).sum(dim=1) * masks[:,2]
-    loss_3 = loss(pred_stats[:,3,:], actual_stats).sum(dim=1) * masks[:,3]
-    loss_4 = loss(pred_stats[:,4,:], actual_stats).sum(dim=1) * masks[:,4]
-    loss_5 = loss(pred_stats[:,5,:], actual_stats).sum(dim=1) * masks[:,5]
-    loss_6 = loss(pred_stats[:,6,:], actual_stats).sum(dim=1) * masks[:,6]
-    loss_7 = loss(pred_stats[:,7,:], actual_stats).sum(dim=1) * masks[:,7]
-    
-    total_loss = loss_0.sum() + loss_1.sum() + loss_2.sum() + loss_3.sum() + loss_4.sum() + loss_5.sum() + loss_6.sum() + loss_7.sum()
-    return total_loss
+    l = 0
+    for x in range(8):
+        l += (loss(pred_stats[:,x,:], actual_stats).sum(dim=1) * masks[:,x]).sum()
+    return l
       
 def Mlb_Value_Loss(pred_value, actual_value, masks):
     actual_value = actual_value[:, :pred_value.size(1)]
@@ -156,16 +160,14 @@ def Mlb_Value_Loss(pred_value, actual_value, masks):
     masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
     
     loss = nn.L1Loss(reduction='none')
-    # First do loss for rate stats
-    loss_0_rate = loss(pred_value[:,0,:-3], actual_value[:,0,:-3]).sum(dim=1) * masks[:,0,1]
-    loss_1_rate = loss(pred_value[:,1,:-3], actual_value[:,1,:-3]).sum(dim=1) * masks[:,1,1]
-    loss_2_rate = loss(pred_value[:,2,:-3], actual_value[:,2,:-3]).sum(dim=1) * masks[:,2,1]
-    # Then loss for value stats
-    loss_0_value = loss(pred_value[:,0,-3:], actual_value[:,0,-3:]).sum(dim=1) * masks[:,0,0]
-    loss_1_value = loss(pred_value[:,1,-3:], actual_value[:,1,-3:]).sum(dim=1) * masks[:,1,0]
-    loss_2_value = loss(pred_value[:,2,-3:], actual_value[:,2,-3:]).sum(dim=1) * masks[:,2,0]
+    l = 0
+    for x in range(3):
+        # Rate stats
+        l += (loss(pred_value[:,x,:-3], actual_value[:,x,:-3]).sum(dim=1) * masks[:,x,1]).sum()
+        # Value stats
+        l += (loss(pred_value[:,x,-3:], actual_value[:,x,-3:]).sum(dim=1) * masks[:,x,0]).sum()
     
-    return loss_0_rate.sum() + loss_1_rate.sum() + loss_2_rate.sum() + loss_0_value.sum() + loss_1_value.sum() + loss_2_value.sum()
+    return l
     
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
@@ -182,18 +184,10 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
     loss = nn.CrossEntropyLoss(reduction='none')
-    loss_0 = loss(pred_positions[:,0,:], actual_positions) * masks[:,0]
-    loss_1 = loss(pred_positions[:,1,:], actual_positions) * masks[:,1]
-    loss_2 = loss(pred_positions[:,2,:], actual_positions) * masks[:,2]
-    loss_3 = loss(pred_positions[:,3,:], actual_positions) * masks[:,3]
-    loss_4 = loss(pred_positions[:,4,:], actual_positions) * masks[:,4]
-    loss_5 = loss(pred_positions[:,5,:], actual_positions) * masks[:,5]
-    loss_6 = loss(pred_positions[:,6,:], actual_positions) * masks[:,6]
-    loss_7 = loss(pred_positions[:,7,:], actual_positions) * masks[:,7]
-    
-    total_loss = loss_0.sum() + loss_1.sum() + loss_2.sum() + loss_3.sum() + loss_4.sum() + loss_5.sum() + loss_6.sum() + loss_7.sum()
-    return total_loss
-    
+    l = 0
+    for x in range(8):
+        l += (loss(pred_positions[:,x,:], actual_positions) * masks[:,x]).sum()
+    return l
     
 def Classification_Loss(pred_war, pred_value, pred_pwar, pred_level, pred_pa, actual_war, actual_value, actual_pwar, actual_level, actual_pa, masks):
     actual_war = actual_war[:,:pred_war.size(1)]
