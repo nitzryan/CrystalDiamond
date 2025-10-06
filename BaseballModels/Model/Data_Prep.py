@@ -277,14 +277,20 @@ class Data_Prep:
                     pos_year_output[i,:] = _p
             
             # MLB Value stats and mask
-            mlb_value_mask = torch.zeros(l, 3, dtype=torch.long)
+            mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.long)
             mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
             for i, value in enumerate(mlb_values):
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
                 current_value_year = stats[i].Year
-                mlb_value_mask[i+1,0] = current_value_year < cutoff_year
-                mlb_value_mask[i+1,1] = current_value_year < (cutoff_year - 1)
-                mlb_value_mask[i+1,2] = current_value_year < (cutoff_year - 2)
+                # Mask on whether the PA count should be counted
+                mlb_value_mask[i+1,0,0] = current_value_year < cutoff_year
+                mlb_value_mask[i+1,1,0] = current_value_year < (cutoff_year - 1)
+                mlb_value_mask[i+1,2,0] = current_value_year < (cutoff_year - 2)
+                # Mask on whether the rate stats should be counted
+                # Scale so don't take too much from small samples, but cap to prevent bias (players who perform poorly get cut/sent down, so uncapped scale would overestimate marginal players)
+                mlb_value_mask[i+1,0,1] = min(value.Pa1Year / 100, 1)
+                mlb_value_mask[i+1,1,1] = min(value.Pa2Year / 100, 1)
+                mlb_value_mask[i+1,2,1] = min(value.Pa3Year / 100, 1)
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]

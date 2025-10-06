@@ -90,9 +90,17 @@ __map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]] = \
 __pitcher_stats_size = 9
 __pitcher_positions_size = 2
     
-__map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[list[float]]] = \
-    lambda h : [h.War1Year, h.Off1Year, h.Bsr1Year, h.Def1Year, h.Rep1Year, h.Pa1Year, h.War2Year, h.Off2Year, h.Bsr2Year, h.Def2Year, h.Rep2Year, h.Pa2Year, h.War3Year, h.Off3Year, h.Bsr3Year, h.Def3Year, h.Rep3Year, h.Pa3Year]
-__mlb_hitter_values_size = 18
+__full_season_pa = 600
+def mlb_hit_map(h : DB_Model_HitterValue) -> list[float]:
+    pa1 = max(1, h.Pa1Year) / __full_season_pa
+    pa2 = max(1, h.Pa2Year) / __full_season_pa
+    pa3 = max(1, h.Pa3Year) / __full_season_pa
+    return [h.War1Year / pa1, h.Off1Year / pa1, h.Bsr1Year / pa1, h.Def1Year / pa1,
+            h.War2Year / pa2, h.Off2Year / pa2, h.Bsr2Year / pa2, h.Def2Year / pa2, 
+            h.War3Year / pa3, h.Off3Year / pa3, h.Bsr3Year / pa3, h.Def3Year / pa3,
+            h.Pa1Year, h.Pa2Year, h.Pa3Year]
+__map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[float]] = mlb_hit_map
+__mlb_hitter_values_size = 15
 __map_mlb_pitcher_values : Callable[[DB_Model_PitcherValue], list[list[float]]] = \
     lambda p : [p.WarSP1Year, p.WarRP1Year, p.IPSP1Year, p.IPRP1Year, p.WarSP2Year, p.WarRP2Year, p.IPSP2Year, p.IPRP2Year, p.WarSP3Year, p.WarRP3Year, p.IPSP3Year, p.IPRP3Year]
 __mlb_pitcher_values_size = 12

@@ -147,19 +147,25 @@ def Mlb_Value_Loss(pred_value, actual_value, masks):
     
     batch_size = actual_value.size(0)
     time_steps = actual_value.size(1)
-    mask_size = masks.size(2)
-    output_size = actual_value.size(2) // mask_size # Group into years
+    mask_size_years = masks.size(2)
+    mask_size_types = masks.size(3)
+    output_size = actual_value.size(2) // mask_size_years # Group into years
     
-    pred_value = pred_value.reshape((batch_size * time_steps, mask_size, output_size))
-    actual_value = actual_value.reshape((batch_size * time_steps, mask_size, output_size))
-    masks = masks.reshape((batch_size * time_steps, mask_size))
+    pred_value = pred_value.reshape((batch_size * time_steps, mask_size_years, output_size))
+    actual_value = actual_value.reshape((batch_size * time_steps, mask_size_years, output_size))
+    masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
     
     loss = nn.L1Loss(reduction='none')
-    loss_0 = loss(pred_value[:,0,:], actual_value[:,0,:]).sum(dim=1) * masks[:,0]
-    loss_1 = loss(pred_value[:,1,:], actual_value[:,1,:]).sum(dim=1) * masks[:,1]
-    loss_2 = loss(pred_value[:,2,:], actual_value[:,2,:]).sum(dim=1) * masks[:,2]
+    # First do loss for rate stats
+    loss_0_rate = loss(pred_value[:,0,:-3], actual_value[:,0,:-3]).sum(dim=1) * masks[:,0,1]
+    loss_1_rate = loss(pred_value[:,1,:-3], actual_value[:,1,:-3]).sum(dim=1) * masks[:,1,1]
+    loss_2_rate = loss(pred_value[:,2,:-3], actual_value[:,2,:-3]).sum(dim=1) * masks[:,2,1]
+    # Then loss for value stats
+    loss_0_value = loss(pred_value[:,0,-3:], actual_value[:,0,-3:]).sum(dim=1) * masks[:,0,0]
+    loss_1_value = loss(pred_value[:,1,-3:], actual_value[:,1,-3:]).sum(dim=1) * masks[:,1,0]
+    loss_2_value = loss(pred_value[:,2,-3:], actual_value[:,2,-3:]).sum(dim=1) * masks[:,2,0]
     
-    return loss_0.sum() + loss_1.sum() + loss_2.sum()
+    return loss_0_rate.sum() + loss_1_rate.sum() + loss_2_rate.sum() + loss_0_value.sum() + loss_1_value.sum() + loss_2_value.sum()
     
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
