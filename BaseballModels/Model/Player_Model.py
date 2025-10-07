@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from Output_Map import Output_Map
 from Data_Prep import Data_Prep
+from Constants import device
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
 
@@ -49,8 +49,10 @@ class RNN_Model(nn.Module):
         
         self.mutators = mutators
         self.nonlin = F.relu
-        self.pa_softplus = nn.Softplus()
+        self.softplus = nn.Softplus()
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
+        self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
+        self.is_hitter = is_hitter
         #self.nonlin = F.leaky_relu
         
         for m in self.modules():
@@ -118,13 +120,19 @@ class RNN_Model(nn.Module):
         output_mlbValue = self.nonlin(self.linear_mlb_value3(output_mlbValue))
         output_mlbValue = self.linear_mlb_value4(output_mlbValue)
         # Apply softplus to pa prediction to limit to positive values
-        output_mlbValue = torch.cat([
-            output_mlbValue[:,:,:-3],
-            self.pa_softplus(output_mlbValue[:,:,-3]).unsqueeze(-1) + self.pa_offset1,
-            self.pa_softplus(output_mlbValue[:,:,-2]).unsqueeze(-1) + self.pa_offset2,
-            self.pa_softplus(output_mlbValue[:,:,-1]).unsqueeze(-1) + self.pa_offset3,
-            ],dim=-1
-        )
+        if (self.is_hitter):
+            output_mlbValue = torch.cat([
+                output_mlbValue[:,:,:-3],
+                self.softplus(output_mlbValue[:,:,-3]).unsqueeze(-1) + self.pa_offset1,
+                self.softplus(output_mlbValue[:,:,-2]).unsqueeze(-1) + self.pa_offset2,
+                self.softplus(output_mlbValue[:,:,-1]).unsqueeze(-1) + self.pa_offset3,
+                ],dim=-1
+            )
+        else:
+            output_mlbValue = torch.cat([
+                output_mlbValue[:,:,:-6],
+                self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
+            ], dim=-1)
         
         return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
     
