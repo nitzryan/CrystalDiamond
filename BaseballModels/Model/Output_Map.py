@@ -103,13 +103,17 @@ __map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[float]] = mlb_hi
 __mlb_hitter_values_size = 15
 
 __full_season_ip = 150
+__full_season_relief_ip = 60
 def mlb_pit_map(p : DB_Model_PitcherValue) -> list[float]:
-    ip1 = max(1, p.IPSP1Year + p.IPRP1Year) / __full_season_ip
-    ip2 = max(1, p.IPSP2Year + p.IPRP2Year) / __full_season_ip
-    ip3 = max(1, p.IPSP3Year + p.IPRP3Year) / __full_season_ip
-    return [p.WarSP1Year / ip1, p.WarRP1Year / ip1, 
-            p.WarSP2Year / ip2, p.WarRP2Year / ip2, 
-            p.WarSP3Year / ip3, p.WarRP3Year / ip3, 
+    ipsp1 = max(1, p.IPSP1Year) / __full_season_ip
+    ipsp2 = max(1, p.IPSP2Year) / __full_season_ip
+    ipsp3 = max(1, p.IPSP3Year) / __full_season_ip
+    iprp1 = max(1, p.IPRP1Year) / __full_season_relief_ip
+    iprp2 = max(1, p.IPRP2Year) / __full_season_relief_ip
+    iprp3 = max(1, p.IPRP3Year) / __full_season_relief_ip
+    return [p.WarSP1Year / ipsp1, p.WarRP1Year / iprp1, 
+            p.WarSP2Year / ipsp2, p.WarRP2Year / iprp2, 
+            p.WarSP3Year / ipsp3, p.WarRP3Year / iprp3, 
             p.IPSP1Year, p.IPRP1Year, p.IPSP2Year, p.IPRP2Year, p.IPSP3Year, p.IPRP3Year]
     
 __map_mlb_pitcher_values : Callable[[DB_Model_PitcherValue], list[float]] = mlb_pit_map

@@ -282,7 +282,7 @@ class Data_Prep:
                     pos_year_output[i,:] = _p
             
             # MLB Value stats and mask
-            mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.long)
+            mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.float)
             mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
             for i, value in enumerate(mlb_values):
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
@@ -379,7 +379,7 @@ class Data_Prep:
                     pos_year_output[i,:] = _p
             
             # MLB Value stats and mask
-            mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.long)
+            mlb_value_mask = torch.zeros(l, 3, 3, dtype=torch.float)
             mlb_value_stats = torch.zeros(l, self.output_map.mlb_pitcher_values_size, dtype=DTYPE)
             for i, value in enumerate(mlb_values):
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_pitcher_values(value)) - mlb_value_means) / mlb_value_devs
@@ -390,9 +390,12 @@ class Data_Prep:
                 mlb_value_mask[i+1,2,0] = current_value_year < (cutoff_year - 2)
                 # Mask on whether the rate stats should be counted
                 # Scale so don't take too much from small samples, but cap to prevent bias (players who perform poorly get cut/sent down, so uncapped scale would overestimate marginal players)
-                mlb_value_mask[i+1,0,1] = min((value.IPRP1Year + value.IPSP1Year) / 25, 1)
-                mlb_value_mask[i+1,1,1] = min((value.IPRP2Year + value.IPSP2Year) / 25, 1)
-                mlb_value_mask[i+1,2,1] = min((value.IPRP3Year + value.IPSP3Year) / 25, 1)
+                mlb_value_mask[i+1,0,1] = min(value.IPSP1Year / 25, 1)
+                mlb_value_mask[i+1,0,2] = min(value.IPRP1Year / 15, 1)
+                mlb_value_mask[i+1,1,1] = min(value.IPSP2Year / 25, 1)
+                mlb_value_mask[i+1,1,2] = min(value.IPRP2Year / 15, 1)
+                mlb_value_mask[i+1,2,1] = min(value.IPSP3Year / 25, 1)
+                mlb_value_mask[i+1,2,2] = min(value.IPRP3Year / 15, 1)
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]

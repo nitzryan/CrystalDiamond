@@ -155,7 +155,7 @@ def Stats_Loss(pred_stats, actual_stats, masks):
         l += (loss(pred_stats[:,x,:], actual_stats).sum(dim=1) * masks[:,x]).sum()
     return l
       
-def Mlb_Value_Loss(pred_value, actual_value, masks):
+def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value[:, :pred_value.size(1)]
     masks = masks[:,:pred_value.size(1)]
     
@@ -179,6 +179,32 @@ def Mlb_Value_Loss(pred_value, actual_value, masks):
     
     return l
     
+def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
+    actual_value = actual_value[:, :pred_value.size(1)]
+    masks = masks[:,:pred_value.size(1)]
+    
+    batch_size = actual_value.size(0)
+    time_steps = actual_value.size(1)
+    mask_size_years = masks.size(2)
+    mask_size_types = masks.size(3)
+    output_size = actual_value.size(2) // mask_size_years # Group into years
+    
+    pred_war = pred_value[:,:,:-6].reshape((batch_size * time_steps, mask_size_years, 2))
+    pred_ip = pred_value[:,:,-6:].reshape((batch_size * time_steps, mask_size_years, 2))
+    actual_war = actual_value[:,:,:-6].reshape((batch_size * time_steps, mask_size_years, 2))
+    actual_ip = actual_value[:,:,-6:].reshape((batch_size * time_steps, mask_size_years, 2))
+    
+    masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
+    pa_masks = masks[:,:,0].reshape((batch_size * time_steps, mask_size_years))
+    war_masks = masks[:,:,1:].reshape((batch_size * time_steps), mask_size_years, 2)
+    
+    
+    loss = nn.L1Loss(reduction='none')
+    # War
+    l = (loss(pred_war, actual_war) * war_masks).sum()
+    l += (loss(pred_ip, actual_ip).sum(dim=2) * pa_masks).sum()
+
+    return l
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
     actual_positions  = actual_positions[:, :pred_positions.size(1)]

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss
+from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher
 
 PWAR_LOSS_MULTIPLIER = 0.4
 LEVEL_LOSS_MULTIPLIER = 0.6
@@ -11,12 +11,12 @@ STATS_LOSS_MULTIPLIER = 0.6
 POSITION_LOSS_MULTIPLIER = 1.0
 TWAR_LOSS_MULTIPLIER = 0.15
 VALUE_LOSS_MULTIPLIER = 0.15
-MLB_VALUE_LOSS_MULTIPLIER = 0.1
+MLB_VALUE_LOSS_MULTIPLIER = 0.2
 LOSS_ITEM = 0
 
 NUM_ELEMENTS = 8
 
-def train(network,  data_generator, num_elements, optimizer, logging = 200, should_output=True):
+def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
@@ -48,7 +48,7 @@ def train(network,  data_generator, num_elements, optimizer, logging = 200, shou
     loss_yearStats.backward(retain_graph=True)
     loss_yearPos.backward(retain_graph=True)
     
-    loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * Mlb_Value_Loss(output_mlbValue, target_mlb_value, mlb_value_mask)
+    loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
     loss_mlbValue.backward()
     
     optimizer.step()
@@ -67,7 +67,7 @@ def train(network,  data_generator, num_elements, optimizer, logging = 200, shou
     avg_loss[n] /= num_elements
   return avg_loss
 
-def test(network, test_loader, num_elements):
+def test(network, test_loader, num_elements, is_hitter : bool):
   network.eval() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
@@ -84,7 +84,7 @@ def test(network, test_loader, num_elements):
       loss_war, loss_value, loss_pwar, loss_level, loss_pa = Classification_Loss(output_war, output_value, output_pwar, output_level, output_pa, target_war, target_value, target_pwar, target_level, target_pa, mask_labels)
       loss_yearStats = Stats_Loss(output_yearStats, year_stats, year_mask)
       loss_yearPos = Position_Classification_Loss(output_yearPos, year_position, year_mask)
-      loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * Mlb_Value_Loss(output_mlbValue, target_mlb_value, mlb_value_mask)
+      loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
       
       loss_war = TWAR_LOSS_MULTIPLIER * loss_war
       loss_pwar = PWAR_LOSS_MULTIPLIER * loss_pwar
@@ -126,7 +126,7 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
-def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt", save_last=False):
+def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt", save_last=False, is_hitter=True):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
@@ -140,8 +140,8 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, training_generator, num_train, optimizer, should_output=should_output)
-    test_loss = test(network, testing_generator, num_test)
+    avg_loss = train(network, training_generator, num_train, optimizer, should_output=should_output, is_hitter=is_hitter)
+    test_loss = test(network, testing_generator, num_test, is_hitter=is_hitter)
 
     scheduler.step(test_loss[LOSS_ITEM])
     logResults(epoch, num_epochs, avg_loss[LOSS_ITEM], test_loss[LOSS_ITEM], logging_interval, should_output)
