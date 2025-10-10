@@ -352,5 +352,28 @@ namespace DataAquisition
 
             return playersInserted;
         }
+
+        public static async Task<bool> DraftOnly(int year)
+        {
+            HttpClient httpClient = new();
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            if (!db.Player.Any(f => f.SigningYear == year && f.DraftPick != null))
+            {
+                // Look at current years draft
+                try
+                {
+                    await GetPlayersThroughDraftAsync(db, httpClient, year);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("failed GetPlayersThroughDraftAsync");
+                    Utilities.LogException(e);
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

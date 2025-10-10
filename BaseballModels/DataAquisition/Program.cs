@@ -10,13 +10,18 @@
             List<int> months = [4, 5, 6, 7, 8, 9];
             //years = [2025];
             //months = [9];
+
+            // Player could be drafted in 2004 and not play until 2005 or later
+            await DraftResults.Main(2004); 
+            await PlayerUpdate.DraftOnly(2004);
+
             foreach (int year in years)
             {
-                //while (!await DraftResults.Main(year))
-                //{ }
+                while (!await DraftResults.Main(year))
+                { }
 
-                //while (!await PlayerUpdate.Main(year))
-                //{ }
+                while (!await PlayerUpdate.Main(year))
+                { }
 
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
@@ -53,8 +58,8 @@
             if (!await FangraphsData.Main(years))
                 return;
 
-            //if (!UpdateCareers.Main(years))
-            //    return;
+            if (!UpdateCareers.Main(years))
+                return;
 
             if (!ModelPlayers.Main())
                 return;
@@ -62,11 +67,11 @@
             if (!ModelPlayerWar.Main())
                 return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
-            //if (!UpdatePlayerOrgMap.Main())
-            //    return;
+            if (!UpdatePlayerOrgMap.Main())
+                return;
 
             if (!ModelMonthStats.Main(END_YEAR, months.Last()))
                 return;
@@ -77,8 +82,8 @@
             //while (!await GetLeagues.Main())
             //{ }
 
-            //while (!await SitePlayerBio.Main(END_YEAR))
-            //{ }
+            while (!await SitePlayerBio.Main(END_YEAR))
+            { }
         }
     }
 }
