@@ -12,16 +12,16 @@
             //months = [9];
 
             // Player could be drafted in 2004 and not play until 2005 or later
-            await DraftResults.Main(2004); 
-            await PlayerUpdate.DraftOnly(2004);
+            //await DraftResults.Main(2004); 
+            //await PlayerUpdate.DraftOnly(2004);
 
             foreach (int year in years)
             {
-                while (!await DraftResults.Main(year))
-                { }
+                //while (!await DraftResults.Main(year))
+                //{ }
 
-                while (!await PlayerUpdate.Main(year))
-                { }
+                //while (!await PlayerUpdate.Main(year))
+                //{ }
 
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
@@ -55,11 +55,11 @@
             //if (!UpdateServiceTime.Main())
             //    return;
 
-            if (!await FangraphsData.Main(years))
-                return;
+            //if (!await FangraphsData.Main(years))
+            //    return;
 
-            if (!UpdateCareers.Main(years))
-                return;
+            //if (!UpdateCareers.Main(years))
+            //    return;
 
             if (!ModelPlayers.Main())
                 return;
