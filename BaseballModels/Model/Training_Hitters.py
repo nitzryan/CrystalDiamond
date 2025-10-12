@@ -7,7 +7,7 @@ import Player_Model
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
-from Constants import device, db
+from Constants import device, db, DEFAULT_NUM_LAYERS, DEFAULT_HIDDEN_SIZE
 import Prep_Map
 import Output_Map
 import warnings
@@ -46,8 +46,8 @@ if __name__ == "__main__":
             train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1) # Seed +1 so that it doesn't match pretraining, which is 0
             
             # Setup Model
-            num_layers = 4
-            hidden_size = 20
+            num_layers = DEFAULT_NUM_LAYERS
+            hidden_size = DEFAULT_HIDDEN_SIZE
             network = Player_Model.RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
             # Warning for loading model, but these are trusted
             with warnings.catch_warnings():
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             network = network.to(device)
             
             optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=20, cooldown=1)
+            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=10)
             
             num_epochs = 500
             training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

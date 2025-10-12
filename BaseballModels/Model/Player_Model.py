@@ -187,7 +187,6 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     time_steps = actual_value.size(1)
     mask_size_years = masks.size(2)
     mask_size_types = masks.size(3)
-    output_size = actual_value.size(2) // mask_size_years # Group into years
     
     pred_war = pred_value[:,:,:-6].reshape((batch_size * time_steps, mask_size_years, 2))
     pred_ip = pred_value[:,:,-6:].reshape((batch_size * time_steps, mask_size_years, 2))
@@ -198,11 +197,16 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     pa_masks = masks[:,:,0].reshape((batch_size * time_steps, mask_size_years))
     war_masks = masks[:,:,1:].reshape((batch_size * time_steps), mask_size_years, 2)
     
-    
     loss = nn.L1Loss(reduction='none')
+    
     # War
     l = (loss(pred_war, actual_war) * war_masks).sum()
     l += (loss(pred_ip, actual_ip).sum(dim=2) * pa_masks).sum()
+
+    # print(pred_war)
+    # print(actual_war[:,0,0])
+    # print(pa_masks[:,0])
+    # print(l)
 
     return l
         

@@ -48,7 +48,8 @@ def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, l
     loss_yearStats.backward(retain_graph=True)
     loss_yearPos.backward(retain_graph=True)
     
-    loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
+    loss_mlbValue = (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
+    loss_mlbValue = loss_mlbValue * MLB_VALUE_LOSS_MULTIPLIER
     loss_mlbValue.backward()
     
     optimizer.step()
@@ -84,24 +85,16 @@ def test(network, test_loader, num_elements, is_hitter : bool):
       loss_war, loss_value, loss_pwar, loss_level, loss_pa = Classification_Loss(output_war, output_value, output_pwar, output_level, output_pa, target_war, target_value, target_pwar, target_level, target_pa, mask_labels)
       loss_yearStats = Stats_Loss(output_yearStats, year_stats, year_mask)
       loss_yearPos = Position_Classification_Loss(output_yearPos, year_position, year_mask)
-      loss_mlbValue = MLB_VALUE_LOSS_MULTIPLIER * (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
+      loss_mlbValue = (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
       
-      loss_war = TWAR_LOSS_MULTIPLIER * loss_war
-      loss_pwar = PWAR_LOSS_MULTIPLIER * loss_pwar
-      loss_level = LEVEL_LOSS_MULTIPLIER * loss_level
-      loss_pa = PA_LOSS_MULTIPLIER * loss_pa
-      loss_value = VALUE_LOSS_MULTIPLIER * loss_value
-      loss_yearStats = STATS_LOSS_MULTIPLIER * loss_yearStats
-      loss_yearPos = POSITION_LOSS_MULTIPLIER * loss_yearPos
-      
-      avg_loss[0] += loss_war.item() / TWAR_LOSS_MULTIPLIER
-      avg_loss[1] += loss_pwar.item() / PWAR_LOSS_MULTIPLIER
-      avg_loss[2] += loss_level.item() / LEVEL_LOSS_MULTIPLIER
-      avg_loss[3] += loss_pa.item() / PA_LOSS_MULTIPLIER
-      avg_loss[4] += loss_yearStats.item() / STATS_LOSS_MULTIPLIER
-      avg_loss[5] += loss_yearPos.item() / POSITION_LOSS_MULTIPLIER
-      avg_loss[6] += loss_value.item() / VALUE_LOSS_MULTIPLIER
-      avg_loss[7] += loss_mlbValue.item() / MLB_VALUE_LOSS_MULTIPLIER
+      avg_loss[0] += loss_war.item()
+      avg_loss[1] += loss_pwar.item()
+      avg_loss[2] += loss_level.item()
+      avg_loss[3] += loss_pa.item()
+      avg_loss[4] += loss_yearStats.item()
+      avg_loss[5] += loss_yearPos.item()
+      avg_loss[6] += loss_value.item()
+      avg_loss[7] += loss_mlbValue.item()
       num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -165,11 +158,11 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
       break
     
     # Allow model to change fast to get decent baseline, than adjust slower without waiting for scheduler
-    if optimizer.param_groups[0]['lr'] > 0.0015 and best_loss < 5.3:
-      if should_output:
-        print("Reducing learning rate after intial fast learning period")
-      for param_group in optimizer.param_groups:
-        param_group['lr'] = 0.0015
+    # if optimizer.param_groups[0]['lr'] > 0.0015 and epoch >= 10:
+    #   if should_output:
+    #     print("Reducing learning rate after intial fast learning period")
+    #   for param_group in optimizer.param_groups:
+    #     param_group['lr'] = 0.0015
 
   if should_output:
     print(f"Best result at epoch={best_epoch} with loss={best_loss}")

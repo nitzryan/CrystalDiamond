@@ -319,7 +319,7 @@ class Data_Prep:
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
-                                                                     "SELECT * FROM Model_PitcherStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
+                                                                     "SELECT * FROM Model_PitcherStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? ORDER BY mhs.Year ASC, mhs.Month ASC",
                                                                      (pitcher.mlbId, cutoff_year))
             l = len(stats_monthlywar) + 1
             stats = [mhs for mhs, pmw in stats_monthlywar]

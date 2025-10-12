@@ -38,7 +38,7 @@ class Player_Dataset(torch.utils.data.Dataset):
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:
     io_train : list[Player_IO]
     io_test : list[Player_IO]
-    io_train, io_test = train_test_split(player_list, test_size=0.25, random_state=0)
+    io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
 
     train_lengths = torch.tensor([io.length for io in io_train])
     test_lengths = torch.tensor([io.length for io in io_test])
