@@ -22,8 +22,8 @@ if __name__ == "__main__":
     filename = sys.argv[1]
     
     batch_size = 200
-    xs : list[int] = [1,2,3,4,5,6,7,8]
-    ys : list[int] = [22,23,24,25,26,27,28]
+    xs : list[int] = [2,3,4]
+    ys : list[int] = [26,28,30,32,34]
     
     data = []
     
@@ -31,16 +31,15 @@ if __name__ == "__main__":
     y_label = "Hidden Size"
     
     data_prep = Data_Prep(Prep_Map.base_prep_map, Output_Map.base_output_map)
-    hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
-    train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0)
+    pitcher_io_list = data_prep.Generate_IO_Pitchers("WHERE lastMLBSeason<? AND signingYear<? AND isPitcher=?", (2025,2015,1), use_cutoff=True)
+    train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, 4980)
     
     for hidden_size in tqdm(ys, desc=y_label):
         this_data = []
         for num_layers in tqdm(xs, desc=x_label, leave=False):
-            hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
+            mutators = data_prep.Generate_Pitching_Mutators(batch_size, Player_IO.GetMaxLength(pitcher_io_list))
             
-            
-            network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
+            network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, mutators, data_prep=data_prep, is_hitter=False)
             network = network.to(device)
 
             optimizer = torch.optim.Adam(network.parameters(), lr=0.005)
