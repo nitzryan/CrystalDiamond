@@ -7,7 +7,7 @@ import Player_Model
 from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
-from Constants import device, db, DEFAULT_NUM_LAYERS, DEFAULT_HIDDEN_SIZE
+from Constants import device, db, DEFAULT_NUM_LAYERS_HITTER, DEFAULT_HIDDEN_SIZE_HITTER
 import Prep_Map
 import Output_Map
 import warnings
@@ -46,8 +46,8 @@ if __name__ == "__main__":
             train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1) # Seed +1 so that it doesn't match pretraining, which is 0
             
             # Setup Model
-            num_layers = DEFAULT_NUM_LAYERS
-            hidden_size = DEFAULT_HIDDEN_SIZE
+            num_layers = DEFAULT_NUM_LAYERS_HITTER
+            hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
             network = Player_Model.RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
             # Warning for loading model, but these are trusted
             with warnings.catch_warnings():
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             
             model_name_pt = f"{model_name}_{i}"
-            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), Player_Model.Classification_Loss, Player_Model.Stats_L1_Loss, Player_Model.Position_Classification_Loss, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
+            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
             
             cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_loss, i, num_layers, hidden_size))

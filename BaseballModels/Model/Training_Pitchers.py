@@ -63,7 +63,7 @@ if __name__ == "__main__":
             testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             
             model_name_pt = f"{model_name}_{i}"
-            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), Player_Model.Classification_Loss, Player_Model.Stats_L1_Loss, Player_Model.Position_Classification_Loss, optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
+            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
             
             cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 0, best_loss, i, num_layers, hidden_size))
