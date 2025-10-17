@@ -14,6 +14,7 @@ if __name__ == "__main__":
     cursor = db.cursor()
     cursor.execute("DELETE FROM Output_PlayerWar WHERE isHitter=0")
     cursor.execute("DELETE FROM Output_PitcherStats")
+    cursor.execute("DELETE FROM Output_PitcherValue")
     db.commit()
     cursor = db.cursor()
     model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
@@ -44,6 +45,10 @@ if __name__ == "__main__":
         num_layers = mth[0].NumLayers
         hidden_size = mth[0].HiddenSize
         network = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, data_prep=data_prep, is_hitter=False)
+        
+        # Data to unnormalize values from model
+        mlb_value_mean : torch.Tensor = data_prep.__getattribute__('__pitchervalues_means').to(device)
+        mlb_value_stds : torch.Tensor = data_prep.__getattribute__('__pitchervalues_devs').to(device)
         
         for m in tqdm(mth, desc="Evaluation Models", leave=False):
             model_idx = int(m.ModelIdx)
@@ -81,5 +86,14 @@ if __name__ == "__main__":
                     d = dbd[:,1:]
                     vals = [tuple(x) for x in d.tolist()]
                     cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                
+                # Insert MLB value
+                output_mlbValue = (output_mlbValue * mlb_value_stds) + mlb_value_mean
+                omv = torch.cat((mlbIds, modelIdxs, dtes, output_mlbValue), dim=2)
+                mlb_data = torch.nn.utils.rnn.unpad_sequence(omv, length, batch_first=True)
+                for dbd in mlb_data:
+                    vals = [tuple(x) for x in dbd.tolist()]
+                    cursor.executemany(f"INSERT INTO Output_PitcherValue VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    
                 db.commit()
                 

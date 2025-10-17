@@ -320,6 +320,94 @@ CREATE TABLE "Output_PitcherStatsAggregation" (
 	PRIMARY KEY("mlbId", "model", "levelId")
 );
 
+CREATE TABLE "Output_HitterValue" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"modelIdx" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"WAR1Year" REAL NOT NULL,
+	"OFF1Year" REAL NOT NULL,
+	"BSR1Year" REAL NOT NULL,
+	"DEF1Year" REAL NOT NULL,
+	"WAR2Year" REAL NOT NULL,
+	"OFF2Year" REAL NOT NULL,
+	"BSR2Year" REAL NOT NULL,
+	"DEF2Year" REAL NOT NULL,
+	"WAR3Year" REAL NOT NULL,
+	"OFF3Year" REAL NOT NULL,
+	"BSR3Year" REAL NOT NULL,
+	"DEF3Year" REAL NOT NULL,
+	"PA1Year" REAL NOT NULL,
+	"PA2Year" REAL NOT NULL,
+	"PA3Year" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
+);
+
+CREATE TABLE "Output_HitterValueAggregation" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"WAR1Year" REAL NOT NULL,
+	"OFF1Year" REAL NOT NULL,
+	"BSR1Year" REAL NOT NULL,
+	"DEF1Year" REAL NOT NULL,
+	"WAR2Year" REAL NOT NULL,
+	"OFF2Year" REAL NOT NULL,
+	"BSR2Year" REAL NOT NULL,
+	"DEF2Year" REAL NOT NULL,
+	"WAR3Year" REAL NOT NULL,
+	"OFF3Year" REAL NOT NULL,
+	"BSR3Year" REAL NOT NULL,
+	"DEF3Year" REAL NOT NULL,
+	"PA1Year" REAL NOT NULL,
+	"PA2Year" REAL NOT NULL,
+	"PA3Year" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "month", "year")
+);
+
+CREATE TABLE "Output_PitcherValue" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"modelIdx" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"WarSP1Year" REAL NOT NULL,
+	"WarRP1Year" REAL NOT NULL,
+	"WarSP2Year" REAL NOT NULL,
+	"WarRP2Year" REAL NOT NULL,
+	"WarSP3Year" REAL NOT NULL,
+	"WarRP3Year" REAL NOT NULL,
+	"IPSP1Year" REAL NOT NULL,
+	"IPRP1Year" REAL NOT NULL,
+	"IPSP2Year" REAL NOT NULL,
+	"IPRP2Year" REAL NOT NULL,
+	"IPSP3Year" REAL NOT NULL,
+	"IPRP3Year" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
+);
+
+CREATE TABLE "Output_PitcherValueAggregation" (
+	"mlbId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"WarSP1Year" REAL NOT NULL,
+	"WarRP1Year" REAL NOT NULL,
+	"WarSP2Year" REAL NOT NULL,
+	"WarRP2Year" REAL NOT NULL,
+	"WarSP3Year" REAL NOT NULL,
+	"WarRP3Year" REAL NOT NULL,
+	"IPSP1Year" REAL NOT NULL,
+	"IPRP1Year" REAL NOT NULL,
+	"IPSP2Year" REAL NOT NULL,
+	"IPRP2Year" REAL NOT NULL,
+	"IPSP3Year" REAL NOT NULL,
+	"IPRP3Year" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "month", "year")
+);
+
 CREATE TABLE "Park_Factors" (
 	"TeamId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
@@ -846,6 +934,43 @@ CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
 CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 	"model",
 	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_PlayerWarAggregation" ON "Output_PlayerWarAggregation" (
+	"model",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_PitcherValue" ON "Output_PitcherValue" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_PitcherValueAggregation" ON "Output_PitcherValueAggregation" (
+	"model",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_HitterValue" ON "Output_HitterValue" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_Output_HitterValueAggregation" ON "Output_HitterValueAggregation" (
+	"model",
 	"mlbId",
 	"year",
 	"month"

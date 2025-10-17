@@ -544,6 +544,142 @@ class DB_Output_PitcherStatsAggregation:
 
 
 ##############################################################################################
+class DB_Output_HitterValue:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.model = values[1]
+		self.modelIdx = values[2]
+		self.year = values[3]
+		self.month = values[4]
+		self.WAR1Year = values[5]
+		self.OFF1Year = values[6]
+		self.BSR1Year = values[7]
+		self.DEF1Year = values[8]
+		self.WAR2Year = values[9]
+		self.OFF2Year = values[10]
+		self.BSR2Year = values[11]
+		self.DEF2Year = values[12]
+		self.WAR3Year = values[13]
+		self.OFF3Year = values[14]
+		self.BSR3Year = values[15]
+		self.DEF3Year = values[16]
+		self.PA1Year = values[17]
+		self.PA2Year = values[18]
+		self.PA3Year = values[19]
+
+	NUM_ELEMENTS = 20
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_HitterValue']:
+		items = cursor.execute("SELECT * FROM Output_HitterValue " + conditional, values).fetchall()
+		return [DB_Output_HitterValue(i) for i in items]
+
+
+##############################################################################################
+class DB_Output_HitterValueAggregation:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.model = values[1]
+		self.year = values[2]
+		self.month = values[3]
+		self.WAR1Year = values[4]
+		self.OFF1Year = values[5]
+		self.BSR1Year = values[6]
+		self.DEF1Year = values[7]
+		self.WAR2Year = values[8]
+		self.OFF2Year = values[9]
+		self.BSR2Year = values[10]
+		self.DEF2Year = values[11]
+		self.WAR3Year = values[12]
+		self.OFF3Year = values[13]
+		self.BSR3Year = values[14]
+		self.DEF3Year = values[15]
+		self.PA1Year = values[16]
+		self.PA2Year = values[17]
+		self.PA3Year = values[18]
+
+	NUM_ELEMENTS = 19
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.model,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_HitterValueAggregation']:
+		items = cursor.execute("SELECT * FROM Output_HitterValueAggregation " + conditional, values).fetchall()
+		return [DB_Output_HitterValueAggregation(i) for i in items]
+
+
+##############################################################################################
+class DB_Output_PitcherValue:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.model = values[1]
+		self.modelIdx = values[2]
+		self.year = values[3]
+		self.month = values[4]
+		self.WarSP1Year = values[5]
+		self.WarRP1Year = values[6]
+		self.WarSP2Year = values[7]
+		self.WarRP2Year = values[8]
+		self.WarSP3Year = values[9]
+		self.WarRP3Year = values[10]
+		self.IPSP1Year = values[11]
+		self.IPRP1Year = values[12]
+		self.IPSP2Year = values[13]
+		self.IPRP2Year = values[14]
+		self.IPSP3Year = values[15]
+		self.IPRP3Year = values[16]
+
+	NUM_ELEMENTS = 17
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitcherValue']:
+		items = cursor.execute("SELECT * FROM Output_PitcherValue " + conditional, values).fetchall()
+		return [DB_Output_PitcherValue(i) for i in items]
+
+
+##############################################################################################
+class DB_Output_PitcherValueAggregation:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.model = values[1]
+		self.year = values[2]
+		self.month = values[3]
+		self.WarSP1Year = values[4]
+		self.WarRP1Year = values[5]
+		self.WarSP2Year = values[6]
+		self.WarRP2Year = values[7]
+		self.WarSP3Year = values[8]
+		self.WarRP3Year = values[9]
+		self.IPSP1Year = values[10]
+		self.IPRP1Year = values[11]
+		self.IPSP2Year = values[12]
+		self.IPRP2Year = values[13]
+		self.IPSP3Year = values[14]
+		self.IPRP3Year = values[15]
+
+	NUM_ELEMENTS = 16
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.model,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitcherValueAggregation']:
+		items = cursor.execute("SELECT * FROM Output_PitcherValueAggregation " + conditional, values).fetchall()
+		return [DB_Output_PitcherValueAggregation(i) for i in items]
+
+
+##############################################################################################
 class DB_Park_Factors:
 	def __init__(self, values : tuple[any]):
 		self.TeamId = values[0]
