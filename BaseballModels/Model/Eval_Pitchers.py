@@ -43,7 +43,7 @@ if __name__ == "__main__":
         mth = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=?", (model_name,))
         num_layers = mth[0].NumLayers
         hidden_size = mth[0].HiddenSize
-        network = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, output_map=data_prep.output_map, is_hitter=False)
+        network = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, data_prep=data_prep, is_hitter=False)
         
         for m in tqdm(mth, desc="Evaluation Models", leave=False):
             model_idx = int(m.ModelIdx)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
             for batch, (data, length, dtes, mask) in tqdm(enumerate(generator), total=len(generator), desc="Evaluating Pitchers", leave=False):
                 data, length, dtes, mask = data.to(device), length.to(device), dtes.to(device), mask.to(device)
-                output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions = network(data, length)
+                output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network(data, length)
                 output_war = F.softmax(output_war, dim=2)
                 output_value = F.softmax(output_value, dim=2)
                 
