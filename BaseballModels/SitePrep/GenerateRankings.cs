@@ -31,12 +31,6 @@ namespace SitePrep
             public required int HighestLevel;
         }
 
-        internal class PlayerYearPosition {
-            public required int Year;
-            public required string position;
-            public required bool isHitter;
-        }
-
         public static bool Main(int endYear, int endMonth)
         {
             try {
@@ -57,48 +51,6 @@ namespace SitePrep
                     });
                 }
                 siteDb.SaveChanges();
-
-                // Create Position List
-                Dictionary<int, List<PlayerYearPosition>> playerYearPositions = new();
-                using (ProgressBar progressBar = new ProgressBar(db.Model_Players.Count(), "Creating playerYearPositions"))
-                {
-                    foreach (var mp in db.Model_Players)
-                    {
-                        List<PlayerYearPosition> pyps = new();
-
-                        IEnumerable<int> hitterYears = mp.IsHitter == 1 ? db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) : [];
-                        IEnumerable<int> pitcherYears = mp.IsPitcher == 1 ? db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).OrderBy(f => f) : [];
-
-                        if (mp.IsPitcher == 1)
-                        {
-                            foreach (var y in pitcherYears)
-                            {
-                                pyps.Add(new PlayerYearPosition
-                                {
-                                    Year = y,
-                                    position = "P",
-                                    isHitter = false,
-                                });
-                            }
-                        }
-                        if (mp.IsHitter == 1)
-                        {
-                            foreach (var y in hitterYears)
-                            {
-                                pyps.Add(new PlayerYearPosition
-                                {
-                                    Year = y,
-                                    position = Utilities.GetPosition(db, mp.MlbId, y),
-                                    isHitter = true,
-                                });
-                            }
-                        }
-
-                        playerYearPositions.Add(mp.MlbId, pyps);
-
-                        progressBar.Tick();
-                    }
-                }
 
                 // Iterate through months
                 int year = 2015;
@@ -264,7 +216,7 @@ namespace SitePrep
 
                                         // Get Position
                                         string position = "";
-                                        var pyps = playerYearPositions[current.MlbId].Where(f => f.isHitter == playerWarList.First().isHitter);
+                                        var pyps = siteDb.PlayerYearPositions.Where(f => f.MlbId == current.MlbId && f.IsHitter == (playerWarList.First().isHitter ? 1 : 0));
                                         if (!pyps.Any()) // No playing time, get stored from Mlb
                                             position = db.Site_PlayerBio.Single(f => f.Id == current.MlbId).Position;
                                         else
@@ -272,9 +224,9 @@ namespace SitePrep
                                             var prevCurrentPyps = pyps.Where(f => f.Year <= year) // All values <= selected year
                                                 .OrderByDescending(f => f.Year);
                                             if (prevCurrentPyps.Any())
-                                                position = prevCurrentPyps.First().position; // Get most recent
+                                                position = prevCurrentPyps.First().Position; // Get most recent
                                             else
-                                                position = pyps.OrderBy(f => f.Year).First().position; // Get next value (slight future bias)
+                                                position = pyps.OrderBy(f => f.Year).First().Position; // Get next value (slight future bias)
                                         }
 
                                         // Get highest level player has reached this far

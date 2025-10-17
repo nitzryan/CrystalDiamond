@@ -15,29 +15,35 @@ namespace SitePrep
             if (!ModelAggregation.Main())
                 return;
 
-            //if (!GenerateRankings.Main(year, month))
-            //    return;
+            if (!GeneratePlayerPositions.MainFunc())
+                return;
 
-            //if (!GenerateTeamRank.Main())
-            //    return;
+            if (!GenerateRankings.Main(year, month))
+                return;
 
-            //if (!HitterPage.Main())
-            //    return;
+            if (!GenerateWarRankings.MainFunc(year, month))
+                return;
 
-            //if (!PitcherPage.Main())
-            //    return;
+            if (!GenerateTeamRank.Main())
+                return;
 
-            //if (!OrgMap.Main())
-            //    return;
+            if (!HitterPage.Main())
+                return;
 
-            //if (!SearchIndex.Main())
-            //    return;
+            if (!PitcherPage.Main())
+                return;
 
-            //if (!Homepage.Main())
-            //    return;
+            if (!OrgMap.Main())
+                return;
 
-            //if (!MoveDbToServer.Main())
-            //    return;
+            if (!SearchIndex.Main())
+                return;
+
+            if (!Homepage.Main())
+                return;
+
+            if (!MoveDbToServer.Main())
+                return;
         }
     }
 }

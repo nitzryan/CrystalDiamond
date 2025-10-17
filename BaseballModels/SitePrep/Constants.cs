@@ -20,6 +20,7 @@ namespace SitePrep
 
         public static readonly DbContextOptions<SiteDbContext> SITEDB_OPTIONS = new DbContextOptionsBuilder<SiteDbContext>()
         .UseSqlite("Data Source=../../../../SiteDb/Site.db;")
+        .EnableSensitiveDataLogging()
         .Options;
     }
 }
