@@ -162,6 +162,7 @@ namespace SiteDb
                             rank++;
                         }
 
+                        rank = 1;
                         // Add reliever wars, modifying those that have a starter war
                         foreach (var rw in relieverWars)
                         {
