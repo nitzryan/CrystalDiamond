@@ -15,7 +15,7 @@ namespace DataAquisition
                 db.SaveChanges();
 
                 var players = db.Player_CareerStatus.Join(db.Player, pcs => pcs.MlbId, p => p.MlbId, (pcs, p) => new { pcs, p })
-                    .Where(f => f.p.SigningYear >= Constants.START_YEAR && f.pcs.IgnorePlayer == null);
+                    .Where(f => f.p.SigningYear >= Constants.START_YEAR);
                 using (ProgressBar progressBar = new ProgressBar(players.Count(), $"Creating Model_Players"))
                 {
                     foreach (var p in players)
