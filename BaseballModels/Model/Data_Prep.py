@@ -257,7 +257,8 @@ class Data_Prep:
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
-            prospect_mask[0] = 1
+            # Determine if player should be ignored.  If yes, then initial mask should be 0, otherwise 1
+            prospect_mask[0] = 1 if cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (hitter.mlbId,)).fetchone()[0] == None else 0
             for i, stat in enumerate(stats):
                 prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
             
@@ -354,7 +355,7 @@ class Data_Prep:
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
-            prospect_mask[0] = 1
+            prospect_mask[0] = 1 if cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (pitcher.mlbId,)).fetchone()[0] == None else 0
             for i, stat in enumerate(stats):
                 prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
             
