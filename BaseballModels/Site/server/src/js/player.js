@@ -318,6 +318,8 @@ function piePointGenerator(model) {
     return points;
 }
 function lineCallback(index, modelId) {
+    if (line_graph === null)
+        return;
     var model;
     if (line_graph.graphIsHitter()) {
         model = hitterModels[modelId - 1][index];
@@ -389,7 +391,6 @@ function getDatasets(hitter_war_list, hitter_ranks_list, pitcher_war_list, pitch
     return datasets;
 }
 function setupSelector(hitter_war_list, hitter_ranks_list, pitcher_war_list, pitcher_ranks_list) {
-    var graph_selector = getElementByIdStrict('graph_selector');
     for (var i = 0; i < hitter_war_list.length; i++) {
         if (hitter_war_list[i].length > 0) {
             var opt = document.createElement('option');
@@ -420,8 +421,10 @@ function setupSelector(hitter_war_list, hitter_ranks_list, pitcher_war_list, pit
     }
     graph_selector.value = "0";
     graph_selector.addEventListener('change', function () {
-        line_graph.setDataset(parseInt(graph_selector.value));
-        line_graph.fireCallback();
+        if (line_graph !== null) {
+            line_graph.setDataset(parseInt(graph_selector.value));
+            line_graph.fireCallback();
+        }
     });
 }
 function setupModel(hitterModels, pitcherModels) {
@@ -461,15 +464,25 @@ function setupModel(hitterModels, pitcherModels) {
     var hitter_rank_points = hitterModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var pitcher_rank_points = pitcherModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
-    line_graph = new LineGraph(model_graph, datasets, lineCallback);
-    setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
-    var pie_points = person.isHitter ?
-        piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
-        piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1]);
-    pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
+    console.log(datasets);
+    if (datasets.length > 0) {
+        line_graph = new LineGraph(model_graph, datasets, lineCallback);
+        setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
+        var pie_points = person.isHitter ?
+            piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
+            piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1]);
+        pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution");
+    }
+    else {
+        line_graph = null;
+        graph_selector.classList.add('hidden');
+        var noProspectData = getElementByIdStrict('noProspectData');
+        noProspectData.classList.remove('hidden');
+    }
 }
 var model_pie = getElementByIdStrict("projWarPie");
 var model_graph = getElementByIdStrict("projWarGraph");
+var graph_selector = getElementByIdStrict('graph_selector');
 var line_graph;
 var pie_graph;
 var keyControls;
@@ -508,7 +521,8 @@ function main() {
                     hitterModels = person.isHitter ? getModels(pd, "hit_models") : [];
                     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : [];
                     setupModel(hitterModels, pitcherModels);
-                    line_graph.fireCallback();
+                    if (line_graph !== null)
+                        line_graph.fireCallback();
                     updateElementText("player_name", "".concat(person.firstName, " ").concat(person.lastName));
                     updateElementText("player_position", person.position);
                     updateElementText("player_status", person.status);

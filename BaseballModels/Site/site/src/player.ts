@@ -459,6 +459,9 @@ function piePointGenerator(model : Model) : Point[]
 
 function lineCallback(index : number, modelId : number)
 {
+    if (line_graph === null)
+        return
+
     let model : Model
     if (line_graph.graphIsHitter())
     {
@@ -547,8 +550,6 @@ function getDatasets(hitter_war_list : Point[][], hitter_ranks_list : Point[][],
 
 function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][], pitcher_war_list : Point[][], pitcher_ranks_list : Point[][])
 {
-    let graph_selector = getElementByIdStrict('graph_selector') as HTMLSelectElement
-
     for (let i = 0; i < hitter_war_list.length; i++)
     {
         if (hitter_war_list[i].length > 0)
@@ -591,8 +592,11 @@ function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][
     graph_selector.value = "0"
 
     graph_selector.addEventListener('change', () => {
-        line_graph.setDataset(parseInt(graph_selector.value))
-        line_graph.fireCallback()
+        if (line_graph !== null)
+        {
+            line_graph.setDataset(parseInt(graph_selector.value))
+            line_graph.fireCallback()
+        }
     })
 }
 
@@ -642,19 +646,31 @@ function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
     let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
     let pitcher_rank_points : Point[][] = pitcherModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
 
+    
     const datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
-    line_graph = new LineGraph(model_graph, datasets, lineCallback)
-    setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
+    console.log(datasets)
+    if (datasets.length > 0)
+    {
+        line_graph = new LineGraph(model_graph, datasets, lineCallback)
+        setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
 
-    const pie_points = person.isHitter ? 
-        piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
-        piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1])
-    pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
+        const pie_points = person.isHitter ? 
+            piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
+            piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1])
+        pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
+    } else {
+        line_graph = null
+        graph_selector.classList.add('hidden')
+        let noProspectData = getElementByIdStrict('noProspectData')
+        noProspectData.classList.remove('hidden')
+    }
+    
 }
 
 const model_pie = getElementByIdStrict("projWarPie") as HTMLCanvasElement
 const model_graph = getElementByIdStrict("projWarGraph") as HTMLCanvasElement
-let line_graph : LineGraph
+let graph_selector = getElementByIdStrict('graph_selector') as HTMLSelectElement
+let line_graph : LineGraph | null
 let pie_graph : PieGraph
 let keyControls : KeyControls
 
@@ -696,7 +712,8 @@ async function main()
     pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 
     setupModel(hitterModels, pitcherModels)
-    line_graph.fireCallback()
+    if (line_graph !== null)
+        line_graph.fireCallback()
 
     // Set person
     updateElementText("player_name", `${person.firstName} ${person.lastName}`)
