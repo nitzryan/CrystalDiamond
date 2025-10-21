@@ -136,9 +136,9 @@ namespace SiteTesting
                 string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&model={modelId}.{isWar}";
                 var driver = driverDict[TestContext.CurrentContext.WorkerId];
                 bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
-                Assert.That(pageLoaded, $"{year}-{month} not loaded");
+                Assert.That(pageLoaded, $"{year}-{month}-{modelId} not loaded");
                 var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
-                Assert.That(!errors, $"{year}-{month} error: {msg}");
+                Assert.That(!errors, $"{year}-{month}-{modelId} error: {msg}");
             }
         }
 
@@ -147,6 +147,26 @@ namespace SiteTesting
             var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
             foreach (var d in dates)
                 yield return new object[] { d.Year, d.Month, d.ModelId };
+        }
+
+        // MLB Ranks
+        [Test, TestCaseSource(nameof(AllMlbPlayerRankings))]
+        public void LoadMlbRankingsNoErrors(int year, int month, int modelId, int playerType)
+        {
+            string url = $"http://127.0.0.1:3000/mlbRanks?year={year}&month={month}&model={modelId}.1&type={playerType}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{year}-{month}-{modelId}-{playerType} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{month}-{modelId}-{playerType} error: {msg}");
+        }
+
+        static IEnumerable<object> AllMlbPlayerRankings()
+        {
+            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
+            foreach (var d in dates)
+                foreach (var type in new List<int>([1, 2, 3]))
+                    yield return new object[] { d.Year, d.Month, d.ModelId, type };
         }
 
         [OneTimeTearDown]
