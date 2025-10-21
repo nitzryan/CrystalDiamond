@@ -1,5 +1,7 @@
 const rankings_header = getElementByIdStrict('rankings_header')
-const rankings_list = getElementByIdStrict('rankings_list') as HTMLOListElement
+const rankings_table = getElementByIdStrict('rankings_table') as HTMLTableElement
+const rankings_table_head = getElementByIdStrict('rankings_table_head') as HTMLTableSectionElement
+const rankings_table_body = getElementByIdStrict('rankings_table_body') as HTMLTableSectionElement
 const rankings_load = getElementByIdStrict('rankings_load') as HTMLButtonElement
 
 type Player = {
@@ -11,7 +13,7 @@ type Player = {
     birthYear : number,
     birthMonth : number,
     level : number | null,
-    playingTime : string | null
+    playingTime : number | null
 }
 
 function createPlayer(obj : JsonObject, isWar : number)
@@ -41,7 +43,7 @@ function createMLBHitter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "pa").toFixed(0).toString() + " PA"
+        playingTime : getJsonNumber(obj, "pa")
     }
     return p
 }
@@ -57,7 +59,7 @@ function createMLBStarter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "spIP").toFixed(0).toString() + " IP"
+        playingTime : getJsonNumber(obj, "spIP")
     }
     return p
 }
@@ -73,42 +75,36 @@ function createMLBReliever(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "rpIP").toFixed(0).toString() + " IP"
+        playingTime : getJsonNumber(obj, "rpIP")
     }
     return p
 }
 
-function createPlayerElement(player : Player, year : number, month : number, modelId : number, isWar : number) : HTMLLIElement
+let __current_rank = 1
+function createPlayerElement(player : Player, year : number, month : number, modelId : number, isWar : number) : HTMLTableRowElement
 {
-    const el = document.createElement('li') as HTMLLIElement
+    const el = document.createElement('tr') as HTMLTableRowElement
+    el.classList.add('rankings_item')
+
     const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
     let ageInYears = year - player.birthYear
     if (month < player.birthMonth)
         ageInYears--
 
-    const levelString = player.level !== null ? `<div>${level_map[player.level]}</div>` : ""
-    const ptString = player.playingTime !== null ? `<div>${player.playingTime}</div>` : ""
-    el.innerHTML = 
-        `
-        <div class='rankings_item'>
-            <div class='rankings_row'>
-                <div class='rankings_name'><a href='./player?id=${player.id}'>${player.name}</a></div>
-                <div class='rankings_rightrow'>
-                    <div><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></div>
-                    ${levelString}
-                    ${ptString}
-                </div>
-            </div>
-            <div class='rankings_row'>
-                <div>${formatModelString(player.war, isWar)}</div>
-                <div class='rankings_rightrow'>
-                    <div>${player.position}</div>
-                    <div>${ageInYears}yrs</div>
-                </div>
-            </div>
-        </div>
+    const levelString = player.level !== null ? `<td>${level_map[player.level]}</td>` : ""
+    const ptString = player.playingTime !== null ? `<td>${player.playingTime.toFixed(0)}</td>` : ""
+    el.innerHTML = `
+            <td>${__current_rank}</td>
+            <td><a href='./player?id=${player.id}'>${player.name}</a></td>
+            <td><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
+            <td>${formatModelString(player.war, isWar)}</td>
+            ${levelString}
+            ${ptString}
+            <td>${player.position}</td>
+            <td>${ageInYears}</td>
         `
 
+    __current_rank += 1
     return el
 }
 
@@ -153,7 +149,7 @@ class PlayerLoader
         this.period = args.period
     }
 
-    async getElements(num_elements : number) : Promise<HTMLLIElement[]>
+    async getElements(num_elements : number) : Promise<HTMLTableRowElement[]>
     {
         if (this.exhaustedElements)
             return []
@@ -217,9 +213,57 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
         const elements = await playerLoader.getElements(num_elements)
         for (var el of elements)
         {
-            rankings_list.appendChild(el)
+            rankings_table_body.appendChild(el)
         }
     })
+    
+    
+    let valueString : string
+    let levelString : string = ""
+    let ptString : string = ""
+    
+    // Setup visibility for rankings table
+    if (args.type === PlayerLoaderType.Prospect)
+    {
+        levelString = "<th>Level</th>"
+        if (args.isWar)
+            valueString = "WAR"
+        else
+            valueString = "Value"
+    } else 
+    {
+        if (args.type === PlayerLoaderType.MLBHitter)
+        {
+            valueString = "WAR / 600PA"
+            ptString = "<th>PA</th>"
+        } 
+        else if (args.type === PlayerLoaderType.MLBStarter)
+        {
+            valueString = "WAR / 150IP"
+            ptString = "<th>IP</th>"
+        } 
+        else if (args.type === PlayerLoaderType.MLBReliever)
+        {
+            valueString = "WAR / 50IP"
+            ptString = "<th>IP</th>"
+        }
+        else {
+            throw new Error("Invalid args.type in PlayerLoader")
+        }
+    }
+
+    rankings_table_head.innerHTML = `
+        <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Team</th>
+            <th>${valueString}</th>
+            ${levelString}
+            ${ptString}
+            <th>Position</th>
+            <th>Age</th>
+        <tr>
+    `
 
     rankings_load.dispatchEvent(new Event('click'))
 }

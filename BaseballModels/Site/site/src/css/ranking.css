@@ -6,11 +6,6 @@
     align-items: center;
 }
 
-#rankings_list {
-    font-size: 1.5em;
-    align-items: center;
-}
-
 #rankings_header {
     margin-top: 0.5em;
     font-size: 1.5em;
@@ -25,12 +20,9 @@
     font-size: 1.25em;
 }
 
-.rankings_item {
-    display: flex;
-    flex-direction: column;
-    width: 30em;
-    margin-top: 1em;
-}
+/* .rankings_item {
+    
+} */
 
 .rankings_row {
     display: flex;

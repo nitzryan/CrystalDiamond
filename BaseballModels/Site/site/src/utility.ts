@@ -251,7 +251,7 @@ function getOrdinalNumber(num : number) : string
 function formatModelString(val : number, isWar : number) : string
 {
     if (isWar === 1)
-        return `${val.toFixed(1)} WAR`
+        return `${val.toFixed(1)}`
     else
         return `$${val.toFixed(0)}M`
 }

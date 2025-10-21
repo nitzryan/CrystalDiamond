@@ -9,9 +9,13 @@ if __name__ == "__main__":
     with open("src/htmlTemplates/model_select_options.html", "r") as file:
         modelSelectOptionsHtml = file.read()
     
+    with open("src/htmlTemplates/rankings_table.html", "r") as file:
+        rankingsTableHtml = file.read()
+    
     with open(f"src/html/{filename}", "r") as file:
         contents = file.read()
         contents = contents.replace("<!-- BANNER -->", bannerHtml)
         contents = contents.replace("<!-- MODEL_OPTIONS -->", modelSelectOptionsHtml)
+        contents = contents.replace("<!-- RANKINGS TABLE -->", rankingsTableHtml)
         with open(f"../server/src/html/{filename}", "w") as outFile:
             outFile.write(contents)

@@ -78,7 +78,7 @@ async function createTeamPage(datesJson : JsonObject)
     document.title = `${getParentAbbr(teamId)} ${MONTH_CODES[month]} ${year} Rankings`
 }
 
-function TeamOverviewMap(team : JsonValue) : HTMLLIElement
+function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
 {
     team = team as JsonObject
 
@@ -88,28 +88,22 @@ function TeamOverviewMap(team : JsonValue) : HTMLLIElement
         (team["value"] as number).toFixed(1) + " WAR" :
         "$" + (team["value"] as number).toFixed(0) + "M"
 
-    let el = document.createElement('li')
+    let el = document.createElement('tr')
+    el.classList.add('rankings_item')
     el.innerHTML = 
         `
-        <div class='rankings_item'>
-            <div class='rankings_row'>
-                <div class='rankings_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></div>
-                <div class='rankings_rightrow'>
-                    <div>Highest Rank: ${team["highestRank"]}</div>
-                </div>
-            </div>
-            <div class='rankings_row'>
-                <div>${value_string}</div>
-                <div class='rankings_rightrow'>
-                    <div>${team["top10"]}</div>
-                    <div>${team["top50"]}</div>
-                    <div>${team["top100"]}</div>
-                    <div>${team["top200"]}</div>
-                    <div>${team["top500"]}</div>
-                </div>
-            </div>
-        </div>
+        <td>${__current_rank}</td>
+        <td><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></td>
+        <td>${team["highestRank"]}</td>
+        <td>${value_string}</td>
+        <td>${team["top10"]}</td>
+        <td>${team["top50"]}</td>
+        <td>${team["top100"]}</td>
+        <td>${team["top200"]}</td>
+        <td>${team["top500"]}</td>
         `
+
+    __current_rank += 1
 
     return el
 }
@@ -119,9 +113,24 @@ async function createOverviewPage(datesJson : JsonObject)
     const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}.${isWar}`)).json()) as JsonArray
     let elements = team_rankings_data.map(TeamOverviewMap)
     elements.forEach(f => {
-        rankings_list.appendChild(f)
+        rankings_table_body.appendChild(f)
     })
     
+    let valueString = isWar == 1 ? "WAR" : "Value"
+    rankings_table_head.innerHTML = `
+        <tr>
+            <th>Rank</th>
+            <th>Team</th>
+            <th>Highest Ranked</th>
+            <th>${valueString}</th>
+            <th>Top 10</th>
+            <th>Top 50</th>
+            <th>Top 100</th>
+            <th>Top 200</th>
+            <th>Top 500</th>
+        <tr>
+        `
+
     rankings_header.innerText = `Team Rankings for ${MONTH_CODES[month]} ${year}`
     rankings_load.classList.add('hidden')
     team_select?.classList.add('hidden')

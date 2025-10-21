@@ -492,7 +492,7 @@ function getOrdinalNumber(num) {
 }
 function formatModelString(val, isWar) {
     if (isWar === 1)
-        return "".concat(val.toFixed(1), " WAR");
+        return "".concat(val.toFixed(1));
     else
         return "$".concat(val.toFixed(0), "M");
 }

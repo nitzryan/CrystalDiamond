@@ -192,7 +192,9 @@ function setupTeamSelector(teamId) {
     team_select.value = teamId.toString();
 }
 var rankings_header = getElementByIdStrict('rankings_header');
-var rankings_list = getElementByIdStrict('rankings_list');
+var rankings_table = getElementByIdStrict('rankings_table');
+var rankings_table_head = getElementByIdStrict('rankings_table_head');
+var rankings_table_body = getElementByIdStrict('rankings_table_body');
 var rankings_load = getElementByIdStrict('rankings_load');
 function createPlayer(obj, isWar) {
     var p = {
@@ -218,7 +220,7 @@ function createMLBHitter(obj) {
         birthYear: getJsonNumber(obj, "birthYear"),
         birthMonth: getJsonNumber(obj, "birthMonth"),
         level: null,
-        playingTime: getJsonNumber(obj, "pa").toFixed(0).toString() + " PA"
+        playingTime: getJsonNumber(obj, "pa")
     };
     return p;
 }
@@ -232,7 +234,7 @@ function createMLBStarter(obj) {
         birthYear: getJsonNumber(obj, "birthYear"),
         birthMonth: getJsonNumber(obj, "birthMonth"),
         level: null,
-        playingTime: getJsonNumber(obj, "spIP").toFixed(0).toString() + " IP"
+        playingTime: getJsonNumber(obj, "spIP")
     };
     return p;
 }
@@ -246,20 +248,22 @@ function createMLBReliever(obj) {
         birthYear: getJsonNumber(obj, "birthYear"),
         birthMonth: getJsonNumber(obj, "birthMonth"),
         level: null,
-        playingTime: getJsonNumber(obj, "rpIP").toFixed(0).toString() + " IP"
+        playingTime: getJsonNumber(obj, "rpIP")
     };
     return p;
 }
+var __current_rank = 1;
 function createPlayerElement(player, year, month, modelId, isWar) {
-    var el = document.createElement('li');
+    var el = document.createElement('tr');
+    el.classList.add('rankings_item');
     var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
-    var levelString = player.level !== null ? "<div>".concat(level_map[player.level], "</div>") : "";
-    var ptString = player.playingTime !== null ? "<div>".concat(player.playingTime, "</div>") : "";
-    el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    ").concat(levelString, "\n                    ").concat(ptString, "\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, isWar), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+    var levelString = player.level !== null ? "<td>".concat(level_map[player.level], "</td>") : "";
+    var ptString = player.playingTime !== null ? "<td>".concat(player.playingTime.toFixed(0), "</td>") : "";
+    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td>").concat(player.position, "</td>\n            <td>").concat(ageInYears, "</td>\n        ");
+    __current_rank += 1;
     return el;
 }
 var PlayerLoaderType;
@@ -366,12 +370,40 @@ function setupRankings(args, num_elements) {
                     elements = _a.sent();
                     for (_i = 0, elements_2 = elements; _i < elements_2.length; _i++) {
                         el = elements_2[_i];
-                        rankings_list.appendChild(el);
+                        rankings_table_body.appendChild(el);
                     }
                     return [2];
             }
         });
     }); });
+    var valueString;
+    var levelString = "";
+    var ptString = "";
+    if (args.type === PlayerLoaderType.Prospect) {
+        levelString = "<th>Level</th>";
+        if (args.isWar)
+            valueString = "WAR";
+        else
+            valueString = "Value";
+    }
+    else {
+        if (args.type === PlayerLoaderType.MLBHitter) {
+            valueString = "WAR / 600PA";
+            ptString = "<th>PA</th>";
+        }
+        else if (args.type === PlayerLoaderType.MLBStarter) {
+            valueString = "WAR / 150IP";
+            ptString = "<th>IP</th>";
+        }
+        else if (args.type === PlayerLoaderType.MLBReliever) {
+            valueString = "WAR / 50IP";
+            ptString = "<th>IP</th>";
+        }
+        else {
+            throw new Error("Invalid args.type in PlayerLoader");
+        }
+    }
+    rankings_table_head.innerHTML = "\n        <tr>\n            <th>Rank</th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
     rankings_load.dispatchEvent(new Event('click'));
 }
 var searchBar = null;
@@ -676,7 +708,7 @@ function getOrdinalNumber(num) {
 }
 function formatModelString(val, isWar) {
     if (isWar === 1)
-        return "".concat(val.toFixed(1), " WAR");
+        return "".concat(val.toFixed(1));
     else
         return "$".concat(val.toFixed(0), "M");
 }
