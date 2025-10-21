@@ -56,7 +56,15 @@ async function createTeamPage(datesJson : JsonObject)
     if (teamId === null)
         throw new Error("Null month in createTeamPage")
     
-    setupRankings(month, year, modelId, isWar, teamId, 30)
+    setupRankings({
+        month : month,
+        year : year,
+        model : modelId,
+        isWar : isWar,
+        teamId : teamId,
+        period : 0,
+        type : PlayerLoaderType.Prospect
+        }, 30)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value

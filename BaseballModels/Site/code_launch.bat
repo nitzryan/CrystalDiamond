@@ -1,0 +1,1 @@
+echo | code server | code site | exit \b

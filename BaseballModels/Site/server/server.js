@@ -39,6 +39,10 @@ app.get("/methodology/", (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/methodology.html"))
 })
 
+app.get('/mlbranks/', (req, res) => {
+    res.sendFile(path.join(__dirname, "src/html/mlbrankings.html"))
+})
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/home.html"))
 })
@@ -150,6 +154,48 @@ app.get('/rankingsRequest', (req, res) => {
     catch (e)
     {
         res.status(500).send("Error in rankingsRequest: " + e)
+    }
+})
+
+app.get('/mlbRank', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const startRank = req.query.startRank
+        const endRank = req.query.endRank
+        const teamId = req.query.teamId
+        const model= req.query.model
+        const reqType = req.query.reqType
+        const table = reqType == 1 ? "HitterWarRank" : "PitcherWarRank"
+        const rankType = reqType == 1 ? "rankWar" : 
+            reqType == 2 ? "spRank" : "rpRank"
+
+        if (teamId !== undefined)
+        {
+            db.all(`SELECT hwr.*, firstName, lastName, birthYear, birthMonth
+                FROM ${table} AS hwr
+                INNER JOIN Player AS p ON hwr.mlbId=p.mlbId
+                WHERE year=? AND month=? AND teamId=? AND ${rankType}Team>=? AND ${rankType}Team<=? AND modelId=?
+                ORDER BY ${rankType}Team ASC`, 
+                [year, month, teamId, startRank, endRank, model], (err, rows) => {
+                    res.json(rows)
+            })
+        }
+        else
+        {
+            db.all(`SELECT hwr.*, firstName, lastName, birthYear, birthMonth
+                FROM ${table} AS hwr
+                INNER JOIN Player AS p ON hwr.mlbId=p.mlbId
+                WHERE year=? AND month=? AND ${rankType}>=? AND ${rankType}<=? AND modelId=?
+                ORDER BY ${rankType} ASC`, 
+                [year, month, startRank, endRank, model], (err, rows) => {
+                    res.json(rows)
+            })
+        }
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in mlbRank: " + e)
     }
 })
 

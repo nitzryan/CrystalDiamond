@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "none",
+        "outFile": "../server/src/js/mlbrankings.js",
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["src/mlbrankings.ts", "src/dateSelector.ts", "src/playerLoader.ts", "src/searchbar.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+}

@@ -39,9 +39,11 @@ var month;
 var year;
 var modelId;
 var isWar;
+var playerType;
+var hitpitch_select = getElementByIdStrict('hitpitch_select');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, mdl, _a;
+        var datesJsonPromise, player_search_data, datesJson, mdl, pType, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -57,6 +59,19 @@ function main() {
                     mdl = getQueryParamBackupStr("model", "1.1").split(".", 2).map(function (f) { return Number(f); });
                     modelId = mdl[0];
                     isWar = mdl[1];
+                    playerType = getQueryParamBackup("type", 1);
+                    if (playerType == 1) {
+                        hitpitch_select.value = "1";
+                        pType = PlayerLoaderType.MLBHitter;
+                    }
+                    else if (playerType == 2) {
+                        hitpitch_select.value = "2";
+                        pType = PlayerLoaderType.MLBStarter;
+                    }
+                    else {
+                        hitpitch_select.value = "3";
+                        pType = PlayerLoaderType.MLBReliever;
+                    }
                     setupSelector({
                         month: month,
                         year: year,
@@ -77,7 +92,7 @@ function main() {
                         isWar: isWar,
                         teamId: null,
                         period: 0,
-                        type: PlayerLoaderType.Prospect
+                        type: pType
                     }, 100);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
@@ -87,7 +102,8 @@ function main() {
                         var mnth = month_select.value;
                         var yr = year_select.value;
                         var model = model_select.value;
-                        window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
+                        var pt = hitpitch_select.value;
+                        window.location.href = "./mlbranks?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&type=").concat(pt);
                     });
                     getElementByIdStrict('nav_rankings').classList.add('selected');
                     document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Rankings");

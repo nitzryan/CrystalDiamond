@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Baseball Models</title>
+        <link rel="stylesheet" type="text/css" href="../css/rankings.css">
+        <link href="favicon.ico" rel="icon" type="image/x-icon"/>
+        <script type="text/javascript" src="../js/mlbrankings.js" defer></script>
+    </head>
+    <body>
+        <div id="banner">
+    <div id="search">
+        <div class="column center">
+            <input id="searchBar" type="text" placeholder="Search for Player" autocomplete="off">
+            <nav id="searchResultsContainer" class="hidden">
+                <div>
+                    <p>MLB Players</p>
+                    <ul id="majorsSearchResults" class="searchResults">
+
+                    </ul>
+                </div>
+                <div>
+                    <p>MiLB Players</p>
+                    <ul id="minorsSearchResults" class="searchResults">
+
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </div>
+    <div id="navbar" class="row">
+        <a id="nav_home" href="./">Home</a>
+        <a id="nav_rankings" href="./rankings">Rankings</a>
+        <a id="nav_teams" href="./teams">Teams</a>
+        <a id="nav_methodology" href="./methodology">Methods</a>
+    </div>
+</div>
+<div id="colorbar"></div>
+        <div id="rankings_main">
+            <div id="rankings_selector" class="row">
+                <select id="year_select"></select>
+                <select id="month_select"></select>
+                <select id="model_select"><option value="1.1">Base WAR</option>
+<!-- <option value="1.0">Base Value</option> -->
+<option value="2.1">Stats Only WAR</option>
+<!-- <option value="2.0">Stats Only Value</option> --></select>
+                <select id="hitpitch_select">
+                    <option value="1">Hitter</option>
+                    <option value="2">Starter</option>
+                    <option value="3">Reliever</option>
+                </select>
+                <div id="rankings_get">
+                    <button id="rankings_button">Update</button>
+                    <div id="rankings_error" class="hidden">Invalid Date</div>
+                </div>
+            </div>
+            <div id="rankings">
+                <div id="rankings_header"></div>
+                <ol id="rankings_list"></ol>
+                <button id="rankings_load">More</button>
+            </div>
+        </div>
+    </body>
+</html>

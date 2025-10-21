@@ -99,7 +99,15 @@ function createTeamPage(datesJson) {
         return __generator(this, function (_a) {
             if (teamId === null)
                 throw new Error("Null month in createTeamPage");
-            setupRankings(month, year, modelId, isWar, teamId, 30);
+            setupRankings({
+                month: month,
+                year: year,
+                model: modelId,
+                isWar: isWar,
+                teamId: teamId,
+                period: 0,
+                type: PlayerLoaderType.Prospect
+            }, 30);
             rankings_button.addEventListener('click', function (event) {
                 var mnth = month_select.value;
                 var yr = year_select.value;
@@ -241,6 +249,49 @@ function createPlayer(obj, isWar) {
         birthYear: getJsonNumber(obj, "birthYear"),
         birthMonth: getJsonNumber(obj, "birthMonth"),
         level: getJsonNumber(obj, "highestLevel"),
+        playingTime: null
+    };
+    return p;
+}
+function createMLBHitter(obj) {
+    var p = {
+        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
+        war: getJsonNumber(obj, "war"),
+        id: getJsonNumber(obj, "mlbId"),
+        team: getJsonNumber(obj, "teamId"),
+        position: getJsonString(obj, "position"),
+        birthYear: getJsonNumber(obj, "birthYear"),
+        birthMonth: getJsonNumber(obj, "birthMonth"),
+        level: null,
+        playingTime: getJsonNumber(obj, "pa").toFixed(0).toString() + " PA"
+    };
+    return p;
+}
+function createMLBStarter(obj) {
+    var p = {
+        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
+        war: getJsonNumber(obj, "spWar"),
+        id: getJsonNumber(obj, "mlbId"),
+        team: getJsonNumber(obj, "teamId"),
+        position: "SP",
+        birthYear: getJsonNumber(obj, "birthYear"),
+        birthMonth: getJsonNumber(obj, "birthMonth"),
+        level: null,
+        playingTime: getJsonNumber(obj, "spIP").toFixed(0).toString() + " IP"
+    };
+    return p;
+}
+function createMLBReliever(obj) {
+    var p = {
+        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
+        war: getJsonNumber(obj, "rpWar"),
+        id: getJsonNumber(obj, "mlbId"),
+        team: getJsonNumber(obj, "teamId"),
+        position: "RP",
+        birthYear: getJsonNumber(obj, "birthYear"),
+        birthMonth: getJsonNumber(obj, "birthMonth"),
+        level: null,
+        playingTime: getJsonNumber(obj, "rpIP").toFixed(0).toString() + " IP"
     };
     return p;
 }
@@ -250,50 +301,92 @@ function createPlayerElement(player, year, month, modelId, isWar) {
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
+    var levelString = player.level !== null ? "<div>".concat(level_map[player.level], "</div>") : "";
+    var ptString = player.playingTime !== null ? "<div>".concat(player.playingTime, "</div>") : "";
     el.innerHTML =
-        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    <div>").concat(level_map[player.level], "</div>\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, isWar), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
+        "\n        <div class='rankings_item'>\n            <div class='rankings_row'>\n                <div class='rankings_name'><a href='./player?id=".concat(player.id, "'>").concat(player.name, "</a></div>\n                <div class='rankings_rightrow'>\n                    <div><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></div>\n                    ").concat(levelString, "\n                    ").concat(ptString, "\n                </div>\n            </div>\n            <div class='rankings_row'>\n                <div>").concat(formatModelString(player.war, isWar), "</div>\n                <div class='rankings_rightrow'>\n                    <div>").concat(player.position, "</div>\n                    <div>").concat(ageInYears, "yrs</div>\n                </div>\n            </div>\n        </div>\n        ");
     return el;
 }
+var PlayerLoaderType;
+(function (PlayerLoaderType) {
+    PlayerLoaderType[PlayerLoaderType["Prospect"] = 0] = "Prospect";
+    PlayerLoaderType[PlayerLoaderType["MLBHitter"] = 1] = "MLBHitter";
+    PlayerLoaderType[PlayerLoaderType["MLBStarter"] = 2] = "MLBStarter";
+    PlayerLoaderType[PlayerLoaderType["MLBReliever"] = 3] = "MLBReliever";
+})(PlayerLoaderType || (PlayerLoaderType = {}));
 var PlayerLoader = (function () {
-    function PlayerLoader(year, month, model, isWar, teamId) {
-        if (teamId === void 0) { teamId = null; }
+    function PlayerLoader(args) {
         this.exhaustedElements = false;
         this.index = 0;
-        this.year = year;
-        this.month = month;
-        this.teamId = teamId;
-        this.model = model;
-        this.isWar = isWar;
+        this.year = args.year;
+        this.month = args.month;
+        this.teamId = args.teamId;
+        this.model = args.model;
+        this.isWar = args.isWar;
+        this.type = args.type;
+        this.period = args.period;
     }
     PlayerLoader.prototype.getElements = function (num_elements) {
         return __awaiter(this, void 0, void 0, function () {
-            var endRank, response, _a, players;
+            var endRank, response, _a, typeInt, _b, players;
             var _this = this;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         if (this.exhaustedElements)
                             return [2, []];
                         endRank = this.index + num_elements;
+                        if (!(this.type === PlayerLoaderType.Prospect)) return [3, 5];
                         if (!(this.teamId !== null)) return [3, 2];
                         return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model, ".").concat(this.isWar))];
                     case 1:
-                        _a = _b.sent();
+                        _a = _c.sent();
                         return [3, 4];
                     case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model, ".").concat(this.isWar))];
                     case 3:
-                        _a = _b.sent();
-                        _b.label = 4;
+                        _a = _c.sent();
+                        _c.label = 4;
                     case 4:
                         response = _a;
-                        return [4, response.json()];
+                        return [3, 11];
                     case 5:
-                        players = _b.sent();
+                        if (!(this.type === PlayerLoaderType.MLBHitter || this.type == PlayerLoaderType.MLBStarter || this.type == PlayerLoaderType.MLBReliever)) return [3, 10];
+                        typeInt = this.type;
+                        if (!(this.teamId !== null)) return [3, 7];
+                        return [4, fetch("/mlbRank?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model, "&period=").concat(this.period, "&reqType=").concat(typeInt))];
+                    case 6:
+                        _b = _c.sent();
+                        return [3, 9];
+                    case 7: return [4, fetch("/mlbRank?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model, "&period=").concat(this.period, "&reqType=").concat(typeInt))];
+                    case 8:
+                        _b = _c.sent();
+                        _c.label = 9;
+                    case 9:
+                        response = _b;
+                        return [3, 11];
+                    case 10: throw new Error("No type in PlayerLoader");
+                    case 11: return [4, response.json()];
+                    case 12:
+                        players = _c.sent();
                         this.exhaustedElements = (players.length != num_elements);
                         this.index += players.length;
-                        return [2, players.map(function (f) {
-                                return createPlayerElement(createPlayer(f, _this.isWar), _this.year, _this.month, _this.model, _this.isWar);
-                            })];
+                        if (this.type === PlayerLoaderType.Prospect)
+                            return [2, players.map(function (f) {
+                                    return createPlayerElement(createPlayer(f, _this.isWar), _this.year, _this.month, _this.model, _this.isWar);
+                                })];
+                        else if (this.type === PlayerLoaderType.MLBHitter)
+                            return [2, players.map(function (f) {
+                                    return createPlayerElement(createMLBHitter(f), _this.year, _this.month, _this.model, 1);
+                                })];
+                        else if (this.type === PlayerLoaderType.MLBStarter)
+                            return [2, players.map(function (f) {
+                                    return createPlayerElement(createMLBStarter(f), _this.year, _this.month, _this.model, 1);
+                                })];
+                        else
+                            return [2, players.map(function (f) {
+                                    return createPlayerElement(createMLBReliever(f), _this.year, _this.month, _this.model, 1);
+                                })];
+                        return [2];
                 }
             });
         });
@@ -301,13 +394,14 @@ var PlayerLoader = (function () {
     return PlayerLoader;
 }());
 var playerLoader;
-function setupRankings(month, year, model, isWar, team, num_elements) {
+function setupRankings(args, num_elements) {
     var _this = this;
-    playerLoader = new PlayerLoader(year, month, model, isWar, team);
-    if (team === null)
-        rankings_header.innerText = "Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
-    else
-        rankings_header.innerText = "Rankings for ".concat(org_map["parents"][team]["name"], " ").concat(MONTH_CODES[month], " ").concat(year);
+    playerLoader = new PlayerLoader(args);
+    var teamString = args.teamId !== null ? org_map["parents"][args.teamId]["name"] + " " : "";
+    var typeString = args.type === PlayerLoaderType.Prospect ?
+        "Prospect" : args.type === PlayerLoaderType.MLBHitter ? "MLB Hitter" :
+        args.type === PlayerLoaderType.MLBStarter ? "MLB Starter" : "MLB Reliever";
+    rankings_header.innerText = "".concat(typeString, " Rankings for ").concat(teamString).concat(MONTH_CODES[month], " ").concat(year);
     rankings_load.addEventListener('click', function (event) { return __awaiter(_this, void 0, void 0, function () {
         var elements, _i, elements_2, el;
         return __generator(this, function (_a) {
