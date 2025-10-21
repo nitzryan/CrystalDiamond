@@ -60,6 +60,10 @@ function main() {
                     modelId = mdl[0];
                     isWar = mdl[1];
                     playerType = getQueryParamBackup("type", 1);
+                    if (playerType == 2 && modelId == 2) {
+                        getElementByIdStrict('rankings').classList.add('hidden');
+                        getElementByIdStrict('rankings_failed').classList.remove('hidden');
+                    }
                     if (playerType == 1) {
                         hitpitch_select.value = "1";
                         pType = PlayerLoaderType.MLBHitter;

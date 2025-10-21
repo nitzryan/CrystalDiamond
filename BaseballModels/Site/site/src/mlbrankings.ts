@@ -22,6 +22,13 @@ async function main()
     isWar = mdl[1]
 
     playerType = getQueryParamBackup("type", 1)
+    // Current model doesn't work for stats only--starters
+    if (playerType == 2 && modelId == 2)
+    {
+        getElementByIdStrict('rankings').classList.add('hidden')
+        getElementByIdStrict('rankings_failed').classList.remove('hidden')
+    }
+    
     let pType : PlayerLoaderType
     if (playerType == 1)
     {
