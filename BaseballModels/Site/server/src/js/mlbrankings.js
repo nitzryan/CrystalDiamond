@@ -105,7 +105,7 @@ function main() {
                         var pt = hitpitch_select.value;
                         window.location.href = "./mlbranks?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&type=").concat(pt);
                     });
-                    getElementByIdStrict('nav_rankings').classList.add('selected');
+                    getElementByIdStrict('nav_mlbranks').classList.add('selected');
                     document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Rankings");
                     return [2];
             }

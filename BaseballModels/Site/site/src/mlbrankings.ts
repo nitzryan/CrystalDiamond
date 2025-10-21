@@ -72,7 +72,7 @@ async function main()
         window.location.href = `./mlbranks?year=${yr}&month=${mnth}&model=${model}&type=${pt}`
     })
 
-    getElementByIdStrict('nav_rankings').classList.add('selected')
+    getElementByIdStrict('nav_mlbranks').classList.add('selected')
     
     document.title = `${MONTH_CODES[month]} ${year} Rankings`
 }
