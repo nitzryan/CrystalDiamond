@@ -124,12 +124,12 @@ function TeamOverviewMap(team) {
     team = team;
     var id = team["teamId"];
     var value_string = isWar === 1 ?
-        team["value"].toFixed(1) + " WAR" :
+        team["value"].toFixed(1) :
         "$" + team["value"].toFixed(0) + "M";
     var el = document.createElement('tr');
     el.classList.add('rankings_item');
     el.innerHTML =
-        "\n        <td>".concat(__current_rank, "</td>\n        <td><a href='./teams?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar, "'>").concat(getParentName(id), "</a></td>\n        <td>").concat(team["highestRank"], "</td>\n        <td>").concat(value_string, "</td>\n        <td>").concat(team["top10"], "</td>\n        <td>").concat(team["top50"], "</td>\n        <td>").concat(team["top100"], "</td>\n        <td>").concat(team["top200"], "</td>\n        <td>").concat(team["top500"], "</td>\n        ");
+        "\n        <td class='c_rank'>".concat(__current_rank, "</td>\n        <td class='c_name'><a href='./teams?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar, "'>").concat(getParentName(id), "</a></td>\n        <td class='c_value'>").concat(team["highestRank"], "</td>\n        <td class='c_value'>").concat(value_string, "</td>\n        <td class='c_value'>").concat(team["top10"], "</td>\n        <td class='c_value'>").concat(team["top50"], "</td>\n        <td class='c_value'>").concat(team["top100"], "</td>\n        <td class='c_value'>").concat(team["top200"], "</td>\n        <td class='c_value'>").concat(team["top500"], "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -148,7 +148,7 @@ function createOverviewPage(datesJson) {
                         rankings_table_body.appendChild(f);
                     });
                     valueString = isWar == 1 ? "WAR" : "Value";
-                    rankings_table_head.innerHTML = "\n        <tr>\n            <th>Rank</th>\n            <th>Team</th>\n            <th>Highest Ranked</th>\n            <th>".concat(valueString, "</th>\n            <th>Top 10</th>\n            <th>Top 50</th>\n            <th>Top 100</th>\n            <th>Top 200</th>\n            <th>Top 500</th>\n        <tr>\n        ");
+                    rankings_table_head.innerHTML = "\n        <tr>\n            <th></th>\n            <th>Team</th>\n            <th>Highest Ranked</th>\n            <th>".concat(valueString, "</th>\n            <th>Top 10</th>\n            <th>Top 50</th>\n            <th>Top 100</th>\n            <th>Top 200</th>\n            <th>Top 500</th>\n        <tr>\n        ");
                     rankings_header.innerText = "Team Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
                     rankings_load.classList.add('hidden');
                     team_select === null || team_select === void 0 ? void 0 : team_select.classList.add('hidden');
@@ -309,9 +309,9 @@ function createPlayerElement(player, year, month, modelId, isWar) {
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
-    var levelString = player.level !== null ? "<td>".concat(level_map[player.level], "</td>") : "";
-    var ptString = player.playingTime !== null ? "<td>".concat(player.playingTime.toFixed(0), "</td>") : "";
-    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td>").concat(player.position, "</td>\n            <td>").concat(ageInYears, "</td>\n        ");
+    var levelString = player.level !== null ? "<td class='c_lvl'>".concat(level_map[player.level], "</td>") : "";
+    var ptString = player.playingTime !== null ? "<td class='c_pt'>".concat(player.playingTime.toFixed(0), "</td>") : "";
+    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td class='c_name'><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td class='c_team'><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td class='c_value'>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td class='c_pos'>").concat(player.position, "</td>\n            <td class='c_age'>").concat(ageInYears, "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -452,7 +452,7 @@ function setupRankings(args, num_elements) {
             throw new Error("Invalid args.type in PlayerLoader");
         }
     }
-    rankings_table_head.innerHTML = "\n        <tr>\n            <th>Rank</th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
+    rankings_table_head.innerHTML = "\n        <tr>\n            <th></th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
     rankings_load.dispatchEvent(new Event('click'));
 }
 var searchBar = null;

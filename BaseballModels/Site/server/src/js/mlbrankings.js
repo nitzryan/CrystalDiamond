@@ -260,9 +260,9 @@ function createPlayerElement(player, year, month, modelId, isWar) {
     var ageInYears = year - player.birthYear;
     if (month < player.birthMonth)
         ageInYears--;
-    var levelString = player.level !== null ? "<td>".concat(level_map[player.level], "</td>") : "";
-    var ptString = player.playingTime !== null ? "<td>".concat(player.playingTime.toFixed(0), "</td>") : "";
-    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td>").concat(player.position, "</td>\n            <td>").concat(ageInYears, "</td>\n        ");
+    var levelString = player.level !== null ? "<td class='c_lvl'>".concat(level_map[player.level], "</td>") : "";
+    var ptString = player.playingTime !== null ? "<td class='c_pt'>".concat(player.playingTime.toFixed(0), "</td>") : "";
+    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td class='c_name'><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td class='c_team'><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td class='c_value'>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td class='c_pos'>").concat(player.position, "</td>\n            <td class='c_age'>").concat(ageInYears, "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -403,7 +403,7 @@ function setupRankings(args, num_elements) {
             throw new Error("Invalid args.type in PlayerLoader");
         }
     }
-    rankings_table_head.innerHTML = "\n        <tr>\n            <th>Rank</th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
+    rankings_table_head.innerHTML = "\n        <tr>\n            <th></th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
     rankings_load.dispatchEvent(new Event('click'));
 }
 var searchBar = null;

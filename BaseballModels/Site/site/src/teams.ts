@@ -85,22 +85,22 @@ function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
     const id = team["teamId"] as number
 
     const value_string = isWar === 1 ?
-        (team["value"] as number).toFixed(1) + " WAR" :
+        (team["value"] as number).toFixed(1) :
         "$" + (team["value"] as number).toFixed(0) + "M"
 
     let el = document.createElement('tr')
     el.classList.add('rankings_item')
     el.innerHTML = 
         `
-        <td>${__current_rank}</td>
-        <td><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></td>
-        <td>${team["highestRank"]}</td>
-        <td>${value_string}</td>
-        <td>${team["top10"]}</td>
-        <td>${team["top50"]}</td>
-        <td>${team["top100"]}</td>
-        <td>${team["top200"]}</td>
-        <td>${team["top500"]}</td>
+        <td class='c_rank'>${__current_rank}</td>
+        <td class='c_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></td>
+        <td class='c_value'>${team["highestRank"]}</td>
+        <td class='c_value'>${value_string}</td>
+        <td class='c_value'>${team["top10"]}</td>
+        <td class='c_value'>${team["top50"]}</td>
+        <td class='c_value'>${team["top100"]}</td>
+        <td class='c_value'>${team["top200"]}</td>
+        <td class='c_value'>${team["top500"]}</td>
         `
 
     __current_rank += 1
@@ -119,7 +119,7 @@ async function createOverviewPage(datesJson : JsonObject)
     let valueString = isWar == 1 ? "WAR" : "Value"
     rankings_table_head.innerHTML = `
         <tr>
-            <th>Rank</th>
+            <th></th>
             <th>Team</th>
             <th>Highest Ranked</th>
             <th>${valueString}</th>

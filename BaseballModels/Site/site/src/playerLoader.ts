@@ -91,17 +91,17 @@ function createPlayerElement(player : Player, year : number, month : number, mod
     if (month < player.birthMonth)
         ageInYears--
 
-    const levelString = player.level !== null ? `<td>${level_map[player.level]}</td>` : ""
-    const ptString = player.playingTime !== null ? `<td>${player.playingTime.toFixed(0)}</td>` : ""
+    const levelString = player.level !== null ? `<td class='c_lvl'>${level_map[player.level]}</td>` : ""
+    const ptString = player.playingTime !== null ? `<td class='c_pt'>${player.playingTime.toFixed(0)}</td>` : ""
     el.innerHTML = `
             <td>${__current_rank}</td>
-            <td><a href='./player?id=${player.id}'>${player.name}</a></td>
-            <td><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
-            <td>${formatModelString(player.war, isWar)}</td>
+            <td class='c_name'><a href='./player?id=${player.id}'>${player.name}</a></td>
+            <td class='c_team'><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
+            <td class='c_value'>${formatModelString(player.war, isWar)}</td>
             ${levelString}
             ${ptString}
-            <td>${player.position}</td>
-            <td>${ageInYears}</td>
+            <td class='c_pos'>${player.position}</td>
+            <td class='c_age'>${ageInYears}</td>
         `
 
     __current_rank += 1
@@ -254,7 +254,7 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
 
     rankings_table_head.innerHTML = `
         <tr>
-            <th>Rank</th>
+            <th></th>
             <th>Name</th>
             <th>Team</th>
             <th>${valueString}</th>

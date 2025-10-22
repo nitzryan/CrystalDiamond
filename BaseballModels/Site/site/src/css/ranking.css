@@ -20,24 +20,44 @@
     font-size: 1.25em;
 }
 
-/* .rankings_item {
-    
-} */
-
-.rankings_row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-}
-
-.rankings_rightrow {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    width: 12em;
-}
-
 .rankings_item a {
     color: var(--text-high);
     font-weight: bold;
+}
+
+#rankings_table td:first-child, #rankings_table th:first-child {
+    border: none;
+    background: var(--background-high);
+    text-align: right;
+    padding-right: 0.5rem;
+}
+
+#rankings_table * {
+    font-size: 1.35rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.c_name {
+    padding-left: 0.5rem;
+    padding-right: 2rem;
+}
+
+.c_team {
+    text-align: center;
+}
+
+.c_value {
+    text-align: right;
+    padding-right: 1rem;
+}
+
+.c_lvl {
+    text-align: right;
+    padding-right: 1rem;
+}
+
+.c_age {
+    text-align: right;
+    padding-right: 0.5rem;
 }
