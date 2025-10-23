@@ -407,7 +407,8 @@ class Data_Prep:
         
     def Update_Mutators(self, *, off_dev : Optional[float] = None, bsr_dev : Optional[float] = None, def_dev : Optional[float] = None, hitlevel_dev : Optional[float] = None, hitpt_dev : Optional[float] = None, 
                         hitbio_dev : Optional[float] = None, pitbio_dev : Optional[float] = None,
-                        pit_dev : Optional[float] = None, pitlevel_dev : Optional[float] = None, pitpt_dev : Optional[float] = None):
+                        pit_dev : Optional[float] = None, pitlevel_dev : Optional[float] = None, pitpt_dev : Optional[float] = None,
+                        mlb_hitstat_dev : Optional[float] = None, mlb_pitstat_dev : Optional[float] = None):
         
         if off_dev is not None:
             self.off_mutator_scale = off_dev
@@ -429,6 +430,10 @@ class Data_Prep:
             self.pitlvl_mutator_scale = pitlevel_dev
         if pitpt_dev is not None:
             self.pitpt_mutator_scale = pitpt_dev
+        if mlb_hitstat_dev is not None:
+            self.mlb_hit_value_mutator_scale = mlb_hitstat_dev
+        if mlb_pitstat_dev is not None:
+            self.mlb_pit_value_mutator_scale = mlb_pitstat_dev
         
     def Generate_Hitting_Mutators(self, batch_size : int, max_input_size : int) -> torch.Tensor:
         # Get std deviations from explained variance
