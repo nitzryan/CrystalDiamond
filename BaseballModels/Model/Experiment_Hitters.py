@@ -24,7 +24,7 @@ if __name__ == "__main__":
     filename = sys.argv[1]
     
     batch_size = 200
-    xs = np.linspace(0.0, 2.0, num=41)
+    xs = np.linspace(0.0, 1.0, num=21)
     
     data = []
     
@@ -38,13 +38,7 @@ if __name__ == "__main__":
     hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
     num_layers = DEFAULT_NUM_LAYERS_HITTER
     for mutator_size in tqdm(xs, desc=y_label):
-        data_prep.Update_Mutators(off_dev=mutator_size,
-                                  bsr_dev=mutator_size,
-                                  def_dev=mutator_size,
-                                  hitpt_dev=mutator_size,
-                                  hitlevel_dev=mutator_size,
-                                  hitbio_dev=mutator_size,
-                                  mlb_hitstat_dev=mutator_size)
+        data_prep.Update_Mutators(off_dev=mutator_size)
         hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
         
         network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)

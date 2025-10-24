@@ -52,23 +52,23 @@ _T = TypeVar('T')
 class Data_Prep:
     def __init__(self, prep_map : 'Prep_Map', output_map : 'Output_Map'):
         # Mutators
-        self.off_mutator_scale = 0.25
-        self.bsr_mutator_scale = 0.25
-        self.def_mutator_scale = 0.25
+        self.off_mutator_scale = 0.15
+        self.bsr_mutator_scale = 0.15
+        self.def_mutator_scale = 0.15
         
-        self.hitbio_mutator_scale = 0.25
-        self.pitbio_mutator_scale = 0.25
+        self.hitbio_mutator_scale = 0.15
+        self.pitbio_mutator_scale = 0.15
         
-        self.hitpt_mutator_scale = 0.25
-        self.pitpt_mutator_scale = 0.25
+        self.hitpt_mutator_scale = 0.15
+        self.pitpt_mutator_scale = 0.15
         
-        self.hitlvl_mutator_scale = 0.25
-        self.pitlvl_mutator_scale = 0.25
+        self.hitlvl_mutator_scale = 0.15
+        self.pitlvl_mutator_scale = 0.15
         
-        self.pit_mutator_scale = 0.25
+        self.pit_mutator_scale = 0.15
         
-        self.mlb_hit_value_mutator_scale = 0.25
-        self.mlb_pit_value_mutator_scale = 0.25
+        self.mlb_hit_value_mutator_scale = 0.15
+        self.mlb_pit_value_mutator_scale = 0.15
         
         self.prep_map = prep_map
         self.output_map = output_map
