@@ -12,78 +12,78 @@
             //months = [9];
 
             //Player could be drafted in 2004 and not play until 2005 or later
-            await DraftResults.Main(2004);
-            await PlayerUpdate.DraftOnly(2004);
+            //await DraftResults.Main(2004);
+            //await PlayerUpdate.DraftOnly(2004);
 
-            foreach (int year in years)
-            {
-                while (!await DraftResults.Main(year))
-                { }
+            //foreach (int year in years)
+            //{
+            //    while (!await DraftResults.Main(year))
+            //    { }
 
-                while (!await PlayerUpdate.Main(year))
-                { }
+            //    while (!await PlayerUpdate.Main(year))
+            //    { }
 
-                while (!await GameLogUpdate.Main(year, 3, 10))
-                { }
+            //    while (!await GameLogUpdate.Main(year, 3, 10))
+            //    { }
 
-                if (!ParkFactorUpdate.Main(year))
-                    return;
+            //    if (!ParkFactorUpdate.Main(year))
+            //        return;
 
-                foreach (int month in months)
-                {
-                    if (!CalculateLevelStats.Main(year, month))
-                        return;
+            //    foreach (int month in months)
+            //    {
+            //        if (!CalculateLevelStats.Main(year, month))
+            //            return;
 
-                    if (!CalculateMonthStats.Main(year, month))
-                        return;
+            //        if (!CalculateMonthStats.Main(year, month))
+            //            return;
 
-                    if (!CalculateMonthRatios.Main(year, month))
-                        return;
-                }
+            //        if (!CalculateMonthRatios.Main(year, month))
+            //            return;
+            //    }
 
-                if (!CalculateAnnualStats.Main(year))
-                    return;
+            //    if (!CalculateAnnualStats.Main(year))
+            //        return;
 
-                if (!CalculateAnnualOPS.Main(year))
-                    return;
+            //    if (!CalculateAnnualOPS.Main(year))
+            //        return;
 
-                while (!await UpdateParents.Main(year))
-                { }
+            //    while (!await UpdateParents.Main(year))
+            //    { }
 
-            }
+            //}
 
-            if (!UpdateServiceTime.Main())
-                return;
+            //if (!UpdateServiceTime.Main())
+            //    return;
 
-            if (!await FangraphsData.Main(years))
-                return;
+            //if (!await FangraphsData.Main(years))
+            //    return;
 
-            if (!UpdateCareers.Main(years))
-                return;
+            //if (!UpdateCareers.Main(years))
+            //    return;
 
             if (!ModelPlayers.Main())
                 return;
 
-            if (!ModelPlayerWar.Main())
-                return;
+            //if (!ModelPlayerWar.Main())
+            //    return;
 
-            if (!await TransactionLog.Main())
-                return;
+            //if (!await TransactionLog.Main())
+            //    return;
 
-            if (!UpdatePlayerOrgMap.Main())
-                return;
+            //if (!UpdatePlayerOrgMap.Main())
+            //    return;
 
-            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
+            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+            //    return;
 
-            if (!Model_MonthValue.Main())
-                return;
+            //if (!Model_MonthValue.Main())
+            //    return;
 
-            while (!await GetLeagues.Main())
-            { }
+            //while (!await GetLeagues.Main())
+            //{ }
 
-            while (!await SitePlayerBio.Main(END_YEAR))
-            { }
+            //while (!await SitePlayerBio.Main(END_YEAR))
+            //{ }
         }
     }
 }

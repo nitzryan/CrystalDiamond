@@ -58,7 +58,7 @@ __mlb_pit_value_size = 4
         
 # Comments are explained variance ratios
 base_prep_map = Prep_Map(
-    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
+    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank), p.prospectType],
     map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wOBARatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
     map_bsr=lambda h : [h.SBRateRatio, h.SBPercRatio],
     map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
@@ -73,8 +73,7 @@ base_prep_map = Prep_Map(
     map_mlb_pit_value=__map_mlb_pit_value,
     mlb_hit_value_size=__mlb_hit_value_size,
     mlb_pit_value_size=__mlb_pit_value_size,
-    bio_size=2,# Hitter [0.711, 0.282, 0.007]
-                    #Pitcher [0.702, 0.289, 0.009]
+    bio_size=3,
     hitterlvl_size=3,
     hitterpt_size=3,
     off_size=7,# [0.393, 0.168, 0.117, 0.114, 0.104, 0.078, 0.021, 0.006, 0.001]
