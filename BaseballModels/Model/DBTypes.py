@@ -309,27 +309,26 @@ class DB_Model_Players:
 		self.ageAtSigningYear = values[7]
 		self.draftPick = values[8]
 		self.draftSignRank = values[9]
-		self.prospectType = values[10]
-		self.highestLevelHitter = values[11]
-		self.highestLevelPitcher = values[12]
-		self.warHitter = values[13]
-		self.warPitcher = values[14]
-		self.peakWarHitter = values[15]
-		self.peakWarPitcher = values[16]
-		self.valueHitter = values[17]
-		self.valuePitcher = values[18]
-		self.valueStarterPerc = values[19]
-		self.totalPA = values[20]
-		self.totalOuts = values[21]
-		self.rateOff = values[22]
-		self.rateBsr = values[23]
-		self.rateDef = values[24]
+		self.highestLevelHitter = values[10]
+		self.highestLevelPitcher = values[11]
+		self.warHitter = values[12]
+		self.warPitcher = values[13]
+		self.peakWarHitter = values[14]
+		self.peakWarPitcher = values[15]
+		self.valueHitter = values[16]
+		self.valuePitcher = values[17]
+		self.valueStarterPerc = values[18]
+		self.totalPA = values[19]
+		self.totalOuts = values[20]
+		self.rateOff = values[21]
+		self.rateBsr = values[22]
+		self.rateDef = values[23]
 
-	NUM_ELEMENTS = 25
+	NUM_ELEMENTS = 24
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.isHitter,self.isPitcher,self.signingYear,self.lastProspectYear,self.lastProspectMonth,self.lastMLBSeason,self.ageAtSigningYear,self.draftPick,self.draftSignRank,self.prospectType,self.highestLevelHitter,self.highestLevelPitcher,self.warHitter,self.warPitcher,self.peakWarHitter,self.peakWarPitcher,self.valueHitter,self.valuePitcher,self.valueStarterPerc,self.totalPA,self.totalOuts,self.rateOff,self.rateBsr,self.rateDef)
+		return (self.mlbId,self.isHitter,self.isPitcher,self.signingYear,self.lastProspectYear,self.lastProspectMonth,self.lastMLBSeason,self.ageAtSigningYear,self.draftPick,self.draftSignRank,self.highestLevelHitter,self.highestLevelPitcher,self.warHitter,self.warPitcher,self.peakWarHitter,self.peakWarPitcher,self.valueHitter,self.valuePitcher,self.valueStarterPerc,self.totalPA,self.totalOuts,self.rateOff,self.rateBsr,self.rateDef)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_Players']:

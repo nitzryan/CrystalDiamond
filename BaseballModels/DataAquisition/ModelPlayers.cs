@@ -139,10 +139,6 @@ namespace DataAquisition
                         int highLevelHitter = p.pcs.HighestLevelHitter != null ? p.pcs.HighestLevelHitter.Value : -1;
                         int highLevelPitcher = p.pcs.HighestLevelPitcher != null ? p.pcs.HighestLevelPitcher.Value : -1;
 
-                        // Get lowest level to determine if international FA or not
-                        int lowestLevel = Math.Max(db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == p.p.MlbId).Select(f => f.LevelId).Distinct().OrderByDescending(f => f).FirstOrDefault(),
-                                db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == p.p.MlbId).Select(f => f.LevelId).Distinct().OrderByDescending(f => f).FirstOrDefault());
-
                         db.Model_Players.Add(new Model_Players
                         {
                             MlbId = p.pcs.MlbId,
@@ -157,8 +153,6 @@ namespace DataAquisition
                             DraftSignRank = player.DraftPick != null ?
                                 db.Draft_Results.Where(f => f.Year == player.SigningYear && f.Pick == player.DraftPick.Value).Single().BonusRank
                                 : 2000,
-                            ProspectType = player.DraftPick != null ? 1 :
-                                lowestLevel < Constants.SPORT_IDS[Constants.SPORT_IDS.Count - 2] ? 2 : 3, // Above DSL or not
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,
                             PeakWarHitter = peakHitterWar,
