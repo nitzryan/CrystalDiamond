@@ -12,6 +12,7 @@ namespace Db
 		public required float AgeAtSigningYear {get; set;}
 		public required int DraftPick {get; set;}
 		public required int DraftSignRank {get; set;}
+		public required int ProspectType {get; set;}
 		public required int HighestLevelHitter {get; set;}
 		public required int HighestLevelPitcher {get; set;}
 		public required float WarHitter {get; set;}
@@ -41,6 +42,7 @@ namespace Db
 				AgeAtSigningYear = this.AgeAtSigningYear,
 				DraftPick = this.DraftPick,
 				DraftSignRank = this.DraftSignRank,
+				ProspectType = this.ProspectType,
 				HighestLevelHitter = this.HighestLevelHitter,
 				HighestLevelPitcher = this.HighestLevelPitcher,
 				WarHitter = this.WarHitter,
