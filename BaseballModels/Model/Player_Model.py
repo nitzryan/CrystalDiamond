@@ -31,6 +31,12 @@ class RNN_Model(nn.Module):
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
         
+        # Predict specific war value
+        self.linear_nonbucket_war1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_nonbucket_war2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_nonbucket_war3 = nn.Linear(hidden_size, hidden_size // 2)
+        self.linear_nonbucket_war4 = nn.Linear(hidden_size // 2, 1)
+        
         # Predict next year stats
         self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
@@ -87,6 +93,11 @@ class RNN_Model(nn.Module):
         output_war = self.nonlin(self.linear_war2(output_war))
         output_war = self.linear_war3(output_war)
         
+        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war1(output))
+        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war2(output_nonbucket_war))
+        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war3(output_nonbucket_war))
+        output_nonbucket_war = self.linear_nonbucket_war4(output_nonbucket_war)
+        
         # Generate Value predictions
         output_value = self.nonlin(self.linear_value1(output))
         output_value = self.nonlin(self.linear_value2(output_value))
@@ -134,7 +145,8 @@ class RNN_Model(nn.Module):
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
         
-        return output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
+        return output_war, output_nonbucket_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
+    
     
 def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
@@ -203,11 +215,6 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     l = (loss(pred_war, actual_war) * war_masks).sum()
     l += (loss(pred_ip, actual_ip).sum(dim=2) * pa_masks).sum()
 
-    # print(pred_war)
-    # print(actual_war[:,0,0])
-    # print(pa_masks[:,0])
-    # print(l)
-
     return l
         
 def Position_Classification_Loss(pred_positions, actual_positions, masks):
@@ -228,6 +235,24 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
     for x in range(8):
         l += (loss(pred_positions[:,x,:], actual_positions) * masks[:,x]).sum()
     return l
+    
+def Prospect_Value_Loss(pred_war, actual_war, masks):
+    actual_war = actual_war[:,:pred_war.size(1)]
+    masks = masks[:,:pred_war.size(1)]
+    
+    batch_size = actual_war.size(0)
+    time_steps = actual_war.size(1)
+    
+    actual_war = actual_war.reshape((batch_size * time_steps,))
+    masks = masks.reshape((batch_size, time_steps,))
+    pred_war = pred_war.reshape((batch_size * time_steps,))
+    
+    l = nn.L1Loss(reduction='none')
+    loss = l(pred_war, actual_war)
+    loss = loss.reshape((batch_size, time_steps))
+    loss *= masks
+    
+    return loss.sum(dim=1).sum()
     
 def Classification_Loss(pred_war, pred_value, pred_pwar, pred_level, pred_pa, actual_war, actual_value, actual_pwar, actual_level, actual_pa, masks):
     actual_war = actual_war[:,:pred_war.size(1)]

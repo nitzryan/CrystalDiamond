@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher
+from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_Value_Loss
 
 PWAR_LOSS_MULTIPLIER = 0.4
 LEVEL_LOSS_MULTIPLIER = 0.6
@@ -12,23 +12,29 @@ POSITION_LOSS_MULTIPLIER = 1.0
 TWAR_LOSS_MULTIPLIER = 0.15
 VALUE_LOSS_MULTIPLIER = 0.15
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
-LOSS_ITEM = 0
+WAR_VALUE_LOSS_MULTIPLIER = 0.6
+LOSS_ITEM = 8
 
-NUM_ELEMENTS = 8
+NUM_ELEMENTS = 9
 
 def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
-  for batch, (data, length, target_war, target_value, target_pwar, target_level, target_pa, mask_labels, mask_stats, year_mask, year_stats, year_position, mlb_value_mask, target_mlb_value) in enumerate(data_generator):
+  for batch, (data, length, target_war, target_warvalue, target_value, target_pwar, target_level, target_pa, mask_labels, mask_stats, year_mask, year_stats, year_position, mlb_value_mask, target_mlb_value) in enumerate(data_generator):
     data, length = data.to(device), length.to(device)
-    target_war, target_value, target_pwar, target_level, target_pa = target_war.to(device), target_value.to(device), target_pwar.to(device), target_level.to(device), target_pa.to(device)
+    target_war = target_war.to(device)
+    target_warvalue = target_warvalue.to(device)
+    target_value = target_value.to(device)
+    target_pwar = target_pwar.to(device)
+    target_level = target_level.to(device)
+    target_pa = target_pa.to(device)
     mask_stats = mask_stats.to(device)
     mask_labels = mask_labels.to(device)
     mlb_value_mask, target_mlb_value = mlb_value_mask.to(device), target_mlb_value.to(device)
     year_mask, year_stats, year_position = year_mask.to(device), year_stats.to(device), year_position.to(device)
     optimizer.zero_grad()
-    output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPos, output_mlbValue = network(data, length)
+    output_war, output_warvalue, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPos, output_mlbValue = network(data, length)
     loss_war, loss_value, loss_pwar, loss_level, loss_pa = Classification_Loss(output_war, output_value, output_pwar, output_level, output_pa, target_war, target_value, target_pwar, target_level, target_pa, mask_labels)
     
     loss_war = loss_war * TWAR_LOSS_MULTIPLIER
@@ -37,11 +43,16 @@ def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, l
     loss_level = LEVEL_LOSS_MULTIPLIER * loss_level
     loss_pa = PA_LOSS_MULTIPLIER * loss_pa
     
+    loss_warvalue = Prospect_Value_Loss(output_warvalue, target_warvalue, mask_labels)
+    loss_warvalue = WAR_VALUE_LOSS_MULTIPLIER * loss_warvalue
+    
     loss_war.backward(retain_graph=True)
     loss_value.backward(retain_graph=True)
     loss_pwar.backward(retain_graph=True)
     loss_level.backward(retain_graph=True)
     loss_pa.backward(retain_graph=True)
+    
+    loss_warvalue.backward(retain_graph=True)
     
     loss_yearStats = STATS_LOSS_MULTIPLIER * Stats_Loss(output_yearStats, year_stats, year_mask)
     loss_yearPos = POSITION_LOSS_MULTIPLIER * Position_Classification_Loss(output_yearPos, year_position, year_mask)
@@ -61,6 +72,7 @@ def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, l
     avg_loss[5] += loss_yearPos.item() / POSITION_LOSS_MULTIPLIER
     avg_loss[6] += loss_value.item() / VALUE_LOSS_MULTIPLIER
     avg_loss[7] += loss_mlbValue.item() / MLB_VALUE_LOSS_MULTIPLIER
+    avg_loss[8] += loss_warvalue.item() / WAR_VALUE_LOSS_MULTIPLIER
     num_batches += 1
     if should_output and ((batch+1)%logging == 0): print('Batch [%d/%d], Train Loss: %.4f' %(batch+1, len(data_generator.dataset)/len(output_war), avg_loss/num_batches))
   
@@ -73,19 +85,21 @@ def test(network, test_loader, num_elements, is_hitter : bool):
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   with torch.no_grad():
-    for data, length, target_war, target_value, target_pwar, target_level, target_pa, mask_labels, mask_stats, year_mask, year_stats, year_position, mlb_value_mask, target_mlb_value in test_loader:
+    for data, length, target_war, target_warvalue, target_value, target_pwar, target_level, target_pa, mask_labels, mask_stats, year_mask, year_stats, year_position, mlb_value_mask, target_mlb_value in test_loader:
       data, length = data.to(device), length.to(device)
-      target_war, target_value, target_pwar, target_level, target_pa = target_war.to(device), target_value.to(device), target_pwar.to(device), target_level.to(device), target_pa.to(device)
+      target_war, target_warvalue, target_value, target_pwar, target_level, target_pa = target_war.to(device), target_warvalue.to(device), target_value.to(device), target_pwar.to(device), target_level.to(device), target_pa.to(device)
       mask_stats = mask_stats.to(device)
       mask_labels = mask_labels.to(device)
       mlb_value_mask, target_mlb_value = mlb_value_mask.to(device), target_mlb_value.to(device)
       year_mask, year_stats, year_position = year_mask.to(device), year_stats.to(device), year_position.to(device)
-      output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPos, output_mlbValue = network(data, length)
+      output_war, output_warvalue, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPos, output_mlbValue = network(data, length)
       
       loss_war, loss_value, loss_pwar, loss_level, loss_pa = Classification_Loss(output_war, output_value, output_pwar, output_level, output_pa, target_war, target_value, target_pwar, target_level, target_pa, mask_labels)
       loss_yearStats = Stats_Loss(output_yearStats, year_stats, year_mask)
       loss_yearPos = Position_Classification_Loss(output_yearPos, year_position, year_mask)
       loss_mlbValue = (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlb_value, mlb_value_mask) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlb_value, mlb_value_mask))
+      
+      loss_warvalue = Prospect_Value_Loss(output_warvalue, target_warvalue, mask_labels)
       
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_pwar.item()
@@ -95,6 +109,7 @@ def test(network, test_loader, num_elements, is_hitter : bool):
       avg_loss[5] += loss_yearPos.item()
       avg_loss[6] += loss_value.item()
       avg_loss[7] += loss_mlbValue.item()
+      avg_loss[8] += loss_warvalue.item()
       num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -175,6 +190,7 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     graphLoss(epoch_counter, train_loss_history[5], test_loss_history[5], start=5, title="Year Position Prediction")
     graphLoss(epoch_counter, train_loss_history[6], test_loss_history[6], start=5, title="Value Prediction")
     graphLoss(epoch_counter, train_loss_history[7], test_loss_history[7], start=5, title="MLB Value Prediction")
+    graphLoss(epoch_counter, train_loss_history[8], test_loss_history[8], start=5, title="Prospect War L1")
   
   if save_last:
     torch.save(network.state_dict(), model_name)

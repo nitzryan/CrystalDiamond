@@ -17,6 +17,7 @@ class Player_IO:
     def __init__(self, player : DB_Model_Players, 
                  input : torch.Tensor, 
                  output : torch.Tensor,
+                 prospect_value : torch.Tensor,
                  length : int,
                  dates : torch.Tensor, 
                  prospect_mask : torch.Tensor,
@@ -30,6 +31,7 @@ class Player_IO:
         self.player = player
         self.input = input
         self.output = output
+        self.prospect_value = prospect_value
         self.length = length
         self.dates = dates
         self.prospect_mask = prospect_mask
@@ -70,6 +72,9 @@ class Data_Prep:
         self.mlb_hit_value_mutator_scale = 0.15
         self.mlb_pit_value_mutator_scale = 0.15
         
+        self.mlb_hit_prospect_value_scale = 0.15
+        self.mlb_pit_prospect_value_scale = 0.15
+        
         self.prep_map = prep_map
         self.output_map = output_map
         
@@ -80,6 +85,10 @@ class Data_Prep:
         
         pitchers = DB_Model_Players.Select_From_DB(cursor, "WHERE isPitcher=1 AND signingYear<=?", (Data_Prep.__Cutoff_Year,))
         self.__Create_PCA_Norms(self.prep_map.map_bio, pitchers, "pitbio", self.prep_map.bio_size)
+        
+        # Get WAR values not in buckets for additional usage
+        self.__Create_Standard_Norms(lambda h : [h.warHitter], hitters, "hit_prospect_value")
+        self.__Create_Standard_Norms(lambda p : [p.warPitcher], pitchers, "pit_prospect_value")
         
         # Get all stats <=2024 to get means/stds to normalize
         # Restrict so new data doesn't change old conversions which would break model
@@ -219,6 +228,9 @@ class Data_Prep:
         
         mlb_value_means : torch.Tensor = getattr(self, "__hittervalues_means")
         mlb_value_devs : torch.Tensor = getattr(self, "__hittervalues_devs")
+        
+        prospect_value_means : torch.Tensor = getattr(self, "__hit_prospect_value_means")
+        prospect_value_devs : torch.Tensor = getattr(self, "__hit_prospect_value_devs")
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
@@ -254,6 +266,10 @@ class Data_Prep:
             output[:,2] = torch.bucketize(torch.tensor(hitter.peakWarHitter), HITTER_PEAK_WAR_BUCKETS)
             output[:,3] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
             output[:,4] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
+        
+            # Unbucketed prospect value
+            prospect_value = torch.zeros(l, 1, dtype=torch.float)
+            prospect_value[:] = (torch.tensor([hitter.warHitter]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -301,7 +317,7 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=hitter, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            io.append(Player_IO(player=hitter, input=input, output=output, prospect_value=prospect_value, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
         
         return io
        
