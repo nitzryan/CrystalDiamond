@@ -13,9 +13,10 @@ TWAR_LOSS_MULTIPLIER = 0.8
 VALUE_LOSS_MULTIPLIER = 0.15
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
 WAR_VALUE_LOSS_MULTIPLIER = 0.6
-LOSS_ITEM = 8
+DEFAULT_LOSS_ITEM = 8
 
-NUM_ELEMENTS = 10
+ELEMENT_LIST = ["TotalClassification", "PeakClassification", "Level", "PA", "YearStats", "YearPos", "Value", "MLBValue", "Regression", "ClassToReg"]
+NUM_ELEMENTS = len(ELEMENT_LIST)
 
 def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
@@ -141,14 +142,28 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
-def trainAndGraph(network, training_generator, testing_generator, num_train : int, num_test : int, optimizer, scheduler, num_epochs, logging_interval=1, early_stopping_cutoff=20, should_output=True, graph_y_range=None, model_name="no_name.pt", save_last=False, is_hitter=True):
+def trainAndGraph(network, 
+                  training_generator, 
+                  testing_generator, 
+                  num_train : int, 
+                  num_test : int, 
+                  optimizer, 
+                  scheduler, 
+                  num_epochs, 
+                  logging_interval=1, 
+                  early_stopping_cutoff=20, 
+                  should_output=True, 
+                  graph_y_range=None, 
+                  model_name="no_name", 
+                  save_last=False, 
+                  is_hitter=True,
+                  elements_to_save : list[int] = [DEFAULT_LOSS_ITEM]):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
   train_loss_history = [[] for _ in range(NUM_ELEMENTS)]
-  last_loss = 999999
-  best_loss = 999999
-  best_epoch = 0
+  best_losses = [99999999 for _ in elements_to_save]
+  best_epochs = [0 for _ in elements_to_save]
   epochsSinceLastImprove = 0
   
   iterable = range(num_epochs)
@@ -158,18 +173,22 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     avg_loss = train(network, training_generator, num_train, optimizer, should_output=should_output, is_hitter=is_hitter)
     test_loss = test(network, testing_generator, num_test, is_hitter=is_hitter)
 
-    scheduler.step(test_loss[LOSS_ITEM])
-    logResults(epoch, num_epochs, avg_loss[LOSS_ITEM], test_loss[LOSS_ITEM], logging_interval, should_output)
+    scheduler.step(test_loss[elements_to_save[0]])
+    logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)
     
     for n in range(NUM_ELEMENTS):
       train_loss_history[n].append(avg_loss[n])
       test_loss_history[n].append(test_loss[n])
     epoch_counter.append(epoch)
     
-    if (test_loss[LOSS_ITEM] < best_loss):
-      best_loss = test_loss[LOSS_ITEM]
-      best_epoch = epoch
-      torch.save(network.state_dict(), model_name)
+    anyImproved : bool = False
+    for i, el in enumerate(elements_to_save):
+      if (test_loss[el] < best_losses[i]):
+        best_losses[i] = test_loss[el]
+        torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
+        anyImproved = True
+        best_epochs[i] = epoch
+    if anyImproved:
       epochsSinceLastImprove = 0
     else:
       epochsSinceLastImprove += 1
@@ -187,19 +206,13 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     #     param_group['lr'] = 0.0015
 
   if should_output:
-    print(f"Best result at epoch={best_epoch} with loss={best_loss}")
+    for i, el in enumerate(elements_to_save):
+      print(f"Best result for {ELEMENT_LIST[el]} at epoch={best_epochs[i]} with loss={best_losses[i]}")
 
-    graphLoss(epoch_counter, train_loss_history[0], test_loss_history[0], start=5, graph_y_range=graph_y_range, title="Total WAR")
-    graphLoss(epoch_counter, train_loss_history[1], test_loss_history[1], start=5, title="Peak WAR")
-    graphLoss(epoch_counter, train_loss_history[2], test_loss_history[2], start=5, title="Level")
-    graphLoss(epoch_counter, train_loss_history[3], test_loss_history[3], start=5, title="PA")
-    graphLoss(epoch_counter, train_loss_history[4], test_loss_history[4], start=5, title="Year Stats Prediction")
-    graphLoss(epoch_counter, train_loss_history[5], test_loss_history[5], start=5, title="Year Position Prediction")
-    graphLoss(epoch_counter, train_loss_history[6], test_loss_history[6], start=5, title="Value Prediction")
-    graphLoss(epoch_counter, train_loss_history[7], test_loss_history[7], start=5, title="MLB Value Prediction")
-    graphLoss(epoch_counter, train_loss_history[8], test_loss_history[8], start=5, title="Regression War")
-    graphLoss(epoch_counter, train_loss_history[9], test_loss_history[9], start=5, title="Classification to Regression WAR L1")
+    for n in range(NUM_ELEMENTS):
+      graphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=ELEMENT_LIST[n], start=3)
   
   if save_last:
-    torch.save(network.state_dict(), model_name)
-  return best_loss
+    for el in elements_to_save:
+      torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
+  return best_losses
