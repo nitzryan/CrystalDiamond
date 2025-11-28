@@ -2,20 +2,20 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_Value_Loss
+from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_Value_Loss, Classification_War_Regression
 
 PWAR_LOSS_MULTIPLIER = 0.4
 LEVEL_LOSS_MULTIPLIER = 0.6
 PA_LOSS_MULTIPLIER = 0.8
 STATS_LOSS_MULTIPLIER = 0.6
 POSITION_LOSS_MULTIPLIER = 1.0
-TWAR_LOSS_MULTIPLIER = 0.15
+TWAR_LOSS_MULTIPLIER = 0.8
 VALUE_LOSS_MULTIPLIER = 0.15
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
 WAR_VALUE_LOSS_MULTIPLIER = 0.6
 LOSS_ITEM = 8
 
-NUM_ELEMENTS = 9
+NUM_ELEMENTS = 10
 
 def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, logging = 200, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
@@ -46,6 +46,9 @@ def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, l
     loss_warvalue = Prospect_Value_Loss(output_warvalue, target_warvalue, mask_labels)
     loss_warvalue = WAR_VALUE_LOSS_MULTIPLIER * loss_warvalue
     
+    loss_classification_to_regression = WAR_VALUE_LOSS_MULTIPLIER * Classification_War_Regression(network, output_war, target_warvalue, mask_labels)
+    loss_classification_to_regression.backward(retain_graph=True)
+    
     loss_war.backward(retain_graph=True)
     loss_value.backward(retain_graph=True)
     loss_pwar.backward(retain_graph=True)
@@ -73,6 +76,7 @@ def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, l
     avg_loss[6] += loss_value.item() / VALUE_LOSS_MULTIPLIER
     avg_loss[7] += loss_mlbValue.item() / MLB_VALUE_LOSS_MULTIPLIER
     avg_loss[8] += loss_warvalue.item() / WAR_VALUE_LOSS_MULTIPLIER
+    avg_loss[9] += loss_classification_to_regression.item() / WAR_VALUE_LOSS_MULTIPLIER
     num_batches += 1
     if should_output and ((batch+1)%logging == 0): print('Batch [%d/%d], Train Loss: %.4f' %(batch+1, len(data_generator.dataset)/len(output_war), avg_loss/num_batches))
   
@@ -101,6 +105,8 @@ def test(network, test_loader, num_elements, is_hitter : bool):
       
       loss_warvalue = Prospect_Value_Loss(output_warvalue, target_warvalue, mask_labels)
       
+      loss_classification_to_regression = Classification_War_Regression(network, output_war, target_warvalue, mask_labels)
+      
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_pwar.item()
       avg_loss[2] += loss_level.item()
@@ -110,6 +116,7 @@ def test(network, test_loader, num_elements, is_hitter : bool):
       avg_loss[6] += loss_value.item()
       avg_loss[7] += loss_mlbValue.item()
       avg_loss[8] += loss_warvalue.item()
+      avg_loss[9] += loss_classification_to_regression.item()
       num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -190,7 +197,8 @@ def trainAndGraph(network, training_generator, testing_generator, num_train : in
     graphLoss(epoch_counter, train_loss_history[5], test_loss_history[5], start=5, title="Year Position Prediction")
     graphLoss(epoch_counter, train_loss_history[6], test_loss_history[6], start=5, title="Value Prediction")
     graphLoss(epoch_counter, train_loss_history[7], test_loss_history[7], start=5, title="MLB Value Prediction")
-    graphLoss(epoch_counter, train_loss_history[8], test_loss_history[8], start=5, title="Prospect War L1")
+    graphLoss(epoch_counter, train_loss_history[8], test_loss_history[8], start=5, title="Regression War")
+    graphLoss(epoch_counter, train_loss_history[9], test_loss_history[9], start=5, title="Classification to Regression WAR L1")
   
   if save_last:
     torch.save(network.state_dict(), model_name)

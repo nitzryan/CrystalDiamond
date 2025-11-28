@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from Data_Prep import Data_Prep
 from Constants import device
 
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS, WAR_BUCKET_AVG
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, data_prep : Data_Prep, is_hitter : bool):
@@ -61,11 +61,20 @@ class RNN_Model(nn.Module):
         self.is_hitter = is_hitter
         #self.nonlin = F.leaky_relu
         
+        # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+                    
+        # Convert class probabilities to war regression
+        war_means : torch.Tensor = getattr(data_prep, "__hit_prospect_value_means") if is_hitter else getattr(data_prep, "__pit_prospect_value_means")
+        war_devs : torch.Tensor = getattr(data_prep, "__hit_prospect_value_devs") if is_hitter else getattr(data_prep, "__pit_prospect_value_devs")
+        bucket_values = (torch.tensor(WAR_BUCKET_AVG) - war_means) / war_devs
+        
+        self.classes_to_regression = nn.Linear(len(output_map.buckets_hitter_war), 1, bias=False)
+        self.classes_to_regression.weight = nn.Parameter(bucket_values, requires_grad=False)
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -249,6 +258,26 @@ def Prospect_Value_Loss(pred_war, actual_war, masks):
     
     l = nn.L1Loss(reduction='none')
     loss = l(pred_war, actual_war)
+    loss = loss.reshape((batch_size, time_steps))
+    loss *= masks
+    
+    return loss.sum(dim=1).sum()
+    
+def Classification_War_Regression(network, pred_war_classes, actual_war_regression, masks):
+    batch_size = pred_war_classes.size(0)
+    time_steps = pred_war_classes.size(1)
+    
+    actual_war_regression = actual_war_regression[:, :time_steps].reshape((batch_size * time_steps,))
+    pred_war_classes = pred_war_classes.reshape((batch_size * time_steps, pred_war_classes.size(2)))
+    masks = masks[:, :time_steps]
+    
+    # Multiply class probabilities by war of class to get predicted war value
+    softmax = nn.Softmax(dim=1)
+    pred_war_classes_probs = softmax(pred_war_classes)
+    pred_war_regression = network.classes_to_regression(pred_war_classes_probs)
+    
+    l = nn.L1Loss(reduction='none')
+    loss = l(pred_war_regression, actual_war_regression)
     loss = loss.reshape((batch_size, time_steps))
     loss *= masks
     

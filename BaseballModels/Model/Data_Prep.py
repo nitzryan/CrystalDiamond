@@ -267,7 +267,7 @@ class Data_Prep:
             output[:,3] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
             output[:,4] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
         
-            # Unbucketed prospect value
+            # Regression prospect value
             prospect_value = torch.zeros(l, 1, dtype=torch.float)
             prospect_value[:] = (torch.tensor([hitter.warHitter]) - prospect_value_means) / prospect_value_devs
         
@@ -333,6 +333,9 @@ class Data_Prep:
         cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         mlb_value_means : torch.Tensor = getattr(self, "__pitchervalues_means")
         mlb_value_devs : torch.Tensor = getattr(self, "__pitchervalues_devs")
+        
+        prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
+        prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
@@ -368,6 +371,10 @@ class Data_Prep:
             output[:,2] = torch.bucketize(torch.tensor(pitcher.peakWarPitcher), PITCHER_PEAK_WAR_BUCKETS)
             output[:,3] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
             output[:,4] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
+        
+            # Regression prospect value
+            prospect_value = torch.zeros(l, 1, dtype=torch.float)
+            prospect_value[:] = (torch.tensor([pitcher.warPitcher]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -417,7 +424,7 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=pitcher, input=input, output=output, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            io.append(Player_IO(player=pitcher, input=input, output=output, prospect_value=prospect_value, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
         
         return io
         
