@@ -45,7 +45,8 @@ if __name__ == "__main__":
         mth = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=?", (model_name,))
         num_layers = mth[0].NumLayers
         hidden_size = mth[0].HiddenSize
-        network = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, data_prep=data_prep, is_hitter=True)
+        network_mlb = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, data_prep=data_prep, is_hitter=True)
+        network_prospect = RNN_Model(x_padded[0].shape[1], num_layers, hidden_size, None, data_prep=data_prep, is_hitter=True)
         
         # Data to unnormalize values from model
         mlb_value_mean : torch.Tensor = data_prep.__getattribute__('__hittervalues_means').to(device)
@@ -54,13 +55,20 @@ if __name__ == "__main__":
         for m in tqdm(mth, desc="Evaluation Model Copies", leave=False):
             model_idx = int(m.ModelIdx)
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                network.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}.pt"))
-            network.eval()
-            network = network.to(device)
+                network_mlb.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_MLBValue.pt"))
+            network_mlb.eval()
+            network_mlb = network_mlb.to(device)
+            
+            with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
+                network_prospect.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_ClassToReg.pt"))
+            network_prospect.eval()
+            network_prospect = network_prospect.to(device)
 
             for batch, (data, length, dtes, mask) in tqdm(enumerate(generator), total=len(generator), desc="Evaluating Hitters", leave=False):
                 data, length, dtes, mask = data.to(device), length.to(device), dtes.to(device), mask.to(device)
-                output_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network(data, length)
+                
+                # Use model optimized for prospect data
+                output_war, output_war_regression, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
                 output_war = F.softmax(output_war, dim=2)
                 output_value = F.softmax(output_value, dim=2)
                 
@@ -89,7 +97,10 @@ if __name__ == "__main__":
                     vals = [tuple(x) for x in d.tolist()]
                     cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                 
-                # Insert MLB value
+                # Evaluate MLB data
+                output_war, output_war_regression, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
+                
+                # Use model optimized for MLB value
                 output_mlbValue = (output_mlbValue * mlb_value_stds) + mlb_value_mean
                 omv = torch.cat((mlbIds, modelIdxs, dtes, output_mlbValue), dim=2)
                 mlb_data = torch.nn.utils.rnn.unpad_sequence(omv, length, batch_first=True)
