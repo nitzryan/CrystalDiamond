@@ -5,6 +5,6 @@ cursor.execute("DELETE FROM ModelIdx")
 db.commit()
 
 cursor = db.cursor()
-cursor.execute("INSERT INTO ModelIdx VALUES(1,'Base2_P','Base2_H','Base2')")
-cursor.execute("INSERT INTO ModelIdx VALUES(2,'StatsOnly2_P','StatsOnly2_H','StatsOnly2')")
+cursor.execute("INSERT INTO ModelIdx VALUES(1,'Base4_P','Base4_H','Base4')")
+cursor.execute("INSERT INTO ModelIdx VALUES(2,'StatsOnly4_P','StatsOnly4_H','StatsOnly4')")
 db.commit()

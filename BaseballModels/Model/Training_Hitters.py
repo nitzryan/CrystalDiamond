@@ -53,9 +53,9 @@ if __name__ == "__main__":
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=FutureWarning)
                 if model_id == 1:
-                    network.load_state_dict(torch.load("Models/default_hitter.pt"))
+                    network.load_state_dict(torch.load("Models/default_hitter_TotalClassification.pt"))
                 elif model_id == 2:
-                    network.load_state_dict(torch.load("Models/default_statsonly_hitter.pt"))
+                    network.load_state_dict(torch.load("Models/default_statsonly_hitter_TotalClassification.pt"))
                 
             network = network.to(device)
             
@@ -67,10 +67,22 @@ if __name__ == "__main__":
             testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             
             model_name_pt = f"{model_name}_{i}"
-            best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), optimizer, scheduler, num_epochs, logging_interval=10000, early_stopping_cutoff=40, should_output=False, model_name=f"Models/{model_name_pt}.pt")
+            best_losses = Model_Train.trainAndGraph(network, 
+                                                  training_generator, 
+                                                  testing_generator, 
+                                                  len(train_dataset), 
+                                                  len(test_dataset), 
+                                                  optimizer, 
+                                                  scheduler, 
+                                                  num_epochs, 
+                                                  logging_interval=10000, 
+                                                  early_stopping_cutoff=40, 
+                                                  should_output=False, 
+                                                  model_name=f"Models/{model_name_pt}",
+                                                  elements_to_save=[4,7,8,9])
             
             cursor = db.cursor()
-            cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_loss, i, num_layers, hidden_size))
+            cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_losses[3], i, num_layers, hidden_size))
             db.commit()
             
         # Insert hitters that were trained on so that they can be marked on the site
