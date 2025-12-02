@@ -2,7 +2,7 @@ namespace Db
 {
 	public class Park_Factors
 	{
-		public required int TeamId {get; set;}
+		public required int StadiumId {get; set;}
 		public required int LeagueId {get; set;}
 		public required int LevelId {get; set;}
 		public required int Year {get; set;}
@@ -13,7 +13,7 @@ namespace Db
 		{
 			return new Park_Factors
 			{
-				TeamId = this.TeamId,
+				StadiumId = this.StadiumId,
 				LeagueId = this.LeagueId,
 				LevelId = this.LevelId,
 				Year = this.Year,

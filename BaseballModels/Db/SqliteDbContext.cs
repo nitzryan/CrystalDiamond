@@ -82,8 +82,8 @@ namespace Db
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValue>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
-			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.TeamId,f.Year});
-			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.TeamId,f.Year,f.LeagueId});
+			modelBuilder.Entity<Park_Factors>().HasKey(f => new {f.StadiumId,f.Year});
+			modelBuilder.Entity<Park_ScoringData>().HasKey(f => new {f.StadiumId,f.Year,f.LeagueId});
 			modelBuilder.Entity<Player>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Player_CareerStatus>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Player_Hitter_GameLog>().HasKey(f => new {f.GameLogId});

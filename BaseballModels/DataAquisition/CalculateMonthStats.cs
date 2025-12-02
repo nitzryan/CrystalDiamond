@@ -41,9 +41,9 @@ namespace DataAquisition
                 else
                     totalPositions[8]++;
 
-                if (adjustedParkFactors.ContainsKey(gl.HomeTeamId))
+                if (adjustedParkFactors.ContainsKey(gl.StadiumId))
                 {
-                    var pf = adjustedParkFactors[gl.HomeTeamId];
+                    var pf = adjustedParkFactors[gl.StadiumId];
                     totalRunFactor += pf.Item1 * gl.AB;
                     totalHRFactor += pf.Item2 * gl.AB;
                 }
@@ -123,9 +123,9 @@ namespace DataAquisition
                 if (gl.Started == 1)
                     outsSP += gl.Outs;
 
-                if (adjustedParkFactors.ContainsKey(gl.HomeTeamId))
+                if (adjustedParkFactors.ContainsKey(gl.StadiumId))
                 {
-                    var pf = adjustedParkFactors[gl.HomeTeamId];
+                    var pf = adjustedParkFactors[gl.StadiumId];
                     totalRunFactor += pf.Item1 * gl.BattersFaced;
                     totalHRFactor += pf.Item2 * gl.BattersFaced;
                 }
@@ -173,7 +173,7 @@ namespace DataAquisition
                 var lf = leagueFactors.Where(f => f.LeagueId == pf.LeagueId).First();
                 float runFactor = pf.RunFactor * lf.RunFactor;
                 float hrFactor = pf.HRFactor * lf.HRFactor;
-                adjustedParkFactors.Add(pf.TeamId, (runFactor, hrFactor));
+                adjustedParkFactors.Add(pf.StadiumId, (runFactor, hrFactor));
             }
 
             return adjustedParkFactors;

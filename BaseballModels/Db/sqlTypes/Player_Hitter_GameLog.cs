@@ -21,7 +21,8 @@ namespace Db
 		public required int HBP {get; set;}
 		public required int Position {get; set;}
 		public required int LevelId {get; set;}
-		public required int HomeTeamId {get; set;}
+		public required int StadiumId {get; set;}
+		public required int IsHome {get; set;}
 		public required int TeamId {get; set;}
 		public required int LeagueId {get; set;}
 
@@ -48,7 +49,8 @@ namespace Db
 				HBP = this.HBP,
 				Position = this.Position,
 				LevelId = this.LevelId,
-				HomeTeamId = this.HomeTeamId,
+				StadiumId = this.StadiumId,
+				IsHome = this.IsHome,
 				TeamId = this.TeamId,
 				LeagueId = this.LeagueId,
 				

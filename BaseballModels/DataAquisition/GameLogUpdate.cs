@@ -130,6 +130,8 @@ namespace DataAquisition
                     var stats = game.GetProperty("stat");
                     var positions = game.GetProperty("positionsPlayed").EnumerateArray();
 
+                    bool isHome = game.GetProperty("isHome").GetBoolean();
+
                     Player_Hitter_GameLog gl = new()
                     {
                         GameId = game.GetProperty("game").GetProperty("gamePk").GetInt32(),
@@ -152,9 +154,10 @@ namespace DataAquisition
                         LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
                         LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
-                        HomeTeamId = game.GetProperty("isHome").GetBoolean() ?
-                            game.GetProperty("team").GetProperty("id").GetInt32() :
-                            game.GetProperty("opponent").GetProperty("id").GetInt32(),
+                        IsHome = isHome ? 1 : 0,
+                        StadiumId = isHome ?
+                            game.GetProperty("team").GetProperty("venue").GetProperty("id").GetInt32() :
+                            game.GetProperty("opponent").GetProperty("venue").GetProperty("id").GetInt32(),
                     };
 
                     // MLB changed Rk Adv to different LevelId id for some years, so catch here
@@ -213,6 +216,8 @@ namespace DataAquisition
 
                     var stats = game.GetProperty("stat");
 
+                    bool isHome = game.GetProperty("isHome").GetBoolean();
+
                     Player_Pitcher_GameLog gl = new()
                     {
                         GameId = game.GetProperty("game").GetProperty("gamePk").GetInt32(),
@@ -237,9 +242,10 @@ namespace DataAquisition
                         LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
                         LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
-                        HomeTeamId = game.GetProperty("isHome").GetBoolean() ?
-                            game.GetProperty("team").GetProperty("id").GetInt32() :
-                            game.GetProperty("opponent").GetProperty("id").GetInt32(),
+                        IsHome = isHome ? 1 : 0,
+                        StadiumId = isHome ?
+                            game.GetProperty("team").GetProperty("venue").GetProperty("id").GetInt32() :
+                            game.GetProperty("opponent").GetProperty("venue").GetProperty("id").GetInt32(),
                     };
 
                     // MLB changed Rk Adv to different LevelId id for some years, so catch here

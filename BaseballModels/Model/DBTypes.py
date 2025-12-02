@@ -683,7 +683,7 @@ class DB_Output_PitcherValueAggregation:
 ##############################################################################################
 class DB_Park_Factors:
 	def __init__(self, values : tuple[any]):
-		self.TeamId = values[0]
+		self.StadiumId = values[0]
 		self.LeagueId = values[1]
 		self.LevelId = values[2]
 		self.Year = values[3]
@@ -694,7 +694,7 @@ class DB_Park_Factors:
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.TeamId,self.LeagueId,self.LevelId,self.Year,self.RunFactor,self.HRFactor)
+		return (self.StadiumId,self.LeagueId,self.LevelId,self.Year,self.RunFactor,self.HRFactor)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Park_Factors']:
@@ -705,7 +705,7 @@ class DB_Park_Factors:
 ##############################################################################################
 class DB_Park_ScoringData:
 	def __init__(self, values : tuple[any]):
-		self.TeamId = values[0]
+		self.StadiumId = values[0]
 		self.Year = values[1]
 		self.LeagueId = values[2]
 		self.LevelId = values[3]
@@ -722,7 +722,7 @@ class DB_Park_ScoringData:
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.TeamId,self.Year,self.LeagueId,self.LevelId,self.HomePa,self.HomeOuts,self.HomeRuns,self.HomeHRs,self.AwayPa,self.AwayOuts,self.AwayRuns,self.AwayHRs)
+		return (self.StadiumId,self.Year,self.LeagueId,self.LevelId,self.HomePa,self.HomeOuts,self.HomeRuns,self.HomeHRs,self.AwayPa,self.AwayOuts,self.AwayRuns,self.AwayHRs)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Park_ScoringData']:
@@ -815,15 +815,16 @@ class DB_Player_Hitter_GameLog:
 		self.HBP = values[16]
 		self.Position = values[17]
 		self.LevelId = values[18]
-		self.HomeTeamId = values[19]
-		self.TeamId = values[20]
-		self.LeagueId = values[21]
+		self.StadiumId = values[19]
+		self.IsHome = values[20]
+		self.TeamId = values[21]
+		self.LeagueId = values[22]
 
-	NUM_ELEMENTS = 22
+	NUM_ELEMENTS = 23
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.gameLogId,self.gameId,self.mlbId,self.Day,self.Month,self.Year,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.Position,self.LevelId,self.HomeTeamId,self.TeamId,self.LeagueId)
+		return (self.gameLogId,self.gameId,self.mlbId,self.Day,self.Month,self.Year,self.AB,self.PA,self.H,self.hit2B,self.hit3B,self.HR,self.K,self.BB,self.SB,self.CS,self.HBP,self.Position,self.LevelId,self.StadiumId,self.IsHome,self.TeamId,self.LeagueId)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_GameLog']:
@@ -1049,15 +1050,16 @@ class DB_Player_Pitcher_GameLog:
 		self.hit3B = values[18]
 		self.HR = values[19]
 		self.levelId = values[20]
-		self.homeTeamId = values[21]
-		self.TeamId = values[22]
-		self.LeagueId = values[23]
+		self.stadiumId = values[21]
+		self.isHome = values[22]
+		self.TeamId = values[23]
+		self.LeagueId = values[24]
 
-	NUM_ELEMENTS = 24
+	NUM_ELEMENTS = 25
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.gameLogId,self.gameId,self.mlbId,self.day,self.month,self.year,self.started,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.levelId,self.homeTeamId,self.TeamId,self.LeagueId)
+		return (self.gameLogId,self.gameId,self.mlbId,self.day,self.month,self.year,self.started,self.battersFaced,self.outs,self.GO,self.AO,self.R,self.ER,self.h,self.k,self.BB,self.HBP,self.hit2B,self.hit3B,self.HR,self.levelId,self.stadiumId,self.isHome,self.TeamId,self.LeagueId)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Pitcher_GameLog']:

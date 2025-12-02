@@ -99,7 +99,8 @@ namespace DataAquisition
             HBP = a.HBP + b.HBP,
             Position = a.Position,
             LevelId = a.LevelId,
-            HomeTeamId = a.HomeTeamId,
+            StadiumId = a.StadiumId,
+            IsHome = a.IsHome,
             TeamId = a.TeamId,
             LeagueId = a.TeamId
         };
@@ -158,7 +159,8 @@ namespace DataAquisition
             R = a.R + b.R,
             HBP = a.HBP + b.HBP,
             LevelId = a.LevelId,
-            HomeTeamId = a.HomeTeamId,
+            StadiumId = a.StadiumId,
+            IsHome = a.IsHome,
             TeamId = a.TeamId,
             LeagueId = a.TeamId
         };

@@ -410,17 +410,17 @@ CREATE TABLE "Output_PitcherValueAggregation" (
 );
 
 CREATE TABLE "Park_Factors" (
-	"TeamId"	INTEGER NOT NULL,
+	"StadiumId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"RunFactor"	REAL NOT NULL,
 	"HRFactor"	REAL NOT NULL,
-	PRIMARY KEY("TeamId","Year")
+	PRIMARY KEY("StadiumId","Year")
 );
 
 CREATE TABLE "Park_ScoringData" (
-	"TeamId"	INTEGER NOT NULL,
+	"StadiumId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
@@ -432,7 +432,7 @@ CREATE TABLE "Park_ScoringData" (
 	"AwayOuts"	INTEGER NOT NULL,
 	"AwayRuns"	INTEGER NOT NULL,
 	"AwayHRs"	INTEGER NOT NULL,
-	PRIMARY KEY("TeamId","Year","LeagueId")
+	PRIMARY KEY("StadiumId","Year","LeagueId")
 );
 
 CREATE TABLE "Player" (
@@ -494,7 +494,8 @@ CREATE TABLE "Player_Hitter_GameLog" (
 	"HBP"	INTEGER NOT NULL,
 	"Position"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
-	"HomeTeamId"	INTEGER NOT NULL,
+	"StadiumId"	INTEGER NOT NULL,
+	"IsHome" INTEGER NOT NULL,
 	"TeamId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	PRIMARY KEY("gameLogId")
@@ -644,7 +645,8 @@ CREATE TABLE "Player_Pitcher_GameLog" (
 	"hit3B"	INTEGER NOT NULL,
 	"HR"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
-	"homeTeamId"	INTEGER NOT NULL,
+	"stadiumId"	INTEGER NOT NULL,
+	"isHome" INTEGER NOT NULL,
 	"TeamId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	PRIMARY KEY("gameLogId")

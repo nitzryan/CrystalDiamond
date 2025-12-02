@@ -39,7 +39,8 @@ namespace DataAquisition
                     HBP = a.HBP + b.HBP,
                     Position = 0,
                     LevelId = 0,
-                    HomeTeamId = 0,
+                    StadiumId = 0,
+                    IsHome = 0,
                     TeamId = 0,
                     LeagueId = 0
                 });
@@ -112,7 +113,8 @@ namespace DataAquisition
                     GO = a.GO + b.GO,
                     AO = a.AO + b.AO,
                     LevelId = 0,
-                    HomeTeamId = 0,
+                    StadiumId = 0,
+                    IsHome = 0,
                     TeamId = 0,
                     LeagueId = 0
                 });

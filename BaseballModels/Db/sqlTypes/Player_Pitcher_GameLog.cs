@@ -23,7 +23,8 @@ namespace Db
 		public required int Hit3B {get; set;}
 		public required int HR {get; set;}
 		public required int LevelId {get; set;}
-		public required int HomeTeamId {get; set;}
+		public required int StadiumId {get; set;}
+		public required int IsHome {get; set;}
 		public required int TeamId {get; set;}
 		public required int LeagueId {get; set;}
 
@@ -52,7 +53,8 @@ namespace Db
 				Hit3B = this.Hit3B,
 				HR = this.HR,
 				LevelId = this.LevelId,
-				HomeTeamId = this.HomeTeamId,
+				StadiumId = this.StadiumId,
+				IsHome = this.IsHome,
 				TeamId = this.TeamId,
 				LeagueId = this.LeagueId,
 				
