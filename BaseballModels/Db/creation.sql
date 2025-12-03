@@ -854,6 +854,24 @@ CREATE TABLE "PlayersInTrainingData" (
 	PRIMARY KEY ("mlbId", "modelIdx")
 );
 
+CREATE TABLE "LeagueStats" (
+	"LeagueId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"avgWOBA" REAL NOT NULL,
+	"wOBAScale" REAL NOT NULL,
+	"wBB" REAL NOT NULL,
+	"wHBP" REAL NOT NULL,
+	"w1B" REAL NOT NULL,
+	"w2B" REAL NOT NULL,
+	"w3B" REAL NOT NULL,
+	"wHR" REAL NOT NULL,
+	"runSB" REAL NOT NULL,
+	"runCS" REAL NOT NULL,
+	"RPerPA" REAL NOT NULL,
+	"RPerWin" REAL NOT NULL,
+	PRIMARY KEY ("LeagueId", "Year")
+);
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",
