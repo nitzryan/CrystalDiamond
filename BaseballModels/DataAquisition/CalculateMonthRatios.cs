@@ -29,7 +29,7 @@ namespace DataAquisition
                     AVGRatio = advStat.AVG / thisLevelStats.AVG,
                     OBPRatio = advStat.OBP / thisLevelStats.OBP,
                     ISORatio = advStat.ISO / thisLevelStats.ISO,
-                    WOBARatio = advStat.WOBA / thisLevelStats.WOBA,
+                    WRC = -1, // wRC+ is not calculated yet
                     SBRateRatio = advStat.SBRate / thisLevelStats.SBRate,
                     SBPercRatio = advStat.SBPerc / thisLevelStats.SBPerc,
                     HRPercRatio = advStat.HRPerc / thisLevelStats.HRPerc,

@@ -14,9 +14,6 @@ namespace DataAquisition
                 var leagues = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year)
                     .Select(f => f.LeagueId).Distinct();
 
-                // Will combine AL and NL into 1
-                leagues = leagues.Where(f => f != 104);
-
                 using (ProgressBar progressBar = new(leagues.Count(), $"Generating Hitter WRC+ for {year}"))
                 {
                     foreach (int league in leagues)
@@ -25,11 +22,6 @@ namespace DataAquisition
                             .Aggregate(Utilities.HitterGameLogAggregation);
 
                         LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == league && f.Year == year).Single();
-
-                        if (league == 103 && year == 2022)
-                        {
-                            year = 2022;
-                        }
 
                         // Calculate League wRC
                         double leaguewRC = (lps.BB * ls.WBB) +
@@ -58,10 +50,6 @@ namespace DataAquisition
                         var yearAdvanced = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var ya in yearAdvanced)
                         {
-                            if (ya.MlbId == 668904)
-                            {
-                                leaguewRCperPA = leaguewRCperPA;
-                            }
                             float wRAAPerPA = (ya.WOBA - ls.AvgWOBA) / ls.WOBAScale;
                             // wRC+ = (a + (b - c)) / d * 100
                             float a = wRAAPerPA + ls.RPerPA;
@@ -81,6 +69,46 @@ namespace DataAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateAnnualWRC");
+                Utilities.LogException(e);
+                return false;
+            }
+        }
+
+        public static bool UpdateMonthRatiosWRC(int year, int month)
+        {
+            try {
+                using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+                var phma = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month)
+                    .GroupBy(f => new { f.MlbId, f.LevelId });
+                using (ProgressBar progressBar = new(phma.Count(), $"Generating Hitter Monthly Ratios WRC+ for {year}-{month}"))
+                {
+                    foreach (var grouping in phma)
+                    {
+                        int totalPa = 0;
+                        float wRCPlus = 100.0f;
+                        foreach (var ma in grouping)
+                        {
+                            if (ma.PA == 0)
+                                continue;
+
+                            float statFrac = ma.PA / (ma.PA + totalPa);
+                            wRCPlus = (statFrac * ma.WRC) + ((1 - statFrac) * wRCPlus);
+                        }
+
+                        Db.Player_Hitter_MonthlyRatios ratio = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == grouping.Key.MlbId && f.Month == month && f.Year == year && f.LevelId == grouping.Key.LevelId).Single();
+                        ratio.WRC = wRCPlus;
+
+                        progressBar.Tick();
+                    }
+                }
+                db.SaveChanges();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in UpdateMonthRatiosWRC");
                 Utilities.LogException(e);
                 return false;
             }

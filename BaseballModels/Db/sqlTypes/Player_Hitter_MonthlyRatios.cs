@@ -9,7 +9,7 @@ namespace Db
 		public required float AVGRatio {get; set;}
 		public required float OBPRatio {get; set;}
 		public required float ISORatio {get; set;}
-		public required float WOBARatio {get; set;}
+		public required float WRC {get; set;}
 		public required float SBRateRatio {get; set;}
 		public required float SBPercRatio {get; set;}
 		public required float HRPercRatio {get; set;}
@@ -36,7 +36,7 @@ namespace Db
 				AVGRatio = this.AVGRatio,
 				OBPRatio = this.OBPRatio,
 				ISORatio = this.ISORatio,
-				WOBARatio = this.WOBARatio,
+				WRC = this.WRC,
 				SBRateRatio = this.SBRateRatio,
 				SBPercRatio = this.SBPercRatio,
 				HRPercRatio = this.HRPercRatio,

@@ -44,7 +44,7 @@ namespace DataAquisition
                             AVGRatio = -1,
                             OBPRatio = -1,
                             ISORatio = -1,
-                            WOBARatio = -1,
+                            WRC = 100,
                             SBPercRatio = -1,
                             SBRateRatio = -1,
                             HRPercRatio = -1,
@@ -80,7 +80,7 @@ namespace DataAquisition
                                 currentData.AVGRatio = (r.AVGRatio * prop) + (currentData.AVGRatio * invProp);
                                 currentData.OBPRatio = (r.OBPRatio * prop) + (currentData.OBPRatio * invProp);
                                 currentData.ISORatio = (r.ISORatio * prop) + (currentData.ISORatio * invProp);
-                                currentData.WOBARatio = (r.WOBARatio * prop) + (currentData.WOBARatio * invProp);
+                                currentData.WRC = (r.WRC * prop) + (currentData.WRC * invProp);
                                 currentData.SBPercRatio = (r.SBPercRatio * prop) + (currentData.SBPercRatio * invProp);
                                 currentData.SBRateRatio = (r.SBRateRatio * prop) + (currentData.SBRateRatio * invProp);
                                 currentData.HRPercRatio = (r.HRPercRatio * prop) + (currentData.HRPercRatio * invProp);
@@ -130,7 +130,7 @@ namespace DataAquisition
                                                 AVGRatio = 1,
                                                 OBPRatio = 1,
                                                 ISORatio = 1,
-                                                WOBARatio = 1,
+                                                WRC = 100,
                                                 SBPercRatio = 1,
                                                 SBRateRatio = 1,
                                                 HRPercRatio = 1,
@@ -170,7 +170,7 @@ namespace DataAquisition
                                 currentData.AVGRatio = r.AVGRatio;
                                 currentData.OBPRatio = r.OBPRatio;
                                 currentData.ISORatio = r.ISORatio;
-                                currentData.WOBARatio = r.WOBARatio;
+                                currentData.WRC = r.WRC;
                                 currentData.SBPercRatio = r.SBPercRatio;
                                 currentData.SBRateRatio = r.SBRateRatio;
                                 currentData.HRPercRatio = r.HRPercRatio;
@@ -230,7 +230,7 @@ namespace DataAquisition
                                         AVGRatio = 1,
                                         OBPRatio = 1,
                                         ISORatio = 1,
-                                        WOBARatio = 1,
+                                        WRC = 100,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,
                                         HRPercRatio = 1,
@@ -282,7 +282,7 @@ namespace DataAquisition
                                         AVGRatio = 1,
                                         OBPRatio = 1,
                                         ISORatio = 1,
-                                        WOBARatio = 1,
+                                        WRC = 100,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,
                                         HRPercRatio = 1,

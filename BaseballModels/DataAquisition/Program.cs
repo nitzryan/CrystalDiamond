@@ -47,8 +47,14 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                if (!CalculateAnnualWRC.Main(year))
-                    return;
+                //if (!CalculateAnnualWRC.Main(year))
+                //    return;
+
+                //foreach (int month in months)
+                //{
+                //    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
+                //        return;
+                //}
 
                 //while (!await UpdateParents.Main(year))
                 //{ }
@@ -76,8 +82,8 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
             //if (!Model_MonthValue.Main())
             //    return;
