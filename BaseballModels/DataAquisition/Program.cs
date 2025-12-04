@@ -41,14 +41,14 @@
                 //        return;
                 //}
 
-                if (!await CalculateLeagueStats.Main(year, false))
-                    return;
+                //if (!await CalculateLeagueStats.Main(year, false))
+                //    return;
 
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                //if (!CalculateAnnualOPS.Main(year))
-                //    return;
+                if (!CalculateAnnualWRC.Main(year))
+                    return;
 
                 //while (!await UpdateParents.Main(year))
                 //{ }

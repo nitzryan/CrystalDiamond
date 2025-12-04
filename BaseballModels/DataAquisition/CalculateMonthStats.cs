@@ -220,7 +220,7 @@ namespace DataAquisition
                     foreach (var a in teamLeagues)
                     {
                         stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), adjustedParkFactors, month);
-                        Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(stats);
+                        Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
                         ma.TeamId = a.TeamId;
                         ma.LeagueId = a.LeagueId;
                         db.Player_Hitter_MonthAdvanced.Add(ma);
@@ -275,7 +275,7 @@ namespace DataAquisition
                     foreach (var a in teamLeagues)
                     {
                         stats = GetMonthStatsPitcher(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), adjustedParkFactors, month);
-                        Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db);
+                        Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single(), db);
                         ma.TeamId = a.TeamId;
                         ma.LeagueId = a.LeagueId;
                         db.Player_Pitcher_MonthAdvanced.Add(ma);

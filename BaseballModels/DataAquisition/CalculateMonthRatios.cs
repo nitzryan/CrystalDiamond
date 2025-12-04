@@ -17,7 +17,7 @@ namespace DataAquisition
             foreach (var stat in stats)
             {
                 Level_HitterStats thisLevelStats = levelStats.Where(f => f.LevelId == stat.LevelId).First();
-                var advStat = Utilities.HitterNormalToAdvanced(stat);
+                var advStat = Utilities.HitterNormalToAdvanced(stat, db.LeagueStats.First()); // Don't need parts of advStats that are affected by LeagueStats
                 int totalGames = stat.GamesC + stat.Games1B + stat.Games2B + stat.GamesSS + stat.Games3B + stat.GamesLF + stat.GamesCF + stat.GamesRF + stat.GamesDH;
 
                 db.Player_Hitter_MonthlyRatios.Add(new Player_Hitter_MonthlyRatios
@@ -58,12 +58,12 @@ namespace DataAquisition
             );
             db.SaveChanges();
 
-            var stats = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month);//.OrderByDescending(f => f.MlbId).OrderByDescending(f => f.LevelId);
+            var stats = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month);
             var levelStats = db.Level_PitcherStats.Where(f => f.Year == year && f.Month == month);
             foreach (var stat in stats)
             {
                 Level_PitcherStats thisLevelStats = levelStats.Where(f => f.LevelId == stat.LevelId).First();
-                var advStat = Utilities.PitcherNormalToAdvanced(stat, db);
+                var advStat = Utilities.PitcherNormalToAdvanced(stat, db.LeagueStats.First(), db); 
 
                 db.Player_Pitcher_MonthlyRatios.Add(new Player_Pitcher_MonthlyRatios
                 {

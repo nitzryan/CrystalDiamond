@@ -4,15 +4,13 @@ namespace DataAquisition
 {
     internal class Utilities
     {
-        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_MonthStats stats)
+        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_MonthStats stats, LeagueStats ls)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
             int pa = stats.PA;
             float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
             float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
-            float woba = pa > 0 ?
-                ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / pa
-                : 0;
+            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa);
             Player_Hitter_MonthAdvanced ma = new()
             {
                 MlbId = stats.MlbId,
@@ -21,6 +19,7 @@ namespace DataAquisition
                 Month = stats.Month,
                 TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
                 LeagueId = -1,
+                ParkFactor = stats.ParkRunFactor,
                 PA = pa,
                 AVG = avg,
                 OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
@@ -41,15 +40,13 @@ namespace DataAquisition
             return ma;
         }
 
-        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_GameLog stats)
+        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_GameLog stats, LeagueStats ls, float parkFactor)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
             int pa = stats.PA;
             float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
             float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
-            float woba = pa > 0 ?
-                ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / pa
-                : 0;
+            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa);
             Player_Hitter_MonthAdvanced ma = new()
             {
                 MlbId = stats.MlbId,
@@ -58,6 +55,7 @@ namespace DataAquisition
                 Month = stats.Month,
                 TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
                 LeagueId = -1,
+                ParkFactor = parkFactor,
                 PA = pa,
                 AVG = avg,
                 OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
@@ -105,12 +103,11 @@ namespace DataAquisition
             LeagueId = a.TeamId
         };
 
-        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, SqliteDbContext db)
+        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls, SqliteDbContext db)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
-            float woba = stats.BattersFaced > 0 ?
-                ((0.69f * stats.BB) + (0.72f * stats.HBP) + (0.89f * singles) + (1.27f * stats.Hit2B) + (1.62f * stats.Hit3B) + (2.10f * stats.HR)) / stats.BattersFaced
-                : 0;
+
+            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, stats.BattersFaced);
 
             float fipConstant = db.Level_PitcherStats.Where(f => f.Year == stats.Year && f.Month == stats.Month && f.LevelId == stats.LevelId).Select(f => f.FipConstant).Single();
             Player_Pitcher_MonthAdvanced ma = new()
@@ -164,6 +161,47 @@ namespace DataAquisition
             TeamId = a.TeamId,
             LeagueId = a.TeamId
         };
+
+        public static (float, float) GetParkFactors(IEnumerable<Player_Hitter_GameLog> games, SqliteDbContext db)
+        {
+            float parkFactor = 1.0f;
+            float parkHRFactor = 1.0f;
+            int totalPA = 0;
+
+            foreach (var game in games)
+            {
+                if (game.PA == 0)
+                    continue;
+
+                totalPA += game.PA;
+                float thisGameFrac = (float)game.PA / totalPA;
+
+                float stadiumParkFactor = 1.0f;
+                float stadiumParkHRFactor = 1.0f;
+                try {
+                    Park_Factors pf = db.Park_Factors.Where(f => f.Year == game.Year && f.StadiumId == game.StadiumId).Single();
+                    stadiumParkFactor = pf.RunFactor;
+                    stadiumParkHRFactor = pf.HRFactor;
+                } catch (Exception) { } // Not enough data for park factor, use default
+
+                parkFactor = (thisGameFrac * stadiumParkFactor) + ((1 - thisGameFrac) * parkFactor);
+                parkHRFactor = (thisGameFrac * stadiumParkHRFactor) + ((1 - thisGameFrac) * parkHRFactor);
+            }
+
+            return (parkFactor, parkHRFactor);
+        }
+
+        public static float CalculateWOBA(LeagueStats ls, int hbp, int bb, int h1B, int h2B, int h3B, int hr, int pa)
+        {
+            if (pa == 0)
+                return ls.AvgWOBA;
+            return ((ls.WHBP * hbp) +
+                (ls.WBB * bb) +
+                (ls.W1B * h1B) +
+                (ls.W2B * h2B) +
+                (ls.W3B * h3B) +
+                (ls.WHR * hr)) / pa;
+        }
 
         public static int GetModelMask(Db.Model_Players player, int year, int month)
         {

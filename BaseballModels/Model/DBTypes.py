@@ -841,27 +841,28 @@ class DB_Player_Hitter_MonthAdvanced:
 		self.month = values[3]
 		self.teamId = values[4]
 		self.leagueId = values[5]
-		self.PA = values[6]
-		self.AVG = values[7]
-		self.OBP = values[8]
-		self.SLG = values[9]
-		self.ISO = values[10]
-		self.wOBA = values[11]
-		self.wRC = values[12]
-		self.HRPerc = values[13]
-		self.BBPerc = values[14]
-		self.KPerc = values[15]
-		self.SBRate = values[16]
-		self.SBPerc = values[17]
-		self.SB = values[18]
-		self.CS = values[19]
-		self.HR = values[20]
+		self.ParkFactor = values[6]
+		self.PA = values[7]
+		self.AVG = values[8]
+		self.OBP = values[9]
+		self.SLG = values[10]
+		self.ISO = values[11]
+		self.wOBA = values[12]
+		self.wRC = values[13]
+		self.HRPerc = values[14]
+		self.BBPerc = values[15]
+		self.KPerc = values[16]
+		self.SBRate = values[17]
+		self.SBPerc = values[18]
+		self.SB = values[19]
+		self.CS = values[20]
+		self.HR = values[21]
 
-	NUM_ELEMENTS = 21
+	NUM_ELEMENTS = 22
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc,self.SB,self.CS,self.HR)
+		return (self.mlbId,self.levelId,self.year,self.month,self.teamId,self.leagueId,self.ParkFactor,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc,self.SB,self.CS,self.HR)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_MonthAdvanced']:
@@ -957,24 +958,25 @@ class DB_Player_Hitter_YearAdvanced:
 		self.year = values[2]
 		self.teamId = values[3]
 		self.leagueId = values[4]
-		self.PA = values[5]
-		self.AVG = values[6]
-		self.OBP = values[7]
-		self.SLG = values[8]
-		self.ISO = values[9]
-		self.wOBA = values[10]
-		self.wRC = values[11]
-		self.HR = values[12]
-		self.BBPerc = values[13]
-		self.KPerc = values[14]
-		self.SB = values[15]
-		self.CS = values[16]
+		self.ParkFactor = values[5]
+		self.PA = values[6]
+		self.AVG = values[7]
+		self.OBP = values[8]
+		self.SLG = values[9]
+		self.ISO = values[10]
+		self.wOBA = values[11]
+		self.wRC = values[12]
+		self.HR = values[13]
+		self.BBPerc = values[14]
+		self.KPerc = values[15]
+		self.SB = values[16]
+		self.CS = values[17]
 
-	NUM_ELEMENTS = 17
+	NUM_ELEMENTS = 18
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HR,self.BBPerc,self.KPerc,self.SB,self.CS)
+		return (self.mlbId,self.levelId,self.year,self.teamId,self.leagueId,self.ParkFactor,self.PA,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.wRC,self.HR,self.BBPerc,self.KPerc,self.SB,self.CS)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Hitter_YearAdvanced']:

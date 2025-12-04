@@ -132,6 +132,11 @@ namespace DataAquisition
 
                     bool isHome = game.GetProperty("isHome").GetBoolean();
 
+                    // Group mlb Together
+                    int league = game.GetProperty("league").GetProperty("id").GetInt32();
+                    if (league == 104)
+                        league = 103;
+
                     Player_Hitter_GameLog gl = new()
                     {
                         GameId = game.GetProperty("game").GetProperty("gamePk").GetInt32(),
@@ -153,7 +158,7 @@ namespace DataAquisition
                         Position = positions.Any() ? Convert.ToInt32(positions.First().GetProperty("code").ToString()) : 10,
                         LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
-                        LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
+                        LeagueId = league,
                         IsHome = isHome ? 1 : 0,
                         StadiumId = isHome ?
                             game.GetProperty("team").GetProperty("venue").GetProperty("id").GetInt32() :
@@ -218,6 +223,11 @@ namespace DataAquisition
 
                     bool isHome = game.GetProperty("isHome").GetBoolean();
 
+                    // Group MLB together
+                    int league = game.GetProperty("league").GetProperty("id").GetInt32();
+                    if (league == 104)
+                        league = 103;
+
                     Player_Pitcher_GameLog gl = new()
                     {
                         GameId = game.GetProperty("game").GetProperty("gamePk").GetInt32(),
@@ -241,7 +251,7 @@ namespace DataAquisition
                         AO = stats.GetProperty("airOuts").GetInt32(),
                         LevelId = game.GetProperty("sport").GetProperty("id").GetInt32(),
                         TeamId = game.GetProperty("team").GetProperty("id").GetInt32(),
-                        LeagueId = game.GetProperty("league").GetProperty("id").GetInt32(),
+                        LeagueId = league,
                         IsHome = isHome ? 1 : 0,
                         StadiumId = isHome ?
                             game.GetProperty("team").GetProperty("venue").GetProperty("id").GetInt32() :

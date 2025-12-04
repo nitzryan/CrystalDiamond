@@ -207,7 +207,7 @@ namespace DataAquisition
                     continue; // Final out made on caught stealing
                 }
 
-                if (outputState.occupancy > 7) // Some PBP bug lead to multiple runners on the same base
+                if (outputState.occupancy > 7 || outputState.occupancy < 0) // Some PBP bug lead to multiple runners on the same base
                 {
                     continue;
                 }
@@ -356,9 +356,7 @@ namespace DataAquisition
                         }
 
                         // Get games for league
-                        IEnumerable<int> gameIds = (league == 103 ? 
-                                db.Player_Hitter_GameLog.Where(f => f.LevelId == 1 && f.Year == year) : // MLB league
-                                db.Player_Hitter_GameLog.Where(f => f.LeagueId == league && f.Year == year)) // Other league
+                        IEnumerable<int> gameIds = db.Player_Hitter_GameLog.Where(f => f.LeagueId == league && f.Year == year)
                             .Select(f => f.GameId).Distinct();
 
                         if (!gameIds.Any()) // Many leagues in DB aren't valid leagues, or were valid at one point but not now
@@ -453,6 +451,7 @@ namespace DataAquisition
 
                         // Adjust to league OBP
                         float obp = 1.0f - ((float)eventCounts[0] / hitterEvents.Count);
+                        float wobaScale = obp / wobaAccumulator;
 
                         // Get runs per win
                         int totalRunsScoredInLeague = hitterEvents.Select(f => f.runsScoredThisEvent).Sum();
@@ -463,15 +462,15 @@ namespace DataAquisition
                             LeagueId = league,
                             Year = year,
                             AvgWOBA = obp,
-                            WOBAScale = obp / wobaAccumulator,
-                            W1B = outcomeRunsAdded[1],
-                            W2B = outcomeRunsAdded[1],
-                            W3B = outcomeRunsAdded[1],
-                            WHR = outcomeRunsAdded[1],
-                            WBB = outcomeRunsAdded[1],
-                            WHBP = outcomeRunsAdded[1],
-                            RunCS = 0,
-                            RunSB = 0,
+                            WOBAScale = wobaScale,
+                            W1B = outcomeRunsAdded[1] * wobaScale,
+                            W2B = outcomeRunsAdded[2] * wobaScale,
+                            W3B = outcomeRunsAdded[3] * wobaScale,
+                            WHR = outcomeRunsAdded[4] * wobaScale,
+                            WBB = outcomeRunsAdded[5] * wobaScale,
+                            WHBP = outcomeRunsAdded[6] * wobaScale,
+                            RunCS = -0.4f,
+                            RunSB = 0.2f,
                             RPerPA = (float)totalRunsScoredInLeague / hitterEvents.Count,
                             RPerWin = runsPerWin
                         });

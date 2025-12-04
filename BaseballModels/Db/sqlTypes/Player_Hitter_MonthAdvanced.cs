@@ -8,6 +8,7 @@ namespace Db
 		public required int Month {get; set;}
 		public required int TeamId {get; set;}
 		public required int LeagueId {get; set;}
+		public required float ParkFactor {get; set;}
 		public required int PA {get; set;}
 		public required float AVG {get; set;}
 		public required float OBP {get; set;}
@@ -34,6 +35,7 @@ namespace Db
 				Month = this.Month,
 				TeamId = this.TeamId,
 				LeagueId = this.LeagueId,
+				ParkFactor = this.ParkFactor,
 				PA = this.PA,
 				AVG = this.AVG,
 				OBP = this.OBP,

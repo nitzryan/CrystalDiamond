@@ -18,18 +18,20 @@ namespace DataAquisition
                 var hitterData = db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => new { f.MlbId, f.LevelId, f.TeamId, f.LeagueId }).Distinct();
                 foreach (var d in hitterData)
                 {
-                    var s = db.Player_Hitter_GameLog.Where(f => f.MlbId == d.MlbId
+                    var games = db.Player_Hitter_GameLog.Where(f => f.MlbId == d.MlbId
                                                     && f.LevelId == d.LevelId
                                                     && f.TeamId == d.TeamId
                                                     && f.LeagueId == d.LeagueId
-                                                    && f.Year == year)
-                        .Aggregate(Utilities.HitterGameLogAggregation);
+                                                    && f.Year == year);
+                    var s = games.Aggregate(Utilities.HitterGameLogAggregation);
+                    var (parkFactor, parkHRFactor) = Utilities.GetParkFactors(games, db);
 
                     int pa = s.PA;
                     float iso = s.AB > 0 ? (float)(s.Hit2B + (2 * s.Hit3B) + (3 * s.HR)) / s.AB : 0;
                     float avg = s.AB > 0 ? (float)s.H / s.AB : 0;
                     int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
-                    float woba = pa > 0 ? ((0.69f * s.BB) + (0.72f * s.HBP) + (0.89f * singles) + (1.27f * s.Hit2B) + (1.62f * s.Hit3B) + (2.10f * s.HR)) / pa : 0;
+                    LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == d.LeagueId && f.Year == year).Single();
+                    float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, s.PA);
                     db.Player_Hitter_YearAdvanced.Add(new Player_Hitter_YearAdvanced
                     {
                         MlbId = d.MlbId,
@@ -37,6 +39,7 @@ namespace DataAquisition
                         Year = year,
                         TeamId = d.TeamId,
                         LeagueId = d.LeagueId,
+                        ParkFactor = parkFactor,
                         PA = pa,
                         AVG = avg,
                         OBP = pa > 0 ? (float)(s.H + s.BB + s.HBP) / pa : 0,
