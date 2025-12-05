@@ -76,6 +76,10 @@ CREATE TABLE "Model_HitterStats" (
 	"OBPRatio"	REAL NOT NULL,
 	"ISORatio"	REAL NOT NULL,
 	"wRC"	REAL NOT NULL,
+	"crWAR" REAL NOT NULL,
+	"crOFF" REAL NOT NULL,
+	"crBSR" REAL NOT NULL,
+	"crDEF" REAL NOT NULL,
 	"SBRateRatio"	REAL NOT NULL,
 	"SBPercRatio"	REAL NOT NULL,
 	"HRPercRatio"	REAL NOT NULL,
@@ -113,6 +117,7 @@ CREATE TABLE "Model_PitcherStats" (
 	"HRPercRatio"	REAL NOT NULL,
 	"BBPercRatio"	REAL NOT NULL,
 	"KPercRatio"	REAL NOT NULL,
+	"crWAR" REAL NOT NULL,
 	PRIMARY KEY("mlbId","Year","Month")
 );
 
@@ -524,6 +529,10 @@ CREATE TABLE "Player_Hitter_MonthAdvanced" (
 	"SB" INTEGER NOT NULL,
 	"CS" INTEGER NOT NULL,
 	"HR" INTEGER NOT NULL,
+	"crWAR" REAL NOT NULL,
+	"crOFF" REAL NOT NULL,
+	"crBSR" REAL NOT NULL,
+	"crDEF" REAL NOT NULL,
 	PRIMARY KEY("mlbId","levelId","year","month","teamId","leagueId")
 );
 
@@ -672,6 +681,7 @@ CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"HRPerc"	REAL NOT NULL,
 	"HR" INTEGER NOT NULL,
 	"wOBA"	REAL NOT NULL,
+	"crWAR" REAL NOT NULL,
 	PRIMARY KEY("leagueId","teamId","month","year","levelId","mlbId")
 );
 
@@ -871,6 +881,11 @@ CREATE TABLE "LeagueStats" (
 	"runCS" REAL NOT NULL,
 	"RPerPA" REAL NOT NULL,
 	"RPerWin" REAL NOT NULL,
+	"LeaguePA" INTEGER NOT NULL,
+	"LeagueGames" INTEGER NOT NULL,
+	"cFIP" REAL NOT NULL,
+	"FIPR9Adjustment" REAL NOT NULL,
+	"LeagueERA" REAL NOT NULL,
 	PRIMARY KEY ("LeagueId", "Year")
 );
 
@@ -1005,4 +1020,20 @@ CREATE INDEX "idx_HitterGameLog_Player" ON "Player_Hitter_GameLog" (
 
 CREATE INDEX "idx_PitcherGameLog_Player" ON "Player_Pitcher_GameLog" (
 	"mlbId"
+);
+
+CREATE INDEX "idx_HitterGameLogForYearStats" ON "Player_Hitter_GameLog" (
+	"mlbId",
+	"LevelId",
+	"TeamId",
+	"LeagueId",
+	"Year"
+);
+
+CREATE INDEX "idx_PitcherGameLogForYearStats" ON "Player_Pitcher_GameLog" (
+	"mlbId",
+	"LevelId",
+	"TeamId",
+	"LeagueId",
+	"Year"
 );

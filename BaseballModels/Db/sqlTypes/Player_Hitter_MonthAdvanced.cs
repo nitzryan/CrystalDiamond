@@ -24,6 +24,10 @@ namespace Db
 		public required int SB {get; set;}
 		public required int CS {get; set;}
 		public required int HR {get; set;}
+		public required float CrWAR {get; set;}
+		public required float CrOFF {get; set;}
+		public required float CrBSR {get; set;}
+		public required float CrDEF {get; set;}
 
 		public Player_Hitter_MonthAdvanced Clone()
 		{
@@ -51,6 +55,10 @@ namespace Db
 				SB = this.SB,
 				CS = this.CS,
 				HR = this.HR,
+				CrWAR = this.CrWAR,
+				CrOFF = this.CrOFF,
+				CrBSR = this.CrBSR,
+				CrDEF = this.CrDEF,
 				
 			};
 		}

@@ -4,12 +4,16 @@
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2025;
+        const int END_MONTH = 9;
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
             List<int> months = [4, 5, 6, 7, 8, 9];
             //years = [2025];
             //months = [9];
+
+            //if (!await FangraphsData.Main(years))
+            //    return;
 
             //Player could be drafted in 2004 and not play until 2005 or later
             //await DraftResults.Main(2004);
@@ -29,20 +33,23 @@
                 //if (!ParkFactorUpdate.Main(year))
                 //    return;
 
-                //foreach (int month in months)
-                //{
-                //    if (!CalculateLevelStats.Main(year, month))
-                //        return;
-
-                //    if (!CalculateMonthStats.Main(year, month))
-                //        return;
-
-                //    if (!CalculateMonthRatios.Main(year, month))
-                //        return;
-                //}
-
                 //if (!await CalculateLeagueStats.Main(year, false))
                 //    return;
+
+                foreach (int month in months)
+                {
+                    if (!CalculateLevelStats.Main(year, month))
+                        return;
+
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
+
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
+
+                    if (year == END_YEAR && month == END_MONTH)
+                        break;
+                }
 
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
@@ -54,6 +61,9 @@
                 //{
                 //    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
                 //        return;
+
+                //  if (year == END_YEAR && month == END_MONTH)
+                //      break;
                 //}
 
                 //while (!await UpdateParents.Main(year))
@@ -62,9 +72,6 @@
             }
 
             //if (!UpdateServiceTime.Main())
-            //    return;
-
-            //if (!await FangraphsData.Main(years))
             //    return;
 
             //if (!UpdateCareers.Main(years))

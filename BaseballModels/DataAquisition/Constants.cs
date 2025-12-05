@@ -1,7 +1,6 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
 
 namespace DataAquisition
 {
@@ -25,6 +24,22 @@ namespace DataAquisition
         // Set these to set start/stop
         //public const int CURRENT_YEAR = 2024;
         //public const int CURRENT_MONTH = 9;
+
+        // Positional adjustment
+        public const float POSITIONAL_ADJUSTMENT_C = 12.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_1B = -12.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_2B = 2.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_3B = 2.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_SS = 7.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_LF = -7.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_CF = 2.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_RF = -7.5f / 162;
+        public const float POSITIONAL_ADJUSTMENT_DH = -17.5f / 162;
+
+        // WAR Calculation Constants
+        public const float REPLACEMENT_LEVEL_WIN_PERCENTAGE = 1000.0f / 2430;
+        public const float HITTER_WAR_PERCENTAGE = 0.57f;
+        public const float PITCHER_WAR_PERCENTAGE = 1.0f - HITTER_WAR_PERCENTAGE;
 
         // VALUATION
         public const float HITTER_WAR_INFLECTION = 2;

@@ -35,6 +35,10 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
+                CrBSR = -100000, // Needs to be calculated elsewhere, depends on factors not in this function
+                CrDEF = -100000, // Set as insane value so it's clear in DB if this isn't getting set
+                CrOFF = -100000,
+                CrWAR = -100000,
             };
 
             return ma;
@@ -71,6 +75,10 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
+                CrBSR = -100000, // Needs to be calculated elsewhere, depends on factors not in this function
+                CrDEF = -100000, // Set as insane value so it's clear in DB if this isn't getting set
+                CrOFF = -100000,
+                CrWAR = -100000,
             };
 
             return ma;
@@ -129,6 +137,7 @@ namespace DataAquisition
                 FIP = stats.Outs > 0 ? (float)((13 * stats.HR) + 3 * (stats.BB + stats.HBP) - (2 * stats.K)) * 3 / stats.Outs + fipConstant : 99.0f,
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
                 HR = stats.HR,
+                CrWAR = -100000,
             };
             return ma;
         }
@@ -201,6 +210,13 @@ namespace DataAquisition
                 (ls.W2B * h2B) +
                 (ls.W3B * h3B) +
                 (ls.WHR * hr)) / pa;
+        }
+
+        public static float CalculateFip(float cFIP, int hr, int k, int bbPlusHBP, int outs)
+        {
+            if (outs == 0)
+                return 20.0f; // Don't want too high otherwise will mess up normalization
+            return ((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3) + cFIP;
         }
 
         public static int GetModelMask(Db.Model_Players player, int year, int month)

@@ -1,5 +1,6 @@
 ﻿using Db;
 using ShellProgressBar;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace DataAquisition
@@ -340,10 +341,6 @@ namespace DataAquisition
                 var leagues = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year)
                     .Select(f => f.LeagueId).Distinct();
 
-                // Will combine AL and NL into 1
-                leagues = leagues.Where(f => f != 104);
-
-
                 using (ProgressBar progressBar = new(leagues.Count(), $"Generating League Stats for {year}"))
                 {
                     foreach (int league in leagues)
@@ -351,6 +348,29 @@ namespace DataAquisition
                         // Check if league already has data for year
                         if (db.LeagueStats.Any(f => f.Year == year && f.LeagueId == league))
                         {
+                            LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == league).Single();
+                            ls.LeaguePA = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
+                                .Select(f => f.PA).Sum();
+                            ls.LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
+                                .Select(f => f.GameId).Distinct().Count();
+
+                            var lleagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
+                            int lleagueHRs = lleagueStats.Select(f => f.HR).Sum();
+                            int lleagueBBs = lleagueStats.Select(f => f.BB + f.HBP).Sum();
+                            int lleagueKs = lleagueStats.Select(f => f.K).Sum();
+                            int lleagueRuns = lleagueStats.Select(f => f.R).Sum();
+                            int lleagueERs = lleagueStats.Select(f => f.ER).Sum();
+                            int lleagueOuts = lleagueStats.Select(f => f.Outs).Sum();
+
+                            float lleagueRA = (float)lleagueRuns / lleagueOuts * 27;
+                            float lleagueERA = (float)lleagueERs / lleagueOuts * 27;
+                            float lleagueFIP = Utilities.CalculateFip(0, lleagueHRs, lleagueKs, lleagueBBs, lleagueOuts);
+
+                            ls.CFIP = lleagueERA - lleagueFIP;
+                            ls.FIPR9Adjustment = lleagueRA - lleagueERA;
+                            ls.LeagueERA = lleagueERA;
+                            db.SaveChanges();
+
                             progressBar.Tick();
                             continue;
                         }
@@ -413,10 +433,6 @@ namespace DataAquisition
 
                         foreach (var he in hitterEvents)
                         {
-                            if (he.outputState.outs < 0 || he.outputState.outs > 3 || he.outputState.occupancy < 0 || he.outputState.occupancy > 7)
-                            {
-                                he.outputState = he.outputState;
-                            }
                             float incomeExpectancy = runExpectancyDict[he.inputState];
                             float outcomeExpectancy = runExpectancyDict[he.outputState];
                             float runsAdded = outcomeExpectancy - incomeExpectancy + he.runsScoredThisEvent;
@@ -457,6 +473,19 @@ namespace DataAquisition
                         int totalRunsScoredInLeague = hitterEvents.Select(f => f.runsScoredThisEvent).Sum();
                         float runsPerWin = 10.0f * (float)Math.Sqrt((float)totalRunsScoredInLeague / totalInnings);
 
+                        // Calculate Pitching adjustments
+                        var leagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
+                        int leagueHRs = leagueStats.Select(f => f.HR).Sum();
+                        int leagueBBs = leagueStats.Select(f => f.BB + f.HBP).Sum();
+                        int leagueKs = leagueStats.Select(f => f.K).Sum();
+                        int leagueRuns = leagueStats.Select(f => f.R).Sum();
+                        int leagueERs = leagueStats.Select(f => f.ER).Sum();
+                        int leagueOuts = leagueStats.Select(f => f.Outs).Sum();
+
+                        float leagueRA = (float)leagueRuns / leagueOuts * 27;
+                        float leagueERA = (float)leagueERs / leagueOuts * 27;
+                        float leagueFIP = Utilities.CalculateFip(0, leagueHRs, leagueKs, leagueBBs, leagueOuts);
+
                         db.LeagueStats.Add(new LeagueStats
                         {
                             LeagueId = league,
@@ -472,7 +501,14 @@ namespace DataAquisition
                             RunCS = -0.4f,
                             RunSB = 0.2f,
                             RPerPA = (float)totalRunsScoredInLeague / hitterEvents.Count,
-                            RPerWin = runsPerWin
+                            RPerWin = runsPerWin,
+                            LeaguePA = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league)
+                                .Select(f => f.PA).Sum(),
+                            LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
+                                .Select(f => f.GameId).Distinct().Count(),
+                            CFIP = leagueERA - leagueFIP,
+                            FIPR9Adjustment = leagueRA - leagueERA,
+                            LeagueERA = leagueERA,
                         });
 
                         db.SaveChanges();

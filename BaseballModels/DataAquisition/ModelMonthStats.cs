@@ -45,6 +45,10 @@ namespace DataAquisition
                             OBPRatio = -1,
                             ISORatio = -1,
                             WRC = 100,
+                            CrWAR = -100000,
+                            CrBSR = -100000,
+                            CrDEF = -100000,
+                            CrOFF = -100000,
                             SBPercRatio = -1,
                             SBRateRatio = -1,
                             HRPercRatio = -1,
@@ -131,6 +135,10 @@ namespace DataAquisition
                                                 OBPRatio = 1,
                                                 ISORatio = 1,
                                                 WRC = 100,
+                                                CrWAR = 0,
+                                                CrBSR = 0,
+                                                CrDEF = 0,
+                                                CrOFF = 0,
                                                 SBPercRatio = 1,
                                                 SBRateRatio = 1,
                                                 HRPercRatio = 1,
@@ -155,8 +163,9 @@ namespace DataAquisition
                                         }
                                     }
                                 }
-                                    
- 
+
+                                var phma = db.Player_Hitter_MonthAdvanced.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month);
+
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.PA = stat.AB + stat.BB + stat.HBP;
                                 currentData.TrainMask = Utilities.GetModelMask(hitter, r.Year, r.Month);
@@ -171,6 +180,10 @@ namespace DataAquisition
                                 currentData.OBPRatio = r.OBPRatio;
                                 currentData.ISORatio = r.ISORatio;
                                 currentData.WRC = r.WRC;
+                                currentData.CrWAR = phma.Select(f => f.CrWAR).Sum();
+                                currentData.CrOFF = phma.Select(f => f.CrOFF).Sum();
+                                currentData.CrDEF = phma.Select(f => f.CrDEF).Sum();
+                                currentData.CrBSR = phma.Select(f => f.CrBSR).Sum();
                                 currentData.SBPercRatio = r.SBPercRatio;
                                 currentData.SBRateRatio = r.SBRateRatio;
                                 currentData.HRPercRatio = r.HRPercRatio;
@@ -231,6 +244,10 @@ namespace DataAquisition
                                         OBPRatio = 1,
                                         ISORatio = 1,
                                         WRC = 100,
+                                        CrWAR = 0,
+                                        CrBSR = 0,
+                                        CrDEF = 0,
+                                        CrOFF = 0,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,
                                         HRPercRatio = 1,
@@ -283,6 +300,10 @@ namespace DataAquisition
                                         OBPRatio = 1,
                                         ISORatio = 1,
                                         WRC = 100,
+                                        CrWAR = 0,
+                                        CrBSR = 0,
+                                        CrDEF = 0,
+                                        CrOFF = 0,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,
                                         HRPercRatio = 1,
@@ -347,7 +368,8 @@ namespace DataAquisition
                             KPercRatio = -1,
                             GBPercRatio = -1,
                             ERARatio = -1,
-                            FIPRatio = -1
+                            FIPRatio = -1,
+                            CrWAR = -100000,
                         };
 
                         // Generate Hitter Stats
@@ -415,7 +437,8 @@ namespace DataAquisition
                                                 KPercRatio = 1,
                                                 GBPercRatio = 1,
                                                 FIPRatio = 1,
-                                                ERARatio = 1
+                                                ERARatio = 1,
+                                                CrWAR = 0,
                                             });
 
                                         prevMonth++;
@@ -446,6 +469,7 @@ namespace DataAquisition
                                 currentData.GBPercRatio = r.GBPercRatio;
                                 currentData.ERARatio = r.ERARatio;
                                 currentData.FIPRatio = r.FIPRatio;
+                                currentData.CrWAR = db.Player_Pitcher_MonthAdvanced.Where(f => f.MlbId == pitcher.MlbId && f.Year == r.Year && f.Month == r.Month).Select(f => f.CrWAR).Sum();
 
                                 prevMonth = r.Month;
                                 prevYear = r.Year;
@@ -496,7 +520,8 @@ namespace DataAquisition
                                         KPercRatio = 1,
                                         GBPercRatio = 1,
                                         FIPRatio = 1,
-                                        ERARatio = 1
+                                        ERARatio = 1,
+                                        CrWAR = 0,
                                     });
 
                                 prevMonth++;
@@ -538,7 +563,8 @@ namespace DataAquisition
                                         KPercRatio = 1,
                                         GBPercRatio = 1,
                                         FIPRatio = 1,
-                                        ERARatio = 1
+                                        ERARatio = 1,
+                                        CrWAR = 0,
                                     });
 
                                 m++;

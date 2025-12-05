@@ -21,6 +21,7 @@ namespace Db
 		public required float HRPercRatio {get; set;}
 		public required float BBPercRatio {get; set;}
 		public required float KPercRatio {get; set;}
+		public required float CrWAR {get; set;}
 
 		public Model_PitcherStats Clone()
 		{
@@ -45,6 +46,7 @@ namespace Db
 				HRPercRatio = this.HRPercRatio,
 				BBPercRatio = this.BBPercRatio,
 				KPercRatio = this.KPercRatio,
+				CrWAR = this.CrWAR,
 				
 			};
 		}

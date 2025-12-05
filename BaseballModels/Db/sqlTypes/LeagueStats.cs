@@ -16,6 +16,11 @@ namespace Db
 		public required float RunCS {get; set;}
 		public required float RPerPA {get; set;}
 		public required float RPerWin {get; set;}
+		public required int LeaguePA {get; set;}
+		public required int LeagueGames {get; set;}
+		public required float CFIP {get; set;}
+		public required float FIPR9Adjustment {get; set;}
+		public required float LeagueERA {get; set;}
 
 		public LeagueStats Clone()
 		{
@@ -35,6 +40,11 @@ namespace Db
 				RunCS = this.RunCS,
 				RPerPA = this.RPerPA,
 				RPerWin = this.RPerWin,
+				LeaguePA = this.LeaguePA,
+				LeagueGames = this.LeagueGames,
+				CFIP = this.CFIP,
+				FIPR9Adjustment = this.FIPR9Adjustment,
+				LeagueERA = this.LeagueERA,
 				
 			};
 		}
