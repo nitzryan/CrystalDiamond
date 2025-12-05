@@ -1,239 +1,92 @@
 ﻿using Db;
+using ShellProgressBar;
 
 namespace DataAquisition
 {
-    internal class SingleGameData
-    {
-        public int HomeTeamId { get; set; }
-        public int AwayTeamId { get; set; }
-        public int StadiumId { get; set; }
-        public int R { get; set; } = 0;
-        public int HR { get; set; } = 0;
-        public int PA { get; set; } = 0;
-        public int Outs { get; set; } = 0;
-        public int LeagueId { get; set; }
-        public int LevelId { get; set; }
-
-        public SingleGameData Add(SingleGameData sgd)
-        {
-            R += sgd.R;
-            HR += sgd.HR;
-            PA += sgd.PA;
-            Outs += sgd.Outs;
-            return this;
-        }
-    }
-
     internal class ParkFactorUpdate
     {
-        private const int ROLLING_PERIOD = 5; // Total years to use for park factor (smooths results)
-        private const int OUTS_CUTTOFF = 300; // Don't give factors for parks below this level
+        private const int ROLLING_PERIOD = 3; // Total years to use for park factor (smooths results)
 
-        static Func<Park_ScoringData, Park_ScoringData, Park_ScoringData> AddParkScoringData = (a, b) => new Park_ScoringData
-        {
-            StadiumId = a.StadiumId,
-            Year = a.Year,
-            LeagueId = a.LeagueId,
-            LevelId = a.LevelId,
-            HomePa = a.HomePa + b.HomePa,
-            HomeOuts = a.HomeOuts + b.HomeOuts,
-            HomeRuns = a.HomeRuns + b.HomeRuns,
-            HomeHRs = a.HomeHRs + b.HomeHRs,
-            AwayPa = a.AwayPa + b.AwayPa,
-            AwayOuts = a.AwayOuts + b.AwayOuts,
-            AwayRuns = a.AwayRuns + b.AwayRuns,
-            AwayHRs = a.AwayHRs + b.AwayHRs,
-        };
-
-        public static bool Main(int year)
+        public static bool Main(int year, bool forceOverride)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                // Clear data from current year
-                db.Park_Factors.RemoveRange(
-                    db.Park_Factors.Where(f => f.Year == year)
-                );
-                db.Park_ScoringData.RemoveRange(
-                    db.Park_ScoringData.Where(f => f.Year == year)
-                );
-                db.League_Factors.RemoveRange(
-                    db.League_Factors.Where(f => f.Year == year)
-                );
-                db.Level_Factors.RemoveRange(
-                    db.Level_Factors.Where(f => f.Year == year)
-                );
-                db.SaveChanges();
+                
+                if (forceOverride)
+                {
+                    // Clear data from current year
+                    db.Park_Factors.RemoveRange(
+                        db.Park_Factors.Where(f => f.Year == year)
+                    );
+                    db.SaveChanges();
+                }
+
+                if (db.Park_Factors.Any(f => f.Year == year))
+                    return true;
 
                 // Get all games from the current year (use pitcher data because there are less entries)
-                var gameLogs = db.Player_Pitcher_GameLog.Where(f => f.Year == year);
+                var gameLogs = db.Player_Pitcher_GameLog.Where(f => f.Year == year)
+                    .OrderBy(f => f.StadiumId);
+                var rollingGameLogs = db.Player_Pitcher_GameLog.Where(f => f.Year <= year && f.Year >= (year - ROLLING_PERIOD))
+                    .OrderBy(f => f.StadiumId);
 
-                // Get summation data for all games individually
-                Dictionary<int, SingleGameData> gameData = new();
-                foreach (var log in gameLogs)
+                var stadiums = gameLogs.Select(f => f.StadiumId).Distinct();
+                using (ProgressBar progressBar = new ProgressBar(stadiums.Count(), $"Generating Park Factors for {year}"))
                 {
-                    if (!gameData.ContainsKey(log.GameId))
+                    foreach (int stadiumId in stadiums)
                     {
-                        gameData.Add(log.GameId, new SingleGameData
+                        // Get Games at and away from stadium
+                        var homeGames = rollingGameLogs.Where(f => f.StadiumId == stadiumId);
+                        // Find teams that played home game at stadium 
+                        var thisYearHomeGames = gameLogs.Where(f => f.StadiumId == stadiumId && f.IsHome == 1);
+                        IEnumerable<int> stadiumTeamIds = thisYearHomeGames.Select(f => f.TeamId).Distinct();
+                        
+                        int awayOuts = 0;
+                        int awayR = 0;
+                        int awayHR = 0;
+                        foreach (int teamId in stadiumTeamIds) // All results involving team not at stadium
                         {
-                            StadiumId = log.StadiumId,
-                            LeagueId = log.LeagueId,
-                            LevelId = log.LevelId
-                        });
+                            var awayGames = rollingGameLogs.Where(f => f.OppTeamId == teamId || f.TeamId == teamId && f.StadiumId != stadiumId);
+                            awayOuts += awayGames.Select(f => f.Outs).Sum();
+                            awayR += awayGames.Select(f => f.R).Sum();
+                            awayHR += awayGames.Select(f => f.HR).Sum();
+                        }
+
+                        int homeOuts = homeGames.Select(f => f.Outs).Sum();
+                        int homeR = homeGames.Select(f => f.R).Sum();
+                        int homeHR = homeGames.Select(f => f.HR).Sum();
+                        
+
+                        // Shift values towards neutral depending on amount of data that exists
+                        // Based on https://library.fangraphs.com/park-factors-5-year-regressed/
+                        // Scales by 0.6 based on results from 1 year, than 0.1 for each additional year
+                        int minOuts = Math.Min(homeOuts, awayOuts);
+                        const int FULL_SEASON_OUTS = 4300;
+                        float regressionFactor = minOuts < FULL_SEASON_OUTS ?
+                            0.6f * minOuts / FULL_SEASON_OUTS :
+                            0.6f + (0.1f * (minOuts - FULL_SEASON_OUTS) / FULL_SEASON_OUTS);
+
+                        // Cap at 1.0f
+                        regressionFactor = Math.Min(regressionFactor, 1.0f);
+                        float runFactor = minOuts > 0 ? (regressionFactor * ((float)homeR / homeOuts) / ((float)awayR / awayOuts)) + (1 - regressionFactor) : 1.0f;
+                        float hrFactor = minOuts > 0 ? (regressionFactor * ((float)homeHR / homeOuts) / ((float)awayHR / awayOuts)) + (1 - regressionFactor) : 1.0f;
+
+                        Park_Factors pf = new()
+                        {
+                            StadiumId = stadiumId,
+                            LeagueId = thisYearHomeGames.First().LeagueId,
+                            LevelId = thisYearHomeGames.First().LevelId,
+                            Year = year,
+                            RunFactor = runFactor, 
+                            HRFactor = hrFactor
+                        };
+                        db.Park_Factors.Add(pf);
+
+                        progressBar.Tick();
                     }
-
-                    var data = gameData.GetValueOrDefault(log.GameId) ?? throw new Exception("Game data doesn't exist");
-                    data.PA += log.BattersFaced;
-                    data.Outs += log.Outs;
-                    data.HR += log.HR;
-                    data.R += log.R;
-                    if (log.IsHome == 1)
-                        data.HomeTeamId = log.TeamId;
-                    else
-                        data.AwayTeamId = log.TeamId;
                 }
-
-                // Get sums for each team, splitting home/away
-                Dictionary<int, (SingleGameData, SingleGameData)> stadiumYearSums = new();
-                IEnumerable<int> stadiumIds = gameData.Values.Select(f => f.StadiumId).Distinct();
-                foreach (int stadiumId in stadiumIds)
-                {
-                    // Get Home/Away results for each different team that played there at home
-                    Dictionary<int, (SingleGameData, SingleGameData)> teamStadiumYearSums = new();
-                    IEnumerable<int> stadiumTeamIds = gameData.Values.Where(f => f.StadiumId == stadiumId).Select(f => f.HomeTeamId).Distinct();
-                    Func<SingleGameData, SingleGameData, SingleGameData> gameReduce = (a, b) => a.Add(b);
-                    foreach (int teamId in stadiumTeamIds)
-                    {
-                        var gamesAtStadium = gameData.Values.Where(f => f.StadiumId == stadiumId && f.HomeTeamId == teamId);
-                        var gamesNotAtStadium = gameData.Values.Where(f => f.StadiumId != stadiumId && (f.HomeTeamId == teamId || f.AwayTeamId == teamId));
-
-                        if (!gamesAtStadium.Any() || !gamesNotAtStadium.Any())
-                            continue;
-                        teamStadiumYearSums.Add(teamId, (gamesAtStadium.Aggregate(gameReduce), gamesNotAtStadium.Aggregate(gameReduce)));
-                    }
-
-                    // Combine them to get a single result for each stadium
-                    if (teamStadiumYearSums.Values.Any())
-                        stadiumYearSums.Add(stadiumId, (teamStadiumYearSums.Values.Select(f => f.Item1).Aggregate(gameReduce), teamStadiumYearSums.Values.Select(f => f.Item2).Aggregate(gameReduce)));
-                }
-
-
-                // Insert scoring for individual parks
-                foreach (var (id, data) in stadiumYearSums)
-                {
-                    db.Park_ScoringData.Add(new Park_ScoringData
-                    {
-                        StadiumId = id,
-                        Year = year,
-                        LeagueId = data.Item1.LeagueId,
-                        LevelId = data.Item1.LevelId,
-                        HomePa = data.Item1.PA,
-                        HomeOuts = data.Item1.Outs,
-                        HomeRuns = data.Item1.R,
-                        HomeHRs = data.Item1.HR,
-                        AwayPa = data.Item2.PA,
-                        AwayOuts = data.Item2.Outs,
-                        AwayRuns = data.Item2.R,
-                        AwayHRs = data.Item2.HR,
-                    });
-                }
+                    
                 db.SaveChanges();
-
-                // Calculate Park Factors
-                IEnumerable<int> parkIds = db.Park_ScoringData.Where(f => f.Year == year).Select(f => f.StadiumId);
-                var parkScoringData = db.Park_ScoringData.Where(f => f.Year <= year && f.Year > year - ROLLING_PERIOD && parkIds.Contains(f.StadiumId));
-                foreach (var stadiumId in stadiumIds)
-                {
-                    var teamParkScoringData = parkScoringData.Where(f => f.StadiumId == stadiumId).OrderByDescending(f => f.Year);
-                    if (!teamParkScoringData.Any())
-                        continue;
-
-                    var teamData = teamParkScoringData.Aggregate(AddParkScoringData);
-
-                    // Prevents extreme values for teams with little data
-                    if (teamData.HomeOuts < OUTS_CUTTOFF || teamData.AwayOuts < OUTS_CUTTOFF)
-                        continue;
-
-                    // Shift values towards neutral depending on amount of data that exists
-                    // Based on https://library.fangraphs.com/park-factors-5-year-regressed/
-                    // Scales by 0.6 based on results from 1 year, than 0.1 for each additional year
-                    int minOuts = Math.Min(teamData.HomeOuts, teamData.AwayOuts);
-                    const int FULL_SEASON_OUTS = 4300;
-                    float regressionFactor = minOuts < FULL_SEASON_OUTS ?
-                        0.6f * minOuts / FULL_SEASON_OUTS :
-                        0.6f + (0.1f * (minOuts - FULL_SEASON_OUTS) / FULL_SEASON_OUTS);
-
-                    // Cap at 1.0f
-                    regressionFactor = Math.Min(regressionFactor, 1.0f);
-
-                    Park_Factors pf = new()
-                    {
-                        StadiumId = teamData.StadiumId,
-                        LeagueId = teamData.LeagueId,
-                        LevelId = teamData.LevelId,
-                        Year = year,
-                        RunFactor = (regressionFactor * ((float)teamData.HomeRuns / teamData.HomeOuts) / ((float)teamData.AwayRuns / teamData.AwayOuts)) + (1 - regressionFactor), // Mean-Adjust based on calculated regression factor
-                        HRFactor = (regressionFactor * ((float)teamData.HomeHRs / teamData.HomeOuts) / ((float)teamData.AwayHRs / teamData.AwayOuts)) + (1 - regressionFactor),
-                    };
-
-                    db.Park_Factors.Add(pf);
-                }
-                db.SaveChanges();
-
-                // Accumulation function, shared for level, league
-                Func<Park_ScoringData, Park_ScoringData, (float, float)> FactorFunction = (a, b) =>
-                    (((float)(a.HomeRuns) / (a.HomeOuts)) / ((float)(b.HomeRuns) / (b.HomeOuts)),
-                    ((float)(a.HomeHRs) / (a.HomeOuts)) / ((float)(b.HomeHRs) / (b.HomeOuts)));
-
-                // Calculate Level Factors
-                var levels = db.Park_Factors.Where(f => f.Year == year).Select(f => f.LevelId).Distinct();
-                Dictionary<int, Park_ScoringData> levelScoringData = [];
-                foreach (var level in levels)
-                {
-                    var levelStats = db.Park_ScoringData.Where(f => f.Year == year && f.LevelId == level)
-                        .Aggregate(AddParkScoringData);
-                    levelScoringData.Add(level, levelStats);
-                }
-                var totalLevelStats = levelScoringData.Values.Aggregate(AddParkScoringData);
-
-                foreach (var level in levels)
-                {
-                    var levelFactors = FactorFunction(levelScoringData.GetValueOrDefault(level) ?? throw new Exception("Key not found"),
-                                                    totalLevelStats);
-                    db.Level_Factors.Add(new Level_Factors
-                    {
-                        LevelId = level,
-                        Year = year,
-                        RunFactor = levelFactors.Item1,
-                        HRFactor = levelFactors.Item2
-                    });
-                }
-                db.SaveChanges();
-
-                // Calculate League Factors
-                var leagues = db.Park_Factors.Where(f => f.Year == year).Select(f => f.LeagueId).Distinct();
-                Dictionary<int, Park_ScoringData> leagueScoringData = [];
-                foreach (var league in leagues)
-                {
-                    var leagueStats = db.Park_ScoringData.Where(f => f.Year == year && f.LeagueId == league)
-                        .Aggregate(AddParkScoringData);
-                    leagueScoringData.Add(league, leagueStats);
-                }
-                var totalLeagueStats = leagueScoringData.Values.Aggregate(AddParkScoringData);
-
-                foreach (var league in leagues)
-                {
-                    var leagueFactors = FactorFunction(leagueScoringData.GetValueOrDefault(league) ?? throw new Exception("Key not found"),
-                                                    totalLeagueStats);
-                    db.League_Factors.Add(new League_Factors
-                    {
-                        LeagueId = league,
-                        Year = year,
-                        RunFactor = leagueFactors.Item1,
-                        HRFactor = leagueFactors.Item2
-                    });
-                }
-                db.SaveChanges();
-                db.ChangeTracker.Clear();
 
                 return true;
             }

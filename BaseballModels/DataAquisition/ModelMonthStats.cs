@@ -69,7 +69,7 @@ namespace DataAquisition
                         foreach (var r in ratios)
                         {
                             int level = r.LevelId == 1 ? 1 : r.LevelId - 9;
-                            var stat = db.Player_Hitter_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LevelId == r.LevelId).Single();
+                            var stat = db.Player_Hitter_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId).Single();
                             if (r.Year == prevYear && r.Month == prevMonth)
                             {
                                 int PA = stat.AB + stat.BB + stat.HBP;
@@ -105,6 +105,7 @@ namespace DataAquisition
                                 // Add Previous
                                 if (currentData.Age > 0)
                                 {
+                                    currentData.WRC = Utilities.ClampWRC(currentData.WRC);
                                     db.Model_HitterStats.Add(currentData.Clone());
                                     prevMonth++;
                                     if (prevMonth > 9)
@@ -207,7 +208,11 @@ namespace DataAquisition
 
                         // Add last result
                         if (ratios.Any())
+                        {
+                            currentData.WRC = Utilities.ClampWRC(currentData.WRC);
                             db.Model_HitterStats.Add(currentData.Clone());
+                        }
+                            
 
                         // Make sure that trailing gaps are included
                         if (ratios.Any())
@@ -224,8 +229,6 @@ namespace DataAquisition
                             while (prevYear <= Math.Min(lastYear + 2, endYear))
                             {
                                 // Fill Hitter Gaps
-                                //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
-
                                 if (Utilities.GamesAtLevel(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear, db))
                                     db.Model_HitterStats.Add(new Model_HitterStats
                                     {
@@ -376,7 +379,7 @@ namespace DataAquisition
                         foreach (var r in ratios)
                         {
                             int level = r.LevelId == 1 ? 1 : r.LevelId - 9;
-                            var stat = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LevelId == r.LevelId).Single();
+                            var stat = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId).Single();
                             if (r.Year == prevYear && r.Month == prevMonth)
                             { 
                                 

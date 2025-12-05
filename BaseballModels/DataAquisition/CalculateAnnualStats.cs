@@ -117,7 +117,6 @@ namespace DataAquisition
                         LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == d.LeagueId && f.Year == year).Single();
 
                         int pa = s.BattersFaced;
-                        float leagueFipConstant = db.Level_PitcherStats.Where(f => f.Year == year && f.LevelId == d.LevelId).Select(f => f.FipConstant).Average();
                         int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
                         float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, pa);
                         int outs = s.Outs > 0 ? s.Outs : 1;

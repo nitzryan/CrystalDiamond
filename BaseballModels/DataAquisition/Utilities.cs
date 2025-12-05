@@ -108,6 +108,7 @@ namespace DataAquisition
             StadiumId = a.StadiumId,
             IsHome = a.IsHome,
             TeamId = a.TeamId,
+            OppTeamId = a.OppTeamId,
             LeagueId = a.TeamId
         };
 
@@ -115,9 +116,6 @@ namespace DataAquisition
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
 
-            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, stats.BattersFaced);
-
-            float fipConstant = db.Level_PitcherStats.Where(f => f.Year == stats.Year && f.Month == stats.Month && f.LevelId == stats.LevelId).Select(f => f.FipConstant).Single();
             Player_Pitcher_MonthAdvanced ma = new()
             {
                 MlbId = stats.MlbId,
@@ -129,12 +127,12 @@ namespace DataAquisition
                 BF = stats.BattersFaced,
                 Outs = stats.Outs,
                 SPPerc = stats.SPPerc,
-                WOBA = woba,
+                WOBA = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, stats.BattersFaced),
                 HRPerc = stats.BattersFaced > 0 ? (float)stats.HR / stats.BattersFaced : 0,
                 BBPerc = stats.BattersFaced > 0 ? (float)stats.BB / stats.BattersFaced : 0,
                 KPerc = stats.BattersFaced > 0 ? (float)stats.K / stats.BattersFaced : 0,
                 ERA = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f,
-                FIP = stats.Outs > 0 ? (float)((13 * stats.HR) + 3 * (stats.BB + stats.HBP) - (2 * stats.K)) * 3 / stats.Outs + fipConstant : 99.0f,
+                FIP = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs),
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
                 HR = stats.HR,
                 CrWAR = -100000,
@@ -168,6 +166,7 @@ namespace DataAquisition
             StadiumId = a.StadiumId,
             IsHome = a.IsHome,
             TeamId = a.TeamId,
+            OppTeamId = a.OppTeamId,
             LeagueId = a.TeamId
         };
 
@@ -219,6 +218,12 @@ namespace DataAquisition
             return ((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3) + cFIP;
         }
 
+        public static float SafeDivide(float num, float denom)
+        {
+            return denom == 0 ?
+                1.0f : num / denom;
+        }
+
         public static int GetModelMask(Db.Model_Players player, int year, int month)
         {
             int mask = 0;
@@ -236,6 +241,11 @@ namespace DataAquisition
             Console.Write(e.StackTrace);
         }
 
+        public static float ClampWRC(float wrc)
+        {
+            return Math.Min(300, Math.Max(-100, wrc));
+        }
+
         public static float GetAge1MinusAge0(int y1, int m1, int d1, int y0, int m0, int d0)
         {
             int deltaYears = y1 - y0;
@@ -247,39 +257,33 @@ namespace DataAquisition
 
         public static bool GamesAtLevel(int month, int level, int year, SqliteDbContext db)
         {
-            
-            // Get Games at level, find max ABs in a month
-            var lhs = db.Level_HitterStats.Where(f => f.LevelId == level && f.Year == year);
+            int monthPA = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year && f.Month == month)
+                .Select(f => f.MaxPA).SingleOrDefault();
 
-            // No games at all
-            if (!lhs.Any()) 
-                return false;
-                
+            var playerPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
+                .Select(f => f.MaxPA);
 
-            int maxAbs = lhs.Max(f => f.AB);
-
-            // Not enough games
-            if (!lhs.Where(f => f.Month == month).Any())
+            if (!playerPAs.Any())
                 return false;
 
+            int yearMaxPAs = playerPAs.Max();
 
-            // Return whether games played is half max month
-            var ab = lhs.Where(f => f.Month == month).Single().AB;
-            return ab >= (maxAbs / 5);
+            return GetGamesFrac(month, level, year, db) >= (0.2f * yearMaxPAs);
         }
 
         public static float GetGamesFrac(int month, int level, int year, SqliteDbContext db)
         {
-            var lhs = db.Level_HitterStats.Where(f => f.LevelId == level && f.Year == year);
+            int monthPA = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year && f.Month == month)
+                .Select(f => f.MaxPA).SingleOrDefault();
 
-            // No games at all
-            if (!lhs.Any())
-                return 0;
+            int? yearMaxPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
+                .Select(f => f.MaxPA).Max();
 
-            int maxAbs = lhs.Max(f => f.AB);
-
-            var ab = lhs.Where(f => f.Month == month).Single().AB;
-            return (float)ab / maxAbs;
+            if (yearMaxPAs == null) // No data for year at all
+                return 0.0f;
+            
+            else
+                return (float)monthPA / (yearMaxPAs ?? 0); // Divide by zero because something went wrong
         }
 
         public static int GetInjStatus(int month, int year, int mlbId, SqliteDbContext db)

@@ -24,6 +24,7 @@ namespace Db
 		public required int StadiumId {get; set;}
 		public required int IsHome {get; set;}
 		public required int TeamId {get; set;}
+		public required int OppTeamId {get; set;}
 		public required int LeagueId {get; set;}
 
 		public Player_Hitter_GameLog Clone()
@@ -52,6 +53,7 @@ namespace Db
 				StadiumId = this.StadiumId,
 				IsHome = this.IsHome,
 				TeamId = this.TeamId,
+				OppTeamId = this.OppTeamId,
 				LeagueId = this.LeagueId,
 				
 			};

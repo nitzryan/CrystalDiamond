@@ -2,7 +2,7 @@
 {
     internal class Program
     {
-        const int START_YEAR = 2005;
+        const int START_YEAR = 2023;
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
         static async Task Main(string[] args)
@@ -30,26 +30,29 @@
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
 
-                //if (!ParkFactorUpdate.Main(year))
+                //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
                 //if (!await CalculateLeagueStats.Main(year, false))
                 //    return;
 
-                foreach (int month in months)
-                {
-                    if (!CalculateLevelStats.Main(year, month))
-                        return;
+                //foreach (int month in months)
+                //{
+                //    if (!CreateLevelGameCounts.Main(year, month))
+                //        return;
 
-                    if (!CalculateMonthStats.Main(year, month))
-                        return;
+                //    if (!CalculateLeagueBaselines.Main(year, month))
+                //        return;
 
-                    if (!CalculateMonthRatios.Main(year, month))
-                        return;
+                //    if (!CalculateMonthStats.Main(year, month))
+                //        return;
 
-                    if (year == END_YEAR && month == END_MONTH)
-                        break;
-                }
+                //    if (!CalculateMonthRatios.Main(year, month))
+                //        return;
+
+                //    if (year == END_YEAR && month == END_MONTH)
+                //        break;
+                //}
 
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
@@ -62,8 +65,8 @@
                 //    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
                 //        return;
 
-                //  if (year == END_YEAR && month == END_MONTH)
-                //      break;
+                //    if (year == END_YEAR && month == END_MONTH)
+                //        break;
                 //}
 
                 //while (!await UpdateParents.Main(year))

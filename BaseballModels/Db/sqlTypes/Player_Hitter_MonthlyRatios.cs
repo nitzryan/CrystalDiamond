@@ -6,6 +6,7 @@ namespace Db
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
+		public required int LeagueId {get; set;}
 		public required float AVGRatio {get; set;}
 		public required float OBPRatio {get; set;}
 		public required float ISORatio {get; set;}
@@ -33,6 +34,7 @@ namespace Db
 				Year = this.Year,
 				Month = this.Month,
 				LevelId = this.LevelId,
+				LeagueId = this.LeagueId,
 				AVGRatio = this.AVGRatio,
 				OBPRatio = this.OBPRatio,
 				ISORatio = this.ISORatio,

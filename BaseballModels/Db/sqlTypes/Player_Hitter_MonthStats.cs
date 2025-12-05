@@ -6,6 +6,7 @@ namespace Db
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
+		public required int LeagueId {get; set;}
 		public required int AB {get; set;}
 		public required int PA {get; set;}
 		public required int H {get; set;}
@@ -37,6 +38,7 @@ namespace Db
 				Year = this.Year,
 				Month = this.Month,
 				LevelId = this.LevelId,
+				LeagueId = this.LeagueId,
 				AB = this.AB,
 				PA = this.PA,
 				H = this.H,

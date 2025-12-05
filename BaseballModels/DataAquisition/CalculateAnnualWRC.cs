@@ -80,7 +80,7 @@ namespace DataAquisition
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
                 var phma = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month)
-                    .GroupBy(f => new { f.MlbId, f.LevelId });
+                    .GroupBy(f => new { f.MlbId, f.LeagueId });
                 using (ProgressBar progressBar = new(phma.Count(), $"Generating Hitter Monthly Ratios WRC+ for {year}-{month}"))
                 {
                     foreach (var grouping in phma)
@@ -96,7 +96,7 @@ namespace DataAquisition
                             wRCPlus = (statFrac * ma.WRC) + ((1 - statFrac) * wRCPlus);
                         }
 
-                        Db.Player_Hitter_MonthlyRatios ratio = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == grouping.Key.MlbId && f.Month == month && f.Year == year && f.LevelId == grouping.Key.LevelId).Single();
+                        Db.Player_Hitter_MonthlyRatios ratio = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == grouping.Key.MlbId && f.Month == month && f.Year == year && f.LeagueId == grouping.Key.LeagueId).Single();
                         ratio.WRC = wRCPlus;
 
                         progressBar.Tick();

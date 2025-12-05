@@ -1,8 +1,8 @@
 namespace Db
 {
-	public class Level_HitterStats
+	public class League_HitterStats
 	{
-		public required int LevelId {get; set;}
+		public required int LeagueId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int AB {get; set;}
@@ -17,11 +17,11 @@ namespace Db
 		public required float SBRate {get; set;}
 		public required float SBPerc {get; set;}
 
-		public Level_HitterStats Clone()
+		public League_HitterStats Clone()
 		{
-			return new Level_HitterStats
+			return new League_HitterStats
 			{
-				LevelId = this.LevelId,
+				LeagueId = this.LeagueId,
 				Year = this.Year,
 				Month = this.Month,
 				AB = this.AB,

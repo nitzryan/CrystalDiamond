@@ -1,8 +1,8 @@
 namespace Db
 {
-	public class Level_PitcherStats
+	public class League_PitcherStats
 	{
-		public required int LevelId {get; set;}
+		public required int LeagueId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float ERA {get; set;}
@@ -16,11 +16,11 @@ namespace Db
 		public required float Avg {get; set;}
 		public required float Iso {get; set;}
 
-		public Level_PitcherStats Clone()
+		public League_PitcherStats Clone()
 		{
-			return new Level_PitcherStats
+			return new League_PitcherStats
 			{
-				LevelId = this.LevelId,
+				LeagueId = this.LeagueId,
 				Year = this.Year,
 				Month = this.Month,
 				ERA = this.ERA,

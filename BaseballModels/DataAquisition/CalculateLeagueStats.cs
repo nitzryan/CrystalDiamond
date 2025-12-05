@@ -338,7 +338,7 @@ namespace DataAquisition
                 HttpClient httpClient = new();
                 //await GetHitterEventsAsync(33333, httpClient);
 
-                var leagues = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year)
+                var leagues = db.Player_Hitter_GameLog.Where(f => f.Year == year)
                     .Select(f => f.LeagueId).Distinct();
 
                 using (ProgressBar progressBar = new(leagues.Count(), $"Generating League Stats for {year}"))
@@ -348,28 +348,28 @@ namespace DataAquisition
                         // Check if league already has data for year
                         if (db.LeagueStats.Any(f => f.Year == year && f.LeagueId == league))
                         {
-                            LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == league).Single();
-                            ls.LeaguePA = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
-                                .Select(f => f.PA).Sum();
-                            ls.LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
-                                .Select(f => f.GameId).Distinct().Count();
+                            //LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == league).Single();
+                            //ls.LeaguePA = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
+                            //    .Select(f => f.PA).Sum();
+                            //ls.LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
+                            //    .Select(f => f.GameId).Distinct().Count();
 
-                            var lleagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
-                            int lleagueHRs = lleagueStats.Select(f => f.HR).Sum();
-                            int lleagueBBs = lleagueStats.Select(f => f.BB + f.HBP).Sum();
-                            int lleagueKs = lleagueStats.Select(f => f.K).Sum();
-                            int lleagueRuns = lleagueStats.Select(f => f.R).Sum();
-                            int lleagueERs = lleagueStats.Select(f => f.ER).Sum();
-                            int lleagueOuts = lleagueStats.Select(f => f.Outs).Sum();
+                            //var lleagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
+                            //int lleagueHRs = lleagueStats.Select(f => f.HR).Sum();
+                            //int lleagueBBs = lleagueStats.Select(f => f.BB + f.HBP).Sum();
+                            //int lleagueKs = lleagueStats.Select(f => f.K).Sum();
+                            //int lleagueRuns = lleagueStats.Select(f => f.R).Sum();
+                            //int lleagueERs = lleagueStats.Select(f => f.ER).Sum();
+                            //int lleagueOuts = lleagueStats.Select(f => f.Outs).Sum();
 
-                            float lleagueRA = (float)lleagueRuns / lleagueOuts * 27;
-                            float lleagueERA = (float)lleagueERs / lleagueOuts * 27;
-                            float lleagueFIP = Utilities.CalculateFip(0, lleagueHRs, lleagueKs, lleagueBBs, lleagueOuts);
+                            //float lleagueRA = (float)lleagueRuns / lleagueOuts * 27;
+                            //float lleagueERA = (float)lleagueERs / lleagueOuts * 27;
+                            //float lleagueFIP = Utilities.CalculateFip(0, lleagueHRs, lleagueKs, lleagueBBs, lleagueOuts);
 
-                            ls.CFIP = lleagueERA - lleagueFIP;
-                            ls.FIPR9Adjustment = lleagueRA - lleagueERA;
-                            ls.LeagueERA = lleagueERA;
-                            db.SaveChanges();
+                            //ls.CFIP = lleagueERA - lleagueFIP;
+                            //ls.FIPR9Adjustment = lleagueRA - lleagueERA;
+                            //ls.LeagueERA = lleagueERA;
+                            //db.SaveChanges();
 
                             progressBar.Tick();
                             continue;

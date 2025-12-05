@@ -9,24 +9,8 @@ CREATE TABLE "Draft_Results" (
 	PRIMARY KEY ("Year", "Pick")
 );
 
-CREATE TABLE "League_Factors" (
+CREATE TABLE "League_HitterStats" (
 	"LeagueId"	INTEGER NOT NULL,
-	"Year"	INTEGER NOT NULL,
-	"RunFactor"	REAL NOT NULL,
-	"HRFactor"	REAL NOT NULL,
-	PRIMARY KEY("LeagueId","Year")
-);
-
-CREATE TABLE "Level_Factors" (
-	"LevelId"	INTEGER NOT NULL,
-	"Year"	INTEGER NOT NULL,
-	"RunFactor"	REAL NOT NULL,
-	"HRFactor"	REAL NOT NULL,
-	PRIMARY KEY("LevelId","Year")
-);
-
-CREATE TABLE "Level_HitterStats" (
-	"LevelId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"AB" INTEGER NOT NULL,
@@ -40,11 +24,11 @@ CREATE TABLE "Level_HitterStats" (
 	"KPerc"	REAL NOT NULL,
 	"SBRate"	REAL NOT NULL,
 	"SBPerc"	REAL NOT NULL,
-	PRIMARY KEY("LevelId","Year","Month")
+	PRIMARY KEY("LeagueId","Year","Month")
 );
 
-CREATE TABLE "Level_PitcherStats" (
-	"LevelId"	INTEGER NOT NULL,
+CREATE TABLE "League_PitcherStats" (
+	"LeagueId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"ERA"	REAL NOT NULL,
@@ -57,7 +41,15 @@ CREATE TABLE "Level_PitcherStats" (
 	"GOPerc"	REAL NOT NULL,
 	"avg"	REAL NOT NULL,
 	"iso"	REAL NOT NULL,
-	PRIMARY KEY("LevelId","Year","Month")
+	PRIMARY KEY("LeagueId","Year","Month")
+);
+
+CREATE TABLE "Level_GameCounts" (
+	"LevelId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"MaxPA" INTEGER NOT NULL,
+	PRIMARY KEY("LevelId", "Year", "Month")
 );
 
 CREATE TABLE "Model_HitterStats" (
@@ -424,22 +416,6 @@ CREATE TABLE "Park_Factors" (
 	PRIMARY KEY("StadiumId","Year")
 );
 
-CREATE TABLE "Park_ScoringData" (
-	"StadiumId"	INTEGER NOT NULL,
-	"Year"	INTEGER NOT NULL,
-	"LeagueId"	INTEGER NOT NULL,
-	"LevelId"	INTEGER NOT NULL,
-	"HomePa"	INTEGER NOT NULL,
-	"HomeOuts"	INTEGER NOT NULL,
-	"HomeRuns"	INTEGER NOT NULL,
-	"HomeHRs"	INTEGER NOT NULL,
-	"AwayPa"	INTEGER NOT NULL,
-	"AwayOuts"	INTEGER NOT NULL,
-	"AwayRuns"	INTEGER NOT NULL,
-	"AwayHRs"	INTEGER NOT NULL,
-	PRIMARY KEY("StadiumId","Year","LeagueId")
-);
-
 CREATE TABLE "Player" (
 	"mlbId"	INTEGER NOT NULL,
 	"fangraphsId"	INTEGER,
@@ -502,6 +478,7 @@ CREATE TABLE "Player_Hitter_GameLog" (
 	"StadiumId"	INTEGER NOT NULL,
 	"IsHome" INTEGER NOT NULL,
 	"TeamId"	INTEGER NOT NULL,
+	"oppTeamId" INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	PRIMARY KEY("gameLogId")
 );
@@ -541,6 +518,7 @@ CREATE TABLE "Player_Hitter_MonthStats" (
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
 	"AB"	INTEGER NOT NULL,
 	"PA"	INTEGER NOT NULL,
 	"H"	INTEGER NOT NULL,
@@ -563,7 +541,7 @@ CREATE TABLE "Player_Hitter_MonthStats" (
 	"GamesCF"	INTEGER NOT NULL,
 	"GamesRF"	INTEGER NOT NULL,
 	"GamesDH"	INTEGER NOT NULL,
-	PRIMARY KEY("mlbId","Year","Month","LevelId")
+	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
 );
 
 CREATE TABLE "Player_Hitter_MonthlyRatios" (
@@ -571,6 +549,7 @@ CREATE TABLE "Player_Hitter_MonthlyRatios" (
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
 	"AVGRatio"	REAL NOT NULL,
 	"OBPRatio"	REAL NOT NULL,
 	"ISORatio"	REAL NOT NULL,
@@ -589,7 +568,7 @@ CREATE TABLE "Player_Hitter_MonthlyRatios" (
 	"PercCF"	REAL NOT NULL,
 	"PercRF"	REAL NOT NULL,
 	"PercDH"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","Year","Month","LevelId")
+	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
 );
 
 CREATE TABLE "Player_Hitter_YearAdvanced" (
@@ -659,6 +638,7 @@ CREATE TABLE "Player_Pitcher_GameLog" (
 	"stadiumId"	INTEGER NOT NULL,
 	"isHome" INTEGER NOT NULL,
 	"TeamId"	INTEGER NOT NULL,
+	"oppTeamId" INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,
 	PRIMARY KEY("gameLogId")
 );
@@ -690,6 +670,7 @@ CREATE TABLE "Player_Pitcher_MonthStats" (
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
 	"battersFaced"	INTEGER NOT NULL,
 	"Outs"	INTEGER NOT NULL,
 	"SPPerc"	REAL NOT NULL,
@@ -706,7 +687,7 @@ CREATE TABLE "Player_Pitcher_MonthStats" (
 	"HR"	INTEGER NOT NULL,
 	"ParkRunFactor"	REAL NOT NULL,
 	"ParkHRFactor"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","year","month","levelId")
+	PRIMARY KEY("mlbId","year","month","levelId", "leagueId")
 );
 
 CREATE TABLE "Player_Pitcher_MonthlyRatios" (
@@ -714,6 +695,7 @@ CREATE TABLE "Player_Pitcher_MonthlyRatios" (
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
 	"SPPerc" REAL NOT NULL,
 	"GBPercRatio"	REAL NOT NULL,
 	"ERARatio"	REAL NOT NULL,
@@ -722,7 +704,7 @@ CREATE TABLE "Player_Pitcher_MonthlyRatios" (
 	"HRPercRatio"	REAL NOT NULL,
 	"BBPercRatio"	REAL NOT NULL,
 	"kPercRatio"	REAL NOT NULL,
-	PRIMARY KEY("mlbId","year","month","levelId")
+	PRIMARY KEY("mlbId","year","month","levelId", "LeagueId")
 );
 
 CREATE TABLE "Player_Pitcher_YearAdvanced" (
