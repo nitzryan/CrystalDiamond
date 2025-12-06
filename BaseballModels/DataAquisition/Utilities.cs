@@ -268,7 +268,7 @@ namespace DataAquisition
 
             int yearMaxPAs = playerPAs.Max();
 
-            return GetGamesFrac(month, level, year, db) >= (0.2f * yearMaxPAs);
+            return GetGamesFrac(month, level, year, db) >= 0.2f;
         }
 
         public static float GetGamesFrac(int month, int level, int year, SqliteDbContext db)
@@ -276,14 +276,13 @@ namespace DataAquisition
             int monthPA = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year && f.Month == month)
                 .Select(f => f.MaxPA).SingleOrDefault();
 
-            int? yearMaxPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
-                .Select(f => f.MaxPA).Max();
-
-            if (yearMaxPAs == null) // No data for year at all
+            var playerPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
+                .Select(f => f.MaxPA);
+            if (!playerPAs.Any())
                 return 0.0f;
-            
-            else
-                return (float)monthPA / (yearMaxPAs ?? 0); // Divide by zero because something went wrong
+                
+            int yearMaxPAs = playerPAs.Max();
+            return (float)monthPA / yearMaxPAs;
         }
 
         public static int GetInjStatus(int month, int year, int mlbId, SqliteDbContext db)

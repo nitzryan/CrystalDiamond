@@ -92,11 +92,11 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
-
-            //if (!Model_MonthValue.Main())
+            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
             //    return;
+
+            if (!Model_MonthValue.Main())
+                return;
 
             //while (!await GetLeagues.Main())
             //{ }
