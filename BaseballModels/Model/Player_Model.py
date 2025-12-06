@@ -62,6 +62,12 @@ class RNN_Model(nn.Module):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+        
+        # Set PA/IP to kaiming_uniform
+        init.kaiming_uniform_(self.linear_mlb_value1.weight, mode='fan_in', nonlinearity='relu')
+        init.kaiming_uniform_(self.linear_mlb_value2.weight, mode='fan_in', nonlinearity='relu')
+        init.kaiming_uniform_(self.linear_mlb_value3.weight, mode='fan_in', nonlinearity='relu')
+        init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
                     
         # Convert class probabilities to war regression
         war_means : torch.Tensor = getattr(data_prep, "__hit_prospect_value_means") if is_hitter else getattr(data_prep, "__pit_prospect_value_means")
