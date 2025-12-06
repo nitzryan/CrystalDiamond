@@ -242,7 +242,7 @@ def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
     masks = masks.reshape((batch_size, time_steps,))
     pred_war = pred_war.reshape((batch_size * time_steps,))
     
-    l = nn.L1Loss(reduction='none')
+    l = nn.MSELoss(reduction='none')
     loss = l(pred_war, actual_war)
     loss = loss.reshape((batch_size, time_steps))
     loss *= masks

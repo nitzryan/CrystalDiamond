@@ -73,17 +73,45 @@ base_prep_map = Prep_Map(
     map_mlb_pit_value=__map_mlb_pit_value,
     mlb_hit_value_size=__mlb_hit_value_size,
     mlb_pit_value_size=__mlb_pit_value_size,
-    bio_size=2,# Hitter [0.711, 0.282, 0.007]
-                    #Pitcher [0.702, 0.289, 0.009]
+    bio_size=2,
     hitterlvl_size=3,
     hitterpt_size=3,
-    off_size=7,# [0.393, 0.168, 0.117, 0.114, 0.104, 0.078, 0.021, 0.006, 0.001]
-    bsr_size=2,# [0.722, 0.278]
-    def_size=9,# [0.152, 0.138, 0.127, 0.113, 0.11, 0.105, 0.101, 0.095, 0.059]
+    off_size=7,
+    bsr_size=2,
+    def_size=9,
     hitfirst_size=1,
     pitcherlvl_size=3,
     pitcherpt_size=3,
-    pit_size=8,# [0.309, 0.127, 0.114, 0.108, 0.103, 0.094, 0.063, 0.053, 0.028]
+    pit_size=8,
+    pitfirst_size=1
+)
+
+experimental_prep_map = Prep_Map(
+    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
+    map_off=lambda h : [math.sqrt(h.AVGRatio), math.sqrt(h.OBPRatio), math.sqrt(h.ISORatio), h.wRC, math.sqrt(h.HRPercRatio), math.sqrt(h.BBPercRatio), math.sqrt(h.kPercRatio), h.crOFF, h.crDEF, h.crWAR],
+    map_bsr=lambda h : [math.sqrt(h.SBRateRatio), h.SBPercRatio],
+    map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
+    map_hitterpt=lambda h : [h.PA, h.MonthFrac, h.InjStatus],
+    map_pitcherpt=lambda p : [p.BF, p.MonthFrac, p.InjStatus],
+    map_hitterlvl=lambda h : [h.Age, h.LevelId, h.Month],
+    map_pitcherlvl=lambda p : [p.Age, p.LevelId, p.Month],
+    map_pit=lambda p : [p.GBPercRatio, math.sqrt(p.ERARatio), math.sqrt(p.FIPRatio + 1.5), math.sqrt(p.wOBARatio), math.sqrt(p.HRPercRatio), math.sqrt(p.BBPercRatio), math.sqrt(p.KPercRatio), p.crWAR],
+    map_pit_first=lambda p, y : 1 if p.Year == y else 0,
+    map_hit_first=lambda h, y : 1 if h.Year == y else 0,
+    map_mlb_hit_value=__map_mlb_hit_value,
+    map_mlb_pit_value=__map_mlb_pit_value,
+    mlb_hit_value_size=__mlb_hit_value_size,
+    mlb_pit_value_size=__mlb_pit_value_size,
+    bio_size=2,
+    hitterlvl_size=3,
+    hitterpt_size=3,
+    off_size=7,
+    bsr_size=2,
+    def_size=9,
+    hitfirst_size=1,
+    pitcherlvl_size=3,
+    pitcherpt_size=3,
+    pit_size=7,
     pitfirst_size=1
 )
 
