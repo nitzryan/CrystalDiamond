@@ -21,11 +21,6 @@ class RNN_Model(nn.Module):
         self.linear_war1 = nn.Linear(hidden_size, hidden_size)
         self.linear_war2 = nn.Linear(hidden_size, hidden_size)
         self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
-        self.linear_value1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_value2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_value3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_value))
-        self.linear_pwar1 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_pwar2 = nn.Linear(hidden_size // 2, len(HITTER_PEAK_WAR_BUCKETS))
         self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_level2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS))
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -102,19 +97,10 @@ class RNN_Model(nn.Module):
         output_war = self.nonlin(self.linear_war2(output_war))
         output_war = self.linear_war3(output_war)
         
-        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war1(output))
-        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war2(output_nonbucket_war))
-        output_nonbucket_war = self.nonlin(self.linear_nonbucket_war3(output_nonbucket_war))
-        output_nonbucket_war = self.linear_nonbucket_war4(output_nonbucket_war)
-        
-        # Generate Value predictions
-        output_value = self.nonlin(self.linear_value1(output))
-        output_value = self.nonlin(self.linear_value2(output_value))
-        output_value = self.linear_value3(output_value)
-        
-        # Generate Peak War Predictions
-        output_pwar = self.nonlin(self.linear_pwar1(output))
-        output_pwar = self.linear_pwar2(output_pwar)
+        output_regression_war = self.nonlin(self.linear_nonbucket_war1(output))
+        output_regression_war = self.nonlin(self.linear_nonbucket_war2(output_regression_war))
+        output_regression_war = self.nonlin(self.linear_nonbucket_war3(output_regression_war))
+        output_regression_war = self.linear_nonbucket_war4(output_regression_war)
         
         # Generate Level Predictions
         output_level = self.nonlin(self.linear_level1(output))
@@ -154,7 +140,7 @@ class RNN_Model(nn.Module):
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
         
-        return output_war, output_nonbucket_war, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
+        return output_war, output_regression_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):
@@ -245,7 +231,7 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
         l += (loss(pred_positions[:,x,:], actual_positions) * masks[:,x]).sum()
     return l
     
-def Prospect_Value_Loss(pred_war, actual_war, masks):
+def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
     actual_war = actual_war[:,:pred_war.size(1)]
     masks = masks[:,:pred_war.size(1)]
     
@@ -263,30 +249,8 @@ def Prospect_Value_Loss(pred_war, actual_war, masks):
     
     return loss.sum(dim=1).sum()
     
-def Classification_War_Regression(network, pred_war_classes, actual_war_regression, masks):
-    batch_size = pred_war_classes.size(0)
-    time_steps = pred_war_classes.size(1)
-    
-    actual_war_regression = actual_war_regression[:, :time_steps].reshape((batch_size * time_steps,))
-    pred_war_classes = pred_war_classes.reshape((batch_size * time_steps, pred_war_classes.size(2)))
-    masks = masks[:, :time_steps]
-    
-    # Multiply class probabilities by war of class to get predicted war value
-    softmax = nn.Softmax(dim=1)
-    pred_war_classes_probs = softmax(pred_war_classes)
-    pred_war_regression = network.classes_to_regression(pred_war_classes_probs)
-    
-    l = nn.L1Loss(reduction='none')
-    loss = l(pred_war_regression, actual_war_regression)
-    loss = loss.reshape((batch_size, time_steps))
-    loss *= masks
-    
-    return loss.sum(dim=1).sum()
-    
-def Classification_Loss(pred_war, pred_value, pred_pwar, pred_level, pred_pa, actual_war, actual_value, actual_pwar, actual_level, actual_pa, masks):
+def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level, actual_pa, masks):
     actual_war = actual_war[:,:pred_war.size(1)]
-    actual_value = actual_value[:,:pred_war.size(1)]
-    actual_pwar = actual_pwar[:,:pred_pwar.size(1)]
     actual_level = actual_level[:,:pred_level.size(1)]
     actual_pa = actual_pa[:,:pred_pa.size(1)]
     masks = masks[:,:pred_level.size(1)]
@@ -295,48 +259,34 @@ def Classification_Loss(pred_war, pred_value, pred_pwar, pred_level, pred_pa, ac
     time_steps = actual_war.size(1)
     
     num_classes_war = pred_war.size(2)
-    num_classes_value = pred_value.size(2)
-    num_classes_pwar = pred_pwar.size(2)
     num_classes_level = pred_level.size(2)
     num_classes_pa = pred_pa.size(2)
     
     actual_war = actual_war.reshape((batch_size * time_steps,))
-    actual_value = actual_value.reshape((batch_size * time_steps,))
-    actual_pwar = actual_pwar.reshape((batch_size * time_steps,))
     actual_level = actual_level.reshape((batch_size * time_steps,))
     actual_pa = actual_pa.reshape((batch_size * time_steps,))
     
     masks = masks.reshape((batch_size, time_steps,))
     
     pred_war = pred_war.reshape((batch_size * time_steps, num_classes_war))
-    pred_value = pred_value.reshape((batch_size * time_steps, num_classes_value))
-    pred_pwar = pred_pwar.reshape((batch_size * time_steps, num_classes_pwar))
     pred_level = pred_level.reshape((batch_size * time_steps, num_classes_level))
     pred_pa = pred_pa.reshape((batch_size * time_steps, num_classes_pa))
     
     l = nn.CrossEntropyLoss(reduction='none')
     loss_war = l(pred_war, actual_war)
-    loss_value = l(pred_value, actual_value)
-    loss_pwar = l(pred_pwar, actual_pwar)
     loss_level = l(pred_level, actual_level)
     loss_pa = l(pred_pa, actual_pa)
     
     loss_war = loss_war.reshape((batch_size, time_steps))
-    loss_value = loss_value.reshape((batch_size, time_steps))
-    loss_pwar = loss_pwar.reshape((batch_size, time_steps))
     loss_level = loss_level.reshape((batch_size, time_steps))
     loss_pa = loss_pa.reshape((batch_size, time_steps))
     
     masked_loss_war = loss_war * masks
-    masked_loss_value = loss_value * masks
-    masked_loss_pwar = loss_pwar * masks
     masked_loss_level = loss_level * masks
     masked_loss_pa = loss_pa * masks
     
     loss_sums_war = masked_loss_war.sum(dim=1)
-    loss_sums_value = masked_loss_value.sum(dim=1)
-    loss_sums_pwar = masked_loss_pwar.sum(dim=1)
     loss_sums_level = masked_loss_level.sum(dim=1)
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
-    return loss_sums_war.sum(), loss_sums_value.sum(), loss_sums_pwar.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
+    return loss_sums_war.sum(), loss_sums_level.sum(), loss_sums_pa.sum()

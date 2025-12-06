@@ -59,7 +59,7 @@ __mlb_pit_value_size = 4
 # Comments are explained variance ratios
 base_prep_map = Prep_Map(
     map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
-    map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wOBARatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
+    map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wRC, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
     map_bsr=lambda h : [h.SBRateRatio, h.SBPercRatio],
     map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
     map_hitterpt=lambda h : [h.PA, h.MonthFrac, h.InjStatus],
@@ -89,7 +89,7 @@ base_prep_map = Prep_Map(
 
 statsonly_prep_map = Prep_Map(
     map_bio=lambda p : [p.ageAtSigningYear],
-    map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wOBARatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
+    map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wRC, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
     map_bsr=lambda h : [h.SBRateRatio, h.SBPercRatio],
     map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
     map_hitterpt=lambda h : [h.PA, h.MonthFrac, h.InjStatus],

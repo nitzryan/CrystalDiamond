@@ -77,7 +77,7 @@ class Output_Map:
         return stats.TrainMask & 1
     
 __map_hitter_output : Callable[[DB_Model_HitterStats], list[float]] = \
-    lambda h : [h.ParkRunFactor, h.ParkHRFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wOBARatio, h.SBRateRatio, h.SBPercRatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio]
+    lambda h : [h.ParkRunFactor, h.ParkHRFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wRC, h.SBRateRatio, h.SBPercRatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio]
 __map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]] = \
     lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH]
 __hitter_stats_size = 11

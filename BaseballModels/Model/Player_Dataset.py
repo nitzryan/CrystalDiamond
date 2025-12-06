@@ -8,10 +8,8 @@ class Player_Dataset(torch.utils.data.Dataset):
         self.lengths = lengths
         
         self.twar_buckets = labels[:,:,0]
-        self.value_buckets = labels[:,:,1]
-        self.pwar_buckets = labels[:,:,2]
-        self.level_buckets = labels[:,:,3]
-        self.pa_buckets = labels[:,:,4]
+        self.level_buckets = labels[:,:,1]
+        self.pa_buckets = labels[:,:,2]
         
         self.war_values = war_values
         
@@ -35,7 +33,7 @@ class Player_Dataset(torch.utils.data.Dataset):
         self.should_augment = should_augment
         
     def __getitem__(self, idx):
-        return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.war_values[:,idx], self.value_buckets[:,idx], self.pwar_buckets[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx]
+        return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.war_values[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx]
     
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:
     io_train : list[Player_IO]

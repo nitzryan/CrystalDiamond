@@ -260,12 +260,10 @@ class Data_Prep:
                 input[1:, -self.prep_map.mlb_hit_value_size:] = self.Transform_HitterMlbValues([pmw for mhs, pmw in stats_monthlywar])
             
             # Output
-            output = torch.zeros(l, 5, dtype=torch.long)
+            output = torch.zeros(l, 3, dtype=torch.long)
             output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_hitter_war(hitter)), self.output_map.buckets_hitter_war)
-            output[:,1] = torch.bucketize(torch.tensor(self.output_map.map_hitter_value(hitter)), self.output_map.buckets_hitter_value)
-            output[:,2] = torch.bucketize(torch.tensor(hitter.peakWarHitter), HITTER_PEAK_WAR_BUCKETS)
-            output[:,3] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
-            output[:,4] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
+            output[:,1] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
+            output[:,2] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
         
             # Regression prospect value
             prospect_value = torch.zeros(l, 1, dtype=torch.float)
@@ -301,6 +299,7 @@ class Data_Prep:
             # MLB Value stats and mask
             mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.float)
             mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
+            
             for i, value in enumerate(mlb_values):
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
                 current_value_year = stats[i].Year
@@ -365,12 +364,10 @@ class Data_Prep:
                 input[1:, -self.prep_map.mlb_pit_value_size:] = self.Transform_PitcherMlbValues([pmw for mhs, pmw in stats_monthlywar])
             
             # Output
-            output = torch.zeros(l, 5, dtype=torch.long)
+            output = torch.zeros(l, 3, dtype=torch.long)
             output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_war(pitcher)), self.output_map.buckets_pitcher_war)
-            output[:,1] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_value(pitcher)), self.output_map.buckets_pitcher_value)
-            output[:,2] = torch.bucketize(torch.tensor(pitcher.peakWarPitcher), PITCHER_PEAK_WAR_BUCKETS)
-            output[:,3] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
-            output[:,4] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
+            output[:,1] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
+            output[:,2] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
         
             # Regression prospect value
             prospect_value = torch.zeros(l, 1, dtype=torch.float)
