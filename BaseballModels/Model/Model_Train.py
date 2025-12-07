@@ -54,6 +54,7 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, sh
   for batch, (data, length, target_war, target_warregression, target_level, target_pa, mask_labels, mask_stats, year_mask, target_yearStats, target_year_position, mlb_value_mask, target_mlb_value) in enumerate(data_generator):
     optimizer.zero_grad()
     loss_war, loss_level, loss_pa, loss_warregression, loss_yearStats, loss_yearPos, loss_mlbValue = GetLosses(network, data, length, (target_war, target_warregression, target_level, target_pa, target_yearStats, target_year_position, target_mlb_value), (mask_labels, year_mask, mask_stats, mlb_value_mask), True, is_hitter)
+    torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
     optimizer.step()
     avg_loss[0] += loss_war.item()
     avg_loss[1] += loss_level.item()
