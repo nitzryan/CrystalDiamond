@@ -3,9 +3,8 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Data_Prep import Data_Prep
-from Constants import device
 
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS, WAR_BUCKET_AVG
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, data_prep : Data_Prep, is_hitter : bool):
@@ -68,14 +67,7 @@ class RNN_Model(nn.Module):
         init.kaiming_uniform_(self.linear_mlb_value2.weight, mode='fan_in', nonlinearity='relu')
         init.kaiming_uniform_(self.linear_mlb_value3.weight, mode='fan_in', nonlinearity='relu')
         init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
-                    
-        # Convert class probabilities to war regression
-        war_means : torch.Tensor = getattr(data_prep, "__hit_prospect_value_means") if is_hitter else getattr(data_prep, "__pit_prospect_value_means")
-        war_devs : torch.Tensor = getattr(data_prep, "__hit_prospect_value_devs") if is_hitter else getattr(data_prep, "__pit_prospect_value_devs")
-        bucket_values = (torch.tensor(WAR_BUCKET_AVG) - war_means) / war_devs
-        
-        self.classes_to_regression = nn.Linear(len(output_map.buckets_hitter_war), 1, bias=False)
-        self.classes_to_regression.weight = nn.Parameter(bucket_values, requires_grad=False)
+    
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:

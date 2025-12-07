@@ -3,7 +3,7 @@ from Data_Prep import Player_IO
 from sklearn.model_selection import train_test_split # type: ignore
 
 class Player_Dataset(torch.utils.data.Dataset):
-    def __init__(self, data, lengths, labels, war_values, mask_labels, mask_stats, year_mask, year_stats, year_positions, mlb_value_mask, mlb_value_stats):
+    def __init__(self, data, lengths, labels, war_values, mask_labels, mask_stats, year_mask, year_stats, year_positions, mlb_value_mask, mlb_value_stats, war_class_variants, war_regression_variants):
         self.data = data
         self.lengths = lengths
         
@@ -22,6 +22,11 @@ class Player_Dataset(torch.utils.data.Dataset):
         
         self.mlb_value_mask = mlb_value_mask
         self.mlb_value_stats = mlb_value_stats
+        
+        self.war_class_variants = war_class_variants
+        self.war_regression_variants = war_regression_variants
+        self.variant_idx = 0
+        self.use_variants = False
     
     def __len__(self):
         return self.data.size(dim=1)
@@ -32,8 +37,19 @@ class Player_Dataset(torch.utils.data.Dataset):
     def should_augment_data(self, should_augment):
         self.should_augment = should_augment
         
+    def should_use_variants(self, should_use : bool):
+        self.use_variants = should_use
+        
+    def increase_variant(self):
+        self.variant_idx += 1
+        if (self.variant_idx >= self.war_class_variants.size(2)):
+            self.variant_idx = 0
+        
     def __getitem__(self, idx):
-        return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.war_values[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx]
+        if self.should_use_variants:
+            return self.data[:,idx], self.lengths[idx], self.war_class_variants[:,idx,self.variant_idx], self.war_regression_variants[:,idx,self.variant_idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx]
+        else:
+            return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.war_values[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx]
     
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:
     io_train : list[Player_IO]
@@ -67,7 +83,15 @@ def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float,
     mlb_value_stats_train_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_train])
     mlb_value_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_test])
 
-    train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_prospect_value_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded, mlb_value_mask_train_padded, mlb_value_stats_train_padded)
-    test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_prospect_value_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded, mlb_value_mask_test_padded, mlb_value_stats_test_padded)
+    variants_classification_train_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_train])
+    variants_classification_test_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_test])
+    variants_regression_train_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_train])
+    variants_regression_test_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_test])
+
+    train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_prospect_value_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded, mlb_value_mask_train_padded, mlb_value_stats_train_padded, variants_classification_train_padded, variants_regression_train_padded)
+    test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_prospect_value_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded, mlb_value_mask_test_padded, mlb_value_stats_test_padded, variants_classification_test_padded, variants_regression_test_padded)
+    
+    train_dataset.should_use_variants(True)
+    test_dataset.should_use_variants(False)
     
     return train_dataset, test_dataset

@@ -31,9 +31,9 @@ def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackp
   # Get losses
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
   loss_warregression = Prospect_WarRegression_Loss(output_warregression, target_warregression, mask_labels)
-  loss_yearStats = STATS_LOSS_MULTIPLIER * Stats_Loss(output_yearStats, target_yearStats, mask_stats) # Was mask_year, believe wrong
-  loss_yearPos = POSITION_LOSS_MULTIPLIER * Position_Classification_Loss(output_yearPos, target_yearPos, mask_year)
-  loss_mlbValue = (Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue))
+  loss_yearStats = Stats_Loss(output_yearStats, target_yearStats, mask_stats) # Was mask_year, believe wrong
+  loss_yearPos = Position_Classification_Loss(output_yearPos, target_yearPos, mask_year)
+  loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   
   if shouldBackprop:
     (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
@@ -46,7 +46,8 @@ def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackp
   
   return (loss_war, loss_level, loss_pa, loss_warregression, loss_yearStats, loss_yearPos, loss_mlbValue)
 
-def train(network,  data_generator, num_elements, optimizer, is_hitter : bool, should_output=True):
+def train(network, data_generator, num_elements, optimizer, is_hitter : bool, should_output=True):
+  
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
@@ -107,8 +108,9 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.ylabel(loss_name)
 
 def trainAndGraph(network, 
-                  training_generator, 
-                  testing_generator, 
+                  training_dataset, 
+                  testing_dataset,
+                  batch_size : int,
                   num_train : int, 
                   num_test : int, 
                   optimizer, 
@@ -117,7 +119,6 @@ def trainAndGraph(network,
                   logging_interval=1, 
                   early_stopping_cutoff=20, 
                   should_output=True, 
-                  graph_y_range=None, 
                   model_name="no_name", 
                   save_last=False, 
                   is_hitter=True,
@@ -130,12 +131,17 @@ def trainAndGraph(network,
   best_epochs = [0 for _ in elements_to_save]
   epochsSinceLastImprove = 0
   
+  train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
+  test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
+  
   iterable = range(num_epochs)
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, training_generator, num_train, optimizer, should_output=should_output, is_hitter=is_hitter)
-    test_loss = test(network, testing_generator, num_test, is_hitter=is_hitter)
+    avg_loss = train(network, train_generator, num_train, optimizer, should_output=should_output, is_hitter=is_hitter)
+    test_loss = test(network, test_generator, num_test, is_hitter=is_hitter)
+
+    training_dataset.increase_variant()
 
     scheduler.step(test_loss[elements_to_save[0]])
     logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)

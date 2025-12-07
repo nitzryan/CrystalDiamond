@@ -2,8 +2,8 @@ from sklearn.decomposition import PCA # type: ignore
 from typing import TypeVar, Optional, Callable
 from DBTypes import *
 from Constants import db, DTYPE
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, HITTER_PEAK_WAR_BUCKETS
-from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS, PITCHER_PEAK_WAR_BUCKETS
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
+from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
 import math
 import torch
 from tqdm import tqdm
@@ -12,12 +12,17 @@ from Prep_Map import Prep_Map
 from Output_Map import Output_Map
 from Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats
 import DB_AdvancedStatements
+import numpy as np # Random normal distribution
+
+NUM_VARIANTS = 10
 
 class Player_IO:
     def __init__(self, player : DB_Model_Players, 
                  input : torch.Tensor, 
                  output : torch.Tensor,
                  prospect_value : torch.Tensor,
+                 output_war_class_variants : torch.Tensor,
+                 output_war_regression_variants : torch.Tensor,
                  length : int,
                  dates : torch.Tensor, 
                  prospect_mask : torch.Tensor,
@@ -32,6 +37,8 @@ class Player_IO:
         self.input = input
         self.output = output
         self.prospect_value = prospect_value
+        self.output_war_class_variants = output_war_class_variants
+        self.output_war_regression_variants = output_war_regression_variants
         self.length = length
         self.dates = dates
         self.prospect_mask = prospect_mask
@@ -231,6 +238,8 @@ class Data_Prep:
         
         prospect_value_means : torch.Tensor = getattr(self, "__hit_prospect_value_means")
         prospect_value_devs : torch.Tensor = getattr(self, "__hit_prospect_value_devs")
+        
+        np.random.seed(4980)
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
@@ -268,6 +277,21 @@ class Data_Prep:
             # Regression prospect value
             prospect_value = torch.zeros(l, 1, dtype=torch.float)
             prospect_value[:] = (torch.tensor([hitter.warHitter]) - prospect_value_means) / prospect_value_devs
+        
+            # Create variants for Prospect value
+            output_war_class_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.long)
+            output_war_regression_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.float)
+            mpws = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1", (hitter.mlbId,))
+            if len(mpws) > 0:
+                pa = 0
+                war = 0
+                for mpw in mpws:
+                    pa += mpw.PA
+                    war += mpw.WAR_h
+                for n in range(NUM_VARIANTS):
+                    variant_war = war + ((pa / 600) * np.random.normal(loc=0, scale=0.75, size=1)).item()
+                    output_war_class_variants[:,n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_hitter_war)
+                    output_war_regression_variants[:,n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -316,7 +340,7 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=hitter, input=input, output=output, prospect_value=prospect_value, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            io.append(Player_IO(player=hitter, input=input, output=output, prospect_value=prospect_value, output_war_class_variants=output_war_class_variants, output_war_regression_variants=output_war_regression_variants, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
         
         return io
        
@@ -335,6 +359,8 @@ class Data_Prep:
         
         prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
         prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
+        
+        np.random.seed(4980)
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
@@ -372,6 +398,21 @@ class Data_Prep:
             # Regression prospect value
             prospect_value = torch.zeros(l, 1, dtype=torch.float)
             prospect_value[:] = (torch.tensor([pitcher.warPitcher]) - prospect_value_means) / prospect_value_devs
+        
+            # Create variants for Prospect value
+            output_war_class_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.long)
+            output_war_regression_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.float)
+            mpws = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=0", (pitcher.mlbId,))
+            if len(mpws) > 0:
+                pa = 0
+                war = 0
+                for mpw in mpws:
+                    pa += mpw.PA
+                    war += mpw.WAR_r + mpw.WAR_s
+                for n in range(NUM_VARIANTS):
+                    variant_war = war + ((pa / 600) * np.random.normal(loc=0, scale=0.75, size=1)).item()
+                    output_war_class_variants[:,n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_pitcher_war)
+                    output_war_regression_variants[:,n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -421,7 +462,7 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=pitcher, input=input, output=output, prospect_value=prospect_value, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            io.append(Player_IO(player=pitcher, input=input, output=output, prospect_value=prospect_value, output_war_class_variants=output_war_class_variants, output_war_regression_variants=output_war_regression_variants, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
         
         return io
         
