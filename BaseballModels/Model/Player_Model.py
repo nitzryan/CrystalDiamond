@@ -68,6 +68,13 @@ class RNN_Model(nn.Module):
         init.kaiming_uniform_(self.linear_mlb_value3.weight, mode='fan_in', nonlinearity='relu')
         init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
     
+        # Create parameter groups for differentiating learning rates
+        self.shared_params = []
+        self.shared_params.extend(self.pre1.parameters())
+        self.shared_params.extend(self.pre2.parameters())
+        self.shared_params.extend(self.pre3.parameters())
+        self.shared_params.extend(self.rnn.parameters())
+        self.individual_params = [p for p in self.parameters() if p not in set(self.shared_params)]
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
