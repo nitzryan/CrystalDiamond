@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 from Constants import device
 from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss
+from Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 LEVEL_LOSS_MULTIPLIER = 0.6
 PA_LOSS_MULTIPLIER = 0.8
@@ -11,7 +12,6 @@ POSITION_LOSS_MULTIPLIER = 1.0
 TWAR_LOSS_MULTIPLIER = 0.8
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
 WAR_REGRESSION_LOSS_MULTIPLIER = 0.6
-DEFAULT_LOSS_ITEM = 8
 
 ELEMENT_LIST = ["TotalClassification", "Level", "PA", "YearStats", "YearPos", "MLBValue", "Regression"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
@@ -112,10 +112,6 @@ def trainAndGraph(network,
                   training_dataset, 
                   testing_dataset,
                   batch_size : int,
-                  num_train : int, 
-                  num_test : int, 
-                  optimizer, 
-                  scheduler, 
                   num_epochs, 
                   logging_interval=1, 
                   early_stopping_cutoff=20, 
@@ -123,7 +119,7 @@ def trainAndGraph(network,
                   model_name="no_name", 
                   save_last=False, 
                   is_hitter=True,
-                  elements_to_save : list[int] = [DEFAULT_LOSS_ITEM]):
+                  elements_to_save : list[int] = [0]):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
@@ -135,16 +131,19 @@ def trainAndGraph(network,
   train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
   
+  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
+                        factor = 0.5, patience=20, cooldown=10)
+  
   iterable = range(num_epochs)
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, train_generator, num_train, optimizer, should_output=should_output, is_hitter=is_hitter)
-    test_loss = test(network, test_generator, num_test, is_hitter=is_hitter)
+    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, should_output=should_output, is_hitter=is_hitter)
+    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter)
 
     training_dataset.increase_variant()
 
-    scheduler.step(test_loss[elements_to_save[0]])
+    scheduler.step(test_loss)
     logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)
     
     for n in range(NUM_ELEMENTS):

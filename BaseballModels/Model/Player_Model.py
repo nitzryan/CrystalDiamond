@@ -6,6 +6,12 @@ from Data_Prep import Data_Prep
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
 
+def GetParameters(layers):
+    parameters = []
+    for l in layers:
+        parameters.extend(l.parameters())
+    return parameters
+
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, data_prep : Data_Prep, is_hitter : bool):
         super().__init__()
@@ -26,10 +32,10 @@ class RNN_Model(nn.Module):
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
         
         # Predict specific war value
-        self.linear_nonbucket_war1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_nonbucket_war2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_nonbucket_war3 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_nonbucket_war4 = nn.Linear(hidden_size // 2, 1)
+        self.linear_regr_war1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_regr_war2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_regr_war3 = nn.Linear(hidden_size, hidden_size // 2)
+        self.linear_regr_war4 = nn.Linear(hidden_size // 2, 1)
         
         # Predict next year stats
         self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
@@ -69,12 +75,26 @@ class RNN_Model(nn.Module):
         init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        self.shared_params = []
-        self.shared_params.extend(self.pre1.parameters())
-        self.shared_params.extend(self.pre2.parameters())
-        self.shared_params.extend(self.pre3.parameters())
-        self.shared_params.extend(self.rnn.parameters())
-        self.individual_params = [p for p in self.parameters() if p not in set(self.shared_params)]
+        shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.rnn])
+        war_class_params = GetParameters([self.linear_war1, self.linear_war2, self.linear_war3])
+        war_regression_params = GetParameters([self.linear_regr_war1, self.linear_regr_war2, self.linear_regr_war3, self.linear_regr_war4])
+        level_params = GetParameters([self.linear_level1, self.linear_level2])
+        pa_params = GetParameters([self.linear_pa1, self.linear_pa2])
+        yearStat_params = GetParameters([self.linear_yearStats1, self.linear_yearStats2, self.linear_yearStats3, self.linear_yearStats4])
+        yearPos_params = GetParameters([self.linear_yearPositions1, self.linear_yearPositions2, self.linear_yearPositions3])
+        mlbValue_params = GetParameters([self.linear_mlb_value1, self.linear_mlb_value2, self.linear_mlb_value3, self.linear_mlb_value4])
+        
+        self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.0025},
+                                           {'params': war_class_params, 'lr': 0.01},
+                                           {'params': level_params, 'lr': 0.01},
+                                           {'params': pa_params, 'lr': 0.01},
+                                           {'params': yearStat_params, 'lr': 0.01},
+                                           {'params': yearPos_params, 'lr': 0.01},
+                                           {'params': mlbValue_params, 'lr': 0.01},
+                                           {'params': war_regression_params, 'lr': 0.01}])
+                                           
+                                           
+                                           
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -102,10 +122,10 @@ class RNN_Model(nn.Module):
         output_war = self.nonlin(self.linear_war2(output_war))
         output_war = self.linear_war3(output_war)
         
-        output_regression_war = self.nonlin(self.linear_nonbucket_war1(output))
-        output_regression_war = self.nonlin(self.linear_nonbucket_war2(output_regression_war))
-        output_regression_war = self.nonlin(self.linear_nonbucket_war3(output_regression_war))
-        output_regression_war = self.linear_nonbucket_war4(output_regression_war)
+        output_regression_war = self.nonlin(self.linear_regr_war1(output))
+        output_regression_war = self.nonlin(self.linear_regr_war2(output_regression_war))
+        output_regression_war = self.nonlin(self.linear_regr_war3(output_regression_war))
+        output_regression_war = self.linear_regr_war4(output_regression_war)
         
         # Generate Level Predictions
         output_level = self.nonlin(self.linear_level1(output))
