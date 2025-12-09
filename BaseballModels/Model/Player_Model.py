@@ -181,7 +181,8 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.L1Loss(reduction='none')
+    #loss = nn.L1Loss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     l = 0
     for x in range(8):
         l += (loss(pred_stats[:,x,:], actual_stats).sum(dim=1) * masks[:,x]).sum()
@@ -201,7 +202,8 @@ def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value.reshape((batch_size * time_steps, mask_size_years, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
     
-    loss = nn.L1Loss(reduction='none')
+    #loss = nn.L1Loss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     l = 0
     for x in range(3):
         # Rate stats
@@ -229,7 +231,8 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     pa_masks = masks[:,:,0].reshape((batch_size * time_steps, mask_size_years))
     war_masks = masks[:,:,1:].reshape((batch_size * time_steps), mask_size_years, 2)
     
-    loss = nn.L1Loss(reduction='none')
+    #loss = nn.L1Loss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     
     # War
     l = (loss(pred_war, actual_war) * war_masks).sum()
