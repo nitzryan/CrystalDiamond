@@ -661,8 +661,6 @@ let person : Person
 let hitterModels : Model[][]
 let pitcherModels : Model[][]
 
-let modelIsWar : boolean = true
-
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
@@ -714,7 +712,7 @@ async function main()
     {
         const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
         player_team.innerText = getParentName(person.parentId)
-        player_team.href = `teams.html?team=${person.parentId}`
+        player_team.href = `teams?team=${person.parentId}`
     } else 
     {
         updateElementText("player_team", "Free Agent")

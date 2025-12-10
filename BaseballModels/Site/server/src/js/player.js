@@ -475,7 +475,6 @@ var keyControls;
 var person;
 var hitterModels;
 var pitcherModels;
-var modelIsWar = true;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, trainingWarning, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
@@ -519,7 +518,7 @@ function main() {
                     if (person.parentId !== null && person.parentId !== 0) {
                         player_team = getElementByIdStrict("player_team");
                         player_team.innerText = getParentName(person.parentId);
-                        player_team.href = "teams.html?team=".concat(person.parentId);
+                        player_team.href = "teams?team=".concat(person.parentId);
                     }
                     else {
                         updateElementText("player_team", "Free Agent");
