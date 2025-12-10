@@ -39,7 +39,6 @@ var month;
 var year;
 var modelId;
 var teamId = null;
-var isWar;
 var rankings_overall = document.getElementById('rankings_overall');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
@@ -61,13 +60,11 @@ function main() {
                     year = getQueryParamBackup('year', endYear);
                     mdl = getQueryParamBackupStr("model", "1.1").split(".", 2).map(function (f) { return Number(f); });
                     modelId = mdl[0];
-                    isWar = mdl[1];
                     teamId = getQueryParamNullable('team');
                     setupSelector({
                         month: month,
                         year: year,
                         modelId: modelId,
-                        isWar: isWar,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
@@ -103,7 +100,6 @@ function createTeamPage(datesJson) {
                 month: month,
                 year: year,
                 model: modelId,
-                isWar: isWar,
                 teamId: teamId,
                 period: 0,
                 type: PlayerLoaderType.Prospect
@@ -123,13 +119,11 @@ function createTeamPage(datesJson) {
 function TeamOverviewMap(team) {
     team = team;
     var id = team["teamId"];
-    var value_string = isWar === 1 ?
-        team["value"].toFixed(1) :
-        "$" + team["value"].toFixed(0) + "M";
+    var value_string = team["war"].toFixed(1);
     var el = document.createElement('tr');
     el.classList.add('rankings_item');
     el.innerHTML =
-        "\n        <td class='c_rank'>".concat(__current_rank, "</td>\n        <td class='c_name'><a href='./teams?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar, "'>").concat(getParentName(id), "</a></td>\n        <td class='c_value'>").concat(team["highestRank"], "</td>\n        <td class='c_value'>").concat(value_string, "</td>\n        <td class='c_value'>").concat(team["top10"], "</td>\n        <td class='c_value'>").concat(team["top50"], "</td>\n        <td class='c_value'>").concat(team["top100"], "</td>\n        <td class='c_value'>").concat(team["top200"], "</td>\n        <td class='c_value'>").concat(team["top500"], "</td>\n        ");
+        "\n        <td class='c_rank'>".concat(__current_rank, "</td>\n        <td class='c_name'><a href='./teams?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, "'>").concat(getParentName(id), "</a></td>\n        <td class='c_value'>").concat(team["highestRank"], "</td>\n        <td class='c_value'>").concat(value_string, "</td>\n        <td class='c_value'>").concat(team["top10"], "</td>\n        <td class='c_value'>").concat(team["top50"], "</td>\n        <td class='c_value'>").concat(team["top100"], "</td>\n        <td class='c_value'>").concat(team["top200"], "</td>\n        <td class='c_value'>").concat(team["top500"], "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -138,7 +132,7 @@ function createOverviewPage(datesJson) {
         var team_rankings_data, elements, valueString;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4, fetch("./teamRanks?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar))];
+                case 0: return [4, fetch("./teamRanks?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId))];
                 case 1: return [4, (_a.sent()).json()];
                 case 2: return [4, (_a.sent())];
                 case 3:
@@ -147,7 +141,7 @@ function createOverviewPage(datesJson) {
                     elements.forEach(function (f) {
                         rankings_table_body.appendChild(f);
                     });
-                    valueString = isWar == 1 ? "WAR" : "Value";
+                    valueString = "WAR";
                     rankings_table_head.innerHTML = "\n        <tr>\n            <th></th>\n            <th>Team</th>\n            <th>Highest Ranked</th>\n            <th>".concat(valueString, "</th>\n            <th>Top 10</th>\n            <th>Top 50</th>\n            <th>Top 100</th>\n            <th>Top 200</th>\n            <th>Top 500</th>\n        <tr>\n        ");
                     rankings_header.innerText = "Team Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
                     rankings_load.classList.add('hidden');
@@ -192,7 +186,7 @@ function setupSelector(args) {
     }
     year_select.value = args.year.toString();
     month_select.value = args.month.toString();
-    model_select.value = args.modelId.toString() + "." + args.isWar.toString();
+    model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
     if (team_select !== null && args.startTeam !== null) {
@@ -245,10 +239,10 @@ var rankings_table = getElementByIdStrict('rankings_table');
 var rankings_table_head = getElementByIdStrict('rankings_table_head');
 var rankings_table_body = getElementByIdStrict('rankings_table_body');
 var rankings_load = getElementByIdStrict('rankings_load');
-function createPlayer(obj, isWar) {
+function createPlayer(obj) {
     var p = {
         name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: isWar === 1 ? getJsonNumber(obj, "war") : getJsonNumber(obj, "value"),
+        war: getJsonNumber(obj, "war"),
         id: getJsonNumber(obj, "mlbId"),
         team: getJsonNumber(obj, "teamId"),
         position: getJsonString(obj, "position"),
@@ -302,7 +296,7 @@ function createMLBReliever(obj) {
     return p;
 }
 var __current_rank = 1;
-function createPlayerElement(player, year, month, modelId, isWar) {
+function createPlayerElement(player, year, month, modelId) {
     var el = document.createElement('tr');
     el.classList.add('rankings_item');
     var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
@@ -311,7 +305,7 @@ function createPlayerElement(player, year, month, modelId, isWar) {
         ageInYears--;
     var levelString = player.level !== null ? "<td class='c_lvl'>".concat(level_map[player.level], "</td>") : "";
     var ptString = player.playingTime !== null ? "<td class='c_pt'>".concat(player.playingTime.toFixed(0), "</td>") : "";
-    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td class='c_name'><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td class='c_team'><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td class='c_value'>").concat(formatModelString(player.war, isWar), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td class='c_pos'>").concat(player.position, "</td>\n            <td class='c_age'>").concat(ageInYears, "</td>\n        ");
+    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td class='c_name'><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td class='c_team'><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td class='c_value'>").concat(formatModelString(player.war), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td class='c_pos'>").concat(player.position, "</td>\n            <td class='c_age'>").concat(ageInYears, "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -330,7 +324,6 @@ var PlayerLoader = (function () {
         this.month = args.month;
         this.teamId = args.teamId;
         this.model = args.model;
-        this.isWar = args.isWar;
         this.type = args.type;
         this.period = args.period;
     }
@@ -346,11 +339,11 @@ var PlayerLoader = (function () {
                         endRank = this.index + num_elements;
                         if (!(this.type === PlayerLoaderType.Prospect)) return [3, 5];
                         if (!(this.teamId !== null)) return [3, 2];
-                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model, ".").concat(this.isWar))];
+                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model))];
                     case 1:
                         _a = _c.sent();
                         return [3, 4];
-                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model, ".").concat(this.isWar))];
+                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model))];
                     case 3:
                         _a = _c.sent();
                         _c.label = 4;
@@ -380,19 +373,19 @@ var PlayerLoader = (function () {
                         this.index += players.length;
                         if (this.type === PlayerLoaderType.Prospect)
                             return [2, players.map(function (f) {
-                                    return createPlayerElement(createPlayer(f, _this.isWar), _this.year, _this.month, _this.model, _this.isWar);
+                                    return createPlayerElement(createPlayer(f), _this.year, _this.month, _this.model);
                                 })];
                         else if (this.type === PlayerLoaderType.MLBHitter)
                             return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBHitter(f), _this.year, _this.month, _this.model, 1);
+                                    return createPlayerElement(createMLBHitter(f), _this.year, _this.month, _this.model);
                                 })];
                         else if (this.type === PlayerLoaderType.MLBStarter)
                             return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBStarter(f), _this.year, _this.month, _this.model, 1);
+                                    return createPlayerElement(createMLBStarter(f), _this.year, _this.month, _this.model);
                                 })];
                         else
                             return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBReliever(f), _this.year, _this.month, _this.model, 1);
+                                    return createPlayerElement(createMLBReliever(f), _this.year, _this.month, _this.model);
                                 })];
                         return [2];
                 }
@@ -430,10 +423,7 @@ function setupRankings(args, num_elements) {
     var ptString = "";
     if (args.type === PlayerLoaderType.Prospect) {
         levelString = "<th>Level</th>";
-        if (args.isWar)
-            valueString = "WAR";
-        else
-            valueString = "Value";
+        valueString = "WAR";
     }
     else {
         if (args.type === PlayerLoaderType.MLBHitter) {
@@ -755,14 +745,11 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, isWar) {
-    if (isWar === 1)
-        return "".concat(val.toFixed(1));
-    else
-        return "$".concat(val.toFixed(0), "M");
+function formatModelString(val) {
+    return "".concat(val.toFixed(1));
 }
-var MODEL_VALUES = [1, 2];
-var MODEL_STRINGS = ["Base", "Stats Only"];
+var MODEL_VALUES = [1, 2, 3];
+var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
-var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
+var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

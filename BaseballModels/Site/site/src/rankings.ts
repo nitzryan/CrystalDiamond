@@ -1,7 +1,6 @@
 let month : number
 let year : number
 let modelId : number
-let isWar : number
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
@@ -14,15 +13,12 @@ async function main()
     
     month = getQueryParamBackup("month", endMonth)
     year = getQueryParamBackup("year", endYear)
-    const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
-    modelId = mdl[0]
-    isWar = mdl[1]
+    const modelId = getQueryParamBackup("model", 1)
 
     setupSelector({
         month : month,
         year : year,
         modelId : modelId,
-        isWar : isWar,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -34,7 +30,6 @@ async function main()
         month : month,
         year : year,
         model : modelId,
-        isWar : isWar,
         teamId : null,
         period : 0,
         type: PlayerLoaderType.Prospect

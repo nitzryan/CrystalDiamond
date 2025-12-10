@@ -2,7 +2,6 @@ let month : number
 let year : number
 let modelId : number
 let teamId : number | null = null
-let isWar : number
 let rankings_overall = document.getElementById('rankings_overall') as HTMLButtonElement
 
 async function main()
@@ -20,14 +19,12 @@ async function main()
     year = getQueryParamBackup('year', endYear)
     const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
     modelId = mdl[0]
-    isWar = mdl[1]
     teamId = getQueryParamNullable('team')
     
     setupSelector({
         month : month,
         year : year,
         modelId : modelId,
-        isWar : isWar,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
@@ -60,7 +57,6 @@ async function createTeamPage(datesJson : JsonObject)
         month : month,
         year : year,
         model : modelId,
-        isWar : isWar,
         teamId : teamId,
         period : 0,
         type : PlayerLoaderType.Prospect
@@ -81,19 +77,15 @@ async function createTeamPage(datesJson : JsonObject)
 function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
 {
     team = team as JsonObject
-
     const id = team["teamId"] as number
-
-    const value_string = isWar === 1 ?
-        (team["value"] as number).toFixed(1) :
-        "$" + (team["value"] as number).toFixed(0) + "M"
+    const value_string = (team["war"] as number).toFixed(1) 
 
     let el = document.createElement('tr')
     el.classList.add('rankings_item')
     el.innerHTML = 
         `
         <td class='c_rank'>${__current_rank}</td>
-        <td class='c_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}.${isWar}'>${getParentName(id)}</a></td>
+        <td class='c_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}'>${getParentName(id)}</a></td>
         <td class='c_value'>${team["highestRank"]}</td>
         <td class='c_value'>${value_string}</td>
         <td class='c_value'>${team["top10"]}</td>
@@ -110,13 +102,13 @@ function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
 
 async function createOverviewPage(datesJson : JsonObject)
 {
-    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}.${isWar}`)).json()) as JsonArray
+    const team_rankings_data = await (await (await fetch(`./teamRanks?year=${year}&month=${month}&model=${modelId}`)).json()) as JsonArray
     let elements = team_rankings_data.map(TeamOverviewMap)
     elements.forEach(f => {
         rankings_table_body.appendChild(f)
     })
     
-    let valueString = isWar == 1 ? "WAR" : "Value"
+    let valueString = "WAR"
     rankings_table_head.innerHTML = `
         <tr>
             <th></th>

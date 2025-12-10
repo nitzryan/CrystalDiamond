@@ -449,10 +449,7 @@ function piePointGenerator(model : Model) : Point[]
     let points : Point[] = []
     for (let i = 0; i < WAR_LABELS.length; i++)
     {
-        if (modelIsWar)
-            points.push({y: model.probs[i], label:WAR_LABELS[i]})
-        else
-            points.push({y: model.probs[i], label:VALUE_LABELS[i]})
+        points.push({y: model.probs[i], label:WAR_LABELS[i]})
     }
     return points
 }
@@ -480,10 +477,7 @@ function lineCallback(index : number, modelId : number)
             "Iniitial Outcome Distribution" :
             `${model.month}-${model.year} Outcome Distribution`
         
-        if (modelIsWar)
-            pie_graph.updateChart(model.probs, title_text, WAR_LABELS)
-        else
-            pie_graph.updateChart(model.probs, title_text, VALUE_LABELS)
+        pie_graph.updateChart(model.probs, title_text, WAR_LABELS)
     } else {
         throw new Error("Model was not set for hitter or pitcher")
     }
@@ -626,21 +620,10 @@ function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
     
     for (var idx of MODEL_VALUES)
     {
-        if (modelIsWar)
-        {
-            if (hitterModels.length > 0)
-                hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
-            if (pitcherModels.length > 0)
-                pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
-        }
-            
-        else
-        {
-            if (hitterModels.length > 0)
-                hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, VALUE_BUCKETS)))
-            if (pitcherModels.length > 0)
-                pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, VALUE_BUCKETS)))
-        }
+        if (hitterModels.length > 0)
+            hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
+        if (pitcherModels.length > 0)
+            pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
     }
 
     let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rank !== null).map(rank_map))

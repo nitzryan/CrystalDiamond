@@ -341,14 +341,11 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, isWar) {
-    if (isWar === 1)
-        return "".concat(val.toFixed(1));
-    else
-        return "$".concat(val.toFixed(0), "M");
+function formatModelString(val) {
+    return "".concat(val.toFixed(1));
 }
-var MODEL_VALUES = [1, 2];
-var MODEL_STRINGS = ["Base", "Stats Only"];
+var MODEL_VALUES = [1, 2, 3];
+var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
-var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
+var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

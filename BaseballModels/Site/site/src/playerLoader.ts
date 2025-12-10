@@ -16,11 +16,11 @@ type Player = {
     playingTime : number | null
 }
 
-function createPlayer(obj : JsonObject, isWar : number)
+function createPlayer(obj : JsonObject)
 {
     const p : Player = {
         name : getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war : isWar === 1 ? getJsonNumber(obj, "war") : getJsonNumber(obj, "value"),
+        war : getJsonNumber(obj, "war"),
         id : getJsonNumber(obj, "mlbId"),
         team : getJsonNumber(obj, "teamId"),
         position : getJsonString(obj, "position"),
@@ -81,7 +81,7 @@ function createMLBReliever(obj : JsonObject)
 }
 
 let __current_rank = 1
-function createPlayerElement(player : Player, year : number, month : number, modelId : number, isWar : number) : HTMLTableRowElement
+function createPlayerElement(player : Player, year : number, month : number, modelId : number) : HTMLTableRowElement
 {
     const el = document.createElement('tr') as HTMLTableRowElement
     el.classList.add('rankings_item')
@@ -97,7 +97,7 @@ function createPlayerElement(player : Player, year : number, month : number, mod
             <td>${__current_rank}</td>
             <td class='c_name'><a href='./player?id=${player.id}'>${player.name}</a></td>
             <td class='c_team'><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
-            <td class='c_value'>${formatModelString(player.war, isWar)}</td>
+            <td class='c_value'>${formatModelString(player.war)}</td>
             ${levelString}
             ${ptString}
             <td class='c_pos'>${player.position}</td>
@@ -116,7 +116,6 @@ enum PlayerLoaderType {
 }
 
 type PlayerLoaderArgs = {
-    isWar : number,
     teamId : number | null,
     period : number,
     year : number,
@@ -132,7 +131,6 @@ class PlayerLoader
     private year : number
     private month : number
     private model : number
-    private isWar : number
     private period : number
     private teamId : number | null
     private type : PlayerLoaderType
@@ -144,7 +142,6 @@ class PlayerLoader
         this.month = args.month
         this.teamId = args.teamId
         this.model = args.model
-        this.isWar = args.isWar
         this.type = args.type
         this.period = args.period
     }
@@ -159,8 +156,8 @@ class PlayerLoader
         if (this.type === PlayerLoaderType.Prospect)
         {
             response = this.teamId !== null ?
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}.${this.isWar}`) : 
-            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}.${this.isWar}`)
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}`) : 
+            await fetch(`/rankingsRequest?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}`)
         } else if (this.type === PlayerLoaderType.MLBHitter || this.type == PlayerLoaderType.MLBStarter || this.type == PlayerLoaderType.MLBReliever)
         {
             const typeInt : number = this.type
@@ -178,19 +175,19 @@ class PlayerLoader
 
         if (this.type === PlayerLoaderType.Prospect)
             return players.map(f => {
-                return createPlayerElement(createPlayer(f as JsonObject, this.isWar), this.year, this.month, this.model, this.isWar)
+                return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month, this.model)
             })
         else if (this.type === PlayerLoaderType.MLBHitter)
             return players.map(f => {
-                return createPlayerElement(createMLBHitter(f as JsonObject), this.year, this.month, this.model, 1)
+                return createPlayerElement(createMLBHitter(f as JsonObject), this.year, this.month, this.model)
             })
         else if (this.type === PlayerLoaderType.MLBStarter)
             return players.map(f => {
-                return createPlayerElement(createMLBStarter(f as JsonObject), this.year, this.month, this.model, 1)
+                return createPlayerElement(createMLBStarter(f as JsonObject), this.year, this.month, this.model)
             })
         else
             return players.map(f => {
-                return createPlayerElement(createMLBReliever(f as JsonObject), this.year, this.month, this.model, 1)
+                return createPlayerElement(createMLBReliever(f as JsonObject), this.year, this.month, this.model)
             })
     }
 }
@@ -226,10 +223,7 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
     if (args.type === PlayerLoaderType.Prospect)
     {
         levelString = "<th>Level</th>"
-        if (args.isWar)
-            valueString = "WAR"
-        else
-            valueString = "Value"
+        valueString = "WAR"
     } else 
     {
         if (args.type === PlayerLoaderType.MLBHitter)

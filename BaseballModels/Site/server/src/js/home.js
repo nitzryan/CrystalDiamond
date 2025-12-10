@@ -79,7 +79,7 @@ function createHomeDataElements(home_data) {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, org_map_promise, datesJson, endYear, endMonth, year, month, mdl, modelId, isWar, home_data_response, home_data, _a;
+        var datesJsonPromise, player_search_data, org_map_promise, datesJson, endYear, endMonth, year, month, modelId, home_data_response, home_data, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -93,10 +93,8 @@ function main() {
                     endMonth = datesJson["endMonth"];
                     year = getQueryParamBackup("year", endYear);
                     month = getQueryParamBackup("month", endMonth);
-                    mdl = getQueryParamBackupStr("model", "1.1").split(".", 2).map(function (f) { return Number(f); });
-                    modelId = mdl[0];
-                    isWar = mdl[1];
-                    home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, ".").concat(isWar));
+                    modelId = getQueryParamBackup("model", 1);
+                    home_data_response = fetch("/homedata?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId));
                     return [4, home_data_response];
                 case 2: return [4, (_b.sent()).json()];
                 case 3:
@@ -109,7 +107,6 @@ function main() {
                         month: month,
                         year: year,
                         modelId: modelId,
-                        isWar: isWar,
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
@@ -158,7 +155,7 @@ function setupSelector(args) {
     }
     year_select.value = args.year.toString();
     month_select.value = args.month.toString();
-    model_select.value = args.modelId.toString() + "." + args.isWar.toString();
+    model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
     if (team_select !== null && args.startTeam !== null) {
@@ -490,14 +487,11 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, isWar) {
-    if (isWar === 1)
-        return "".concat(val.toFixed(1));
-    else
-        return "$".concat(val.toFixed(0), "M");
+function formatModelString(val) {
+    return "".concat(val.toFixed(1));
 }
-var MODEL_VALUES = [1, 2];
-var MODEL_STRINGS = ["Base", "Stats Only"];
+var MODEL_VALUES = [1, 2, 3];
+var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
-var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
+var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

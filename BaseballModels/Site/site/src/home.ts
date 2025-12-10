@@ -79,11 +79,9 @@ async function main()
     const endMonth = datesJson["endMonth"] as number
     const year = getQueryParamBackup("year", endYear)
     const month = getQueryParamBackup("month", endMonth)
-    const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
-    const modelId = mdl[0]
-    const isWar = mdl[1]
+    const modelId = getQueryParamBackup("model", 1)
 
-    const home_data_response = fetch(`/homedata?year=${year}&month=${month}&model=${modelId}.${isWar}`)
+    const home_data_response = fetch(`/homedata?year=${year}&month=${month}&model=${modelId}`)
     const home_data = await(await home_data_response).json() as JsonObject
     org_map = await org_map_promise
     createHomeDataElements(home_data)
@@ -92,7 +90,6 @@ async function main()
         month : month,
         year : year,
         modelId : modelId,
-        isWar : isWar,
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,

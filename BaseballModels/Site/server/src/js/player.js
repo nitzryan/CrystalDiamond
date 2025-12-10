@@ -310,10 +310,7 @@ var VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M"
 function piePointGenerator(model) {
     var points = [];
     for (var i = 0; i < WAR_LABELS.length; i++) {
-        if (modelIsWar)
-            points.push({ y: model.probs[i], label: WAR_LABELS[i] });
-        else
-            points.push({ y: model.probs[i], label: VALUE_LABELS[i] });
+        points.push({ y: model.probs[i], label: WAR_LABELS[i] });
     }
     return points;
 }
@@ -333,10 +330,7 @@ function lineCallback(index, modelId) {
         var title_text = model.month == 0 ?
             "Iniitial Outcome Distribution" :
             "".concat(model.month, "-").concat(model.year, " Outcome Distribution");
-        if (modelIsWar)
-            pie_graph.updateChart(model.probs, title_text, WAR_LABELS);
-        else
-            pie_graph.updateChart(model.probs, title_text, VALUE_LABELS);
+        pie_graph.updateChart(model.probs, title_text, WAR_LABELS);
     }
     else {
         throw new Error("Model was not set for hitter or pitcher");
@@ -448,18 +442,10 @@ function setupModel(hitterModels, pitcherModels) {
     var pitcher_war_points = [];
     for (var _i = 0, MODEL_VALUES_1 = MODEL_VALUES; _i < MODEL_VALUES_1.length; _i++) {
         var idx = MODEL_VALUES_1[_i];
-        if (modelIsWar) {
-            if (hitterModels.length > 0)
-                hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
-            if (pitcherModels.length > 0)
-                pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
-        }
-        else {
-            if (hitterModels.length > 0)
-                hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
-            if (pitcherModels.length > 0)
-                pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, VALUE_BUCKETS); }));
-        }
+        if (hitterModels.length > 0)
+            hitter_war_points.push(hitterModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
+        if (pitcherModels.length > 0)
+            pitcher_war_points.push(pitcherModels[idx - 1].map(function (f) { return war_map(f, WAR_BUCKETS); }));
     }
     var hitter_rank_points = hitterModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var pitcher_rank_points = pitcherModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
@@ -868,17 +854,14 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
-function formatModelString(val, isWar) {
-    if (isWar === 1)
-        return "".concat(val.toFixed(1));
-    else
-        return "$".concat(val.toFixed(0), "M");
+function formatModelString(val) {
+    return "".concat(val.toFixed(1));
 }
-var MODEL_VALUES = [1, 2];
-var MODEL_STRINGS = ["Base", "Stats Only"];
+var MODEL_VALUES = [1, 2, 3];
+var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
-var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dev"];
+var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;
 var LineGraph = (function () {

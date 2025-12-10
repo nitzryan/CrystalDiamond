@@ -118,14 +118,11 @@ app.get('/rankingsRequest', (req, res) => {
         const startRank = req.query.startRank
         const endRank = req.query.endRank
         const teamId = req.query.teamId
-        const [model,isWar] = req.query.model.split(".",2)
+        const model = req.query.model
 
         if (teamId !== undefined)
         {
-            if (isWar === "1")
-                rank_string = "teamRankWar"
-            else
-                rank_string = "teamRankValue"
+            rank_string = "teamRankWar"
 
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
@@ -136,10 +133,7 @@ app.get('/rankingsRequest', (req, res) => {
                 res.json(rows)
             })
         } else {
-            if (isWar === "1")
-                rank_string = "rankWar"
-            else
-                rank_string = "rankValue"
+            rank_string = "rankWar"
 
             db.all(`SELECT pr.*, firstName, lastName, birthYear, birthMonth
                 FROM PlayerRank as pr
@@ -203,14 +197,14 @@ app.get('/teamRanks', (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
-        const [model,isWar] = req.query.model.split(".",2)
+        const model = req.query.model
         
         db.all(`
             SELECT * FROM TeamRank
-            WHERE year=? AND month=? AND modelId=? AND isWar=?
+            WHERE year=? AND month=? AND modelId=?
             ORDER BY rank ASC
             `,
-        [year, month, model, isWar], (err, rows) => {
+        [year, month, model], (err, rows) => {
             res.json(rows)
         })
     } catch (e)
@@ -223,12 +217,12 @@ app.get('/homedata', async (req, res) => {
     try {
         const year = req.query.year
         const month = req.query.month
-        const [model,isWar] = req.query.model.split(".",2)
+        const model = req.query.model
 
         let dataPromise = Promise.all([
             dbAll(`SELECT hd.*, p.firstName, p.lastName, p.position, p.orgId FROM HomeData as hd
                 INNER JOIN Player as p ON hd.mlbId = p.mlbId
-                WHERE hd.year=? AND hd.month=? AND hd.modelId=? AND hd.isWar=?`, [year,month,model,isWar]),
+                WHERE hd.year=? AND hd.month=? AND hd.modelId=?`, [year,month,model]),
             dbAll("SELECT * FROM HomeDataType", [])
         ])
         
