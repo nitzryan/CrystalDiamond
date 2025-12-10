@@ -46,14 +46,6 @@ namespace SitePrep
                                     $"{opw.War5.ToString("0.000")}," +
                                     $"{opw.War6.ToString("0.000")}",
                             RankWar = ranks.Any() ? ranks.First().RankWar : null,
-                            ProbsValue = $"{opw.Value0.ToString("0.000")}," +
-                                    $"{opw.Value1.ToString("0.000")}," +
-                                    $"{opw.Value2.ToString("0.000")}," +
-                                    $"{opw.Value3.ToString("0.000")}," +
-                                    $"{opw.Value4.ToString("0.000")}," +
-                                    $"{opw.Value5.ToString("0.000")}," +
-                                    $"{opw.Value6.ToString("0.000")}",
-                            RankValue = ranks.Any() ? ranks.First().RankValue : null
                         });
                     }
 

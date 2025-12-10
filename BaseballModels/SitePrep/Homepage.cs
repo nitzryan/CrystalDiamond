@@ -156,23 +156,6 @@ namespace SitePrep
                             });
                         }
 
-                        var playersByValue = players.OrderByDescending(f => f.Value).ToList();
-                        for (var rank = 0; rank < length; rank++)
-                        {
-                            var player = playersByValue[rank];
-                            siteDb.HomeData.Add(new HomeData
-                            {
-                                Year = datePair.CurYear,
-                                Month = datePair.CurMonth,
-                                RankType = GRADUATED_TYPE,
-                                ModelId = datePair.ModelId,
-                                MlbId = player.MlbId,
-                                Data = "$" + player.Value.ToString("0") + "M",
-                                Rank = rank + 1,
-                                IsWar = 0
-                            });
-                        }
-
                         progressBar.Tick();
                     }
                 }
@@ -214,11 +197,6 @@ namespace SitePrep
                             .OrderByDescending(f => f.Delta).ToList();
 
                         CreateChangeData(siteDb, datePair, 1, players);
-                        players = datePlayers
-                            .Select(f => new PlayerWarChange { MlbId = f.cur.MlbId, Delta = f.cur.Value - f.prev.Value, Previous = f.prev.Value, Current = f.cur.Value })
-                            .OrderByDescending(f => f.Delta).ToList();
-
-                        CreateChangeData(siteDb, datePair, 0, players);
                         progressBar.Tick();
                     }
                 }

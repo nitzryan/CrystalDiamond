@@ -99,9 +99,7 @@ CREATE TABLE "PlayerModel" (
 	"modelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
 	"probsWar" TEXT NOT NULL,
-	"probsValue" TEXT NOT NULL,
 	"rankWar" INTEGER,
-	"rankValue" INTEGER,
 	PRIMARY KEY("mlbId","year","month","modelId", "isHitter")
 );
 
@@ -116,9 +114,6 @@ CREATE TABLE "PlayerRank" (
 	"war" REAL NOT NULL,
 	"rankWar" INTEGER NOT NULL,
 	"teamRankWar" INTEGER NOT NULL,
-	"value" REAL NOT NULL,
-	"rankValue" INTEGER NOT NULL,
-	"teamRankValue" INTEGER NOT NULL,
 	"highestLevel" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
@@ -154,10 +149,8 @@ CREATE TABLE "PitcherWarRank" (
 CREATE TABLE "TeamRank" (
 	"teamId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
-	"isWar" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
-	"value" REAL NOT NULL,
 	"highestRank" INTEGER NOT NULL,
 	"top10" INTEGER NOT NULL,
 	"top50" INTEGER NOT NULL,
@@ -165,7 +158,8 @@ CREATE TABLE "TeamRank" (
 	"top200" INTEGER NOT NULL,
 	"top500" INTEGER NOT NULL,
 	"rank" INTEGER NOT NULL,
-	PRIMARY KEY("teamId", "year", "month", "modelId", "isWar")
+	"war" REAL NOT NULL,
+	PRIMARY KEY("teamId", "year", "month", "modelId")
 );
 
 CREATE TABLE "Models" (
@@ -204,14 +198,6 @@ CREATE INDEX "idx_PlayerRankOverallWar" ON "PlayerRank" (
 	"year", "month", "rankWar"
 );
 
-CREATE INDEX "idx_PlayerRankOverallValue" ON "PlayerRank" (
-	"year", "month", "rankValue"
-);
-
 CREATE INDEX "idx_PlayerRankTeamWar" ON "PlayerRank" (
 	"teamId", "year", "month", "teamRankWar"
-);
-
-CREATE INDEX "idx_PlayerRankTeamValue" ON "PlayerRank" (
-	"teamId", "year", "month", "teamRankValue"
 );

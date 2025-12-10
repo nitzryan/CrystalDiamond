@@ -24,6 +24,8 @@ if __name__ == "__main__":
             prep_map = Prep_Map.base_prep_map
         elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
+        elif model_id == 3:
+            prep_map = Prep_Map.experimental_prep_map
         
         output_map = Output_Map.base_output_map
         
@@ -59,7 +61,7 @@ if __name__ == "__main__":
             network_mlb = network_mlb.to(device)
             
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                network_prospect.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_ClassToReg.pt"))
+                network_prospect.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_TotalClassification.pt"))
             network_prospect.eval()
             network_prospect = network_prospect.to(device)
 
@@ -67,15 +69,12 @@ if __name__ == "__main__":
                 data, length, dtes, mask = data.to(device), length.to(device), dtes.to(device), mask.to(device)
                 
                 # Use model optimized for prospect data
-                output_war, output_war_regression, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
+                output_war, output_war_regression, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
                 output_war = F.softmax(output_war, dim=2)
-                output_value = F.softmax(output_value, dim=2)
                 
                 war = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
-                value = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
                 for i in range(1, len(WAR_BUCKET_AVG)):
                     war[:,:] += output_war[:,:,i] * WAR_BUCKET_AVG[i]
-                    value[:,:] += output_value[:,:,i] * VALUE_BUCKET_AVG[i]
                 
                 mask = mask[:,:output_war.shape[1]]
                 dtes = dtes[:,:output_war.shape[1],:] # Network will only output largest length in batch
@@ -83,7 +82,7 @@ if __name__ == "__main__":
                 modelIdxs = torch.zeros(size=(mlbIds.shape[0], mlbIds.shape[1], 1), dtype=torch.long).to(device)
                 modelIdxs[:,:,0] = model_idx
                 dtes = dtes[:,:,1:]
-                opw = torch.cat((mask.unsqueeze(-1),mlbIds, modelIdxs, dtes, output_war, war.unsqueeze(-1), output_value, value.unsqueeze(-1)), dim=2)
+                opw = torch.cat((mask.unsqueeze(-1),mlbIds, modelIdxs, dtes, output_war, war.unsqueeze(-1)), dim=2)
                 
                 db_data = torch.nn.utils.rnn.unpad_sequence(opw, length, batch_first=True)
                 
@@ -93,10 +92,10 @@ if __name__ == "__main__":
                     dbd = dbd[dbd[:,0] != 0]
                     d = dbd[:,1:]
                     vals = [tuple(x) for x in d.tolist()]
-                    cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?)", vals)
                 
                 # Use model optimized for MLB value
-                output_war, output_war_regression, output_value, output_pwar, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
+                output_war, output_war_regression, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
                 
                 # Insert MLB value
                 output_mlbValue = (output_mlbValue * mlb_value_stds) + mlb_value_mean

@@ -226,14 +226,6 @@ CREATE TABLE "Output_PlayerWar" (
 	"war5"	REAL NOT NULL,
 	"war6"	REAL NOT NULL,
 	"war" REAL NOT NULL,
-	"value0"	REAL NOT NULL,
-	"value1"	REAL NOT NULL,
-	"value2"	REAL NOT NULL,
-	"value3"	REAL NOT NULL,
-	"value4"	REAL NOT NULL,
-	"value5"	REAL NOT NULL,
-	"value6"	REAL NOT NULL,
-	"value" REAL NOT NULL,
 	PRIMARY KEY("mlbId", "model", "isHitter", "modelIdx","year","month")
 );
 
@@ -280,14 +272,6 @@ CREATE TABLE "Output_PlayerWarAggregation" (
 	"war5"	REAL NOT NULL,
 	"war6"	REAL NOT NULL,
 	"war" REAL NOT NULL,
-	"value0"	REAL NOT NULL,
-	"value1"	REAL NOT NULL,
-	"value2"	REAL NOT NULL,
-	"value3"	REAL NOT NULL,
-	"value4"	REAL NOT NULL,
-	"value5"	REAL NOT NULL,
-	"value6"	REAL NOT NULL,
-	"value" REAL NOT NULL,
 	PRIMARY KEY("mlbId","model", "isHitter", "year","month")
 );
 

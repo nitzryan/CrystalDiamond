@@ -8,9 +8,7 @@ namespace SiteDb
 		public required int ModelId {get; set;}
 		public required int IsHitter {get; set;}
 		public required string ProbsWar {get; set;}
-		public required string ProbsValue {get; set;}
 		public int? RankWar {get; set;}
-		public int? RankValue {get; set;}
 
 		public PlayerModel Clone()
 		{
@@ -22,9 +20,7 @@ namespace SiteDb
 				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
 				ProbsWar = this.ProbsWar,
-				ProbsValue = this.ProbsValue,
 				RankWar = this.RankWar,
-				RankValue = this.RankValue,
 				
 			};
 		}

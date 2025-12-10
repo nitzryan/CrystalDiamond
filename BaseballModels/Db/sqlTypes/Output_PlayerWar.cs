@@ -16,14 +16,6 @@ namespace Db
 		public required float War5 {get; set;}
 		public required float War6 {get; set;}
 		public required float War {get; set;}
-		public required float Value0 {get; set;}
-		public required float Value1 {get; set;}
-		public required float Value2 {get; set;}
-		public required float Value3 {get; set;}
-		public required float Value4 {get; set;}
-		public required float Value5 {get; set;}
-		public required float Value6 {get; set;}
-		public required float Value {get; set;}
 
 		public Output_PlayerWar Clone()
 		{
@@ -43,14 +35,6 @@ namespace Db
 				War5 = this.War5,
 				War6 = this.War6,
 				War = this.War,
-				Value0 = this.Value0,
-				Value1 = this.Value1,
-				Value2 = this.Value2,
-				Value3 = this.Value3,
-				Value4 = this.Value4,
-				Value5 = this.Value5,
-				Value6 = this.Value6,
-				Value = this.Value,
 				
 			};
 		}

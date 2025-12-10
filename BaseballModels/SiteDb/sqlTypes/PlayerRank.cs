@@ -12,9 +12,6 @@ namespace SiteDb
 		public required float War {get; set;}
 		public required int RankWar {get; set;}
 		public required int TeamRankWar {get; set;}
-		public required float Value {get; set;}
-		public required int RankValue {get; set;}
-		public required int TeamRankValue {get; set;}
 		public required int HighestLevel {get; set;}
 
 		public PlayerRank Clone()
@@ -31,9 +28,6 @@ namespace SiteDb
 				War = this.War,
 				RankWar = this.RankWar,
 				TeamRankWar = this.TeamRankWar,
-				Value = this.Value,
-				RankValue = this.RankValue,
-				TeamRankValue = this.TeamRankValue,
 				HighestLevel = this.HighestLevel,
 				
 			};

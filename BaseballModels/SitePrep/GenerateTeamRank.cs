@@ -33,36 +33,16 @@ namespace SitePrep
                                 ModelId = model,
                                 Year = g.First().Year,
                                 Month = g.First().Month,
-                                Value = g.Sum(f => f.War),
-                                IsWar = 1,
                                 HighestRank = g.Min(f => f.RankWar),
                                 Top10 = g.Count(f => f.RankWar <= 10),
                                 Top50 = g.Count(f => f.RankWar <= 50),
                                 Top100 = g.Count(f => f.RankWar <= 100),
                                 Top200 = g.Count(f => f.RankWar <= 200),
                                 Top500 = g.Count(f => f.RankWar <= 500),
-                                Rank = 0
+                                Rank = 0,
+                                War = g.Sum(f => f.War)
                             })
-                            .OrderByDescending(g => g.Value);
-
-                        var teamRanksValue = playerRanks
-                            .Select(g => new TeamRank
-                            {
-                                TeamId = g.Key,
-                                ModelId = model,
-                                Year = g.First().Year,
-                                Month = g.First().Month,
-                                Value = g.Sum(f => f.Value),
-                                IsWar = 0,
-                                HighestRank = g.Min(f => f.RankValue),
-                                Top10 = g.Count(f => f.RankValue <= 10),
-                                Top50 = g.Count(f => f.RankValue <= 50),
-                                Top100 = g.Count(f => f.RankValue <= 100),
-                                Top200 = g.Count(f => f.RankValue <= 200),
-                                Top500 = g.Count(f => f.RankValue <= 500),
-                                Rank = 0
-                            })
-                            .OrderByDescending(g => g.Value);
+                            .OrderByDescending(g => g.War);
 
                         int rank = 1;
                         foreach (var tr in teamRanksWar)
@@ -73,13 +53,6 @@ namespace SitePrep
                             rank++;
                         }
                         rank = 1;
-                        foreach (var tr in teamRanksValue)
-                        {
-                            int r = rank;
-                            tr.Rank = r;
-                            siteDb.TeamRank.Add(tr);
-                            rank++;
-                        }
 
                         progressBar.Tick();
                     }
