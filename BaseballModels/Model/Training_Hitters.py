@@ -16,19 +16,21 @@ if __name__ == "__main__":
     num_models = int(sys.argv[1])
     if num_models < 0:
         exit(1)
-    
-    cursor = db.cursor()
-    cursor.execute("DELETE FROM PlayersInTrainingData")
-    db.commit()
         
     cursor = db.cursor()
     model_idxs = cursor.execute("SELECT hitterModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM PlayersInTrainingData WHERE modelIdx=?", (model_id,))
+        db.commit()
+        
         if model_id == 1:
             prep_map = Prep_Map.base_prep_map
         elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
+        elif model_id == 3:
+            prep_map = Prep_Map.experimental_prep_map
         
         output_map = Output_Map.base_output_map
         
@@ -47,7 +49,7 @@ if __name__ == "__main__":
             
             # Setup Model
             num_layers = DEFAULT_NUM_LAYERS_HITTER
-            hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
+            hidden_size = DEFAULT_HIDDEN_SIZE_HITTER if model_id != 3 else 20
             network = Player_Model.RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
             # Warning for loading model, but these are trusted
             with warnings.catch_warnings():
@@ -56,33 +58,26 @@ if __name__ == "__main__":
                     network.load_state_dict(torch.load("Models/default_hitter_TotalClassification.pt"))
                 elif model_id == 2:
                     network.load_state_dict(torch.load("Models/default_statsonly_hitter_TotalClassification.pt"))
+                elif model_id == 3:
+                    network.load_state_dict(torch.load("Models/default_experimental_hitter_TotalClassification.pt"))
                 
             network = network.to(device)
             
-            optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=10)
-            
-            num_epochs = 500
-            training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-            
+            num_epochs = 300
             model_name_pt = f"{model_name}_{i}"
             best_losses = Model_Train.trainAndGraph(network, 
-                                                  training_generator, 
-                                                  testing_generator, 
-                                                  len(train_dataset), 
-                                                  len(test_dataset), 
-                                                  optimizer, 
-                                                  scheduler, 
-                                                  num_epochs, 
+                                                  train_dataset,
+                                                  test_dataset,
+                                                  batch_size=batch_size,
+                                                  num_epochs=num_epochs, 
                                                   logging_interval=10000, 
                                                   early_stopping_cutoff=40, 
                                                   should_output=False, 
                                                   model_name=f"Models/{model_name_pt}",
-                                                  elements_to_save=[4,7,8,9])
+                                                  elements_to_save=[0,3,5,6])
             
             cursor = db.cursor()
-            cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_losses[3], i, num_layers, hidden_size))
+            cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_losses[0], i, num_layers, hidden_size))
             db.commit()
             
         # Insert hitters that were trained on so that they can be marked on the site

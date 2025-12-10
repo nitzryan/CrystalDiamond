@@ -25,6 +25,8 @@ if __name__ == "__main__":
             prep_map = Prep_Map.base_prep_map
         elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
+        elif model_id == 3:
+            prep_map = Prep_Map.experimental_prep_map
         
         output_map = Output_Map.base_output_map
         
@@ -52,30 +54,24 @@ if __name__ == "__main__":
                     network.load_state_dict(torch.load("Models/default_pitcher_TotalClassification.pt"))
                 elif model_id == 2:
                     network.load_state_dict(torch.load("Models/default_statsonly_pitcher_TotalClassification.pt"))
+                elif model_id == 3:
+                    network.load_state_dict(torch.load("Models/default_experimental_pitcher_TotalClassification.pt"))
                     
             network = network.to(device)
             
-            optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
-            scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=10)
-            
-            num_epochs = 500
-            training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            num_epochs = 300
             
             model_name_pt = f"{model_name}_{i}"
             best_losses = Model_Train.trainAndGraph(network, 
-                                                  training_generator, 
-                                                  testing_generator, 
-                                                  len(train_dataset), 
-                                                  len(test_dataset), 
-                                                  optimizer, 
-                                                  scheduler, 
-                                                  num_epochs, 
+                                                  train_dataset,
+                                                  test_dataset,
+                                                  num_epochs=num_epochs, 
+                                                  batch_size=batch_size,
                                                   logging_interval=10000, 
                                                   early_stopping_cutoff=40, 
                                                   should_output=False, 
                                                   model_name=f"Models/{model_name_pt}",
-                                                  elements_to_save=[4,7,8,9])
+                                                  elements_to_save=[0,3,5,6])
             
             cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 0, best_losses[3], i, num_layers, hidden_size))
