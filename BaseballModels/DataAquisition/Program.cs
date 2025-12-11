@@ -2,7 +2,7 @@
 {
     internal class Program
     {
-        const int START_YEAR = 2023;
+        const int START_YEAR = 2005;
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
         static async Task Main(string[] args)
@@ -60,14 +60,14 @@
                 //if (!CalculateAnnualWRC.Main(year))
                 //    return;
 
-                //foreach (int month in months)
-                //{
-                //    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
-                //        return;
+                foreach (int month in months)
+                {
+                    //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
+                    //    return;
 
-                //    if (year == END_YEAR && month == END_MONTH)
-                //        break;
-                //}
+                    //if (year == END_YEAR && month == END_MONTH)
+                    //    break;
+                }
 
                 //while (!await UpdateParents.Main(year))
                 //{ }
@@ -86,17 +86,17 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
-            //if (!UpdatePlayerOrgMap.Main())
-            //    return;
+            if (!UpdatePlayerOrgMap.Main())
+                return;
 
             //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
             //    return;
 
-            if (!Model_MonthValue.Main())
-                return;
+            //if (!Model_MonthValue.Main())
+            //    return;
 
             //while (!await GetLeagues.Main())
             //{ }
