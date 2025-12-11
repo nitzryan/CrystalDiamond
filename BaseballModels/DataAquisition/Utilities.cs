@@ -109,7 +109,7 @@ namespace DataAquisition
             IsHome = a.IsHome,
             TeamId = a.TeamId,
             OppTeamId = a.OppTeamId,
-            LeagueId = a.TeamId
+            LeagueId = a.LeagueId
         };
 
         public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls, SqliteDbContext db)
@@ -167,7 +167,7 @@ namespace DataAquisition
             IsHome = a.IsHome,
             TeamId = a.TeamId,
             OppTeamId = a.OppTeamId,
-            LeagueId = a.TeamId
+            LeagueId = a.LeagueId
         };
 
         public static (float, float) GetParkFactors(IEnumerable<Player_Hitter_GameLog> games, SqliteDbContext db)

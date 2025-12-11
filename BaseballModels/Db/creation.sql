@@ -201,6 +201,98 @@ CREATE TABLE "Model_Players" (
 	PRIMARY KEY("mlbId")
 );
 
+CREATE TABLE Model_OrgLeagueStatus (
+	"OrgId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"MLB_PF" REAL NOT NULL,
+	"AAA_PF" REAL NOT NULL,
+	"AA_PF" REAL NOT NULL,
+	"HA_PF" REAL NOT NULL,
+	"A_PF" REAL NOT NULL,
+	"LA_PF" REAL NOT NULL,
+	"Rk_PF" REAL NOT NULL,
+	"DSL_PF" REAL NOT NULL,
+	"MLB_MonthsFrac" REAL NOT NULL,
+	"AAA_MonthsFrac" REAL NOT NULL,
+	"AA_MonthsFrac" REAL NOT NULL,
+	"HA_MonthsFrac" REAL NOT NULL,
+	"A_MonthsFrac" REAL NOT NULL,
+	"LA_MonthsFrac" REAL NOT NULL,
+	"Rk_MonthsFrac" REAL NOT NULL,
+	"DSL_MonthsFrac" REAL NOT NULL,
+	PRIMARY KEY("OrgId", "Year", "Month")
+);
+
+CREATE TABLE Model_HitterLevelStats (
+	"MlbId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"Pa" INTEGER NOT NULL,
+	"Hit1B" REAL NOT NULL,
+	"Hit2B" REAL NOT NULL,
+	"Hit3B" REAL NOT NULL,
+	"HitHR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	"SB" REAL NOT NULL,
+	"CS" REAL NOT NULL,
+	"ParkRunFactor" REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Year", "Month", "LevelId")
+);
+
+CREATE TABLE Model_LeagueHittingBaselines (
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"Hit1B" REAL NOT NULL,
+	"Hit2B" REAL NOT NULL,
+	"Hit3B" REAL NOT NULL,
+	"HitHR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	"SB" REAL NOT NULL,
+	"CS" REAL NOT NULL,
+	PRIMARY KEY("Year", "Month", "LeagueId")
+);
+
+CREATE TABLE Model_PitcherLevelStats (
+	"MlbId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"Outs_SP" INTEGER NOT NULL,
+	"Outs_RP" INTEGER NOT NULL,
+	"G" INTEGER NOT NULL,
+	"GS" INTEGER NOT NULL,
+	"ERA" REAL NOT NULL,
+	"FIP" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	"ParkRunFactor" REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Year", "Month", "LevelId")
+);
+
+CREATE TABLE Model_LeaguePitchingBaselines (
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"ERA" REAL NOT NULL,
+	"FIP" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	PRIMARY KEY("Year", "Month", "LeagueId")
+);
+
 CREATE TABLE "Model_TrainingHistory" (
 	"ModelName"	TEXT NOT NULL,
 	"IsHitter"	INTEGER NOT NULL,
