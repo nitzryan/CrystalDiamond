@@ -33,7 +33,7 @@ def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackp
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
   loss_warregression = Prospect_WarRegression_Loss(output_warregression, target_warregression, mask_labels)
   loss_yearStats = Stats_Loss(output_yearStats, target_yearStats, mask_stats)
-  loss_yearPt = Pt_Loss(output_pt, target_pt, mask_stats)
+  loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_yearPos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   

@@ -331,6 +331,9 @@ class Data_Prep:
             pos_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_positions_size, dtype=torch.float)
             lvl_year_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
             
+            stat_year_output[:,:] = (torch.zeros(self.output_map.hitter_stats_size, dtype=float) - hitlvlstat_means) / hitlvlstat_devs
+            pt_year_output[:,:] = (torch.zeros(self.output_map.hitter_pt_size, dtype=float) - hitpt_means) / hitpt_devs
+            
             date_index = 1
             for stat in level_stats:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
@@ -462,6 +465,9 @@ class Data_Prep:
             pt_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.pitcher_pt_size)
             pos_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.pitcher_positions_size, dtype=torch.float)
             lvl_year_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
+            
+            stat_year_output[:,:] = (torch.zeros(self.output_map.pitcher_stats_size, dtype=float) - pitlvlstat_means) / pitlvlstat_devs
+            pt_year_output[:,:] = (torch.zeros(self.output_map.pitcher_pt_size, dtype=float) - pitpt_means) / pitpt_devs
             
             for i, stat in enumerate(stats):
                 pos_year_output[i + 1] = torch.tensor(self.output_map.map_pitcher_positions(stat), dtype=torch.float)

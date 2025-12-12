@@ -194,31 +194,29 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.L1Loss(reduction='none')
+    loss = nn.HuberLoss(reduction='none')
     #loss = nn.MSELoss(reduction='none')
     l = 0
     for x in range(NUM_LEVELS):
         l += (loss(pred_stats[:,x,:], actual_stats[:,x,:]).sum(dim=1) * masks[:,x]).sum()
     return l
       
-def Pt_Loss(pred_pt, actual_pt, masks):
+def Pt_Loss(pred_pt, actual_pt):
     actual_pt = actual_pt[:, :pred_pt.size(1)]
-    masks = masks[:, :pred_pt.size(1)]
     
     batch_size = actual_pt.size(0)
     time_steps = actual_pt.size(1)
+    num_levels = actual_pt.size(2)
     output_size = actual_pt.size(3)
-    mask_size = masks.size(2)
     
-    pred_pt = pred_pt.reshape((batch_size * time_steps, mask_size, output_size))
-    actual_pt = actual_pt.reshape((batch_size * time_steps, mask_size, output_size))
-    masks = masks.reshape((batch_size * time_steps, mask_size))
+    pred_pt = pred_pt.reshape((batch_size * time_steps, num_levels, output_size))
+    actual_pt = actual_pt.reshape((batch_size * time_steps, num_levels, output_size))
     
-    loss = nn.L1Loss(reduction='none')
-    l = 0
-    for x in range(NUM_LEVELS):
-        l += (loss(pred_pt[:,x,:], actual_pt[:,x,:]).sum(dim=1) * masks[:,x]).sum()
-    return l
+    loss = nn.HuberLoss(reduction='none')
+    l = loss(pred_pt, actual_pt).sum()
+    # for x in range(NUM_LEVELS):
+    #     l += (loss(pred_pt[:,x,:], actual_pt[:,x,:]).sum(dim=1)).sum()
+    return loss(pred_pt, actual_pt).sum()
       
 def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value[:, :pred_value.size(1)]
@@ -302,7 +300,7 @@ def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
     masks = masks.reshape((batch_size, time_steps,))
     pred_war = pred_war.reshape((batch_size * time_steps,))
     
-    l = nn.MSELoss(reduction='none')
+    l = nn.HuberLoss(reduction='none')
     loss = l(pred_war, actual_war)
     loss = loss.reshape((batch_size, time_steps))
     loss *= masks
