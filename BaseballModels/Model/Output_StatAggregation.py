@@ -15,7 +15,7 @@ def Aggregate_HitterStats(stats : list[DB_Model_HitterStats],
                           endMonth : int,
                           startYear : int,
                           endYear : int,
-                          output_map : Output_Map) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                          output_map : Output_Map) -> torch.Tensor:
     
     filteredStats : list[DB_Model_HitterStats] = []
     for stat in stats:
@@ -27,26 +27,19 @@ def Aggregate_HitterStats(stats : list[DB_Model_HitterStats],
     for stat in filteredStats:
         totalPa += stat.PA
     
-    lvlMask = torch.zeros(size=[len(HITTER_LEVEL_BUCKETS)], dtype=torch.float)
-    statTensor = torch.zeros(size=[output_map.hitter_stats_size], dtype=torch.float)
     posTensor = torch.zeros(size=[output_map.hitter_positions_size], dtype=torch.float)
     
     if totalPa == 0: # Stats aggregation will return all zeros
-        return lvlMask, statTensor, posTensor
+        return posTensor
     
     filteredWeights : list[float] = [stat.PA / totalPa for stat in filteredStats]
     
     for i, stat in enumerate(filteredStats):
         weight = filteredWeights[i]
-        maskList = Output_Map.GetOutputMasks(stat)
-        statList = output_map.map_hitter_output(stat)
         posList = output_map.map_hitter_positions(stat)
-        
-        lvlMask += torch.tensor(maskList) / 6 # don't apply weighting, weights shouldn't necessarily add to 1, /6 to normalize to 600PA rather than 100 for monthly
-        statTensor += torch.tensor(statList) * weight
         posTensor += torch.tensor(posList) * weight
         
-    return lvlMask, statTensor, posTensor
+    return posTensor
 
 def Aggregate_PitcherStats(stats : list[DB_Model_HitterStats],
                           startMonth : int,

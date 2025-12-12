@@ -4,7 +4,7 @@ import torch.nn.init as init
 import torch.nn.functional as F
 from Data_Prep import Data_Prep
 
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
+from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
 def GetParameters(layers):
     parameters = []
@@ -47,6 +47,12 @@ class RNN_Model(nn.Module):
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
+        # Predict playing time
+        self.linear_pt1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_pt2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_pt3 = nn.Linear(hidden_size, NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
+        self.register_buffer('pt_offset', data_prep.Get_HitPt_Offset() if is_hitter else data_prep.Get_PitPt_Offset())
+        
         # Predict MLB Value
         self.linear_mlb_value1 = nn.Linear(hidden_size, hidden_size)
         self.linear_mlb_value2 = nn.Linear(hidden_size, hidden_size)
@@ -83,6 +89,7 @@ class RNN_Model(nn.Module):
         yearStat_params = GetParameters([self.linear_yearStats1, self.linear_yearStats2, self.linear_yearStats3, self.linear_yearStats4])
         yearPos_params = GetParameters([self.linear_yearPositions1, self.linear_yearPositions2, self.linear_yearPositions3])
         mlbValue_params = GetParameters([self.linear_mlb_value1, self.linear_mlb_value2, self.linear_mlb_value3, self.linear_mlb_value4])
+        yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.0025},
                                            {'params': war_class_params, 'lr': 0.01},
@@ -91,7 +98,8 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': war_regression_params, 'lr': 0.01}])
+                                           {'params': war_regression_params, 'lr': 0.01},
+                                           {'params': yearPt_params, 'lr': 0.01}])
                                            
                                            
                                            
@@ -145,6 +153,11 @@ class RNN_Model(nn.Module):
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
         output_yearPositions = self.linear_yearPositions3(output_yearPositions)
         
+        # Generate PT Predictions
+        output_pt = self.nonlin(self.linear_pt1(output))
+        output_pt = self.nonlin(self.linear_pt2(output_pt))
+        output_pt = self.softplus(self.linear_pt3(output_pt)) + self.pt_offset
+        
         # Generate MLB Value Predictions
         output_mlbValue = self.nonlin(self.linear_mlb_value1(output))
         output_mlbValue = self.nonlin(self.linear_mlb_value2(output_mlbValue))
@@ -165,7 +178,7 @@ class RNN_Model(nn.Module):
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
         
-        return output_war, output_regression_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue
+        return output_war, output_regression_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):
@@ -174,18 +187,37 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     
     batch_size = actual_stats.size(0)
     time_steps = actual_stats.size(1)
-    output_size = actual_stats.size(2)
+    output_size = actual_stats.size(3)
     mask_size = masks.size(2)
     
     pred_stats = pred_stats.reshape((batch_size * time_steps, mask_size, output_size))
-    actual_stats = actual_stats.reshape((batch_size * time_steps, output_size))
+    actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    #loss = nn.L1Loss(reduction='none')
-    loss = nn.MSELoss(reduction='none')
+    loss = nn.L1Loss(reduction='none')
+    #loss = nn.MSELoss(reduction='none')
     l = 0
-    for x in range(8):
-        l += (loss(pred_stats[:,x,:], actual_stats).sum(dim=1) * masks[:,x]).sum()
+    for x in range(NUM_LEVELS):
+        l += (loss(pred_stats[:,x,:], actual_stats[:,x,:]).sum(dim=1) * masks[:,x]).sum()
+    return l
+      
+def Pt_Loss(pred_pt, actual_pt, masks):
+    actual_pt = actual_pt[:, :pred_pt.size(1)]
+    masks = masks[:, :pred_pt.size(1)]
+    
+    batch_size = actual_pt.size(0)
+    time_steps = actual_pt.size(1)
+    output_size = actual_pt.size(3)
+    mask_size = masks.size(2)
+    
+    pred_pt = pred_pt.reshape((batch_size * time_steps, mask_size, output_size))
+    actual_pt = actual_pt.reshape((batch_size * time_steps, mask_size, output_size))
+    masks = masks.reshape((batch_size * time_steps, mask_size))
+    
+    loss = nn.L1Loss(reduction='none')
+    l = 0
+    for x in range(NUM_LEVELS):
+        l += (loss(pred_pt[:,x,:], actual_pt[:,x,:]).sum(dim=1) * masks[:,x]).sum()
     return l
       
 def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
@@ -246,17 +278,17 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
     
     batch_size = actual_positions.size(0)
     time_steps = actual_positions.size(1)
-    output_size = actual_positions.size(2)
+    output_size = actual_positions.size(3)
     mask_size = masks.size(2)
     
     pred_positions = pred_positions.reshape((batch_size * time_steps, mask_size, output_size))
-    actual_positions = actual_positions.reshape((batch_size * time_steps, output_size))
+    actual_positions = actual_positions.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
     loss = nn.CrossEntropyLoss(reduction='none')
     l = 0
     for x in range(8):
-        l += (loss(pred_positions[:,x,:], actual_positions) * masks[:,x]).sum()
+        l += (loss(pred_positions[:,x,:], actual_positions[:,x,:]) * masks[:,x]).sum()
     return l
     
 def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
