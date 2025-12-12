@@ -1,7 +1,7 @@
 from sklearn.decomposition import PCA # type: ignore
 from typing import TypeVar, Optional, Callable
 from DBTypes import *
-from Constants import db, DTYPE
+from Constants import db, DTYPE, NUM_LEVELS
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
 from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
 import math
@@ -223,6 +223,15 @@ class Data_Prep:
         setattr(self, "__" + name + "_means", means)
         setattr(self, "__" + name + "_devs", devs)
         
+    @staticmethod
+    def __GetDatesIndex(dates : torch.Tensor, year : int, month : int, start_idx : int) -> int:
+        while True:
+            y = dates[start_idx,1]
+            m = dates[start_idx,2]
+            if year == y and month == m:
+                return start_idx
+            start_idx += 1
+        
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
         # Get Hitters
         cursor = db.cursor()
@@ -247,7 +256,8 @@ class Data_Prep:
                                                                      (hitter.mlbId, cutoff_year))
             l = len(stats_monthlywar) + 1
             stats = [mhs for mhs, pmw in stats_monthlywar]
-                
+            level_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (hitter.mlbId, cutoff_year))
+            
             mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND
                 (
@@ -304,10 +314,16 @@ class Data_Prep:
             for i, stat in enumerate(stats):
                 lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
             
-            # 1 Year aggregation
-            stat_year_output = torch.zeros(l, self.output_map.hitter_stats_size, dtype=torch.float)
-            pos_year_output = torch.zeros(l, self.output_map.hitter_positions_size, dtype=torch.float)
-            lvl_year_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
+            # Stats predictions
+            stat_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_stats_size, dtype=torch.float)
+            pt_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_pt_size)
+            pos_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_positions_size, dtype=torch.float)
+            lvl_year_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
+            
+            date_index = 0
+            for stat in level_stats:
+                date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
+                
             if len(stats) > 1:
                 start_month = stats[1].Month
                 start_year = stats[1].Year

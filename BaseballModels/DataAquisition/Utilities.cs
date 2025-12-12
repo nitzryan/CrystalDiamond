@@ -218,10 +218,10 @@ namespace DataAquisition
             return ((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3) + cFIP;
         }
 
-        public static float SafeDivide(float num, float denom)
+        public static float SafeDivide(float num, float denom, float fallback = 1.0f)
         {
             return denom == 0 ?
-                1.0f : num / denom;
+                fallback : num / denom;
         }
 
         public static int GetModelMask(Db.Model_Players player, int year, int month)

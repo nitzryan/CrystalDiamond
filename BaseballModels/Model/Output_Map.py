@@ -9,18 +9,18 @@ class Output_Map:
     def __init__(self,
                  map_hitter_war : Callable[[DB_Model_Players], float],
                  buckets_hitter_war : torch.Tensor,
-                 map_hitter_value : Callable[[DB_Model_Players], float],
-                 buckets_hitter_value : torch.Tensor,
                  map_pitcher_war : Callable[[DB_Model_Players], float],
                  buckets_pitcher_war : torch.Tensor,
-                 map_pitcher_value : Callable[[DB_Model_Players], float],
-                 buckets_pitcher_value : torch.Tensor,
-                 map_hitter_output : Callable[[DB_Model_HitterStats], list[float]],
+                 map_hitter_output : Callable[[DB_Model_HitterLevelStats], list[float]],
                  hitter_stats_size : int,
+                 map_hitter_pt : Callable[[DB_Model_HitterLevelStats], list[float]],
+                 hitter_pt_size : int,
                  map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]],
                  hitter_positions_size : int,
-                 map_pitcher_output : Callable[[DB_Model_PitcherStats], list[float]],
+                 map_pitcher_output : Callable[[DB_Model_PitcherLevelStats], list[float]],
                  pitcher_stats_size : int,
+                 map_pitcher_pt : Callable[[DB_Model_PitcherLevelStats], list[float]],
+                 pitcher_pt_size : int,
                  map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]],
                  pitcher_positions_size : int,
                  map_mlb_hitter_values : Callable[[DB_Model_HitterValue], list[float]],
@@ -30,14 +30,10 @@ class Output_Map:
                  ):
         
         self.map_hitter_war = map_hitter_war
-        self.map_hitter_value = map_hitter_value
         self.map_pitcher_war = map_pitcher_war
-        self.map_pitcher_value = map_pitcher_value
         
         self.buckets_hitter_war = buckets_hitter_war
-        self.buckets_hitter_value = buckets_hitter_value
         self.buckets_pitcher_war = buckets_pitcher_war
-        self.buckets_pitcher_value = buckets_pitcher_value
         
         self.map_hitter_output = map_hitter_output
         self.hitter_stats_size = hitter_stats_size
@@ -48,6 +44,11 @@ class Output_Map:
         self.pitcher_stats_size = pitcher_stats_size
         self.map_pitcher_positions = map_pitcher_positions
         self.pitcher_positions_size = pitcher_positions_size
+        
+        self.map_hitter_pt = map_hitter_pt
+        self.hitter_pt_size = hitter_pt_size
+        self.map_pitcher_pt = map_pitcher_pt
+        self.pitcher_pt_size = pitcher_pt_size
         
         self.map_mlb_hitter_values = map_mlb_hitter_values
         self.mlb_hitter_values_size = mlb_hitter_values_size
@@ -76,19 +77,25 @@ class Output_Map:
     def GetProspectMask(stats : Union[DB_Model_HitterStats, DB_Model_PitcherStats]) -> float:
         return stats.TrainMask & 1
     
-__map_hitter_output : Callable[[DB_Model_HitterStats], list[float]] = \
-    lambda h : [h.ParkRunFactor, h.ParkHRFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wRC, h.SBRateRatio, h.SBPercRatio, h.HRPercRatio, h.BBPercRatio, h.kPercRatio]
+__map_hitter_output : Callable[[DB_Model_HitterLevelStats], list[float]] = \
+    lambda h : [math.sqrt(h.Hit1B), math.sqrt(h.Hit2B), math.sqrt(h.Hit3B), math.sqrt(h.HitHR), math.sqrt(h.BB), math.sqrt(h.HBP), math.sqrt(h.K), math.sqrt(h.SB), math.sqrt(h.CS), h.ParkRunFactor]
+__map_hitter_pt : Callable[[DB_Model_HitterLevelStats], list[float]] = \
+    lambda h : [h.Pa]
 __map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]] = \
     lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH]
-__hitter_stats_size = 11
+__hitter_stats_size = 10
 __hitter_positions_size = 9
+__hitter_pt_size = 1
 
-__map_pitcher_output : Callable[[DB_Model_PitcherStats], list[float]] = \
-    lambda p : [p.ParkRunFactor, p.ParkHRFactor, p.GBPercRatio, p.ERARatio, p.FIPRatio, p.wOBARatio, p.HRPercRatio, p.BBPercRatio, p.KPercRatio]
+__map_pitcher_output : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
+    lambda p : [math.sqrt(p.ERA), math.sqrt(p.BB), math.sqrt(p.HBP), math.sqrt(p.K), math.sqrt(p.HR)]
+__map_pitcher_pt : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
+    lambda p : [p.Outs_SP, p.Outs_RP, p.GS, p.G]
 __map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]] = \
     lambda p : [p.SpPerc, 1 - p.SpPerc]
-__pitcher_stats_size = 9
+__pitcher_stats_size = 5
 __pitcher_positions_size = 2
+__pitcher_pt_size = 4
     
 __full_season_pa = 600
 def mlb_hit_map(h : DB_Model_HitterValue) -> list[float]:
@@ -139,5 +146,9 @@ base_output_map = Output_Map(
     map_mlb_hitter_values=__map_mlb_hitter_values,
     mlb_hitter_values_size=__mlb_hitter_values_size,
     map_mlb_pitcher_values=__map_mlb_pitcher_values,
-    mlb_pitcher_values_size=__mlb_pitcher_values_size
+    mlb_pitcher_values_size=__mlb_pitcher_values_size,
+    map_hitter_pt=__map_hitter_pt,
+    map_pitcher_pt=__map_pitcher_pt,
+    hitter_pt_size=__hitter_pt_size,
+    pitcher_pt_size=__pitcher_pt_size,
 )

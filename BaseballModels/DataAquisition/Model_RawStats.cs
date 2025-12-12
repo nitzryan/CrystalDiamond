@@ -1,5 +1,6 @@
 ﻿using Db;
 using ShellProgressBar;
+using System.ComponentModel;
 
 namespace DataAquisition
 {
@@ -319,15 +320,15 @@ namespace DataAquisition
                                     Month = -1,
                                     LeagueId = -1,
                                     LevelId = -1,
-                                    Hit1B = Utilities.SafeDivide(teamStats.H - teamStats.Hit2B - teamStats.Hit3B - teamStats.HR, teamStats.PA),
-                                    Hit2B = Utilities.SafeDivide(teamStats.Hit2B, teamStats.PA),
-                                    Hit3B = Utilities.SafeDivide(teamStats.Hit3B, teamStats.PA),
-                                    HitHR = Utilities.SafeDivide(teamStats.HR, teamStats.PA),
-                                    BB = Utilities.SafeDivide(teamStats.BB, teamStats.PA),
-                                    HBP = Utilities.SafeDivide(teamStats.HBP, teamStats.PA),
-                                    K = Utilities.SafeDivide(teamStats.K, teamStats.PA),
-                                    SB = Utilities.SafeDivide(teamStats.SB, teamStats.PA),
-                                    CS = Utilities.SafeDivide(teamStats.CS, teamStats.PA)
+                                    Hit1B = Utilities.SafeDivide(teamStats.H - teamStats.Hit2B - teamStats.Hit3B - teamStats.HR, teamStats.PA, 0),
+                                    Hit2B = Utilities.SafeDivide(teamStats.Hit2B, teamStats.PA, 0),
+                                    Hit3B = Utilities.SafeDivide(teamStats.Hit3B, teamStats.PA, 0),
+                                    HitHR = Utilities.SafeDivide(teamStats.HR, teamStats.PA, 0),
+                                    BB = Utilities.SafeDivide(teamStats.BB, teamStats.PA, 0),
+                                    HBP = Utilities.SafeDivide(teamStats.HBP, teamStats.PA, 0),
+                                    K = Utilities.SafeDivide(teamStats.K, teamStats.PA, 0),
+                                    SB = Utilities.SafeDivide(teamStats.SB, teamStats.PA, 0),
+                                    CS = Utilities.SafeDivide(teamStats.CS, teamStats.PA, 0)
                                 };
 
                                 // Adjust to rates of the league
@@ -350,7 +351,7 @@ namespace DataAquisition
                                 
 
                                 // Combine to level stats based on PA
-                                float thisProp = mhls.Pa == 0 ? 1.0f : (float)teamStats.PA / mhls.Pa;
+                                float thisProp = mhls.Pa == 0 ? 1.0f : (float)teamStats.PA / (mhls.Pa + teamStats.PA);
                                 float otherProp = 1.0f - thisProp;
                                 mhls.Pa += teamStats.PA;
                                 mhls.Hit1B = (otherProp * mhls.Hit1B) + (thisProp * statRates.Hit1B);
@@ -447,12 +448,12 @@ namespace DataAquisition
                                     Month = -1,
                                     LeagueId = -1,
                                     LevelId = -1,
-                                    ERA = Utilities.SafeDivide(teamStats.ER * 27, teamStats.Outs),
+                                    ERA = Utilities.SafeDivide(teamStats.ER * 27, teamStats.Outs, teamStats.ER * 27),
                                     FIP = Utilities.CalculateFip(db.LeagueStats.Where(f => f.Year == tg.Key.Year && f.LeagueId == teamStats.LeagueId).Single().CFIP, teamStats.HR, teamStats.K, teamStats.BB + teamStats.HBP, teamStats.Outs),
-                                    HR = Utilities.SafeDivide(teamStats.HR, teamStats.BattersFaced),
-                                    BB = Utilities.SafeDivide(teamStats.BB, teamStats.BattersFaced),
-                                    HBP = Utilities.SafeDivide(teamStats.HBP, teamStats.BattersFaced),
-                                    K = Utilities.SafeDivide(teamStats.K, teamStats.BattersFaced),
+                                    HR = Utilities.SafeDivide(teamStats.HR, teamStats.BattersFaced, 0),
+                                    BB = Utilities.SafeDivide(teamStats.BB, teamStats.BattersFaced, 0),
+                                    HBP = Utilities.SafeDivide(teamStats.HBP, teamStats.BattersFaced, 0),
+                                    K = Utilities.SafeDivide(teamStats.K, teamStats.BattersFaced, 0),
                                 };
 
                                 // Adjust to rates of the league
@@ -471,7 +472,7 @@ namespace DataAquisition
                                     1.0f;
 
                                 // Combine to level stats based on PA
-                                float thisProp = battersFaced == 0 ? 1.0f : (float)teamStats.BattersFaced / battersFaced;
+                                float thisProp = battersFaced == 0 ? 1.0f : (float)teamStats.BattersFaced / (battersFaced + teamStats.BattersFaced);
                                 float otherProp = 1.0f - thisProp;
                                 battersFaced += teamStats.BattersFaced;
                                 mhls.ERA = (otherProp * mhls.ERA) + (thisProp * statRates.ERA);
