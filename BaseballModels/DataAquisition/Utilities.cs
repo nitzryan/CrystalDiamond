@@ -309,6 +309,11 @@ namespace DataAquisition
             return level == 1 ? level : level - 9;
         }
 
+        public static int MlbLevelToModelZeroIndexedLevel(int level)
+        {
+            return level == 1 ? 0 : level - 10;
+        }
+
         public static int GetParentOrgId(int teamId, int year, SqliteDbContext db)
         {
             // Check if team is parent

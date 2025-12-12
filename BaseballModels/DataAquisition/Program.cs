@@ -7,7 +7,7 @@ namespace DataAquisition
         const int START_YEAR = 2005;
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
-        const bool FORCE_COMPLETE_RESET = false;
+        const bool FORCE_COMPLETE_RESET = true;
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];

@@ -204,7 +204,7 @@ namespace DataAquisition
                             Year = year,
                             Month = month,
                             LeagueId = leagueId,
-                            LevelId = leagueStats.LevelId,
+                            LevelId = Utilities.MlbLevelToModelZeroIndexedLevel(leagueStats.LevelId),
                             Hit1B = Utilities.SafeDivide(singles, leagueStats.PA),
                             Hit2B = Utilities.SafeDivide(leagueStats.Hit2B, leagueStats.PA),
                             Hit3B = Utilities.SafeDivide(leagueStats.Hit3B, leagueStats.PA),
@@ -233,7 +233,7 @@ namespace DataAquisition
                             Year = year,
                             Month = month,
                             LeagueId = leagueId,
-                            LevelId = leagueStats.LevelId,
+                            LevelId = Utilities.MlbLevelToModelZeroIndexedLevel(leagueStats.LevelId),
                             ERA = Utilities.SafeDivide(lps.ER * 27, lps.Outs),
                             FIP = Utilities.CalculateFip(cfip, lps.HR, lps.K, lps.BB + lps.HBP, lps.Outs),
                             HR = Utilities.SafeDivide(lps.HR, lps.BattersFaced),
@@ -277,11 +277,19 @@ namespace DataAquisition
                 var games = db.Player_Hitter_GameLog.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
                 var leagueBaselines = db.Model_LeagueHittingBaselines.Where(f => f.Year == year && f.Month == month);
                 var playerIds = games.Select(f => f.MlbId).Distinct();
+                var modelHitterStats = db.Model_HitterStats.Where(f => f.Year == year && f.Month == month);
                 using (ProgressBar progressBar = new(playerIds.Count(), $"Calculating Model_RawHitterStats for {year}-{month}"))
                 {
                     // Group by player
                     foreach(var mlbId in playerIds)
                     {
+                        // Make sure that Model_HitterStats exists for player, if not skip
+                        if (!modelHitterStats.Where(f => f.MlbId == mlbId).Any())
+                        {
+                            progressBar.Tick();
+                            continue;
+                        }
+
                         // Group by League
                         var levelGroups = games.Where(f => f.MlbId == mlbId)
                             .GroupBy(f => f.LevelId);
@@ -295,7 +303,7 @@ namespace DataAquisition
                                 MlbId = mlbId,
                                 Year = year,
                                 Month = month,
-                                LevelId = lvlG.Key,
+                                LevelId = Utilities.MlbLevelToModelZeroIndexedLevel(lvlG.Key),
                                 Pa = 0,
                                 Hit1B = 1,
                                 Hit2B = 1,
@@ -404,11 +412,19 @@ namespace DataAquisition
                 var games = db.Player_Pitcher_GameLog.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
                 var leagueBaselines = db.Model_LeaguePitchingBaselines.Where(f => f.Year == year && f.Month == month);
                 var playerIds = games.Select(f => f.MlbId).Distinct();
+                var modelPitcherStats = db.Model_PitcherStats.Where(f => f.Year == year && f.Month == month);
                 using (ProgressBar progressBar = new(playerIds.Count(), $"Calculating Model_RawPitcherStats for {year}-{month}"))
                 {
                     // Group by player
                     foreach (var mlbId in playerIds)
                     {
+                        // Make sure that Model_PitcherStats exists for player, if not skip
+                        if (!modelPitcherStats.Where(f => f.MlbId == mlbId).Any())
+                        {
+                            progressBar.Tick();
+                            continue;
+                        }
+
                         // Group by League
                         var levelGroups = games.Where(f => f.MlbId == mlbId)
                             .GroupBy(f => f.LevelId);
@@ -422,7 +438,7 @@ namespace DataAquisition
                                 MlbId = mlbId,
                                 Year = year,
                                 Month = month,
-                                LevelId = lvlG.Key,
+                                LevelId = Utilities.MlbLevelToModelZeroIndexedLevel(lvlG.Key),
                                 Outs_RP = 0,
                                 Outs_SP = 0,
                                 G = 0,
