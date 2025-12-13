@@ -38,10 +38,10 @@ class RNN_Model(nn.Module):
         self.linear_regr_war4 = nn.Linear(hidden_size // 2, 1)
         
         # Predict next year stats
-        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats4 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
+        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size * 2)
+        self.linear_yearStats2 = nn.Linear(hidden_size * 2, hidden_size * 3)
+        self.linear_yearStats3 = nn.Linear(hidden_size * 3, hidden_size * 4)
+        self.linear_yearStats4 = nn.Linear(hidden_size * 4, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
         
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
@@ -95,7 +95,7 @@ class RNN_Model(nn.Module):
                                            {'params': war_class_params, 'lr': 0.01},
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
-                                           {'params': yearStat_params, 'lr': 0.01},
+                                           {'params': yearStat_params, 'lr': 0.1},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.01},
                                            {'params': war_regression_params, 'lr': 0.01},

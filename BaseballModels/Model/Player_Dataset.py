@@ -3,31 +3,42 @@ from Data_Prep import Player_IO
 from sklearn.model_selection import train_test_split # type: ignore
 
 class Player_Dataset(torch.utils.data.Dataset):
-    def __init__(self, data, lengths, labels, war_values, mask_labels, mask_stats, year_mask, year_stats, year_positions, mlb_value_mask, mlb_value_stats, war_class_variants, war_regression_variants, pt_output):
+    def __init__(self, 
+                 data, 
+                 lengths, 
+                 output_labels, 
+                 output_war_values, 
+                 mask_labels, 
+                 mask_stats, 
+                 mask_year, 
+                 output_stats, 
+                 output_positions, 
+                 mask_mlb_value, 
+                 output_mlb_value, 
+                 variants_war_class, 
+                 variants_war_regression, 
+                 output_pt):
+        
         self.data = data
         self.lengths = lengths
         
-        self.twar_buckets = labels[:,:,0]
-        self.level_buckets = labels[:,:,1]
-        self.pa_buckets = labels[:,:,2]
+        self.o_war_buckets = output_labels[:,:,0]
+        self.o_level_buckets = output_labels[:,:,1]
+        self.o_pa_buckets = output_labels[:,:,2]
+        self.o_war_values = output_war_values
+        self.o_stats = output_stats
+        self.o_positions = output_positions
+        self.o_mlb_value = output_mlb_value
+        self.o_pt = output_pt
         
-        self.war_values = war_values
+        self.m_labels = mask_labels
+        self.m_stats = mask_stats
+        self.m_year = mask_year
+        self.m_mlb_value = mask_mlb_value
         
-        self.mask_labels = mask_labels
-        self.mask_stats = mask_stats
-        
-        self.year_mask = year_mask
-        self.year_stats = year_stats
-        self.year_positions = year_positions
-        
-        self.mlb_value_mask = mlb_value_mask
-        self.mlb_value_stats = mlb_value_stats
-        
-        self.pt_output = pt_output
-        
-        self.war_class_variants = war_class_variants
-        self.war_regression_variants = war_regression_variants
-        self.variant_idx = 0
+        self.v_war_class = variants_war_class
+        self.v_war_regression = variants_war_regression
+        self.v_idx = 0
         self.use_variants = False
     
     def __len__(self):
@@ -43,57 +54,88 @@ class Player_Dataset(torch.utils.data.Dataset):
         self.use_variants = should_use
         
     def increase_variant(self):
-        self.variant_idx += 1
-        if (self.variant_idx >= self.war_class_variants.size(2)):
-            self.variant_idx = 0
+        self.v_idx += 1
+        if (self.v_idx >= self.v_war_class.size(2)):
+            self.v_idx = 0
         
     def __getitem__(self, idx):
         if self.should_use_variants:
-            return self.data[:,idx], self.lengths[idx], self.war_class_variants[:,idx,self.variant_idx], self.war_regression_variants[:,idx,self.variant_idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx], self.pt_output[:,idx]
+            return self.data[:,idx], self.lengths[idx], \
+                (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.v_war_regression[:,idx,self.v_idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
+                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
         else:
-            return self.data[:,idx], self.lengths[idx], self.twar_buckets[:,idx], self.war_values[:,idx], self.level_buckets[:,idx], self.pa_buckets[:,idx], self.mask_labels[:,idx], self.mask_stats[:,idx], self.year_mask[:,idx], self.year_stats[:,idx], self.year_positions[:,idx], self.mlb_value_mask[:,idx], self.mlb_value_stats[:,idx], self.pt_output[:,idx]
+            return self.data[:,idx], self.lengths[idx], \
+                (self.o_war_buckets[:,idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_war_values[:,idx], self.o_year_stats[:,idx], self.o_year_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
+                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
     
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:
     io_train : list[Player_IO]
     io_test : list[Player_IO]
     io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
 
-    train_lengths = torch.tensor([io.length for io in io_train])
-    test_lengths = torch.tensor([io.length for io in io_test])
+    lengths_train = torch.tensor([io.length for io in io_train])
+    lengths_test = torch.tensor([io.length for io in io_test])
 
-    x_train_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in io_train])
-    x_test_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in io_test])
-    y_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_train])
-    y_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.output for io in io_test])
-    y_prospect_value_train_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_value for io in io_train])
-    y_prospect_value_test_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_value for io in io_test])
+    data_train = torch.nn.utils.rnn.pad_sequence([io.input for io in io_train])
+    data_test = torch.nn.utils.rnn.pad_sequence([io.input for io in io_test])
+    output_labels_train = torch.nn.utils.rnn.pad_sequence([io.output for io in io_train])
+    output_labels_test = torch.nn.utils.rnn.pad_sequence([io.output for io in io_test])
+    output_war_values_train = torch.nn.utils.rnn.pad_sequence([io.prospect_value for io in io_train])
+    output_war_values_test = torch.nn.utils.rnn.pad_sequence([io.prospect_value for io in io_test])
     
-    mask_prospect_train_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_train])
-    mask_prospect_test_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_test])
-    mask_level_train_padded = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_train])
-    mask_level_test_padded = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_test])
+    mask_labels_train = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_train])
+    mask_labels_test = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in io_test])
+    mask_stats_train = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_train])
+    mask_stats_test = torch.nn.utils.rnn.pad_sequence([io.stat_level_mask for io in io_test])
 
-    mask_year_train_padded = torch.nn.utils.rnn.pad_sequence([io.year_level_mask for io in io_train])
-    mask_year_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_level_mask for io in io_test])
-    y_year_stats_train_padded = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_train])
-    y_year_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_test])
-    y_year_pt_train_padded = torch.nn.utils.rnn.pad_sequence([io.pt_year_output for io in io_train])
-    y_year_pt_test_padded = torch.nn.utils.rnn.pad_sequence([io.pt_year_output for io in io_test])
-    y_year_position_train_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_train])
-    y_year_position_test_padded = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_test])
+    mask_year_train = torch.nn.utils.rnn.pad_sequence([io.year_level_mask for io in io_train])
+    mask_year_test = torch.nn.utils.rnn.pad_sequence([io.year_level_mask for io in io_test])
+    output_stats_train = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_train])
+    output_stats_test = torch.nn.utils.rnn.pad_sequence([io.year_stat_output for io in io_test])
+    output_pt_train = torch.nn.utils.rnn.pad_sequence([io.pt_year_output for io in io_train])
+    output_pt_test = torch.nn.utils.rnn.pad_sequence([io.pt_year_output for io in io_test])
+    output_positions_train = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_train])
+    output_positions_test = torch.nn.utils.rnn.pad_sequence([io.year_pos_output for io in io_test])
 
-    mlb_value_mask_train_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_mask for io in io_train])
-    mlb_value_mask_test_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_mask for io in io_test])
-    mlb_value_stats_train_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_train])
-    mlb_value_stats_test_padded = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_test])
+    mask_mlb_value_train = torch.nn.utils.rnn.pad_sequence([io.mlb_value_mask for io in io_train])
+    mask_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.mlb_value_mask for io in io_test])
+    output_mlb_value_train = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_train])
+    output_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.mlb_value_stats for io in io_test])
 
-    variants_classification_train_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_train])
-    variants_classification_test_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_test])
-    variants_regression_train_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_train])
-    variants_regression_test_padded = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_test])
+    variants_warclass_train = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_train])
+    variants_warclass_test = torch.nn.utils.rnn.pad_sequence([io.output_war_class_variants for io in io_test])
+    variants_warregression_train = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_train])
+    variants_warregression_test = torch.nn.utils.rnn.pad_sequence([io.output_war_regression_variants for io in io_test])
 
-    train_dataset = Player_Dataset(x_train_padded, train_lengths, y_prospect_train_padded, y_prospect_value_train_padded, mask_prospect_train_padded, mask_level_train_padded, mask_year_train_padded, y_year_stats_train_padded, y_year_position_train_padded, mlb_value_mask_train_padded, mlb_value_stats_train_padded, variants_classification_train_padded, variants_regression_train_padded, y_year_pt_train_padded)
-    test_dataset = Player_Dataset(x_test_padded, test_lengths, y_prospect_test_padded, y_prospect_value_test_padded, mask_prospect_test_padded, mask_level_test_padded, mask_year_test_padded, y_year_stats_test_padded, y_year_position_test_padded, mlb_value_mask_test_padded, mlb_value_stats_test_padded, variants_classification_test_padded, variants_regression_test_padded, y_year_pt_test_padded)
+    train_dataset = Player_Dataset(data = data_train, 
+                 lengths = lengths_train, 
+                 output_labels = output_labels_train, 
+                 output_war_values = output_war_values_train, 
+                 mask_labels = mask_labels_train, 
+                 mask_stats = mask_stats_train, 
+                 mask_year = mask_year_train, 
+                 output_stats = output_stats_train, 
+                 output_positions = output_positions_train, 
+                 mask_mlb_value = mask_mlb_value_train, 
+                 output_mlb_value = output_mlb_value_train, 
+                 variants_war_class = variants_warclass_train, 
+                 variants_war_regression = variants_warregression_train, 
+                 output_pt = output_pt_train)
+    
+    test_dataset = Player_Dataset(data = data_test, 
+                 lengths = lengths_test, 
+                 output_labels = output_labels_test, 
+                 output_war_values = output_war_values_test, 
+                 mask_labels = mask_labels_test, 
+                 mask_stats = mask_stats_test, 
+                 mask_year = mask_year_test, 
+                 output_stats = output_stats_test, 
+                 output_positions = output_positions_test, 
+                 mask_mlb_value = mask_mlb_value_test, 
+                 output_mlb_value = output_mlb_value_test, 
+                 variants_war_class = variants_warclass_test, 
+                 variants_war_regression = variants_warregression_test, 
+                 output_pt = output_pt_test)
     
     train_dataset.should_use_variants(True)
     test_dataset.should_use_variants(False)
