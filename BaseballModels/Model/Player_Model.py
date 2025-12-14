@@ -95,7 +95,7 @@ class RNN_Model(nn.Module):
                                            {'params': war_class_params, 'lr': 0.01},
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
-                                           {'params': yearStat_params, 'lr': 0.1},
+                                           {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.01},
                                            {'params': war_regression_params, 'lr': 0.01},
@@ -194,12 +194,9 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.HuberLoss(reduction='none')
-    #loss = nn.MSELoss(reduction='none')
-    l = 0
-    for x in range(NUM_LEVELS):
-        l += (loss(pred_stats[:,x,:], actual_stats[:,x,:]).sum(dim=1) * masks[:,x]).sum()
-    return l
+    #loss = nn.HuberLoss(reduction='none')
+    loss = nn.L1Loss(reduction='none')
+    return (loss(pred_stats, actual_stats) * masks.unsqueeze(-1)).sum()
       
 def Pt_Loss(pred_pt, actual_pt):
     actual_pt = actual_pt[:, :pred_pt.size(1)]

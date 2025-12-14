@@ -329,9 +329,8 @@ class Data_Prep:
             stat_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_stats_size, dtype=torch.float)
             pt_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_pt_size)
             pos_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.hitter_positions_size, dtype=torch.float)
-            lvl_year_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
+            mask_stats = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
             
-            stat_year_output[:,:] = (torch.zeros(self.output_map.hitter_stats_size, dtype=float) - hitlvlstat_means) / hitlvlstat_devs
             pt_year_output[:,:] = (torch.zeros(self.output_map.hitter_pt_size, dtype=float) - hitpt_means) / hitpt_devs
             
             date_index = 1
@@ -339,7 +338,7 @@ class Data_Prep:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
-                lvl_year_mask[date_index, stat.LevelId] = min(stat.Pa / 100, 1)
+                mask_stats[date_index, stat.LevelId] = min(stat.Pa / 100, 1)
                 
             if len(stats) > 1:
                 start_month = stats[1].Month
@@ -371,7 +370,22 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=hitter, input=input, output=output, prospect_value=prospect_value, output_war_class_variants=output_war_class_variants, output_war_regression_variants=output_war_regression_variants, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, pt_year_output=pt_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            io.append(Player_IO(player=hitter, 
+                                input=input, 
+                                output=output, 
+                                prospect_value=prospect_value, 
+                                output_war_class_variants=output_war_class_variants, 
+                                output_war_regression_variants=output_war_regression_variants, 
+                                length=l, 
+                                dates=dates, 
+                                prospect_mask=prospect_mask, 
+                                stat_level_mask=mask_stats, 
+                                year_level_mask=lvl_mask, 
+                                year_stat_output=stat_year_output, 
+                                year_pos_output=pos_year_output, 
+                                pt_year_output=pt_year_output, 
+                                mlb_value_mask=mlb_value_mask, 
+                                mlb_value_stats=mlb_value_stats))
         
         return io
        
