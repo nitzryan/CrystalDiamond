@@ -145,6 +145,16 @@ class Data_Prep:
     
     __Cutoff_Year = 2024
     
+    def Get_ZScore(self, stats : torch.Tensor, name : str) -> torch.Tensor:
+        means : torch.Tensor = getattr(self, f"__{name}_means")
+        devs : torch.Tensor = getattr(self, f"__{name}_devs")
+        return (stats - means) / devs
+    
+    def Get_PCA_Transform(self, stats: torch.Tensor, name : str) -> torch.Tensor:
+        z_score = self.Get_ZScore(stats, name)
+        pca = getattr(self, f"__{name}_pca")
+        return torch.from_numpy(pca.transform(z_score))
+    
     def Transform_HitterStats(self, stats : list[DB_Model_HitterStats]) -> torch.Tensor:
         level_stats = torch.tensor([self.prep_map.map_hitterlvl(x) for x in stats], dtype=DTYPE)
         pt_stats = torch.tensor([self.prep_map.map_hitterpt(x) for x in stats], dtype=DTYPE)
@@ -152,11 +162,11 @@ class Data_Prep:
         bsr_stats = torch.tensor([self.prep_map.map_bsr(x) for x in stats], dtype=DTYPE)
         def_stats = torch.tensor([self.prep_map.map_def(x) for x in stats], dtype=DTYPE)
 
-        level_pca = torch.from_numpy(getattr(self, "__hitlevel_pca").transform(level_stats))
-        pt_pca = torch.from_numpy(getattr(self, "__hitpt_pca").transform(pt_stats))
-        off_pca = torch.from_numpy(getattr(self, "__off_pca").transform(off_stats))
-        bsr_pca = torch.from_numpy(getattr(self, "__bsr_pca").transform(bsr_stats))
-        def_pca = torch.from_numpy(getattr(self, "__def_pca").transform(def_stats))
+        level_pca = self.Get_PCA_Transform(level_stats, "hitlevel")
+        pt_pca = self.Get_PCA_Transform(pt_stats, "hitpt")
+        off_pca = self.Get_PCA_Transform(off_stats, "off")
+        bsr_pca = self.Get_PCA_Transform(bsr_stats, "bsr")
+        def_pca = self.Get_PCA_Transform(def_stats, "def")
         
         return torch.cat((level_pca, pt_pca, off_pca, bsr_pca, def_pca), dim=1)
     
@@ -165,33 +175,29 @@ class Data_Prep:
         pt_stats = torch.tensor([self.prep_map.map_pitcherpt(x) for x in stats], dtype=DTYPE)
         pit_stats = torch.tensor([self.prep_map.map_pit(x) for x in stats], dtype=DTYPE)
         
-        level_pca = torch.from_numpy(getattr(self, "__pitlevel_pca").transform(level_stats))
-        pt_pca = torch.from_numpy(getattr(self, "__pitpt_pca").transform(pt_stats))
-        pit_pca = torch.from_numpy(getattr(self, "__pit_pca").transform(pit_stats))
+        level_pca = self.Get_PCA_Transform(level_stats, "pitlevel")
+        pt_pca = self.Get_PCA_Transform(pt_stats, "pitpt")
+        pit_pca = self.Get_PCA_Transform(pit_stats, "pit")
         
         return torch.cat((level_pca, pt_pca, pit_pca), dim=1)
     
     def Transform_HitterMlbValues(self, values : list[DB_Player_MonthlyWar]) -> torch.Tensor:
         hitter_values = torch.tensor([self.prep_map.map_mlb_hit_value(v) for v in values], dtype=DTYPE)
-        values_pca = torch.from_numpy(getattr(self, "__hittermonthvalues_pca").transform(hitter_values))
+        values_pca = self.Get_PCA_Transform(hitter_values, "hittermonthvalues")
         return values_pca
     
     def Transform_PitcherMlbValues(self, values : list[DB_Player_MonthlyWar]) -> torch.Tensor:
         pitcher_values = torch.tensor([self.prep_map.map_mlb_pit_value(v) for v in values], dtype=DTYPE)
-        values_pca = torch.from_numpy(getattr(self, "__pitchermonthvalues_pca").transform(pitcher_values))
+        values_pca = self.Get_PCA_Transform(pitcher_values, "pitchermonthvalues")
         return values_pca
     
     def Transform_HitterOutputStats(self, stats : list[DB_Model_HitterStats]) -> torch.Tensor:
         output_stats = torch.tensor([self.output_map.map_hitter_output(x) for x in stats], dtype=DTYPE)
-        hit_stats_means : torch.Tensor = getattr(self, "__hitoutput_means")
-        hit_stats_devs : torch.Tensor = getattr(self, "__hitoutput_devs")
-        return (output_stats - hit_stats_means) / hit_stats_devs
+        return self.Get_ZScore(output_stats, "hitoutput")
     
     def Transform_PitcherOutputStats(self, stats : list[DB_Model_PitcherStats]) -> torch.Tensor:
         output_stats = torch.tensor([self.output_map.map_pitcher_output(x) for x in stats], dtype=DTYPE)
-        pit_stats_means : torch.Tensor = getattr(self, "__pitoutput_means")
-        pit_stats_devs : torch.Tensor = getattr(self, "__pitoutput_devs")
-        return (output_stats - pit_stats_means) / pit_stats_devs
+        return self.Get_ZScore(output_stats, "pitoutput")
     
     def Get_Hitter_Size(self) -> int:
         return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.mlb_hit_value_size + 1
@@ -201,13 +207,11 @@ class Data_Prep:
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
-        bio_pca = torch.from_numpy(getattr(self, "__hitbio_pca").transform(bio_stats))
-        return bio_pca
+        return self.Get_PCA_Transform(bio_stats, "hitbio")
     
     def __Transform_PitcherData(self, pitcher : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(pitcher)], dtype=DTYPE)
-        bio_pca = torch.from_numpy(getattr(self, "__pitbio_pca").transform(bio_stats))
-        return bio_pca
+        return self.Get_PCA_Transform(bio_stats, "pitbio")
     
     def __Create_PCA_Norms(self, map : Callable[[_T], list[float]], stats : list[_T], name : str, num_pca : int) -> None:
         # Get means, deviation of stats
@@ -228,6 +232,9 @@ class Data_Prep:
         total = torch.tensor([map(h) for h in stats], dtype=DTYPE).float()
         means = torch.mean(total, dim=0, keepdim=False)
         devs = torch.std(total, dim=0, keepdim=False)
+        for i in range(devs.size(0)):
+            if devs[i].item() == 0:
+                devs[i] = 1
         setattr(self, "__" + name + "_means", means)
         setattr(self, "__" + name + "_devs", devs)
         
@@ -338,7 +345,10 @@ class Data_Prep:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
-                mask_stats[date_index, stat.LevelId] = min(stat.Pa / 100, 1)
+                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
+            # print(stat_year_output)
+            # print(mask_stats)
+            # exit(1)
                 
             if len(stats) > 1:
                 start_month = stats[1].Month
@@ -657,6 +667,26 @@ class Data_Prep:
         pitpt_means : torch.Tensor = getattr(self, "__pitlvlpt_means")
         pitpt_devs : torch.Tensor = getattr(self, "__pitlvlpt_devs")
         single_offset =  -pitpt_means / pitpt_devs
+        offset = single_offset
+        for _ in range(NUM_LEVELS - 1):
+            offset = torch.cat((offset, single_offset))
+        return offset
+    
+    def Get_HitStat_Offset(self) -> torch.Tensor:
+        hitlvlstat_means : torch.Tensor = getattr(self, "__hitlvlstat_means")
+        hitlvlstat_devs : torch.Tensor = getattr(self, "__hitlvlstat_devs")
+        single_offset = -hitlvlstat_means / hitlvlstat_devs
+        single_offset *= 1.001 # Add small offset so 0 can always be reached
+        offset = single_offset
+        for _ in range(NUM_LEVELS - 1):
+            offset = torch.cat((offset, single_offset))
+        return offset
+    
+    def Get_PitStat_Offset(self) -> torch.Tensor:
+        pitlvlstat_means : torch.Tensor = getattr(self, "__pitlvlstat_means")
+        pitlvlstat_devs : torch.Tensor = getattr(self, "__pitlvlstat_devs")
+        single_offset = -pitlvlstat_means / pitlvlstat_devs
+        single_offset *= 1.001 # Add small offset so 0 can always be reached
         offset = single_offset
         for _ in range(NUM_LEVELS - 1):
             offset = torch.cat((offset, single_offset))

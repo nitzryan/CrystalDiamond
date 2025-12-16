@@ -78,7 +78,8 @@ class Output_Map:
         return stats.TrainMask & 1
     
 __map_hitter_stats : Callable[[DB_Model_HitterLevelStats], list[float]] = \
-    lambda h : [math.sqrt(h.Hit1B), math.sqrt(h.Hit2B), math.sqrt(h.Hit3B), math.sqrt(h.HitHR), math.sqrt(h.BB), math.sqrt(h.HBP), math.sqrt(h.K), math.sqrt(h.SB), math.sqrt(h.CS), h.ParkRunFactor]
+    lambda h : [min(h.Hit1B, 2), min(h.Hit2B, 2.5), min(h.Hit3B, 8), min(h.HitHR, 6), min(h.BB, 3), min(h.HBP, 8), min(h.K, 2.5), min(h.SB, 10), min(h.CS, 7), h.ParkRunFactor]
+    #lambda h : [math.sqrt(h.Hit1B), math.sqrt(h.Hit2B), math.sqrt(h.Hit3B), math.sqrt(h.HitHR), math.sqrt(h.BB), math.sqrt(h.HBP), math.sqrt(h.K), math.sqrt(h.SB), math.sqrt(h.CS), h.ParkRunFactor]
 __map_hitter_pt : Callable[[DB_Model_HitterLevelStats], list[float]] = \
     lambda h : [h.Pa]
 __map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]] = \

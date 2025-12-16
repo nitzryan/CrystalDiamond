@@ -42,6 +42,7 @@ class RNN_Model(nn.Module):
         self.linear_yearStats2 = nn.Linear(hidden_size * 2, hidden_size * 3)
         self.linear_yearStats3 = nn.Linear(hidden_size * 3, hidden_size * 4)
         self.linear_yearStats4 = nn.Linear(hidden_size * 4, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
+        self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
@@ -73,6 +74,18 @@ class RNN_Model(nn.Module):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+        
+        # Set softmax-classification layers to Xavier for uniform initial predictions
+        for layer in [self.linear_war3, self.linear_pa2, self.linear_level2]:
+            init.xavier_uniform_(layer.weight, gain=1.0)
+            if layer.bias is not None:
+                init.zeros_(layer.bias)
+                
+        # Set softmax-regression layers to Xavier for uniform across softmax dim
+        for layer in [self.linear_yearStats4, self.linear_yearPositions3]:
+            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('sigmoid'))
+            if layer.bias is not None:
+                init.zeros_(layer.bias)
         
         # Set PA/IP to kaiming_uniform
         init.kaiming_uniform_(self.linear_mlb_value1.weight, mode='fan_in', nonlinearity='relu')
@@ -148,6 +161,7 @@ class RNN_Model(nn.Module):
         output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
         output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
         output_yearStats = self.linear_yearStats4(output_yearStats)
+        #output_yearStats = self.softplus(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
         
         output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
@@ -194,9 +208,11 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    #loss = nn.HuberLoss(reduction='none')
-    loss = nn.L1Loss(reduction='none')
-    return (loss(pred_stats, actual_stats) * masks.unsqueeze(-1)).sum()
+    loss = nn.HuberLoss(reduction='none')
+    #loss = nn.L1Loss(reduction='none')
+    #loss = nn.MSELoss(reduction='none')
+    l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)
+    return (l * masks.unsqueeze(-1)).sum()
       
 def Pt_Loss(pred_pt, actual_pt):
     actual_pt = actual_pt[:, :pred_pt.size(1)]

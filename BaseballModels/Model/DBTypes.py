@@ -39,12 +39,21 @@ class DB_League_HitterStats:
 		self.KPerc = values[11]
 		self.SBRate = values[12]
 		self.SBPerc = values[13]
+		self.Hit1B = values[14]
+		self.Hit2B = values[15]
+		self.Hit3B = values[16]
+		self.HitHR = values[17]
+		self.BB = values[18]
+		self.HBP = values[19]
+		self.K = values[20]
+		self.SB = values[21]
+		self.CS = values[22]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 23
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.LeagueId,self.Year,self.Month,self.AB,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc)
+		return (self.LeagueId,self.Year,self.Month,self.AB,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc,self.Hit1B,self.Hit2B,self.Hit3B,self.HitHR,self.BB,self.HBP,self.K,self.SB,self.CS)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_League_HitterStats']:
@@ -137,12 +146,21 @@ class DB_Model_HitterStats:
 		self.PercCF = values[30]
 		self.PercRF = values[31]
 		self.PercDH = values[32]
+		self.Hit1B = values[33]
+		self.Hit2B = values[34]
+		self.Hit3B = values[35]
+		self.HitHR = values[36]
+		self.BB = values[37]
+		self.HBP = values[38]
+		self.K = values[39]
+		self.SB = values[40]
+		self.CS = values[41]
 
-	NUM_ELEMENTS = 33
+	NUM_ELEMENTS = 42
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.Year,self.Month,self.Age,self.PA,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wRC,self.crWAR,self.crOFF,self.crBSR,self.crDEF,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH)
+		return (self.mlbId,self.Year,self.Month,self.Age,self.PA,self.InjStatus,self.TrainMask,self.MonthFrac,self.LevelId,self.ParkRunFactor,self.ParkHRFactor,self.AVGRatio,self.OBPRatio,self.ISORatio,self.wRC,self.crWAR,self.crOFF,self.crBSR,self.crDEF,self.SBRateRatio,self.SBPercRatio,self.HRPercRatio,self.BBPercRatio,self.kPercRatio,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH,self.Hit1B,self.Hit2B,self.Hit3B,self.HitHR,self.BB,self.HBP,self.K,self.SB,self.CS)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_HitterStats']:

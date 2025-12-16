@@ -52,7 +52,7 @@ __map_mlb_hit_value : Callable[[DB_Player_MonthlyWar], list[float]] = \
     lambda h : [h.PA, h.WAR_h, h.OFF, h.DEF, h.BSR, h.REP]    
 __map_mlb_pit_value : Callable[[DB_Player_MonthlyWar], list[float]] = \
     lambda p : [p.IP_SP, p.IP_RP, p.WAR_s, p.WAR_r]
-__mlb_hit_value_size = 6
+__mlb_hit_value_size = 4
 __mlb_pit_value_size = 4
        
         
@@ -88,7 +88,7 @@ base_prep_map = Prep_Map(
 
 experimental_prep_map = Prep_Map(
     map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
-    map_off=lambda h : [math.sqrt(h.AVGRatio), math.sqrt(h.OBPRatio), math.sqrt(h.ISORatio), h.wRC, math.sqrt(h.HRPercRatio), math.sqrt(h.BBPercRatio), math.sqrt(h.kPercRatio), h.crOFF, h.crDEF, h.crWAR],
+    map_off=lambda h : [h.ParkRunFactor, min(h.Hit1B, 4), min(h.Hit2B, 4), min(h.Hit3B, 10), min(h.HitHR, 10), min(h.BB, 3), min(h.K, 2.5), min(h.HBP, 8), min(h.SB, 10), min(h.CS, 10), h.crOFF, h.crDEF, h.crWAR],
     map_bsr=lambda h : [math.sqrt(h.SBRateRatio), h.SBPercRatio],
     map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
     map_hitterpt=lambda h : [h.PA, h.MonthFrac, h.InjStatus],
@@ -105,7 +105,7 @@ experimental_prep_map = Prep_Map(
     bio_size=2,
     hitterlvl_size=3,
     hitterpt_size=3,
-    off_size=7,
+    off_size=13,
     bsr_size=2,
     def_size=4,
     hitfirst_size=1,
