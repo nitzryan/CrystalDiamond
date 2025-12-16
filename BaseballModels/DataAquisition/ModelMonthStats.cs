@@ -62,7 +62,16 @@ namespace DataAquisition
                             PercLF = -1,
                             PercCF = -1,
                             PercRF = -1,
-                            PercDH = -1
+                            PercDH = -1,
+                            Hit1B = -1,
+                            Hit2B = -1,
+                            Hit3B = -1,
+                            HitHR = -1,
+                            BB = -1,
+                            HBP = -1,
+                            K = -1,
+                            SB = -1,
+                            CS = -1,
                         };
 
                         // Generate Hitter Stats
@@ -70,6 +79,19 @@ namespace DataAquisition
                         {
                             int level = r.LevelId == 1 ? 1 : r.LevelId - 9;
                             var stat = db.Player_Hitter_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId).Single();
+
+                            float model_month = r.Month + 1;
+                            League_HitterStats lhs = db.League_HitterStats.Where(f => f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId).Single();
+                            float hit1BRatio = Utilities.SafeDivide((stat.H - stat.Hit2B - stat.Hit3B - stat.HR) / lhs.Hit1B, stat.PA);
+                            float hit2BRatio = Utilities.SafeDivide(stat.Hit2B, stat.PA * lhs.Hit2B);
+                            float hit3BRatio = Utilities.SafeDivide(stat.Hit3B, stat.PA * lhs.Hit3B);
+                            float hitHRRatio = Utilities.SafeDivide(stat.HR, stat.PA * lhs.HitHR);
+                            float hitBBRatio = Utilities.SafeDivide(stat.BB, stat.PA * lhs.BB);
+                            float hitHBPRatio = Utilities.SafeDivide(stat.HBP, stat.PA * lhs.HBP);
+                            float hitKRatio = Utilities.SafeDivide(stat.K, stat.PA * lhs.K);
+                            float hitSBRatio = Utilities.SafeDivide(stat.SB, stat.PA * lhs.SB);
+                            float hitCSRatio = Utilities.SafeDivide(stat.CS, stat.PA * lhs.CS);
+
                             if (r.Year == prevYear && r.Month == prevMonth)
                             {
                                 int PA = stat.AB + stat.BB + stat.HBP;
@@ -99,6 +121,15 @@ namespace DataAquisition
                                 currentData.PercCF = (r.PercCF * prop) + (currentData.PercCF * invProp);
                                 currentData.PercRF = (r.PercRF * prop) + (currentData.PercRF * invProp);
                                 currentData.PercDH = (r.PercDH * prop) + (currentData.PercDH * invProp);
+                                currentData.Hit1B = (hit1BRatio * prop) + (currentData.Hit1B * invProp);
+                                currentData.Hit2B = (hit2BRatio * prop) + (currentData.Hit2B * invProp);
+                                currentData.Hit3B = (hit3BRatio * prop) + (currentData.Hit3B * invProp);
+                                currentData.HitHR = (hitHRRatio * prop) + (currentData.HitHR * invProp);
+                                currentData.BB = (hitBBRatio * prop) + (currentData.BB * invProp);
+                                currentData.HBP = (hitHBPRatio * prop) + (currentData.HBP * invProp);
+                                currentData.K = (hitKRatio * prop) + (currentData.K * invProp);
+                                currentData.SB = (hitSBRatio * prop) + (currentData.SB * invProp);
+                                currentData.CS = (hitCSRatio * prop) + (currentData.CS * invProp);
                             }
                             else // New Month
                             {
@@ -153,7 +184,16 @@ namespace DataAquisition
                                                 PercLF = 0,
                                                 PercCF = 0,
                                                 PercRF = 0,
-                                                PercDH = 0
+                                                PercDH = 0,
+                                                Hit1B = 1,
+                                                Hit2B = 1,
+                                                Hit3B = 1,
+                                                HitHR = 1,
+                                                BB = 1,
+                                                HBP = 1,
+                                                K = 1,
+                                                SB = 1,
+                                                CS = 1,
                                             });
 
                                         prevMonth++;
@@ -199,6 +239,15 @@ namespace DataAquisition
                                 currentData.PercCF = r.PercCF;
                                 currentData.PercRF = r.PercRF;
                                 currentData.PercDH = r.PercDH;
+                                currentData.Hit1B = hit1BRatio;
+                                currentData.Hit2B = hit2BRatio;
+                                currentData.Hit3B = hit3BRatio;
+                                currentData.HitHR = hitHRRatio;
+                                currentData.BB = hitBBRatio;
+                                currentData.HBP = hitHBPRatio;
+                                currentData.K = hitKRatio;
+                                currentData.SB = hitSBRatio;
+                                currentData.CS = hitCSRatio;
 
                                 prevMonth = r.Month;
                                 prevYear = r.Year;
@@ -264,7 +313,16 @@ namespace DataAquisition
                                         PercLF = 0,
                                         PercCF = 0,
                                         PercRF = 0,
-                                        PercDH = 0
+                                        PercDH = 0,
+                                        Hit1B = 1,
+                                        Hit2B = 1,
+                                        Hit3B = 1,
+                                        HitHR = 1,
+                                        BB = 1,
+                                        HBP = 1,
+                                        K = 1,
+                                        SB = 1,
+                                        CS = 1,
                                     });
 
                                 prevMonth++;
@@ -320,7 +378,16 @@ namespace DataAquisition
                                         PercLF = 0,
                                         PercCF = 0,
                                         PercRF = 0,
-                                        PercDH = 0
+                                        PercDH = 0,
+                                        Hit1B = 1,
+                                        Hit2B = 1,
+                                        Hit3B = 1,
+                                        HitHR = 1,
+                                        BB = 1,
+                                        HBP = 1,
+                                        K = 1,
+                                        SB = 1,
+                                        CS = 1,
                                     });
 
                                 m++;

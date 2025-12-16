@@ -74,7 +74,16 @@ namespace DataAquisition
                         BBPerc = (float)summedStats.BB / pa,
                         KPerc = (float)summedStats.K / pa,
                         SBRate = (float)summedStats.SB / pa,
-                        SBPerc = (float)summedStats.SB / (summedStats.SB + summedStats.CS)
+                        SBPerc = (float)summedStats.SB / (summedStats.SB + summedStats.CS),
+                        Hit1B = Utilities.SafeDivide(singles, pa, -1),
+                        Hit2B = Utilities.SafeDivide(summedStats.Hit2B, pa, -1),
+                        Hit3B = Utilities.SafeDivide(summedStats.Hit3B, pa, -1),
+                        HitHR = Utilities.SafeDivide(summedStats.HR, pa, -1),
+                        BB = Utilities.SafeDivide(summedStats.BB, pa, -1),
+                        HBP = Utilities.SafeDivide(summedStats.HBP, pa, -1),
+                        K = Utilities.SafeDivide(summedStats.K, pa, -1),
+                        SB = Utilities.SafeDivide(summedStats.SB, pa, -1),
+                        CS = Utilities.SafeDivide(summedStats.CS, pa, -1),
                     };
                     db.League_HitterStats.Add(lhs);
 
