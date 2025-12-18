@@ -7,7 +7,7 @@ from Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 LEVEL_LOSS_MULTIPLIER = 0.6
 PA_LOSS_MULTIPLIER = 0.8
-STATS_LOSS_MULTIPLIER = 0.2
+STATS_LOSS_MULTIPLIER = 0.4
 POSITION_LOSS_MULTIPLIER = 1.0
 TWAR_LOSS_MULTIPLIER = 0.8
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
@@ -136,7 +136,7 @@ def trainAndGraph(network,
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
   
   scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7], [8]], verbose=False,
-                        factor = 0.5, patience=20, cooldown=10)
+                        factor=0.5, patience=5, cooldown=5)
   
   iterable = range(num_epochs)
   if not should_output:
@@ -171,20 +171,13 @@ def trainAndGraph(network,
       if should_output:
         print("Stopped Training Early")
       break
-    
-    # Allow model to change fast to get decent baseline, than adjust slower without waiting for scheduler
-    # if optimizer.param_groups[0]['lr'] > 0.0015 and epoch >= 10:
-    #   if should_output:
-    #     print("Reducing learning rate after intial fast learning period")
-    #   for param_group in optimizer.param_groups:
-    #     param_group['lr'] = 0.0015
 
   if should_output:
     for i, el in enumerate(elements_to_save):
       print(f"Best result for {ELEMENT_LIST[el]} at epoch={best_epochs[i]} with loss={best_losses[i]}")
 
     for n in range(NUM_ELEMENTS):
-      graphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=ELEMENT_LIST[n], start=3)
+      graphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=ELEMENT_LIST[n], start=1)
   
   if save_last:
     for el in elements_to_save:

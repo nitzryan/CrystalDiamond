@@ -103,7 +103,7 @@ class Data_Prep:
         # Restrict so new data doesn't change old conversions which would break model
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
-        hitterlevel_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
+        hitterlevel_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND PA>=?", (Data_Prep.__Cutoff_Year,30))
         pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         
         # Normalize output stats
@@ -343,14 +343,15 @@ class Data_Prep:
             date_index = 1
             for stat in level_stats:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
-                stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
-                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
-            # print(stat_year_output)
-            # print(mask_stats)
-            # exit(1)
+                if stat.LevelId == 0:
+                    stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
+                    mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
                 
             if len(stats) > 1:
+                mask_stats[0] = mask_stats[1]
+                pt_year_output[0] = pt_year_output[1]
+                stat_year_output[0] = stat_year_output[1]
                 start_month = stats[1].Month
                 start_year = stats[1].Year
                 for i, stat in enumerate(stats):
@@ -379,6 +380,9 @@ class Data_Prep:
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
+            
+            # Leak MLB strikeouts for testing
+            #input[:,-1] = stat_year_output[:,0,6]
             
             io.append(Player_IO(player=hitter, 
                                 input=input, 

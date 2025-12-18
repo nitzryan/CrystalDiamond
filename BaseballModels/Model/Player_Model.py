@@ -23,6 +23,7 @@ class RNN_Model(nn.Module):
         self.pre3 = nn.Linear(input_size, input_size)
         
         self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        #self.rnn = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size)
         self.linear_war2 = nn.Linear(hidden_size, hidden_size)
         self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
@@ -38,10 +39,11 @@ class RNN_Model(nn.Module):
         self.linear_regr_war4 = nn.Linear(hidden_size // 2, 1)
         
         # Predict next year stats
-        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size * 2)
-        self.linear_yearStats2 = nn.Linear(hidden_size * 2, hidden_size * 3)
-        self.linear_yearStats3 = nn.Linear(hidden_size * 3, hidden_size * 4)
-        self.linear_yearStats4 = nn.Linear(hidden_size * 4, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size))
+        stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
+        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
+        self.linear_yearStats4 = nn.Linear(hidden_size, NUM_LEVELS * stats_size)
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
@@ -62,6 +64,7 @@ class RNN_Model(nn.Module):
         
         self.mutators = mutators
         self.nonlin = F.relu
+        self.nonlin = F.tanh
         self.softplus = nn.Softplus()
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
         self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
@@ -104,7 +107,7 @@ class RNN_Model(nn.Module):
         mlbValue_params = GetParameters([self.linear_mlb_value1, self.linear_mlb_value2, self.linear_mlb_value3, self.linear_mlb_value4])
         yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
         
-        self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.0025},
+        self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
                                            {'params': war_class_params, 'lr': 0.01},
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
@@ -127,9 +130,9 @@ class RNN_Model(nn.Module):
             x += self.mutators[:x.size(0), :x.size(1), :]
         
         # Apply transformation to data before entering network
-        x = self.nonlin(self.pre1(x))
-        x = self.nonlin(self.pre2(x))
-        x = self.nonlin(self.pre3(x))
+        # x = self.nonlin(self.pre1(x))
+        # x = self.nonlin(self.pre2(x))
+        # x = self.nonlin(self.pre3(x))
         
         lengths = lengths.to(torch.device("cpu")).long()
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
@@ -208,7 +211,7 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.HuberLoss(reduction='none')
+    loss = nn.HuberLoss(reduction='none', delta=0.25)
     #loss = nn.L1Loss(reduction='none')
     #loss = nn.MSELoss(reduction='none')
     l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)
@@ -227,8 +230,6 @@ def Pt_Loss(pred_pt, actual_pt):
     
     loss = nn.HuberLoss(reduction='none')
     l = loss(pred_pt, actual_pt).sum()
-    # for x in range(NUM_LEVELS):
-    #     l += (loss(pred_pt[:,x,:], actual_pt[:,x,:]).sum(dim=1)).sum()
     return loss(pred_pt, actual_pt).sum()
       
 def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
@@ -245,8 +246,7 @@ def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value.reshape((batch_size * time_steps, mask_size_years, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
     
-    #loss = nn.L1Loss(reduction='none')
-    loss = nn.MSELoss(reduction='none')
+    loss = nn.HuberLoss(reduction='none')
     l = 0
     for x in range(3):
         # Rate stats
@@ -275,7 +275,7 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     war_masks = masks[:,:,1:].reshape((batch_size * time_steps), mask_size_years, 2)
     
     #loss = nn.L1Loss(reduction='none')
-    loss = nn.MSELoss(reduction='none')
+    loss = nn.HuberLoss(reduction='none')
     
     # War
     l = (loss(pred_war, actual_war) * war_masks).sum()
