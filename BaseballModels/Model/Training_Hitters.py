@@ -1,16 +1,12 @@
 import sys
 from Data_Prep import Data_Prep, Player_IO
-from sklearn.model_selection import train_test_split # type: ignore
-import torch
-from Player_Dataset import Player_Dataset, Create_Test_Train_Datasets
+from Player_Dataset import Create_Test_Train_Datasets
 import Player_Model
-from torch.optim import lr_scheduler
 import Model_Train
 from tqdm import tqdm
-from Constants import device, db, DEFAULT_NUM_LAYERS_HITTER, DEFAULT_HIDDEN_SIZE_HITTER
+from Constants import device, db, DEFAULT_NUM_LAYERS_HITTER, DEFAULT_HIDDEN_SIZE_HITTER, DEFAULT_HITTER_BATCH_SIZE, DEFAULT_HITTER_NUM_EPOCHS
 import Prep_Map
 import Output_Map
-import warnings
 
 if __name__ == "__main__":
     num_models = int(sys.argv[1])
@@ -37,7 +33,7 @@ if __name__ == "__main__":
         data_prep = Data_Prep(prep_map, output_map)
         hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
         
-        batch_size = 200
+        batch_size = DEFAULT_HITTER_BATCH_SIZE
         hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
         
         cursor = db.cursor()
@@ -49,21 +45,11 @@ if __name__ == "__main__":
             
             # Setup Model
             num_layers = DEFAULT_NUM_LAYERS_HITTER
-            hidden_size = DEFAULT_HIDDEN_SIZE_HITTER if model_id != 3 else 20
+            hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
             network = Player_Model.RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
-            # Warning for loading model, but these are trusted
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning)
-                if model_id == 1:
-                    network.load_state_dict(torch.load("Models/default_hitter_TotalClassification.pt"))
-                elif model_id == 2:
-                    network.load_state_dict(torch.load("Models/default_statsonly_hitter_TotalClassification.pt"))
-                elif model_id == 3:
-                    network.load_state_dict(torch.load("Models/default_experimental_hitter_TotalClassification.pt"))
-                
             network = network.to(device)
             
-            num_epochs = 300
+            num_epochs = DEFAULT_HITTER_NUM_EPOCHS
             model_name_pt = f"{model_name}_{i}"
             best_losses = Model_Train.trainAndGraph(network, 
                                                   train_dataset,
@@ -74,7 +60,8 @@ if __name__ == "__main__":
                                                   early_stopping_cutoff=40, 
                                                   should_output=False, 
                                                   model_name=f"Models/{model_name_pt}",
-                                                  elements_to_save=[0,3,5,6])
+                                                  save_last=True,
+                                                  elements_to_save=[0])
             
             cursor = db.cursor()
             cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 1, best_losses[0], i, num_layers, hidden_size))
