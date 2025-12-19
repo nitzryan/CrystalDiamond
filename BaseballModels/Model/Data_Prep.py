@@ -104,7 +104,7 @@ class Data_Prep:
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         hitterlevel_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND PA>=?", (Data_Prep.__Cutoff_Year,30))
-        pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
+        pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND (Outs_SP + Outs_RP)>=?", (Data_Prep.__Cutoff_Year,20))
         
         # Normalize output stats
         #self.__Create_Standard_Norms(self.output_map.map_hitter_output, hitter_stats, "hitoutput")
@@ -276,6 +276,10 @@ class Data_Prep:
             stats = [mhs for mhs, pmw in stats_monthlywar]
             level_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (hitter.mlbId, cutoff_year))
             
+            dates = torch.cat(
+                    (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
+                    torch.tensor([(x.mlbId, x.Year, x.Month) for x, _ in stats_monthlywar], dtype=torch.long)))
+            
             mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
                 WHERE mlbId=:mlbId AND
                 (
@@ -283,10 +287,6 @@ class Data_Prep:
                 )
                 ORDER BY Year ASC, MONTH ASC''',
                 {'mlbId':hitter.mlbId,'year':cutoff_year})
-                
-            dates = torch.cat(
-                    (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
-                    torch.tensor([(x.mlbId, x.Year, x.Month) for x, _ in stats_monthlywar], dtype=torch.long)))
             
             # Input
             input = torch.zeros(l, self.Get_Hitter_Size())
@@ -344,9 +344,8 @@ class Data_Prep:
             for stat in level_stats:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
-                if stat.LevelId == 0:
-                    stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
-                    mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
+                stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
+                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
                 
             if len(stats) > 1:
                 mask_stats[0] = mask_stats[1]
@@ -380,9 +379,6 @@ class Data_Prep:
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
-            
-            # Leak MLB strikeouts for testing
-            #input[:,-1] = stat_year_output[:,0,6]
             
             io.append(Player_IO(player=hitter, 
                                 input=input, 
@@ -430,7 +426,6 @@ class Data_Prep:
                                                                      (pitcher.mlbId, cutoff_year))
             l = len(stats_monthlywar) + 1
             stats = [mhs for mhs, pmw in stats_monthlywar]
-                
             level_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (pitcher.mlbId, cutoff_year))
                 
             dates = torch.cat(
@@ -494,7 +489,6 @@ class Data_Prep:
             pos_year_output = torch.zeros(l, NUM_LEVELS, self.output_map.pitcher_positions_size, dtype=torch.float)
             lvl_year_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
             
-            stat_year_output[:,:] = (torch.zeros(self.output_map.pitcher_stats_size, dtype=float) - pitlvlstat_means) / pitlvlstat_devs
             pt_year_output[:,:] = (torch.zeros(self.output_map.pitcher_pt_size, dtype=float) - pitpt_means) / pitpt_devs
             
             for i, stat in enumerate(stats):
@@ -505,7 +499,7 @@ class Data_Prep:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_pitcher_stats(stat), dtype=torch.float) - pitlvlstat_means) / pitlvlstat_devs
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_pitcher_pt(stat), dtype=torch.float) - pitpt_means) / pitpt_devs
-                lvl_year_mask[date_index, stat.LevelId] = min((stat.Outs_RP + stat.Outs_SP) / 60, 1)
+                lvl_year_mask[date_index, stat.LevelId] = max(min(((stat.Outs_RP + stat.Outs_SP) - 20) / 150, 1), 0)
             if l > 1:
                 stat_year_output[0] = stat_year_output[1]
                 pt_year_output[0] = pt_year_output[1]

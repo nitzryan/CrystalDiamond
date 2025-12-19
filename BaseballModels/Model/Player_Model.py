@@ -112,11 +112,10 @@ class RNN_Model(nn.Module):
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
                                            {'params': yearStat_params, 'lr': 0.01},
-                                           {'params': yearPos_params, 'lr': 0.01},
+                                           {'params': yearPos_params, 'lr': 0.03},
                                            {'params': mlbValue_params, 'lr': 0.01},
                                            {'params': war_regression_params, 'lr': 0.01},
                                            {'params': yearPt_params, 'lr': 0.01}])
-                                           
                                            
                                            
         

@@ -95,7 +95,7 @@ experimental_prep_map = Prep_Map(
     map_pitcherpt=lambda p : [p.BF, p.MonthFrac, p.InjStatus],
     map_hitterlvl=lambda h : [h.Age, h.LevelId, h.Month],
     map_pitcherlvl=lambda p : [p.Age, p.LevelId, p.Month],
-    map_pit=lambda p : [p.GBPercRatio, math.sqrt(p.ERARatio), math.sqrt(p.FIPRatio + 1.5), math.sqrt(p.wOBARatio), math.sqrt(p.HRPercRatio), math.sqrt(p.BBPercRatio), math.sqrt(p.KPercRatio), p.crWAR],
+    map_pit=lambda p : [p.GBPercRatio, p.ParkRunFactor, min(p.ERARatio, 6), min(p.FIPRatio, 3), min(p.wOBARatio, 2), min(p.HRPercRatio, 8), min(p.BBPercRatio, 5), min(p.KPercRatio, 3), p.crWAR],
     map_pit_first=lambda p, y : 1 if p.Year == y else 0,
     map_hit_first=lambda h, y : 1 if h.Year == y else 0,
     map_mlb_hit_value=__map_mlb_hit_value,
@@ -111,7 +111,7 @@ experimental_prep_map = Prep_Map(
     hitfirst_size=1,
     pitcherlvl_size=3,
     pitcherpt_size=3,
-    pit_size=7,
+    pit_size=9,
     pitfirst_size=1
 )
 
