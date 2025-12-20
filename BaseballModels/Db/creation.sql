@@ -339,33 +339,57 @@ CREATE TABLE "Output_PlayerWar" (
 	PRIMARY KEY("mlbId", "model", "isHitter", "modelIdx","year","month")
 );
 
-CREATE TABLE "Output_HitterStats" (
-	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"levelId" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
-	"AVG" REAL NOT NULL,
-	"OBP" REAL NOT NULL,
-	"ISO" REAL NOT NULL,
-	"HR" REAL NOT NULL,
+CREATE TABLE Output_HitterStats (
+	"MlbId" INTEGER NOT NULL,
+	"Model" INTEGER NOT NULL,
+	"ModelIdx" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"Pa" INTEGER NOT NULL,
+	"Hit1B" REAL NOT NULL,
+	"Hit2B" REAL NOT NULL,
+	"Hit3B" REAL NOT NULL,
+	"HitHR" REAL NOT NULL,
 	"BB" REAL NOT NULL,
-	"K" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "levelId", "modelIdx")
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	"SB" REAL NOT NULL,
+	"CS" REAL NOT NULL,
+	"ParkRunFactor" REAL NOT NULL,
+	"PercC"	REAL NOT NULL,
+	"Perc1B"	REAL NOT NULL,
+	"Perc2B"	REAL NOT NULL,
+	"Perc3B"	REAL NOT NULL,
+	"PercSS"	REAL NOT NULL,
+	"PercLF"	REAL NOT NULL,
+	"PercCF"	REAL NOT NULL,
+	"PercRF"	REAL NOT NULL,
+	"PercDH"	REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
 );
 
 CREATE TABLE "Output_PitcherStats" (
 	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
+	"Model" INTEGER NOT NULL,
+	"ModelIdx" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
 	"levelId" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
-	"GB" REAL NOT NULL,
+	"Outs_SP" REAL NOT NULL,
+	"Outs_RP" REAL NOT NULL,
+	"GS" REAL NOT NULL,
+	"G" REAL NOT NULL,
 	"ERA" REAL NOT NULL,
 	"FIP" REAL NOT NULL,
 	"HR" REAL NOT NULL,
 	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
 	"K" REAL NOT NULL,
-	"SP" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "levelId", "modelIdx")
+	"ParkRunFactor" REAL NOT NULL,
+	"SP_Perc" REAL NOT NULL,
+	"RP_Perc" REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
 );
 
 CREATE TABLE "Output_PlayerWarAggregation" (

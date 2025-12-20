@@ -3,7 +3,7 @@ import torch
 from Eval_Dataset import Eval_Dataset
 from Player_Model import RNN_Model
 from tqdm import tqdm
-from Constants import device, db, WAR_BUCKET_AVG, VALUE_BUCKET_AVG
+from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS
 from DBTypes import *
 import torch.nn.functional as F
 import warnings
@@ -54,13 +54,14 @@ if __name__ == "__main__":
         mlb_value_mean : torch.Tensor = data_prep.__getattribute__('__hittervalues_means').to(device)
         mlb_value_stds : torch.Tensor = data_prep.__getattribute__('__hittervalues_devs').to(device)
         
+        pt_mean : torch.Tensor = data_prep.__getattribute__('__hitlvlpt_means').to(device)
+        pt_devs : torch.Tensor = data_prep.__getattribute__('__hitlvlpt_devs').to(device)
+        
+        lvlstat_mean : torch.Tensor = data_prep.__getattribute__('__hitlvlstat_means').to(device)
+        lvlstat_devs : torch.Tensor = data_prep.__getattribute__('__hitlvlstat_devs').to(device)
+        
         for m in tqdm(mth, desc="Evaluation Model Copies", leave=False):
             model_idx = int(m.ModelIdx)
-            with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                network_mlb.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_MLBValue.pt"))
-            network_mlb.eval()
-            network_mlb = network_mlb.to(device)
-            
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
                 network_prospect.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_TotalClassification.pt"))
             network_prospect.eval()
@@ -70,11 +71,10 @@ if __name__ == "__main__":
                 data, length, dtes, mask = data.to(device), length.to(device), dtes.to(device), mask.to(device)
                 
                 # Use model optimized for prospect data
-                output_war, output_war_regression, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
+                output_war, output_war_regression, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network_prospect(data, length)
                 output_war = F.softmax(output_war, dim=2)
                 
                 war = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
-                value = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
                 for i in range(1, len(WAR_BUCKET_AVG)):
                     war[:,:] += output_war[:,:,i] * WAR_BUCKET_AVG[i]
                 
@@ -97,16 +97,58 @@ if __name__ == "__main__":
                     vals = [tuple(x) for x in d.tolist()]
                     cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},1,?,?,?,?,?,?,?,?,?,?,?)", vals)
                 
-                # Evaluate MLB data
-                output_war, output_war_regression, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue = network_prospect(data, length)
-                
-                # Use model optimized for MLB value
+                # Output MLB Value
                 output_mlbValue = (output_mlbValue * mlb_value_stds) + mlb_value_mean
                 omv = torch.cat((mlbIds, modelIdxs, dtes, output_mlbValue), dim=2)
                 mlb_data = torch.nn.utils.rnn.unpad_sequence(omv, length, batch_first=True)
                 for dbd in mlb_data:
                     vals = [tuple(x) for x in dbd.tolist()]
                     cursor.executemany(f"INSERT INTO Output_HitterValue VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    
+                # Reshape into levels
+                output_pt = output_pt.reshape((output_pt.size(0), output_pt.size(1), NUM_LEVELS, output_pt.size(2) // NUM_LEVELS))
+                output_stats = output_stats.reshape((output_stats.size(0), output_stats.size(1), NUM_LEVELS, output_stats.size(2) // NUM_LEVELS))
+                output_pos = output_pos.reshape((output_pos.size(0), output_pos.size(1), NUM_LEVELS, output_pos.size(2) // NUM_LEVELS))
+                
+                # Transform output stats
+                pt_values = (output_pt * pt_devs) + pt_mean
+                stats_values = (output_stats * lvlstat_devs) + lvlstat_mean
+                pos_values = F.softmax(output_pos, dim=3)
+                
+                # Unpad
+                pt_values = torch.nn.utils.rnn.unpad_sequence(pt_values, length, batch_first=True)
+                stats_values = torch.nn.utils.rnn.unpad_sequence(stats_values, length, batch_first=True)
+                pos_values = torch.nn.utils.rnn.unpad_sequence(pos_values, length, batch_first=True)
+                dates = torch.nn.utils.rnn.unpad_sequence(dtes, length, batch_first=True)
+                  
+                # Insert into DB
+                for player_idx in range(len(pt_values)):
+                    mlbId = mlbIds[player_idx,0].item()
+                    pa_list = []
+                    level_list = []
+                    stat_list = []
+                    pos_list = []
+                    dates_list = []
+                    
+                    pt = pt_values[player_idx]
+                    stats = stats_values[player_idx]
+                    pos = pos_values[player_idx]
+                    dt = dates[player_idx]
+                    for date_idx in range(pt.size(0)):
+                        date = tuple(dt[date_idx].tolist())
+                        for level_idx in range(NUM_LEVELS):
+                            pa = pt[date_idx, level_idx].item()
+                            if pa > 100:
+                                pa_list.append(tuple([pa]))
+                                level_list.append(tuple([level_idx]))
+                                stat_list.append(tuple(stats[date_idx, level_idx].tolist()))
+                                pos_list.append(tuple(pos[date_idx, level_idx].tolist()))
+                                dates_list.append(date)
+                                
+                    vals = [a + b + c + d + e for a,b,c,d,e in zip(dates_list, level_list, pa_list, stat_list, pos_list)]
+                    cursor.executemany(f"INSERT INTO Output_HitterStats VALUES({mlbId}, {model_id}, {model_idx}, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    db.commit()
+                    cursor = db.cursor()
                     
                 db.commit()
                 
