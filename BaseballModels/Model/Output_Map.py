@@ -90,7 +90,7 @@ __hitter_pt_size = 1
 __map_pitcher_stats : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
     lambda p : [min(p.ERA, 5), min(p.FIP, 3.5), min(p.HR, 7), min(p.BB, 4), min(p.HBP, 8), min(p.K, 3), p.ParkRunFactor]
 __map_pitcher_pt : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
-    lambda p : [p.Outs_SP, p.Outs_RP, p.GS, p.G]
+    lambda p : [p.Outs_SP, p.Outs_RP, p.GS, p.G - p.GS]
 __map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]] = \
     lambda p : [p.SpPerc, 1 - p.SpPerc]
 __pitcher_stats_size = 7

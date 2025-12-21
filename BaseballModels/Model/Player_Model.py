@@ -45,6 +45,7 @@ class RNN_Model(nn.Module):
         self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearStats4 = nn.Linear(hidden_size, NUM_LEVELS * stats_size)
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
+        self.yearStats_output_transform = nn.Softplus(threshold=0.25)
         
         self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
         self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
@@ -65,7 +66,9 @@ class RNN_Model(nn.Module):
         self.mutators = mutators
         self.nonlin = F.relu
         self.nonlin = F.tanh
+        #self.nonlin = F.leaky_relu
         self.softplus = nn.Softplus()
+        
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
         self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
         self.is_hitter = is_hitter
@@ -74,7 +77,7 @@ class RNN_Model(nn.Module):
         # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='tanh')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
         
@@ -84,11 +87,17 @@ class RNN_Model(nn.Module):
             if layer.bias is not None:
                 init.zeros_(layer.bias)
                 
-        # Set softmax-regression layers to Xavier for uniform across softmax dim
-        for layer in [self.linear_yearStats4, self.linear_yearPositions3]:
-            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('sigmoid'))
+        # Set softmax-regression layers
+        stat_mean = -self.stat_offsets.mean()
+        pt_mean = -self.pt_offset.mean()
+        for layer in [self.linear_yearStats4, self.linear_pt3]:
+            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('relu'))
             if layer.bias is not None:
-                init.zeros_(layer.bias)
+                #init.zeros_(layer.bias)
+                init.constant_(layer.bias, stat_mean)
+                
+        init.constant_(self.linear_yearStats4.bias, stat_mean * 0.75)
+        init.constant_(self.linear_pt3.bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
         init.kaiming_uniform_(self.linear_mlb_value1.weight, mode='fan_in', nonlinearity='relu')
@@ -108,7 +117,7 @@ class RNN_Model(nn.Module):
         yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
-                                           {'params': war_class_params, 'lr': 0.01},
+                                           {'params': war_class_params, 'lr': 0.0025},
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
                                            {'params': yearStat_params, 'lr': 0.01},
@@ -116,8 +125,6 @@ class RNN_Model(nn.Module):
                                            {'params': mlbValue_params, 'lr': 0.01},
                                            {'params': war_regression_params, 'lr': 0.01},
                                            {'params': yearPt_params, 'lr': 0.01}])
-                                           
-                                           
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -162,8 +169,9 @@ class RNN_Model(nn.Module):
         output_yearStats = self.nonlin(self.linear_yearStats1(output))
         output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
         output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
-        output_yearStats = self.linear_yearStats4(output_yearStats)
-        #output_yearStats = self.softplus(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
+        #output_yearStats = self.linear_yearStats4(output_yearStats)
+        output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
+        
         
         output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
         output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
