@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import warnings
 import Prep_Map
 import Output_Map
-
+from EvalStats import getOutputHitterStats
 
 if __name__ == "__main__":
     cursor = db.cursor()
@@ -115,40 +115,15 @@ if __name__ == "__main__":
                 stats_values = (output_stats * lvlstat_devs) + lvlstat_mean
                 pos_values = F.softmax(output_pos, dim=3)
                 
-                # Unpad
-                pt_values = torch.nn.utils.rnn.unpad_sequence(pt_values, length, batch_first=True)
-                stats_values = torch.nn.utils.rnn.unpad_sequence(stats_values, length, batch_first=True)
-                pos_values = torch.nn.utils.rnn.unpad_sequence(pos_values, length, batch_first=True)
-                dates = torch.nn.utils.rnn.unpad_sequence(dtes, length, batch_first=True)
-                  
-                # Insert into DB
-                for player_idx in range(len(pt_values)):
-                    mlbId = mlbIds[player_idx,0].item()
-                    pa_list = []
-                    level_list = []
-                    stat_list = []
-                    pos_list = []
-                    dates_list = []
-                    
-                    pt = pt_values[player_idx]
-                    stats = stats_values[player_idx]
-                    pos = pos_values[player_idx]
-                    dt = dates[player_idx]
-                    for date_idx in range(pt.size(0)):
-                        date = tuple(dt[date_idx].tolist())
-                        for level_idx in range(NUM_LEVELS):
-                            pa = pt[date_idx, level_idx].item()
-                            if pa > 100:
-                                pa_list.append(tuple([pa]))
-                                level_list.append(tuple([level_idx]))
-                                stat_list.append(tuple(stats[date_idx, level_idx].tolist()))
-                                pos_list.append(tuple(pos[date_idx, level_idx].tolist()))
-                                dates_list.append(date)
-                                
-                    vals = [a + b + c + d + e for a,b,c,d,e in zip(dates_list, level_list, pa_list, stat_list, pos_list)]
-                    cursor.executemany(f"INSERT INTO Output_HitterStats VALUES({mlbId}, {model_id}, {model_idx}, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
-                    db.commit()
-                    cursor = db.cursor()
+                pt_values = pt_values.to('cpu')
+                stats_values = stats_values.to('cpu')
+                pos_values = pos_values.to('cpu')
+                dtes = dtes.to('cpu')
+                length = length.to('cpu')
+                mlbIds = mlbIds.to('cpu')
+                
+                stats_tensor = getOutputHitterStats(length, mlbIds, dtes, pt_values, stats_values, pos_values, model_id, model_idx)
+                cursor.executemany("INSERT INTO Output_HitterStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                     
                 db.commit()
                 

@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import warnings
 import Prep_Map
 import Output_Map
+from EvalStats import getOutputPitcherStats
 
 if __name__ == "__main__":
     cursor = db.cursor()
@@ -112,39 +113,16 @@ if __name__ == "__main__":
                 pt_values = (output_pt * pt_devs) + pt_mean
                 stats_values = (output_stats * lvlstat_devs) + lvlstat_mean
                 pos_values = F.softmax(output_pos, dim=3)
+                    
+                pt_values = pt_values.to('cpu')
+                stats_values = stats_values.to('cpu')
+                pos_values = pos_values.to('cpu')
+                dtes = dtes.to('cpu')
+                length = length.to('cpu')
+                mlbIds = mlbIds.to('cpu')
                 
-                # Unpad
-                pt_values = torch.nn.utils.rnn.unpad_sequence(pt_values, length, batch_first=True)
-                stats_values = torch.nn.utils.rnn.unpad_sequence(stats_values, length, batch_first=True)
-                pos_values = torch.nn.utils.rnn.unpad_sequence(pos_values, length, batch_first=True)
-                dates = torch.nn.utils.rnn.unpad_sequence(dtes, length, batch_first=True)
-                    
-                # Insert into DB
-                for player_idx in range(len(pt_values)):
-                    mlbId = mlbIds[player_idx,0].item()
-                    pa_list = []
-                    level_list = []
-                    stat_list = []
-                    pos_list = []
-                    dates_list = []
-                    
-                    pt = pt_values[player_idx]
-                    stats = stats_values[player_idx]
-                    pos = pos_values[player_idx]
-                    dt = dates[player_idx]
-                    for date_idx in range(pt.size(0)):
-                        date = tuple(dt[date_idx].tolist())
-                        for level_idx in range(NUM_LEVELS):
-                            outs_sp, outs_rp, gs, g = tuple(pt[date_idx, level_idx].tolist())
-                            if (outs_sp + outs_rp) > 20:
-                                pa_list.append((outs_sp, outs_rp, gs, g))
-                                level_list.append(tuple([level_idx]))
-                                stat_list.append(tuple(stats[date_idx, level_idx].tolist()))
-                                pos_list.append(tuple(pos[date_idx, level_idx].tolist()))
-                                dates_list.append(date)
-                                
-                    vals = [a + b + c + d + e for a,b,c,d,e in zip(dates_list, level_list, pa_list, stat_list, pos_list)]
-                    cursor.executemany(f"INSERT INTO Output_PitcherStats VALUES({mlbId}, {model_id}, {model_idx}, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                stats_tensor = getOutputPitcherStats(length, mlbIds, dtes, pt_values, stats_values, pos_values, model_id, model_idx)
+                cursor.executemany(f"INSERT INTO Output_PitcherStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                     
                 db.commit()
                 
