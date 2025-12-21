@@ -379,7 +379,7 @@ CREATE TABLE "Output_PitcherStats" (
 	"Outs_SP" REAL NOT NULL,
 	"Outs_RP" REAL NOT NULL,
 	"GS" REAL NOT NULL,
-	"G" REAL NOT NULL,
+	"GR" REAL NOT NULL,
 	"ERA" REAL NOT NULL,
 	"FIP" REAL NOT NULL,
 	"HR" REAL NOT NULL,
@@ -390,50 +390,6 @@ CREATE TABLE "Output_PitcherStats" (
 	"SP_Perc" REAL NOT NULL,
 	"RP_Perc" REAL NOT NULL,
 	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
-);
-
-CREATE TABLE "Output_PlayerWarAggregation" (
-	"mlbId"	INTEGER NOT NULL,
-	"model"	INTEGER NOT NULL,
-	"isHitter" INTEGER NOT NULL,
-	"year"	INTEGER NOT NULL,
-	"month"	INTEGER NOT NULL,
-	"war0"	REAL NOT NULL,
-	"war1"	REAL NOT NULL,
-	"war2"	REAL NOT NULL,
-	"war3"	REAL NOT NULL,
-	"war4"	REAL NOT NULL,
-	"war5"	REAL NOT NULL,
-	"war6"	REAL NOT NULL,
-	"war" REAL NOT NULL,
-	PRIMARY KEY("mlbId","model", "isHitter", "year","month")
-);
-
-CREATE TABLE "Output_HitterStatsAggregation" (
-	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"levelId" INTEGER NOT NULL,
-	"AVG" REAL NOT NULL,
-	"OBP" REAL NOT NULL,
-	"ISO" REAL NOT NULL,
-	"HR" REAL NOT NULL,
-	"BB" REAL NOT NULL,
-	"K" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "levelId")
-);
-
-CREATE TABLE "Output_PitcherStatsAggregation" (
-	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"levelId" INTEGER NOT NULL,
-	"GB" REAL NOT NULL,
-	"ERA" REAL NOT NULL,
-	"FIP" REAL NOT NULL,
-	"HR" REAL NOT NULL,
-	"BB" REAL NOT NULL,
-	"K" REAL NOT NULL,
-	"SP" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "levelId")
 );
 
 CREATE TABLE "Output_HitterValue" (
@@ -460,29 +416,6 @@ CREATE TABLE "Output_HitterValue" (
 	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
 );
 
-CREATE TABLE "Output_HitterValueAggregation" (
-	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"year" INTEGER NOT NULL,
-	"month" INTEGER NOT NULL,
-	"WAR1Year" REAL NOT NULL,
-	"OFF1Year" REAL NOT NULL,
-	"BSR1Year" REAL NOT NULL,
-	"DEF1Year" REAL NOT NULL,
-	"WAR2Year" REAL NOT NULL,
-	"OFF2Year" REAL NOT NULL,
-	"BSR2Year" REAL NOT NULL,
-	"DEF2Year" REAL NOT NULL,
-	"WAR3Year" REAL NOT NULL,
-	"OFF3Year" REAL NOT NULL,
-	"BSR3Year" REAL NOT NULL,
-	"DEF3Year" REAL NOT NULL,
-	"PA1Year" REAL NOT NULL,
-	"PA2Year" REAL NOT NULL,
-	"PA3Year" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "month", "year")
-);
-
 CREATE TABLE "Output_PitcherValue" (
 	"mlbId" INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
@@ -502,26 +435,6 @@ CREATE TABLE "Output_PitcherValue" (
 	"IPSP3Year" REAL NOT NULL,
 	"IPRP3Year" REAL NOT NULL,
 	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
-);
-
-CREATE TABLE "Output_PitcherValueAggregation" (
-	"mlbId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"year" INTEGER NOT NULL,
-	"month" INTEGER NOT NULL,
-	"WarSP1Year" REAL NOT NULL,
-	"WarRP1Year" REAL NOT NULL,
-	"WarSP2Year" REAL NOT NULL,
-	"WarRP2Year" REAL NOT NULL,
-	"WarSP3Year" REAL NOT NULL,
-	"WarRP3Year" REAL NOT NULL,
-	"IPSP1Year" REAL NOT NULL,
-	"IPRP1Year" REAL NOT NULL,
-	"IPSP2Year" REAL NOT NULL,
-	"IPRP2Year" REAL NOT NULL,
-	"IPSP3Year" REAL NOT NULL,
-	"IPRP3Year" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "month", "year")
 );
 
 CREATE TABLE "Park_Factors" (
@@ -1077,23 +990,9 @@ CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 	"month"
 );
 
-CREATE INDEX "idx_Output_PlayerWarAggregation" ON "Output_PlayerWarAggregation" (
-	"model",
-	"mlbId",
-	"year",
-	"month"
-);
-
 CREATE INDEX "idx_Output_PitcherValue" ON "Output_PitcherValue" (
 	"model",
 	"modelIdx",
-	"mlbId",
-	"year",
-	"month"
-);
-
-CREATE INDEX "idx_Output_PitcherValueAggregation" ON "Output_PitcherValueAggregation" (
-	"model",
 	"mlbId",
 	"year",
 	"month"
@@ -1107,11 +1006,22 @@ CREATE INDEX "idx_Output_HitterValue" ON "Output_HitterValue" (
 	"month"
 );
 
-CREATE INDEX "idx_Output_HitterValueAggregation" ON "Output_HitterValueAggregation" (
+CREATE INDEX "idx_Output_HitterStats" ON "Output_HitterStats" (
 	"model",
+	"modelIdx",
 	"mlbId",
 	"year",
-	"month"
+	"month",
+	"levelId"
+);
+
+CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month",
+	"levelId"
 );
 
 CREATE INDEX "idx_HitterGameLog_Player" ON "Player_Hitter_GameLog" (

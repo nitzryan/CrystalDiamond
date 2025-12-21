@@ -4,6 +4,7 @@ namespace Db
 	{
 		public required int MlbId {get; set;}
 		public required int Model {get; set;}
+		public required int ModelIdx {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float WarSP1Year {get; set;}
@@ -25,6 +26,7 @@ namespace Db
 			{
 				MlbId = this.MlbId,
 				Model = this.Model,
+				ModelIdx = this.ModelIdx,
 				Year = this.Year,
 				Month = this.Month,
 				WarSP1Year = this.WarSP1Year,

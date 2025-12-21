@@ -11,7 +11,7 @@ namespace Db
 		public required float Outs_SP {get; set;}
 		public required float Outs_RP {get; set;}
 		public required float GS {get; set;}
-		public required float G {get; set;}
+		public required float GR {get; set;}
 		public required float ERA {get; set;}
 		public required float FIP {get; set;}
 		public required float HR {get; set;}
@@ -35,7 +35,7 @@ namespace Db
 				Outs_SP = this.Outs_SP,
 				Outs_RP = this.Outs_RP,
 				GS = this.GS,
-				G = this.G,
+				GR = this.GR,
 				ERA = this.ERA,
 				FIP = this.FIP,
 				HR = this.HR,
