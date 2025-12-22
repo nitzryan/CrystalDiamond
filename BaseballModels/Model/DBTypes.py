@@ -62,6 +62,45 @@ class DB_League_HitterStats:
 
 
 ##############################################################################################
+class DB_League_HitterYearStats:
+	def __init__(self, values : tuple[any]):
+		self.LeagueId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.AB = values[3]
+		self.AVG = values[4]
+		self.OBP = values[5]
+		self.SLG = values[6]
+		self.ISO = values[7]
+		self.wOBA = values[8]
+		self.HRPerc = values[9]
+		self.BBPerc = values[10]
+		self.KPerc = values[11]
+		self.SBRate = values[12]
+		self.SBPerc = values[13]
+		self.Hit1B = values[14]
+		self.Hit2B = values[15]
+		self.Hit3B = values[16]
+		self.HitHR = values[17]
+		self.BB = values[18]
+		self.HBP = values[19]
+		self.K = values[20]
+		self.SB = values[21]
+		self.CS = values[22]
+
+	NUM_ELEMENTS = 23
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.LeagueId,self.Year,self.Month,self.AB,self.AVG,self.OBP,self.SLG,self.ISO,self.wOBA,self.HRPerc,self.BBPerc,self.KPerc,self.SBRate,self.SBPerc,self.Hit1B,self.Hit2B,self.Hit3B,self.HitHR,self.BB,self.HBP,self.K,self.SB,self.CS)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_League_HitterYearStats']:
+		items = cursor.execute("SELECT * FROM League_HitterYearStats " + conditional, values).fetchall()
+		return [DB_League_HitterYearStats(i) for i in items]
+
+
+##############################################################################################
 class DB_League_PitcherStats:
 	def __init__(self, values : tuple[any]):
 		self.LeagueId = values[0]
@@ -88,6 +127,35 @@ class DB_League_PitcherStats:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_League_PitcherStats']:
 		items = cursor.execute("SELECT * FROM League_PitcherStats " + conditional, values).fetchall()
 		return [DB_League_PitcherStats(i) for i in items]
+
+
+##############################################################################################
+class DB_League_PitcherYearStats:
+	def __init__(self, values : tuple[any]):
+		self.LeagueId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.ERA = values[3]
+		self.RA = values[4]
+		self.FipConstant = values[5]
+		self.wOBA = values[6]
+		self.HRPerc = values[7]
+		self.BBPerc = values[8]
+		self.kPerc = values[9]
+		self.GOPerc = values[10]
+		self.avg = values[11]
+		self.iso = values[12]
+
+	NUM_ELEMENTS = 13
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.LeagueId,self.Year,self.Month,self.ERA,self.RA,self.FipConstant,self.wOBA,self.HRPerc,self.BBPerc,self.kPerc,self.GOPerc,self.avg,self.iso)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_League_PitcherYearStats']:
+		items = cursor.execute("SELECT * FROM League_PitcherYearStats " + conditional, values).fetchall()
+		return [DB_League_PitcherYearStats(i) for i in items]
 
 
 ##############################################################################################

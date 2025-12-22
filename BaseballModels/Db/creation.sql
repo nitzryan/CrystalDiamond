@@ -33,7 +33,34 @@ CREATE TABLE "League_HitterStats" (
 	"K" REAL NOT NULL, 
 	"SB" REAL NOT NULL,
 	"CS" REAL NOT NULL,
-	PRIMARY KEY("LeagueId","Year","Month")
+	PRIMARY KEY("Year","Month", "LeagueId")
+);
+
+CREATE TABLE "League_HitterYearStats" (
+	"LeagueId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"Month"	INTEGER NOT NULL,
+	"AB" INTEGER NOT NULL,
+	"AVG"	REAL NOT NULL,
+	"OBP"	REAL NOT NULL,
+	"SLG"	REAL NOT NULL,
+	"ISO"	REAL NOT NULL,
+	"wOBA"	REAL NOT NULL,
+	"HRPerc"	REAL NOT NULL,
+	"BBPerc"	REAL NOT NULL,
+	"KPerc"	REAL NOT NULL,
+	"SBRate"	REAL NOT NULL,
+	"SBPerc"	REAL NOT NULL,
+	"Hit1B" REAL NOT NULL,
+	"Hit2B" REAL NOT NULL,
+	"Hit3B" REAL NOT NULL,
+	"HitHR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	"SB" REAL NOT NULL,
+	"CS" REAL NOT NULL,
+	PRIMARY KEY("Year","Month", "LeagueId")
 );
 
 CREATE TABLE "League_PitcherStats" (
@@ -50,7 +77,24 @@ CREATE TABLE "League_PitcherStats" (
 	"GOPerc"	REAL NOT NULL,
 	"avg"	REAL NOT NULL,
 	"iso"	REAL NOT NULL,
-	PRIMARY KEY("LeagueId","Year","Month")
+	PRIMARY KEY("Year","Month", "LeagueId")
+);
+
+CREATE TABLE "League_PitcherYearStats" (
+	"LeagueId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"Month"	INTEGER NOT NULL,
+	"ERA"	REAL NOT NULL,
+	"RA"	REAL NOT NULL,
+	"FipConstant"	REAL NOT NULL,
+	"wOBA"	REAL NOT NULL,
+	"HRPerc"	REAL NOT NULL,
+	"BBPerc"	REAL NOT NULL,
+	"kPerc"	REAL NOT NULL,
+	"GOPerc"	REAL NOT NULL,
+	"avg"	REAL NOT NULL,
+	"iso"	REAL NOT NULL,
+	PRIMARY KEY("Year","Month", "LeagueId")
 );
 
 CREATE TABLE "Level_GameCounts" (

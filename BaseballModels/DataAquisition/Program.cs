@@ -44,11 +44,11 @@ namespace DataAquisition
                     //    if (!CreateLevelGameCounts.Main(year, month))
                     //        return;
 
-                    //if (!CalculateLeagueBaselines.Main(year, month))
-                    //    return;
-
-                    if (!CalculateMonthStats.Main(year, month))
+                    if (!CalculateLeagueBaselines.Main(year, month))
                         return;
+
+                    //if (!CalculateMonthStats.Main(year, month))
+                    //    return;
 
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;

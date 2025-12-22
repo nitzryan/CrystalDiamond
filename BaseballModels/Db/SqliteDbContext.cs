@@ -6,7 +6,9 @@ namespace Db
 	{
 		public DbSet<Draft_Results> Draft_Results {get; set;}
 		public DbSet<League_HitterStats> League_HitterStats {get; set;}
+		public DbSet<League_HitterYearStats> League_HitterYearStats {get; set;}
 		public DbSet<League_PitcherStats> League_PitcherStats {get; set;}
+		public DbSet<League_PitcherYearStats> League_PitcherYearStats {get; set;}
 		public DbSet<Level_GameCounts> Level_GameCounts {get; set;}
 		public DbSet<Model_HitterStats> Model_HitterStats {get; set;}
 		public DbSet<Model_PitcherStats> Model_PitcherStats {get; set;}
@@ -66,7 +68,9 @@ namespace Db
 		{
 			modelBuilder.Entity<Draft_Results>().HasKey(f => new {f.Year,f.Pick});
 			modelBuilder.Entity<League_HitterStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
+			modelBuilder.Entity<League_HitterYearStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<League_PitcherStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
+			modelBuilder.Entity<League_PitcherYearStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<Level_GameCounts>().HasKey(f => new {f.LevelId,f.Year,f.Month});
 			modelBuilder.Entity<Model_HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Model_PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
