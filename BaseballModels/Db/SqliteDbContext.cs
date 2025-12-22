@@ -116,9 +116,9 @@ namespace Db
 			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
-			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month});
-			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month});
-			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
+			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
+			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
 		}
 	}
 }

@@ -5,6 +5,7 @@ namespace Db
 		public required int LeagueId {get; set;}
 		public required int Year {get; set;}
 		public required float AvgWOBA {get; set;}
+		public required float AvgHitterWOBA {get; set;}
 		public required float WOBAScale {get; set;}
 		public required float WBB {get; set;}
 		public required float WHBP {get; set;}
@@ -29,6 +30,7 @@ namespace Db
 				LeagueId = this.LeagueId,
 				Year = this.Year,
 				AvgWOBA = this.AvgWOBA,
+				AvgHitterWOBA = this.AvgHitterWOBA,
 				WOBAScale = this.WOBAScale,
 				WBB = this.WBB,
 				WHBP = this.WHBP,

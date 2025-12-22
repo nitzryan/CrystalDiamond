@@ -1,6 +1,5 @@
 ﻿using Db;
 using ShellProgressBar;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace DataAquisition
@@ -348,29 +347,6 @@ namespace DataAquisition
                         // Check if league already has data for year
                         if (db.LeagueStats.Any(f => f.Year == year && f.LeagueId == league))
                         {
-                            //LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == league).Single();
-                            //ls.LeaguePA = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
-                            //    .Select(f => f.PA).Sum();
-                            //ls.LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
-                            //    .Select(f => f.GameId).Distinct().Count();
-
-                            //var lleagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
-                            //int lleagueHRs = lleagueStats.Select(f => f.HR).Sum();
-                            //int lleagueBBs = lleagueStats.Select(f => f.BB + f.HBP).Sum();
-                            //int lleagueKs = lleagueStats.Select(f => f.K).Sum();
-                            //int lleagueRuns = lleagueStats.Select(f => f.R).Sum();
-                            //int lleagueERs = lleagueStats.Select(f => f.ER).Sum();
-                            //int lleagueOuts = lleagueStats.Select(f => f.Outs).Sum();
-
-                            //float lleagueRA = (float)lleagueRuns / lleagueOuts * 27;
-                            //float lleagueERA = (float)lleagueERs / lleagueOuts * 27;
-                            //float lleagueFIP = Utilities.CalculateFip(0, lleagueHRs, lleagueKs, lleagueBBs, lleagueOuts);
-
-                            //ls.CFIP = lleagueERA - lleagueFIP;
-                            //ls.FIPR9Adjustment = lleagueRA - lleagueERA;
-                            //ls.LeagueERA = lleagueERA;
-                            //db.SaveChanges();
-
                             progressBar.Tick();
                             continue;
                         }
@@ -486,18 +462,39 @@ namespace DataAquisition
                         float leagueERA = (float)leagueERs / leagueOuts * 27;
                         float leagueFIP = Utilities.CalculateFip(0, leagueHRs, leagueKs, leagueBBs, leagueOuts);
 
+                        // Get hitter stats for non-pitchers
+                        Player_Hitter_GameLog lps = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league && f.Position != 1)
+                            .Aggregate(Utilities.HitterGameLogAggregation);
+
+                        float w1b = outcomeRunsAdded[1] * wobaScale;
+                        float w2b = outcomeRunsAdded[2] * wobaScale;
+                        float w3b = outcomeRunsAdded[3] * wobaScale;
+                        float whr = outcomeRunsAdded[4] * wobaScale;
+                        float wbb = outcomeRunsAdded[5] * wobaScale;
+                        float whbp = outcomeRunsAdded[6] * wobaScale;
+
+                        double leaguewRC = (lps.BB * wbb) +
+                            (lps.HBP * whbp) +
+                            ((lps.H - lps.Hit2B - lps.Hit3B - lps.HR) * w1b) +
+                            (lps.Hit2B * w2b) +
+                            (lps.Hit3B * w3b) +
+                            (lps.HR * whr);
+
+                        float leagueHittersWOBA = (float)leaguewRC / lps.PA;
+
                         db.LeagueStats.Add(new LeagueStats
                         {
                             LeagueId = league,
                             Year = year,
                             AvgWOBA = obp,
+                            AvgHitterWOBA = leagueHittersWOBA,
                             WOBAScale = wobaScale,
-                            W1B = outcomeRunsAdded[1] * wobaScale,
-                            W2B = outcomeRunsAdded[2] * wobaScale,
-                            W3B = outcomeRunsAdded[3] * wobaScale,
-                            WHR = outcomeRunsAdded[4] * wobaScale,
-                            WBB = outcomeRunsAdded[5] * wobaScale,
-                            WHBP = outcomeRunsAdded[6] * wobaScale,
+                            W1B = w1b,
+                            W2B = w2b,
+                            W3B = w3b,
+                            WHR = whr,
+                            WBB = wbb,
+                            WHBP = whbp,
                             RunCS = -0.4f,
                             RunSB = 0.2f,
                             RPerPA = (float)totalRunsScoredInLeague / hitterEvents.Count,

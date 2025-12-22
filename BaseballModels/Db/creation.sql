@@ -325,7 +325,7 @@ CREATE TABLE "Output_PlayerWar" (
 	"mlbId"	INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
-	"modelIdx"	INTEGER NOT NULL,
+	"ModelIdx"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
 	"war0"	REAL NOT NULL,
@@ -336,7 +336,7 @@ CREATE TABLE "Output_PlayerWar" (
 	"war5"	REAL NOT NULL,
 	"war6"	REAL NOT NULL,
 	"war" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "isHitter", "modelIdx","year","month")
+	PRIMARY KEY("mlbId", "model", "isHitter", "ModelIdx","year","month")
 );
 
 CREATE TABLE Output_HitterStats (
@@ -395,7 +395,7 @@ CREATE TABLE "Output_PitcherStats" (
 CREATE TABLE "Output_HitterValue" (
 	"mlbId" INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
+	"ModelIdx" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"WAR1Year" REAL NOT NULL,
@@ -413,13 +413,13 @@ CREATE TABLE "Output_HitterValue" (
 	"PA1Year" REAL NOT NULL,
 	"PA2Year" REAL NOT NULL,
 	"PA3Year" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
+	PRIMARY KEY("mlbId", "model", "ModelIdx", "month", "year")
 );
 
 CREATE TABLE "Output_PitcherValue" (
 	"mlbId" INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
+	"ModelIdx" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
 	"WarSP1Year" REAL NOT NULL,
@@ -434,7 +434,7 @@ CREATE TABLE "Output_PitcherValue" (
 	"IPRP2Year" REAL NOT NULL,
 	"IPSP3Year" REAL NOT NULL,
 	"IPRP3Year" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "modelIdx", "month", "year")
+	PRIMARY KEY("mlbId", "model", "ModelIdx", "month", "year")
 );
 
 CREATE TABLE "Park_Factors" (
@@ -883,6 +883,7 @@ CREATE TABLE "LeagueStats" (
 	"LeagueId" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"avgWOBA" REAL NOT NULL,
+	"avgHitterWOBA" REAL NOT NULL,
 	"wOBAScale" REAL NOT NULL,
 	"wBB" REAL NOT NULL,
 	"wHBP" REAL NOT NULL,

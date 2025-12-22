@@ -47,11 +47,11 @@ namespace DataAquisition
                     //if (!CalculateLeagueBaselines.Main(year, month))
                     //    return;
 
-                    //    if (!CalculateMonthStats.Main(year, month))
-                    //        return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                    //    if (!CalculateMonthRatios.Main(year, month))
-                    //        return;
+                    //if (!CalculateMonthRatios.Main(year, month))
+                    //    return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
@@ -95,8 +95,8 @@ namespace DataAquisition
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
+            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+            //    return;
 
             //if (!Model_MonthValue.Main())
             //    return;

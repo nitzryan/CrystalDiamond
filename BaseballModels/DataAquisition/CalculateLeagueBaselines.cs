@@ -10,7 +10,7 @@ namespace DataAquisition
             db.League_HitterStats.RemoveRange(db.League_HitterStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
 
-            var leagues = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month).Select(f => f.LeagueId).Distinct();
+            var leagues = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month).Select(f => f.LeagueId).Distinct();
             using (ProgressBar progressBar = new ProgressBar(leagues.Count(), $"Calculating Hitting League Baselines for {year}-{month}"))
             {
                 foreach (int leagueId in leagues)

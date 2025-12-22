@@ -523,7 +523,7 @@ class DB_Output_PlayerWar:
 		self.mlbId = values[0]
 		self.model = values[1]
 		self.isHitter = values[2]
-		self.modelIdx = values[3]
+		self.ModelIdx = values[3]
 		self.year = values[4]
 		self.month = values[5]
 		self.war0 = values[6]
@@ -539,7 +539,7 @@ class DB_Output_PlayerWar:
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.isHitter,self.modelIdx,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war)
+		return (self.mlbId,self.model,self.isHitter,self.ModelIdx,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PlayerWar']:
@@ -632,7 +632,7 @@ class DB_Output_HitterValue:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.model = values[1]
-		self.modelIdx = values[2]
+		self.ModelIdx = values[2]
 		self.year = values[3]
 		self.month = values[4]
 		self.WAR1Year = values[5]
@@ -655,7 +655,7 @@ class DB_Output_HitterValue:
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
+		return (self.mlbId,self.model,self.ModelIdx,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_HitterValue']:
@@ -668,7 +668,7 @@ class DB_Output_PitcherValue:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.model = values[1]
-		self.modelIdx = values[2]
+		self.ModelIdx = values[2]
 		self.year = values[3]
 		self.month = values[4]
 		self.WarSP1Year = values[5]
@@ -688,7 +688,7 @@ class DB_Output_PitcherValue:
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
+		return (self.mlbId,self.model,self.ModelIdx,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitcherValue']:
@@ -1480,28 +1480,29 @@ class DB_LeagueStats:
 		self.LeagueId = values[0]
 		self.Year = values[1]
 		self.avgWOBA = values[2]
-		self.wOBAScale = values[3]
-		self.wBB = values[4]
-		self.wHBP = values[5]
-		self.w1B = values[6]
-		self.w2B = values[7]
-		self.w3B = values[8]
-		self.wHR = values[9]
-		self.runSB = values[10]
-		self.runCS = values[11]
-		self.RPerPA = values[12]
-		self.RPerWin = values[13]
-		self.LeaguePA = values[14]
-		self.LeagueGames = values[15]
-		self.cFIP = values[16]
-		self.FIPR9Adjustment = values[17]
-		self.LeagueERA = values[18]
+		self.avgHitterWOBA = values[3]
+		self.wOBAScale = values[4]
+		self.wBB = values[5]
+		self.wHBP = values[6]
+		self.w1B = values[7]
+		self.w2B = values[8]
+		self.w3B = values[9]
+		self.wHR = values[10]
+		self.runSB = values[11]
+		self.runCS = values[12]
+		self.RPerPA = values[13]
+		self.RPerWin = values[14]
+		self.LeaguePA = values[15]
+		self.LeagueGames = values[16]
+		self.cFIP = values[17]
+		self.FIPR9Adjustment = values[18]
+		self.LeagueERA = values[19]
 
-	NUM_ELEMENTS = 19
+	NUM_ELEMENTS = 20
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.LeagueId,self.Year,self.avgWOBA,self.wOBAScale,self.wBB,self.wHBP,self.w1B,self.w2B,self.w3B,self.wHR,self.runSB,self.runCS,self.RPerPA,self.RPerWin,self.LeaguePA,self.LeagueGames,self.cFIP,self.FIPR9Adjustment,self.LeagueERA)
+		return (self.LeagueId,self.Year,self.avgWOBA,self.avgHitterWOBA,self.wOBAScale,self.wBB,self.wHBP,self.w1B,self.w2B,self.w3B,self.wHR,self.runSB,self.runCS,self.RPerPA,self.RPerWin,self.LeaguePA,self.LeagueGames,self.cFIP,self.FIPR9Adjustment,self.LeagueERA)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_LeagueStats']:
@@ -1589,30 +1590,29 @@ class DB_Output_HitterValueAggregation:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.model = values[1]
-		self.modelIdx = values[2]
-		self.year = values[3]
-		self.month = values[4]
-		self.WAR1Year = values[5]
-		self.OFF1Year = values[6]
-		self.BSR1Year = values[7]
-		self.DEF1Year = values[8]
-		self.WAR2Year = values[9]
-		self.OFF2Year = values[10]
-		self.BSR2Year = values[11]
-		self.DEF2Year = values[12]
-		self.WAR3Year = values[13]
-		self.OFF3Year = values[14]
-		self.BSR3Year = values[15]
-		self.DEF3Year = values[16]
-		self.PA1Year = values[17]
-		self.PA2Year = values[18]
-		self.PA3Year = values[19]
+		self.year = values[2]
+		self.month = values[3]
+		self.WAR1Year = values[4]
+		self.OFF1Year = values[5]
+		self.BSR1Year = values[6]
+		self.DEF1Year = values[7]
+		self.WAR2Year = values[8]
+		self.OFF2Year = values[9]
+		self.BSR2Year = values[10]
+		self.DEF2Year = values[11]
+		self.WAR3Year = values[12]
+		self.OFF3Year = values[13]
+		self.BSR3Year = values[14]
+		self.DEF3Year = values[15]
+		self.PA1Year = values[16]
+		self.PA2Year = values[17]
+		self.PA3Year = values[18]
 
-	NUM_ELEMENTS = 20
+	NUM_ELEMENTS = 19
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
+		return (self.mlbId,self.model,self.year,self.month,self.WAR1Year,self.OFF1Year,self.BSR1Year,self.DEF1Year,self.WAR2Year,self.OFF2Year,self.BSR2Year,self.DEF2Year,self.WAR3Year,self.OFF3Year,self.BSR3Year,self.DEF3Year,self.PA1Year,self.PA2Year,self.PA3Year)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_HitterValueAggregation']:
@@ -1625,27 +1625,26 @@ class DB_Output_PitcherValueAggregation:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
 		self.model = values[1]
-		self.modelIdx = values[2]
-		self.year = values[3]
-		self.month = values[4]
-		self.WarSP1Year = values[5]
-		self.WarRP1Year = values[6]
-		self.WarSP2Year = values[7]
-		self.WarRP2Year = values[8]
-		self.WarSP3Year = values[9]
-		self.WarRP3Year = values[10]
-		self.IPSP1Year = values[11]
-		self.IPRP1Year = values[12]
-		self.IPSP2Year = values[13]
-		self.IPRP2Year = values[14]
-		self.IPSP3Year = values[15]
-		self.IPRP3Year = values[16]
+		self.year = values[2]
+		self.month = values[3]
+		self.WarSP1Year = values[4]
+		self.WarRP1Year = values[5]
+		self.WarSP2Year = values[6]
+		self.WarRP2Year = values[7]
+		self.WarSP3Year = values[8]
+		self.WarRP3Year = values[9]
+		self.IPSP1Year = values[10]
+		self.IPRP1Year = values[11]
+		self.IPSP2Year = values[12]
+		self.IPRP2Year = values[13]
+		self.IPSP3Year = values[14]
+		self.IPRP3Year = values[15]
 
-	NUM_ELEMENTS = 17
+	NUM_ELEMENTS = 16
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.modelIdx,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
+		return (self.mlbId,self.model,self.year,self.month,self.WarSP1Year,self.WarRP1Year,self.WarSP2Year,self.WarRP2Year,self.WarSP3Year,self.WarRP3Year,self.IPSP1Year,self.IPRP1Year,self.IPSP2Year,self.IPRP2Year,self.IPSP3Year,self.IPRP3Year)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitcherValueAggregation']:
@@ -1659,23 +1658,22 @@ class DB_Output_PlayerWarAggregation:
 		self.mlbId = values[0]
 		self.model = values[1]
 		self.isHitter = values[2]
-		self.modelIdx = values[3]
-		self.year = values[4]
-		self.month = values[5]
-		self.war0 = values[6]
-		self.war1 = values[7]
-		self.war2 = values[8]
-		self.war3 = values[9]
-		self.war4 = values[10]
-		self.war5 = values[11]
-		self.war6 = values[12]
-		self.war = values[13]
+		self.year = values[3]
+		self.month = values[4]
+		self.war0 = values[5]
+		self.war1 = values[6]
+		self.war2 = values[7]
+		self.war3 = values[8]
+		self.war4 = values[9]
+		self.war5 = values[10]
+		self.war6 = values[11]
+		self.war = values[12]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.model,self.isHitter,self.modelIdx,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war)
+		return (self.mlbId,self.model,self.isHitter,self.year,self.month,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PlayerWarAggregation']:
