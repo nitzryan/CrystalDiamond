@@ -1,5 +1,6 @@
 ﻿using Db;
 using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using SiteDb;
 using System.IO.Compression;
@@ -38,8 +39,8 @@ namespace SitePrep
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
                 using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
-                siteDb.Truncate<PlayerRank>();
-                siteDb.Truncate<Models>();
+                siteDb.Database.ExecuteSqlRaw("DELETE FROM PlayerRank;");
+                siteDb.Database.ExecuteSqlRaw("DELETE FROM Models;");
 
                 // Move models from data DB to site DB
                 foreach (var model in db.ModelIdx)

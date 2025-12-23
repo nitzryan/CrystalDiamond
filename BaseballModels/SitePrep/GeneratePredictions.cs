@@ -2,6 +2,7 @@
 using ShellProgressBar;
 using SiteDb;
 using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace SitePrep
 {
@@ -11,7 +12,7 @@ namespace SitePrep
         {
             using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
             {
-                sitedb.Truncate<Prediction_HitterStats>();
+                sitedb.Database.ExecuteSqlRaw("DELETE FROM Prediction_HitterStats;");
             }
 
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -177,7 +178,7 @@ namespace SitePrep
         {
             using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
             {
-                sitedb.Truncate<Prediction_PitcherStats>();
+                sitedb.Database.ExecuteSqlRaw("DELETE FROM Prediction_PitcherStats;");
             }
 
             using SqliteDbContext db = new(Constants.DB_OPTIONS);

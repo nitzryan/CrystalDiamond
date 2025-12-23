@@ -15,11 +15,11 @@ namespace SitePrep
             //if (!ModelAggregation.Main())
             //    return;
 
-            //if (!GeneratePlayerPositions.MainFunc())
-            //    return;
+            if (!GeneratePlayerPositions.MainFunc())
+                return;
 
-            //if (!GeneratePredictions.Update())
-            //    return;
+            if (!GeneratePredictions.Update())
+                return;
 
             if (!GenerateRankings.Main(year, month))
                 return;

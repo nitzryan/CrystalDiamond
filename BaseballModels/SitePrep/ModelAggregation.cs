@@ -1,4 +1,6 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
 namespace SitePrep
@@ -9,31 +11,32 @@ namespace SitePrep
         {
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_PlayerWarAggregation.RemoveRange(db_write.Output_PlayerWarAggregation);
-                db_write.SaveChanges();
+                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_PlayerWarAggregation;");
             }
 
             List<Db.Output_PlayerWarAggregation> items = new();
 
             using (SqliteDbContext db = new(Constants.DB_OPTIONS))
             {
-                var opw = db.Output_PlayerWar.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(opw.Count(), "Aggregating Model Results"))
+                var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
+                int count = opws.Count();
+                items.Capacity = count;
+                //var opw = db.Output_PlayerWar.Where(f => f.ModelIdx == 0);
+                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Model Results"))
                 {
-                    foreach (var o in opw)
+                    foreach (var o in opws)
                     {
-                        var model_results = db.Output_PlayerWar.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model && f.IsHitter == o.IsHitter);
-                        int size = model_results.Count();
+                        int size = o.Count();
                         if (size == 0)
                             throw new Exception("No elements in model_results, should not happen");
 
                         Db.Output_PlayerWarAggregation owa = new()
                         {
-                            MlbId = o.MlbId,
-                            Model = o.Model,
-                            IsHitter = o.IsHitter,
-                            Year = o.Year,
-                            Month = o.Month,
+                            MlbId = o.Key.MlbId,
+                            Model = o.Key.Model,
+                            IsHitter = o.Key.IsHitter,
+                            Year = o.Key.Year,
+                            Month = o.Key.Month,
                             War0 = 0,
                             War1 = 0,
                             War2 = 0,
@@ -44,7 +47,7 @@ namespace SitePrep
                             War = 0,
                         };
 
-                        foreach (var result in model_results)
+                        foreach (var result in o)
                         {
                             owa.War0 += result.War0 / size;
                             owa.War1 += result.War1 / size;
@@ -65,162 +68,7 @@ namespace SitePrep
 
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_PlayerWarAggregation.AddRange(items);
-                db_write.SaveChanges();
-            }
-
-            return true;
-        }
-
-        private static bool HitterValue()
-        {
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Output_HitterValueAggregation.RemoveRange(db_write.Output_HitterValueAggregation);
-                db_write.SaveChanges();
-            }
-
-            List<Db.Output_HitterValueAggregation> items = new();
-
-            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
-            {
-                var ohv = db.Output_HitterValue.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(ohv.Count(), "Aggregating Hitter Values"))
-                {
-                    foreach (var o in ohv)
-                    {
-                        var model_results = db.Output_HitterValue.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
-                        int size = model_results.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
-
-                        Db.Output_HitterValueAggregation owa = new()
-                        {
-                            MlbId = o.MlbId,
-                            Model = o.Model,
-                            Year = o.Year,
-                            Month = o.Month,
-                            WAR1Year = 0,
-                            WAR2Year = 0,
-                            WAR3Year = 0,
-                            OFF1Year = 0,
-                            OFF2Year = 0,
-                            OFF3Year = 0,
-                            DEF1Year = 0,
-                            DEF2Year = 0,
-                            DEF3Year = 0,
-                            BSR1Year = 0,
-                            BSR2Year = 0,
-                            BSR3Year = 0,
-                            PA1Year = 0,
-                            PA2Year = 0,
-                            PA3Year = 0
-                        };
-
-                        foreach (var result in model_results)
-                        {
-                            owa.WAR1Year += result.WAR1Year / size;
-                            owa.WAR2Year += result.WAR2Year / size;
-                            owa.WAR3Year += result.WAR3Year / size;
-                            owa.OFF1Year += result.OFF1Year / size;
-                            owa.OFF2Year += result.OFF2Year / size;
-                            owa.OFF3Year += result.OFF3Year / size;
-                            owa.DEF1Year += result.DEF1Year / size;
-                            owa.DEF2Year += result.DEF2Year / size;
-                            owa.DEF3Year += result.DEF3Year / size;
-                            owa.BSR1Year += result.BSR1Year / size;
-                            owa.BSR2Year += result.BSR2Year / size;
-                            owa.BSR3Year += result.BSR3Year / size;
-                            owa.PA1Year += result.PA1Year / size;
-                            owa.PA2Year += result.PA2Year / size;
-                            owa.PA3Year += result.PA3Year / size;
-                        }
-
-                        items.Add(owa);
-                        progressBar.Tick();
-                    }
-                }
-            }
-
-
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Output_HitterValueAggregation.AddRange(items);
-                db_write.SaveChanges();
-            }
-
-            return true;
-        }
-
-        private static bool PitcherValue()
-        {
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Output_PitcherValueAggregation.RemoveRange(db_write.Output_PitcherValueAggregation);
-                db_write.SaveChanges();
-            }
-
-            List<Db.Output_PitcherValueAggregation> items = new();
-
-            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
-            {
-                var ohv = db.Output_PitcherValue.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(ohv.Count(), "Aggregating Pitcher Values"))
-                {
-                    foreach (var o in ohv)
-                    {
-                        var model_results = db.Output_PitcherValue.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
-                        int size = model_results.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
-
-                        Db.Output_PitcherValueAggregation owa = new()
-                        {
-                            MlbId = o.MlbId,
-                            Model = o.Model,
-                            Year = o.Year,
-                            Month = o.Month,
-                            WarSP1Year = 0,
-                            WarSP2Year = 0,
-                            WarSP3Year = 0,
-                            WarRP1Year = 0,
-                            WarRP2Year = 0,
-                            WarRP3Year = 0,
-                            IPSP1Year = 0,
-                            IPSP2Year = 0,
-                            IPSP3Year = 0,
-                            IPRP1Year = 0,
-                            IPRP2Year = 0,
-                            IPRP3Year = 0,
-                        };
-
-                        foreach (var result in model_results)
-                        {
-                            owa.WarSP1Year += result.WarSP1Year / size;
-                            owa.WarSP2Year += result.WarSP2Year / size;
-                            owa.WarSP3Year += result.WarSP3Year / size;
-                            owa.WarRP1Year += result.WarRP1Year / size;
-                            owa.WarRP2Year += result.WarRP2Year / size;
-                            owa.WarRP3Year += result.WarRP3Year / size;
-                            owa.IPSP1Year += result.IPSP1Year / size;
-                            owa.IPSP2Year += result.IPSP2Year / size;
-                            owa.IPSP3Year += result.IPSP3Year / size;
-                            owa.IPRP1Year += result.IPRP1Year / size;
-                            owa.IPRP2Year += result.IPRP2Year / size;
-                            owa.IPRP3Year += result.IPRP3Year / size;
-                        }
-
-                        items.Add(owa);
-                        progressBar.Tick();
-                    }
-                }
-            }
-
-
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Output_PitcherValueAggregation.AddRange(items);
-                db_write.SaveChanges();
+                db_write.BulkInsert(items);
             }
 
             return true;
@@ -230,31 +78,31 @@ namespace SitePrep
         {
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_HitterStatsAggregation.RemoveRange(db_write.Output_HitterStatsAggregation);
-                db_write.SaveChanges();
+                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_HitterStatsAggregation;");
             }
 
             List<Db.Output_HitterStatsAggregation> items = new();
 
             using (SqliteDbContext db = new(Constants.DB_OPTIONS))
             {
-                var ohs = db.Output_HitterStats.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(ohs.Count(), "Aggregating Hitter Stats"))
+                var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+                int count = ohs.Count();
+                items.Capacity = count;
+                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Hitter Stats"))
                 {
                     foreach (var o in ohs)
                     {
-                        var model_results = db.Output_HitterStats.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
-                        int size = model_results.Count();
+                        int size = o.Count();
                         if (size == 0)
                             throw new Exception("No elements in model_results, should not happen");
 
                         Db.Output_HitterStatsAggregation ohsa = new()
                         {
-                            MlbId = o.MlbId,
-                            Model = o.Model,
-                            Year = o.Year,
-                            Month = o.Month,
-                            LevelId = o.LevelId,
+                            MlbId = o.Key.MlbId,
+                            Model = o.Key.Model,
+                            Year = o.Key.Year,
+                            Month = o.Key.Month,
+                            LevelId = o.Key.LevelId,
                             Pa = 0,
                             Hit1B = 0,
                             Hit2B = 0,
@@ -277,7 +125,7 @@ namespace SitePrep
                             PercDH = 0,
                         };
 
-                        foreach (var result in model_results)
+                        foreach (var result in o)
                         {
                             ohsa.Pa += result.Pa / size;
                             ohsa.Hit1B += result.Hit1B / size;
@@ -310,8 +158,7 @@ namespace SitePrep
 
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_HitterStatsAggregation.AddRange(items);
-                db_write.SaveChanges();
+                db_write.BulkInsert(items);
             }
 
             return true;
@@ -321,31 +168,31 @@ namespace SitePrep
         {
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_PitcherStatsAggregation.RemoveRange(db_write.Output_PitcherStatsAggregation);
-                db_write.SaveChanges();
+                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_PitcherStatsAggregation;");
             }
 
             List<Db.Output_PitcherStatsAggregation> items = new();
 
             using (SqliteDbContext db = new(Constants.DB_OPTIONS))
             {
-                var ops = db.Output_PitcherStats.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(ops.Count(), "Aggregating Pitcher Stats"))
+                var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+                int count = ops.Count();
+                items.Capacity = count;
+                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitcher Stats"))
                 {
                     foreach (var o in ops)
                     {
-                        var model_results = db.Output_PitcherStats.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
-                        int size = model_results.Count();
+                        int size = o.Count();
                         if (size == 0)
                             throw new Exception("No elements in model_results, should not happen");
 
                         Db.Output_PitcherStatsAggregation opsa = new()
                         {
-                            MlbId = o.MlbId,
-                            Model = o.Model,
-                            Year = o.Year,
-                            Month = o.Month,
-                            LevelId = o.LevelId,
+                            MlbId = o.Key.MlbId,
+                            Model = o.Key.Model,
+                            Year = o.Key.Year,
+                            Month = o.Key.Month,
+                            LevelId = o.Key.LevelId,
                             Outs_SP = 0,
                             Outs_RP = 0,
                             GS = 0,
@@ -361,7 +208,7 @@ namespace SitePrep
                             RP_Perc = 0,
                         };
 
-                        foreach (var result in model_results)
+                        foreach (var result in o)
                         {
                             opsa.Outs_SP += result.Outs_SP / size;
                             opsa.Outs_RP += result.Outs_RP / size;
@@ -387,8 +234,7 @@ namespace SitePrep
 
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Output_PitcherStatsAggregation.AddRange(items);
-                db_write.SaveChanges();
+                db_write.BulkInsert(items);
             }
 
             return true;
@@ -399,12 +245,6 @@ namespace SitePrep
             try
             {
                 if (!ModelAggregation.PlayerWar())
-                    return false;
-
-                if (!ModelAggregation.HitterValue())
-                    return false;
-
-                if (!ModelAggregation.PitcherValue())
                     return false;
 
                 if (!ModelAggregation.HitterStats())
