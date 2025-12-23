@@ -226,6 +226,174 @@ namespace SitePrep
             return true;
         }
 
+        private static bool HitterStats()
+        {
+            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+            {
+                db_write.Output_HitterStatsAggregation.RemoveRange(db_write.Output_HitterStatsAggregation);
+                db_write.SaveChanges();
+            }
+
+            List<Db.Output_HitterStatsAggregation> items = new();
+
+            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
+            {
+                var ohs = db.Output_HitterStats.Where(f => f.ModelIdx == 0);
+                using (ProgressBar progressBar = new ProgressBar(ohs.Count(), "Aggregating Hitter Stats"))
+                {
+                    foreach (var o in ohs)
+                    {
+                        var model_results = db.Output_HitterStats.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
+                        int size = model_results.Count();
+                        if (size == 0)
+                            throw new Exception("No elements in model_results, should not happen");
+
+                        Db.Output_HitterStatsAggregation ohsa = new()
+                        {
+                            MlbId = o.MlbId,
+                            Model = o.Model,
+                            Year = o.Year,
+                            Month = o.Month,
+                            LevelId = o.LevelId,
+                            Pa = 0,
+                            Hit1B = 0,
+                            Hit2B = 0,
+                            Hit3B = 0,
+                            HitHR = 0,
+                            BB = 0,
+                            HBP = 0,
+                            K = 0,
+                            SB = 0,
+                            CS = 0,
+                            ParkRunFactor = 0,
+                            PercC = 0,
+                            Perc1B = 0,
+                            Perc2B = 0,
+                            Perc3B = 0,
+                            PercSS = 0,
+                            PercLF = 0,
+                            PercCF = 0,
+                            PercRF = 0,
+                            PercDH = 0,
+                        };
+
+                        foreach (var result in model_results)
+                        {
+                            ohsa.Pa += result.Pa / size;
+                            ohsa.Hit1B += result.Hit1B / size;
+                            ohsa.Hit2B += result.Hit2B / size;
+                            ohsa.Hit3B += result.Hit3B / size;
+                            ohsa.HitHR += result.HitHR / size;
+                            ohsa.BB += result.BB / size;
+                            ohsa.HBP += result.HBP / size;
+                            ohsa.K += result.K / size;
+                            ohsa.SB += result.SB / size;
+                            ohsa.CS += result.CS / size;
+                            ohsa.ParkRunFactor += result.ParkRunFactor / size;
+                            ohsa.PercC += result.PercC / size;
+                            ohsa.Perc1B += result.Perc1B / size;
+                            ohsa.Perc2B += result.Perc2B / size;
+                            ohsa.Perc3B += result.Perc3B / size;
+                            ohsa.PercSS += result.PercSS / size;
+                            ohsa.PercLF += result.PercLF / size;
+                            ohsa.PercCF += result.PercCF / size;
+                            ohsa.PercRF += result.PercRF / size;
+                            ohsa.PercDH += result.PercDH / size;
+                        }
+
+                        items.Add(ohsa);
+                        progressBar.Tick();
+                    }
+                }
+            }
+
+
+            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+            {
+                db_write.Output_HitterStatsAggregation.AddRange(items);
+                db_write.SaveChanges();
+            }
+
+            return true;
+        }
+
+        private static bool PitcherStats()
+        {
+            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+            {
+                db_write.Output_PitcherStatsAggregation.RemoveRange(db_write.Output_PitcherStatsAggregation);
+                db_write.SaveChanges();
+            }
+
+            List<Db.Output_PitcherStatsAggregation> items = new();
+
+            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
+            {
+                var ops = db.Output_PitcherStats.Where(f => f.ModelIdx == 0);
+                using (ProgressBar progressBar = new ProgressBar(ops.Count(), "Aggregating Pitcher Stats"))
+                {
+                    foreach (var o in ops)
+                    {
+                        var model_results = db.Output_PitcherStats.Where(f => f.MlbId == o.MlbId && f.Year == o.Year && f.Month == o.Month && f.Model == o.Model);
+                        int size = model_results.Count();
+                        if (size == 0)
+                            throw new Exception("No elements in model_results, should not happen");
+
+                        Db.Output_PitcherStatsAggregation opsa = new()
+                        {
+                            MlbId = o.MlbId,
+                            Model = o.Model,
+                            Year = o.Year,
+                            Month = o.Month,
+                            LevelId = o.LevelId,
+                            Outs_SP = 0,
+                            Outs_RP = 0,
+                            GS = 0,
+                            GR = 0,
+                            ERA = 0,
+                            FIP = 0,
+                            HR = 0,
+                            BB = 0,
+                            HBP = 0,
+                            K = 0,
+                            ParkRunFactor = 0,
+                            SP_Perc = 0,
+                            RP_Perc = 0,
+                        };
+
+                        foreach (var result in model_results)
+                        {
+                            opsa.Outs_SP += result.Outs_SP / size;
+                            opsa.Outs_RP += result.Outs_RP / size;
+                            opsa.GS += result.GS / size;
+                            opsa.GR += result.GR / size;
+                            opsa.ERA += result.ERA / size;
+                            opsa.FIP += result.FIP / size;
+                            opsa.HR += result.HR / size;
+                            opsa.BB += result.BB / size;
+                            opsa.HBP += result.HBP / size;
+                            opsa.K += result.K / size;
+                            opsa.ParkRunFactor += result.ParkRunFactor / size;
+                            opsa.SP_Perc += result.SP_Perc / size;
+                            opsa.RP_Perc += result.RP_Perc / size;
+                        }
+
+                        items.Add(opsa);
+                        progressBar.Tick();
+                    }
+                }
+            }
+
+
+            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+            {
+                db_write.Output_PitcherStatsAggregation.AddRange(items);
+                db_write.SaveChanges();
+            }
+
+            return true;
+        }
+
         public static bool Main()
         {
             try
@@ -237,6 +405,12 @@ namespace SitePrep
                     return false;
 
                 if (!ModelAggregation.PitcherValue())
+                    return false;
+
+                if (!ModelAggregation.HitterStats())
+                    return false;
+
+                if (!ModelAggregation.PitcherStats())
                     return false;
 
                 return true;

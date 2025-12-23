@@ -106,15 +106,19 @@ namespace DataAquisition
             db.League_HitterYearStats.RemoveRange(db.League_HitterYearStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
 
-            var leagues =  year == 2005 ? 
+            var leagues = year == 2005 ?
                 db.Player_Hitter_MonthStats.Where(f => f.Year == year).Select(f => f.LeagueId).Distinct().ToList() :
-                db.Player_Hitter_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month))).Select(f => f.LeagueId).Distinct().ToList();
+                (year == 2020 || year == 2021) ? db.Player_Hitter_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 2 && f.Month > month))).Select(f => f.LeagueId).Distinct().ToList() :
+                    db.Player_Hitter_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month))).Select(f => f.LeagueId).Distinct().ToList();
             using (ProgressBar progressBar = new ProgressBar(leagues.Count(), $"Calculating Hitting League Year Baselines for {year}-{month}"))
             {
                 foreach (int leagueId in leagues)
                 {
-                    var leagueStats = year == 2005 ? // Need full year for 2005 since 2004 doesn't have data, otherwise trailing year
+                    // Need full year for 2005 since 2004 doesn't have data, otherwise trailing year
+                    // Need trailing 2 years for 2021, since 2020 doesn't have data because COVID
+                    var leagueStats = year == 2005 ? 
                         db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).AsEnumerable() :
+                        (year == 2020 || year == 2021) ? db.Player_Hitter_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 2 && f.Month > month)) && f.LeagueId == leagueId).AsEnumerable() :
                         db.Player_Hitter_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month)) && f.LeagueId == leagueId).AsEnumerable();
                     if (!leagueStats.Any()) // Skip empty
                     {
@@ -122,9 +126,13 @@ namespace DataAquisition
                         continue;
                     }
 
+                    // Get league stats from last year with data
+                    // If more than 2 years, it is an error
                     var ls_check = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == leagueId);
+                    var ls_check2 = db.LeagueStats.Where(f => f.Year == year - 1 && f.LeagueId == leagueId);
                     LeagueStats ls = ls_check.Any() ? ls_check.Single() :
-                        db.LeagueStats.Where(f => f.Year == year - 1 && f.LeagueId == leagueId).Single();
+                        ls_check2.Any() ? ls_check2.Single() :    
+                            db.LeagueStats.Where(f => f.Year == year - 2 && f.LeagueId == leagueId).Single();
                     
 
                     // Sum all stats at that level
@@ -214,9 +222,9 @@ namespace DataAquisition
             {
                 foreach (int leagueId in leagues)
                 {
-                    var leagueStats = year == 2005 ? // Need full year for 2005 since 2004 doesn't have data, otherwise trailing year
-                        db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).AsEnumerable() :
-                        db.Player_Pitcher_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month)) && f.LeagueId == leagueId).AsEnumerable();
+                    // Need full year for 2005 since 2004 doesn't have data, otherwise trailing year
+                    // Need trailing 2 years for 2021, since 2020 doesn't have data because COVID
+                    var leagueStats = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month && f.LeagueId == leagueId).AsEnumerable();
                     if (!leagueStats.Any()) // Skip empty
                     {
                         progressBar.Tick();
@@ -294,21 +302,29 @@ namespace DataAquisition
 
             var leagues = year == 2005 ?
                 db.Player_Pitcher_MonthStats.Where(f => f.Year == year).Select(f => f.LeagueId).Distinct().ToList() :
+                (year == 2020 || year == 2021) ? db.Player_Pitcher_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 2 && f.Month > month))).Select(f => f.LeagueId).Distinct().ToList() :
                 db.Player_Pitcher_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month))).Select(f => f.LeagueId).Distinct().ToList();
             using (ProgressBar progressBar = new ProgressBar(leagues.Count(), $"Calculating Pitching League Year Baselines for {year}-{month}"))
             {
                 foreach (int leagueId in leagues)
                 {
-                    var leagueStats = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month && f.LeagueId == leagueId).AsEnumerable();
+                    var leagueStats = year == 2005 ?
+                        db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).AsEnumerable() :
+                        (year == 2020 || year == 2021) ? db.Player_Pitcher_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 2 && f.Month > month)) && f.LeagueId == leagueId).AsEnumerable() :
+                        db.Player_Pitcher_MonthStats.Where(f => ((f.Year == year && f.Month <= month) || (f.Year == year - 1 && f.Month > month)) && f.LeagueId == leagueId).AsEnumerable();
                     if (!leagueStats.Any()) // Skip empty
                     {
                         progressBar.Tick();
                         continue;
                     }
 
+                    // Get league stats from last year with data
+                    // If more than 2 years, it is an error
                     var ls_check = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == leagueId);
+                    var ls_check2 = db.LeagueStats.Where(f => f.Year == year - 1 && f.LeagueId == leagueId);
                     LeagueStats ls = ls_check.Any() ? ls_check.Single() :
-                        db.LeagueStats.Where(f => f.Year == year - 1 && f.LeagueId == leagueId).Single();
+                        ls_check2.Any() ? ls_check2.Single() :
+                            db.LeagueStats.Where(f => f.Year == year - 2 && f.LeagueId == leagueId).Single();
 
                     // Sum all stats at that level
                     Player_Pitcher_MonthStats summedStats = leagueStats.Aggregate((a, b) => new Player_Pitcher_MonthStats

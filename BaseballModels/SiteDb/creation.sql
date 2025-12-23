@@ -92,6 +92,68 @@ CREATE TABLE "PitcherMonthStats" (
 	PRIMARY KEY("mlbId", "year", "month", "teamId", "leagueId")
 );
 
+CREATE TABLE Prediction_HitterStats (
+	"MlbId" INTEGER NOT NULL,
+	"Model" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"Pa" REAL NOT NULL,
+	"Hit1B" REAL NOT NULL,
+	"Hit2B" REAL NOT NULL,
+	"Hit3B" REAL NOT NULL,
+	"HitHR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL, 
+	"SB" REAL NOT NULL,
+	"CS" REAL NOT NULL,
+	"ParkRunFactor" REAL NOT NULL,
+	"PercC"	REAL NOT NULL,
+	"Perc1B"	REAL NOT NULL,
+	"Perc2B"	REAL NOT NULL,
+	"Perc3B"	REAL NOT NULL,
+	"PercSS"	REAL NOT NULL,
+	"PercLF"	REAL NOT NULL,
+	"PercCF"	REAL NOT NULL,
+	"PercRF"	REAL NOT NULL,
+	"PercDH"	REAL NOT NULL,
+	"AVG" REAL NOT NULL,
+	"OBP" REAL NOT NULL,
+	"SLG" REAL NOT NULL,
+	"ISO" REAL NOT NULL,
+	"wRC" REAL NOT NULL,
+	"crOFF" REAL NOT NULL,
+	"crBSR" REAL NOT NULL,
+	"crDEF" REAL NOT NULL,
+	"crWAR" REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Model", "Year", "Month", "LevelId")
+);
+
+CREATE TABLE "Prediction_PitcherStats" (
+	"mlbId" INTEGER NOT NULL,
+	"Model" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"levelId" INTEGER NOT NULL,
+	"Outs_SP" REAL NOT NULL,
+	"Outs_RP" REAL NOT NULL,
+	"GS" REAL NOT NULL,
+	"GR" REAL NOT NULL,
+	"ERA" REAL NOT NULL,
+	"FIP" REAL NOT NULL,
+	"HR" REAL NOT NULL,
+	"BB" REAL NOT NULL,
+	"HBP" REAL NOT NULL,
+	"K" REAL NOT NULL,
+	"ParkRunFactor" REAL NOT NULL,
+	"SP_Perc" REAL NOT NULL,
+	"RP_Perc" REAL NOT NULL,
+	"crRAA" REAL NOT NULL,
+	"crWAR" REAL NOT NULL,
+	PRIMARY KEY("MlbId", "Model", "Year", "Month", "LevelId")
+);
+
 CREATE TABLE "PlayerModel" (
 	"mlbId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
@@ -200,4 +262,20 @@ CREATE INDEX "idx_PlayerRankOverallWar" ON "PlayerRank" (
 
 CREATE INDEX "idx_PlayerRankTeamWar" ON "PlayerRank" (
 	"teamId", "year", "month", "teamRankWar"
+);
+
+CREATE INDEX "idx_Prediction_HitterStats_PlayerDate" ON "Prediction_HitterStats" (
+	"mlbId", "year", "month"
+);
+
+CREATE INDEX "idx_Prediction_PitcherStats_PlayerDate" ON "Prediction_PitcherStats" (
+	"mlbId", "year", "month"
+);
+
+CREATE INDEX "idx_Prediction_HitterStats_ModelDateLevel" ON "Prediction_HitterStats" (
+	"model", "year", "month", "levelId", "crWar"
+);
+
+CREATE INDEX "idx_Prediction_PitcherStats_ModelDateLevel" ON "Prediction_PitcherStats" (
+	"model", "year", "month", "levelId", "crWar"
 );
