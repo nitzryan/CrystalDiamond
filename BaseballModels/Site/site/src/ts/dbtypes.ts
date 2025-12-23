@@ -1,50 +1,50 @@
 class DB_Player
 {
-	public MlbId : number
-	public FirstName : string
-	public LastName : string
-	public BirthYear : number
-	public BirthMonth : number
-	public BirthDate : number
-	public StartYear : number
-	public Position : string
-	public Status : string
-	public OrgId : number
-	public DraftPick : number
-	public DraftRound : string
-	public DraftBonus : number
-	public IsHitter : number
-	public IsPitcher : number
-	public InTraining : number
+	public mlbId : number
+	public firstName : string
+	public lastName : string
+	public birthYear : number
+	public birthMonth : number
+	public birthDate : number
+	public startYear : number
+	public position : string
+	public status : string
+	public orgId : number
+	public draftPick : number
+	public draftRound : string
+	public draftBonus : number
+	public isHitter : number
+	public isPitcher : number
+	public inTraining : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.FirstName = data['FirstName'] as string
-		this.LastName = data['LastName'] as string
-		this.BirthYear = data['BirthYear'] as number
-		this.BirthMonth = data['BirthMonth'] as number
-		this.BirthDate = data['BirthDate'] as number
-		this.StartYear = data['StartYear'] as number
-		this.Position = data['Position'] as string
-		this.Status = data['Status'] as string
-		this.OrgId = data['OrgId'] as number
-		this.DraftPick = data['DraftPick'] as number
-		this.DraftRound = data['DraftRound'] as string
-		this.DraftBonus = data['DraftBonus'] as number
-		this.IsHitter = data['IsHitter'] as number
-		this.IsPitcher = data['IsPitcher'] as number
-		this.InTraining = data['InTraining'] as number
+		this.mlbId = data['mlbId'] as number
+		this.firstName = data['firstName'] as string
+		this.lastName = data['lastName'] as string
+		this.birthYear = data['birthYear'] as number
+		this.birthMonth = data['birthMonth'] as number
+		this.birthDate = data['birthDate'] as number
+		this.startYear = data['startYear'] as number
+		this.position = data['position'] as string
+		this.status = data['status'] as string
+		this.orgId = data['orgId'] as number
+		this.draftPick = data['draftPick'] as number
+		this.draftRound = data['draftRound'] as string
+		this.draftBonus = data['draftBonus'] as number
+		this.isHitter = data['isHitter'] as number
+		this.isPitcher = data['isPitcher'] as number
+		this.inTraining = data['inTraining'] as number
 	}
 }
 
 class DB_HitterYearStats
 {
-	public MlbId : number
-	public LevelId : number
-	public Year : number
-	public TeamId : number
-	public LeagueId : number
+	public mlbId : number
+	public levelId : number
+	public year : number
+	public teamId : number
+	public leagueId : number
 	public PA : number
 	public AVG : number
 	public OBP : number
@@ -59,11 +59,11 @@ class DB_HitterYearStats
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.LevelId = data['LevelId'] as number
-		this.Year = data['Year'] as number
-		this.TeamId = data['TeamId'] as number
-		this.LeagueId = data['LeagueId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.levelId = data['levelId'] as number
+		this.year = data['year'] as number
+		this.teamId = data['teamId'] as number
+		this.leagueId = data['leagueId'] as number
 		this.PA = data['PA'] as number
 		this.AVG = data['AVG'] as number
 		this.OBP = data['OBP'] as number
@@ -80,12 +80,12 @@ class DB_HitterYearStats
 
 class DB_HitterMonthStats
 {
-	public MlbId : number
-	public LevelId : number
-	public Year : number
-	public Month : number
-	public TeamId : number
-	public LeagueId : number
+	public mlbId : number
+	public levelId : number
+	public year : number
+	public month : number
+	public teamId : number
+	public leagueId : number
 	public PA : number
 	public AVG : number
 	public OBP : number
@@ -100,12 +100,12 @@ class DB_HitterMonthStats
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.LevelId = data['LevelId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.TeamId = data['TeamId'] as number
-		this.LeagueId = data['LeagueId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.levelId = data['levelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.teamId = data['teamId'] as number
+		this.leagueId = data['leagueId'] as number
 		this.PA = data['PA'] as number
 		this.AVG = data['AVG'] as number
 		this.OBP = data['OBP'] as number
@@ -122,11 +122,11 @@ class DB_HitterMonthStats
 
 class DB_PitcherYearStats
 {
-	public MlbId : number
-	public LevelId : number
-	public Year : number
-	public TeamId : number
-	public LeagueId : number
+	public mlbId : number
+	public levelId : number
+	public year : number
+	public teamId : number
+	public leagueId : number
 	public IP : string
 	public ERA : number
 	public FIP : number
@@ -137,11 +137,11 @@ class DB_PitcherYearStats
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.LevelId = data['LevelId'] as number
-		this.Year = data['Year'] as number
-		this.TeamId = data['TeamId'] as number
-		this.LeagueId = data['LeagueId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.levelId = data['levelId'] as number
+		this.year = data['year'] as number
+		this.teamId = data['teamId'] as number
+		this.leagueId = data['leagueId'] as number
 		this.IP = data['IP'] as string
 		this.ERA = data['ERA'] as number
 		this.FIP = data['FIP'] as number
@@ -154,12 +154,12 @@ class DB_PitcherYearStats
 
 class DB_PitcherMonthStats
 {
-	public MlbId : number
-	public LevelId : number
-	public Year : number
-	public Month : number
-	public TeamId : number
-	public LeagueId : number
+	public mlbId : number
+	public levelId : number
+	public year : number
+	public month : number
+	public teamId : number
+	public leagueId : number
 	public IP : string
 	public ERA : number
 	public FIP : number
@@ -170,12 +170,12 @@ class DB_PitcherMonthStats
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.LevelId = data['LevelId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.TeamId = data['TeamId'] as number
-		this.LeagueId = data['LeagueId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.levelId = data['levelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.teamId = data['teamId'] as number
+		this.leagueId = data['leagueId'] as number
 		this.IP = data['IP'] as string
 		this.ERA = data['ERA'] as number
 		this.FIP = data['FIP'] as number
@@ -217,11 +217,11 @@ class DB_Prediction_HitterStats
 	public OBP : number
 	public SLG : number
 	public ISO : number
-	public WRC : number
-	public CrOFF : number
-	public CrBSR : number
-	public CrDEF : number
-	public CrWAR : number
+	public wRC : number
+	public crOFF : number
+	public crBSR : number
+	public crDEF : number
+	public crWAR : number
 
 	constructor(data : JsonObject)
 	{
@@ -254,21 +254,21 @@ class DB_Prediction_HitterStats
 		this.OBP = data['OBP'] as number
 		this.SLG = data['SLG'] as number
 		this.ISO = data['ISO'] as number
-		this.WRC = data['WRC'] as number
-		this.CrOFF = data['CrOFF'] as number
-		this.CrBSR = data['CrBSR'] as number
-		this.CrDEF = data['CrDEF'] as number
-		this.CrWAR = data['CrWAR'] as number
+		this.wRC = data['wRC'] as number
+		this.crOFF = data['crOFF'] as number
+		this.crBSR = data['crBSR'] as number
+		this.crDEF = data['crDEF'] as number
+		this.crWAR = data['crWAR'] as number
 	}
 }
 
 class DB_Prediction_PitcherStats
 {
-	public MlbId : number
+	public mlbId : number
 	public Model : number
 	public Year : number
 	public Month : number
-	public LevelId : number
+	public levelId : number
 	public Outs_SP : number
 	public Outs_RP : number
 	public GS : number
@@ -282,16 +282,16 @@ class DB_Prediction_PitcherStats
 	public ParkRunFactor : number
 	public SP_Perc : number
 	public RP_Perc : number
-	public CrRAA : number
-	public CrWAR : number
+	public crRAA : number
+	public crWAR : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
+		this.mlbId = data['mlbId'] as number
 		this.Model = data['Model'] as number
 		this.Year = data['Year'] as number
 		this.Month = data['Month'] as number
-		this.LevelId = data['LevelId'] as number
+		this.levelId = data['levelId'] as number
 		this.Outs_SP = data['Outs_SP'] as number
 		this.Outs_RP = data['Outs_RP'] as number
 		this.GS = data['GS'] as number
@@ -305,212 +305,212 @@ class DB_Prediction_PitcherStats
 		this.ParkRunFactor = data['ParkRunFactor'] as number
 		this.SP_Perc = data['SP_Perc'] as number
 		this.RP_Perc = data['RP_Perc'] as number
-		this.CrRAA = data['CrRAA'] as number
-		this.CrWAR = data['CrWAR'] as number
+		this.crRAA = data['crRAA'] as number
+		this.crWAR = data['crWAR'] as number
 	}
 }
 
 class DB_PlayerModel
 {
-	public MlbId : number
-	public Year : number
-	public Month : number
-	public ModelId : number
-	public IsHitter : number
-	public ProbsWar : string
-	public RankWar : number
+	public mlbId : number
+	public year : number
+	public month : number
+	public modelId : number
+	public isHitter : number
+	public probsWar : string
+	public rankWar : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.ModelId = data['ModelId'] as number
-		this.IsHitter = data['IsHitter'] as number
-		this.ProbsWar = data['ProbsWar'] as string
-		this.RankWar = data['RankWar'] as number
+		this.mlbId = data['mlbId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as number
+		this.probsWar = data['probsWar'] as string
+		this.rankWar = data['rankWar'] as number
 	}
 }
 
 class DB_PlayerRank
 {
-	public MlbId : number
-	public ModelId : number
-	public IsHitter : number
-	public Year : number
-	public Month : number
-	public TeamId : number
-	public Position : string
-	public War : number
-	public RankWar : number
-	public TeamRankWar : number
-	public HighestLevel : number
+	public mlbId : number
+	public modelId : number
+	public isHitter : number
+	public year : number
+	public month : number
+	public teamId : number
+	public position : string
+	public war : number
+	public rankWar : number
+	public teamRankWar : number
+	public highestLevel : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.ModelId = data['ModelId'] as number
-		this.IsHitter = data['IsHitter'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.TeamId = data['TeamId'] as number
-		this.Position = data['Position'] as string
-		this.War = data['War'] as number
-		this.RankWar = data['RankWar'] as number
-		this.TeamRankWar = data['TeamRankWar'] as number
-		this.HighestLevel = data['HighestLevel'] as number
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.teamId = data['teamId'] as number
+		this.position = data['position'] as string
+		this.war = data['war'] as number
+		this.rankWar = data['rankWar'] as number
+		this.teamRankWar = data['teamRankWar'] as number
+		this.highestLevel = data['highestLevel'] as number
 	}
 }
 
 class DB_HitterWarRank
 {
-	public MlbId : number
-	public ModelId : number
-	public Year : number
-	public Month : number
-	public TeamId : number
-	public Position : string
-	public War : number
-	public RankWar : number
-	public Pa : number
+	public mlbId : number
+	public modelId : number
+	public year : number
+	public month : number
+	public teamId : number
+	public position : string
+	public war : number
+	public rankWar : number
+	public pa : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.ModelId = data['ModelId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.TeamId = data['TeamId'] as number
-		this.Position = data['Position'] as string
-		this.War = data['War'] as number
-		this.RankWar = data['RankWar'] as number
-		this.Pa = data['Pa'] as number
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.teamId = data['teamId'] as number
+		this.position = data['position'] as string
+		this.war = data['war'] as number
+		this.rankWar = data['rankWar'] as number
+		this.pa = data['pa'] as number
 	}
 }
 
 class DB_PitcherWarRank
 {
-	public MlbId : number
-	public ModelId : number
-	public Year : number
-	public Month : number
-	public TeamId : number
-	public SpWar : number
-	public SpIP : number
-	public RpWar : number
-	public RpIP : number
-	public SpRank : number
-	public RpRank : number
+	public mlbId : number
+	public modelId : number
+	public year : number
+	public month : number
+	public teamId : number
+	public spWar : number
+	public spIP : number
+	public rpWar : number
+	public rpIP : number
+	public spRank : number
+	public rpRank : number
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.ModelId = data['ModelId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.TeamId = data['TeamId'] as number
-		this.SpWar = data['SpWar'] as number
-		this.SpIP = data['SpIP'] as number
-		this.RpWar = data['RpWar'] as number
-		this.RpIP = data['RpIP'] as number
-		this.SpRank = data['SpRank'] as number
-		this.RpRank = data['RpRank'] as number
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.teamId = data['teamId'] as number
+		this.spWar = data['spWar'] as number
+		this.spIP = data['spIP'] as number
+		this.rpWar = data['rpWar'] as number
+		this.rpIP = data['rpIP'] as number
+		this.spRank = data['spRank'] as number
+		this.rpRank = data['rpRank'] as number
 	}
 }
 
 class DB_TeamRank
 {
-	public TeamId : number
-	public ModelId : number
-	public Year : number
-	public Month : number
-	public HighestRank : number
-	public Top10 : number
-	public Top50 : number
-	public Top100 : number
-	public Top200 : number
-	public Top500 : number
-	public Rank : number
-	public War : number
+	public teamId : number
+	public modelId : number
+	public year : number
+	public month : number
+	public highestRank : number
+	public top10 : number
+	public top50 : number
+	public top100 : number
+	public top200 : number
+	public top500 : number
+	public rank : number
+	public war : number
 
 	constructor(data : JsonObject)
 	{
-		this.TeamId = data['TeamId'] as number
-		this.ModelId = data['ModelId'] as number
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.HighestRank = data['HighestRank'] as number
-		this.Top10 = data['Top10'] as number
-		this.Top50 = data['Top50'] as number
-		this.Top100 = data['Top100'] as number
-		this.Top200 = data['Top200'] as number
-		this.Top500 = data['Top500'] as number
-		this.Rank = data['Rank'] as number
-		this.War = data['War'] as number
+		this.teamId = data['teamId'] as number
+		this.modelId = data['modelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.highestRank = data['highestRank'] as number
+		this.top10 = data['top10'] as number
+		this.top50 = data['top50'] as number
+		this.top100 = data['top100'] as number
+		this.top200 = data['top200'] as number
+		this.top500 = data['top500'] as number
+		this.rank = data['rank'] as number
+		this.war = data['war'] as number
 	}
 }
 
 class DB_Models
 {
-	public ModelId : number
-	public Name : string
+	public modelId : number
+	public name : string
 
 	constructor(data : JsonObject)
 	{
-		this.ModelId = data['ModelId'] as number
-		this.Name = data['Name'] as string
+		this.modelId = data['modelId'] as number
+		this.name = data['name'] as string
 	}
 }
 
 class DB_PlayerYearPositions
 {
-	public MlbId : number
-	public Year : number
-	public IsHitter : number
-	public Position : string
+	public mlbId : number
+	public year : number
+	public isHitter : number
+	public position : string
 
 	constructor(data : JsonObject)
 	{
-		this.MlbId = data['MlbId'] as number
-		this.Year = data['Year'] as number
-		this.IsHitter = data['IsHitter'] as number
-		this.Position = data['Position'] as string
+		this.mlbId = data['mlbId'] as number
+		this.year = data['year'] as number
+		this.isHitter = data['isHitter'] as number
+		this.position = data['position'] as string
 	}
 }
 
 class DB_HomeData
 {
-	public Year : number
-	public Month : number
-	public RankType : number
-	public ModelId : number
-	public IsWar : number
-	public MlbId : number
-	public Data : string
-	public Rank : number
+	public year : number
+	public month : number
+	public rankType : number
+	public modelId : number
+	public isWar : number
+	public mlbId : number
+	public data : string
+	public rank : number
 
 	constructor(data : JsonObject)
 	{
-		this.Year = data['Year'] as number
-		this.Month = data['Month'] as number
-		this.RankType = data['RankType'] as number
-		this.ModelId = data['ModelId'] as number
-		this.IsWar = data['IsWar'] as number
-		this.MlbId = data['MlbId'] as number
-		this.Data = data['Data'] as string
-		this.Rank = data['Rank'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.rankType = data['rankType'] as number
+		this.modelId = data['modelId'] as number
+		this.isWar = data['isWar'] as number
+		this.mlbId = data['mlbId'] as number
+		this.data = data['data'] as string
+		this.rank = data['rank'] as number
 	}
 }
 
 class DB_HomeDataType
 {
-	public Type : number
-	public Name : string
+	public type : number
+	public name : string
 
 	constructor(data : JsonObject)
 	{
-		this.Type = data['Type'] as number
-		this.Name = data['Name'] as string
+		this.type = data['type'] as number
+		this.name = data['name'] as string
 	}
 }
 

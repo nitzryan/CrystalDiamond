@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/rankings.ts", "src/dateSelector.ts", "src/playerLoader.ts", "src/searchbar.ts", "src/keycontrols.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+    "include": ["src/ts/rankings.ts", "src/ts/dateSelector.ts", "src/ts/playerLoader.ts", "src/ts/searchbar.ts", "src/ts/keycontrols.ts", "src/ts/css_styles.ts", "src/ts/utility.ts", "src/*.d.ts", "src/ts/global.d.ts"],
 }

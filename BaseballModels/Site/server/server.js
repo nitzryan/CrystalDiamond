@@ -220,7 +220,7 @@ app.get('/homedata', async (req, res) => {
         const model = req.query.model
 
         let dataPromise = Promise.all([
-            dbAll(`SELECT hd.*, p.firstName, p.lastName, p.position, p.orgId FROM HomeData as hd
+            dbAll(`SELECT hd.*, p.* FROM HomeData as hd
                 INNER JOIN Player as p ON hd.mlbId = p.mlbId
                 WHERE hd.year=? AND hd.month=? AND hd.modelId=?`, [year,month,model]),
             dbAll("SELECT * FROM HomeDataType", [])

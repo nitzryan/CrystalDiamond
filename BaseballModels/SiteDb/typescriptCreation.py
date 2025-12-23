@@ -17,7 +17,7 @@ with open(f"../Site/site/src/ts/dbtypes.ts", "w") as file:
         constructorText = "constructor(data : JsonObject)\n\t{\n"
         file.write(f"class DB_{table}\n{{\n")
         for _, name, type, notnull, _, pk in vals:
-            name = name[0].capitalize() + name[1:]
+            #name = name[0].capitalize() + name[1:]
             
             if type == "INTEGER":
                 typescript_type = "number"

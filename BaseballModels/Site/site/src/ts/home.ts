@@ -1,32 +1,25 @@
 let homeDataContainer = getElementByIdStrict("homeDataContainer")
 
 type HomeData = {
-    mlbId : number,
-    name : string,
-    position : string,
-    orgId : number,
-    data : string,
-    rank : number
+    data : DB_HomeData
+    player : DB_Player
 }
 
 function getHomeData(hd : JsonArray) : Array<HomeData>
 {
     return hd.map(f => {
+        
         f = f as JsonObject
         return {
-            mlbId : f["mlbId"],
-            data : f["data"],
-            rank : f["rank"],
-            name : f["firstName"] + " " + f["lastName"],
-            position : f["position"],
-            orgId : f["orgId"]
+            data : new DB_HomeData(f),
+            player : new DB_Player(f)
         } as HomeData
-    }).sort((a,b) => a.rank - b.rank)
+    }).sort((a,b) => a.data.rank - b.data.rank)
 }
 
 function createHomeDataElements(home_data : JsonObject)
 {
-    const hd = home_data["data"] as JsonArray
+    const hd = getHomeData(home_data["data"] as JsonArray)
     const hdt = home_data["types"] as JsonArray
 
     for (var type of hdt)
@@ -39,23 +32,23 @@ function createHomeDataElements(home_data : JsonObject)
         
         var list = document.createElement('ol')
         const current_type = type["type"] as number
-        const current_hd = hd.filter(f => (f as JsonObject)["rankType"] == current_type)
-        const hd_array = getHomeData(current_hd)
+        const hd_array = hd.filter(f => f.data.rankType == current_type)
+        
         hd_array.forEach(f => {
             let li = document.createElement('li')
             li.innerHTML = 
             `
             <div class='rankings_item'>
                 <div class='rankings_row'>
-                    <div class='rankings_name'><a href='./player?id=${f.mlbId}'>${f.name}</a></div>
+                    <div class='rankings_name'><a href='./player?id=${f.player.mlbId}'>${f.player.firstName + " " + f.player.lastName}</a></div>
                     <div class='rankings_rightrow'>
-                        <div><a href='./teams?id=${f.orgId}'>${getParentAbbrFallback(f.orgId, "")}</a></div>
+                        <div><a href='./teams?id=${f.player.orgId}'>${getParentAbbrFallback(f.player.orgId, "")}</a></div>
                     </div>
                 </div>
                 <div class='rankings_row'>
-                    <div>${f.data}</div>
+                    <div>${f.data.data}</div>
                     <div class='rankings_rightrow'>
-                        <div>${f.position}</div>
+                        <div>${f.player.position}</div>
                     </div>
                 </div>
             </div>

@@ -40,17 +40,13 @@ function getHomeData(hd) {
     return hd.map(function (f) {
         f = f;
         return {
-            mlbId: f["mlbId"],
-            data: f["data"],
-            rank: f["rank"],
-            name: f["firstName"] + " " + f["lastName"],
-            position: f["position"],
-            orgId: f["orgId"]
+            data: new DB_HomeData(f),
+            player: new DB_Player(f)
         };
-    }).sort(function (a, b) { return a.rank - b.rank; });
+    }).sort(function (a, b) { return a.data.rank - b.data.rank; });
 }
 function createHomeDataElements(home_data) {
-    var hd = home_data["data"];
+    var hd = getHomeData(home_data["data"]);
     var hdt = home_data["types"];
     var _loop_1 = function () {
         type = type;
@@ -60,12 +56,11 @@ function createHomeDataElements(home_data) {
         type_div.appendChild(header);
         list = document.createElement('ol');
         var current_type = type["type"];
-        var current_hd = hd.filter(function (f) { return f["rankType"] == current_type; });
-        var hd_array = getHomeData(current_hd);
+        var hd_array = hd.filter(function (f) { return f.data.rankType == current_type; });
         hd_array.forEach(function (f) {
             var li = document.createElement('li');
             li.innerHTML =
-                "\n            <div class='rankings_item'>\n                <div class='rankings_row'>\n                    <div class='rankings_name'><a href='./player?id=".concat(f.mlbId, "'>").concat(f.name, "</a></div>\n                    <div class='rankings_rightrow'>\n                        <div><a href='./teams?id=").concat(f.orgId, "'>").concat(getParentAbbrFallback(f.orgId, ""), "</a></div>\n                    </div>\n                </div>\n                <div class='rankings_row'>\n                    <div>").concat(f.data, "</div>\n                    <div class='rankings_rightrow'>\n                        <div>").concat(f.position, "</div>\n                    </div>\n                </div>\n            </div>\n            ");
+                "\n            <div class='rankings_item'>\n                <div class='rankings_row'>\n                    <div class='rankings_name'><a href='./player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + " " + f.player.lastName, "</a></div>\n                    <div class='rankings_rightrow'>\n                        <div><a href='./teams?id=").concat(f.player.orgId, "'>").concat(getParentAbbrFallback(f.player.orgId, ""), "</a></div>\n                    </div>\n                </div>\n                <div class='rankings_row'>\n                    <div>").concat(f.data.data, "</div>\n                    <div class='rankings_rightrow'>\n                        <div>").concat(f.player.position, "</div>\n                    </div>\n                </div>\n            </div>\n            ");
             list.appendChild(li);
         });
         type_div.append(list);
@@ -495,3 +490,277 @@ var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var DB_Player = (function () {
+    function DB_Player(data) {
+        this.mlbId = data['mlbId'];
+        this.firstName = data['firstName'];
+        this.lastName = data['lastName'];
+        this.birthYear = data['birthYear'];
+        this.birthMonth = data['birthMonth'];
+        this.birthDate = data['birthDate'];
+        this.startYear = data['startYear'];
+        this.position = data['position'];
+        this.status = data['status'];
+        this.orgId = data['orgId'];
+        this.draftPick = data['draftPick'];
+        this.draftRound = data['draftRound'];
+        this.draftBonus = data['draftBonus'];
+        this.isHitter = data['isHitter'];
+        this.isPitcher = data['isPitcher'];
+        this.inTraining = data['inTraining'];
+    }
+    return DB_Player;
+}());
+var DB_HitterYearStats = (function () {
+    function DB_HitterYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterYearStats;
+}());
+var DB_HitterMonthStats = (function () {
+    function DB_HitterMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterMonthStats;
+}());
+var DB_PitcherYearStats = (function () {
+    function DB_PitcherYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherYearStats;
+}());
+var DB_PitcherMonthStats = (function () {
+    function DB_PitcherMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherMonthStats;
+}());
+var DB_Prediction_HitterStats = (function () {
+    function DB_Prediction_HitterStats(data) {
+        this.MlbId = data['MlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.LevelId = data['LevelId'];
+        this.Pa = data['Pa'];
+        this.Hit1B = data['Hit1B'];
+        this.Hit2B = data['Hit2B'];
+        this.Hit3B = data['Hit3B'];
+        this.HitHR = data['HitHR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.PercC = data['PercC'];
+        this.Perc1B = data['Perc1B'];
+        this.Perc2B = data['Perc2B'];
+        this.Perc3B = data['Perc3B'];
+        this.PercSS = data['PercSS'];
+        this.PercLF = data['PercLF'];
+        this.PercCF = data['PercCF'];
+        this.PercRF = data['PercRF'];
+        this.PercDH = data['PercDH'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.wRC = data['wRC'];
+        this.crOFF = data['crOFF'];
+        this.crBSR = data['crBSR'];
+        this.crDEF = data['crDEF'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_HitterStats;
+}());
+var DB_Prediction_PitcherStats = (function () {
+    function DB_Prediction_PitcherStats(data) {
+        this.mlbId = data['mlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.levelId = data['levelId'];
+        this.Outs_SP = data['Outs_SP'];
+        this.Outs_RP = data['Outs_RP'];
+        this.GS = data['GS'];
+        this.GR = data['GR'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR = data['HR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.SP_Perc = data['SP_Perc'];
+        this.RP_Perc = data['RP_Perc'];
+        this.crRAA = data['crRAA'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_PitcherStats;
+}());
+var DB_PlayerModel = (function () {
+    function DB_PlayerModel(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.probsWar = data['probsWar'];
+        this.rankWar = data['rankWar'];
+    }
+    return DB_PlayerModel;
+}());
+var DB_PlayerRank = (function () {
+    function DB_PlayerRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.position = data['position'];
+        this.war = data['war'];
+        this.rankWar = data['rankWar'];
+        this.teamRankWar = data['teamRankWar'];
+        this.highestLevel = data['highestLevel'];
+    }
+    return DB_PlayerRank;
+}());
+var DB_HitterWarRank = (function () {
+    function DB_HitterWarRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.position = data['position'];
+        this.war = data['war'];
+        this.rankWar = data['rankWar'];
+        this.pa = data['pa'];
+    }
+    return DB_HitterWarRank;
+}());
+var DB_PitcherWarRank = (function () {
+    function DB_PitcherWarRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.spWar = data['spWar'];
+        this.spIP = data['spIP'];
+        this.rpWar = data['rpWar'];
+        this.rpIP = data['rpIP'];
+        this.spRank = data['spRank'];
+        this.rpRank = data['rpRank'];
+    }
+    return DB_PitcherWarRank;
+}());
+var DB_TeamRank = (function () {
+    function DB_TeamRank(data) {
+        this.teamId = data['teamId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.highestRank = data['highestRank'];
+        this.top10 = data['top10'];
+        this.top50 = data['top50'];
+        this.top100 = data['top100'];
+        this.top200 = data['top200'];
+        this.top500 = data['top500'];
+        this.rank = data['rank'];
+        this.war = data['war'];
+    }
+    return DB_TeamRank;
+}());
+var DB_Models = (function () {
+    function DB_Models(data) {
+        this.modelId = data['modelId'];
+        this.name = data['name'];
+    }
+    return DB_Models;
+}());
+var DB_PlayerYearPositions = (function () {
+    function DB_PlayerYearPositions(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.isHitter = data['isHitter'];
+        this.position = data['position'];
+    }
+    return DB_PlayerYearPositions;
+}());
+var DB_HomeData = (function () {
+    function DB_HomeData(data) {
+        this.year = data['year'];
+        this.month = data['month'];
+        this.rankType = data['rankType'];
+        this.modelId = data['modelId'];
+        this.isWar = data['isWar'];
+        this.mlbId = data['mlbId'];
+        this.data = data['data'];
+        this.rank = data['rank'];
+    }
+    return DB_HomeData;
+}());
+var DB_HomeDataType = (function () {
+    function DB_HomeDataType(data) {
+        this.type = data['type'];
+        this.name = data['name'];
+    }
+    return DB_HomeDataType;
+}());
