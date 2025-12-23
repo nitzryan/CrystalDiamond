@@ -8,4 +8,5 @@ echo creating database file
 sqlite3 %DB_FILE% < creation.sql
 
 python linqCreation.py
+python typescriptCreation.py
 PAUSE
