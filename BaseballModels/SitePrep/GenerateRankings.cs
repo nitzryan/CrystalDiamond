@@ -1,4 +1,5 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
 using ShellProgressBar;
 using SiteDb;
 using System.IO.Compression;
@@ -16,6 +17,10 @@ namespace SitePrep
             public required int Month;
             public required int Year;
             public required bool isHitter;
+            public required List<PlayerYearPositions> pyps;
+            public required List<Player_OrgMap> poms;
+            public required List<Player_Hitter_MonthStats> hitterStats;
+            public required List<Player_Pitcher_MonthStats> pitcherStats;
         }
 
         internal class PlayerMonthWar {
@@ -33,10 +38,8 @@ namespace SitePrep
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
                 using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
-                siteDb.PlayerRank.RemoveRange(siteDb.PlayerRank);
-                siteDb.Models.RemoveRange(siteDb.Models);
-                siteDb.SaveChanges();
-                siteDb.ChangeTracker.Clear();
+                siteDb.Truncate<PlayerRank>();
+                siteDb.Truncate<Models>();
 
                 // Move models from data DB to site DB
                 foreach (var model in db.ModelIdx)
@@ -89,7 +92,11 @@ namespace SitePrep
                                 Month = p.SigningMonth.Value,
                                 Year = p.SigningYear.Value,
                                 isHitter = opwa.IsHitter == 1,
-                            });
+                                pyps = new(),
+                                poms = new(),
+                                hitterStats = new(),
+                                pitcherStats = new()
+                            }).ToList();
 
                         // Get ordered list of values for players
                         List<List<PlayerWar>> playersWarList = new(initial_pwa.Count());
@@ -97,6 +104,14 @@ namespace SitePrep
                         {
                             foreach (var pwa in initial_pwa)
                             {
+                                var pyps = siteDb.PlayerYearPositions.Where(f => f.MlbId == pwa.MlbId && f.IsHitter == (pwa.isHitter ? 1 : 0)).ToList();
+                                var orgMap = db.Player_OrgMap.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ThenBy(f => f.Day).ToList();
+                                var hitterStats = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
+                                var pitcherStats = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
+                                pwa.pyps = pyps;
+                                pwa.poms = orgMap;
+                                pwa.hitterStats = hitterStats;
+                                pwa.pitcherStats = pitcherStats;
                                 List<PlayerWar> pw = [];
                                 var opwas = db.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
                                     .OrderBy(f => f.Year).ThenBy(f => f.Month)
@@ -107,9 +122,13 @@ namespace SitePrep
                                         War = f.War,
                                         Month = f.Month,
                                         Year = f.Year,
-                                        isHitter = pwa.isHitter
+                                        isHitter = pwa.isHitter,
+                                        pyps = pyps,
+                                        poms = orgMap,
+                                        hitterStats = hitterStats,
+                                        pitcherStats = pitcherStats,
                                     }
-                                );
+                                ).ToList();
 
                                 // Add initial if month is different than last
                                 if (opwas.Any())
@@ -140,6 +159,10 @@ namespace SitePrep
                                             Month = mp.LastProspectMonth,
                                             Year = mp.LastProspectYear,
                                             isHitter = pwa.isHitter,
+                                            pyps = pwa.pyps,
+                                            poms = orgMap,
+                                            hitterStats = hitterStats,
+                                            pitcherStats = pitcherStats,
                                         });
                                     }
                                     else // Player is still a prospect
@@ -154,6 +177,10 @@ namespace SitePrep
                                                 Month = endMonth,
                                                 Year = endYear,
                                                 isHitter = pwa.isHitter,
+                                                pyps = pwa.pyps,
+                                                poms = orgMap,
+                                                hitterStats = hitterStats,
+                                                pitcherStats = pitcherStats,
                                             });
                                         }
                                     }
@@ -174,83 +201,79 @@ namespace SitePrep
                                 year = date.Item2;
 
                                 List<PlayerMonthWar> pmwList = new();
-                                using (ChildProgressBar child = topChild.Spawn(playersWarList.Count, $"Getting Players for {month}-{year}"))
+                                foreach (var playerWarList in playersWarList)
                                 {
-                                    foreach (var playerWarList in playersWarList)
+                                    // Player not yet signed
+                                    var first = playerWarList.First();
+                                    if (first.Year > year || (first.Year == year && first.Month > month))
+                                        continue;
+
+                                    // Player no longer a prospect
+                                    var last = playerWarList.Last();
+                                    if (last.Year < year || (last.Year == year && last.Month < month))
+                                        continue;
+
+                                    // Player is prospect now
+                                    // Get first value that is <= currentDate
+                                    PlayerWar current = playerWarList.Where(f => (f.isHitter == first.isHitter) && (f.Year < year || (f.Year == year && f.Month <= month)))
+                                        .OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).First();
+
+
+                                    // Get previous team the player was on
+                                    var poms = current.poms.Where(f =>
+                                            (f.Year < year || (f.Year == year && f.Month <= month)))
+                                            .OrderByDescending(f => f.Year).ThenByDescending(f => f.Month);
+
+                                    if (!poms.Any()) // Missing some transaction data, time is before all data
                                     {
-                                        child.Tick();
-                                        // Player not yet signed
-                                        var first = playerWarList.First();
-                                        if (first.Year > year || (first.Year == year && first.Month > month))
-                                            continue;
-
-                                        // Player no longer a prospect
-                                        var last = playerWarList.Last();
-                                        if (last.Year < year || (last.Year == year && last.Month < month))
-                                            continue;
-
-                                        // Player is prospect now
-                                        // Get first value that is <= currentDate
-                                        PlayerWar current = playerWarList.Where(f => (f.isHitter == first.isHitter) && (f.Year < year || (f.Year == year && f.Month <= month)))
-                                            .OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).First();
-
-
-                                        // Get previous team the player was on
-                                        var poms = db.Player_OrgMap.Where(f => f.MlbId == current.MlbId &&
-                                                (f.Year < year || (f.Year == year && f.Month <= month)))
-                                                .OrderByDescending(f => f.Year).ThenByDescending(f => f.Month);
-
-                                        if (!poms.Any()) // Missing some transaction data, time is before all data
-                                        {
-                                            // Get unfiltered, first entry will be initial team
-                                            poms = db.Player_OrgMap.Where(f => f.MlbId == current.MlbId)
-                                                .OrderBy(f => f.Year).ThenBy(f => f.Month);
-                                        }
-
-                                        // Get Position
-                                        string position = "";
-                                        var pyps = siteDb.PlayerYearPositions.Where(f => f.MlbId == current.MlbId && f.IsHitter == (playerWarList.First().isHitter ? 1 : 0));
-                                        if (!pyps.Any()) // No playing time, get stored from Mlb
-                                            position = db.Site_PlayerBio.Single(f => f.Id == current.MlbId).Position;
-                                        else
-                                        {
-                                            var prevCurrentPyps = pyps.Where(f => f.Year <= year) // All values <= selected year
-                                                .OrderByDescending(f => f.Year);
-                                            if (prevCurrentPyps.Any())
-                                                position = prevCurrentPyps.First().Position; // Get most recent
-                                            else
-                                                position = pyps.OrderBy(f => f.Year).First().Position; // Get next value (slight future bias)
-                                        }
-
-                                        // Get highest level player has reached this far
-                                        int highestLevel = 20;
-                                        if (playerWarList.First().isHitter)
-                                        {
-                                            var hitterLevels = db.Player_Hitter_MonthStats.Where(f => f.MlbId == current.MlbId && (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
-                                            if (hitterLevels.Any())
-                                                highestLevel = hitterLevels.First();
-                                        }
-                                        else
-                                        {
-                                            var pitcherLevels = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == current.MlbId && (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
-                                            if (pitcherLevels.Any())
-                                                highestLevel = pitcherLevels.First();
-                                        }
-
-
-                                        pmwList.Add(new PlayerMonthWar
-                                        {
-                                            MLbId = current.MlbId,
-                                            ModelId = current.ModelId,
-                                            isHitter = current.isHitter,
-                                            War = current.War,
-                                            ParentOrgId = poms.Any() ? poms // Few players only played on VSL teams that were multiple teams (no parent)
-                                                .First().ParentOrgId : 0,
-                                            position = position,
-                                            HighestLevel = highestLevel,
-                                        });
+                                        // Get unfiltered, first entry will be initial team
+                                        poms = current.poms.Where(f => f.MlbId == current.MlbId)
+                                            .OrderBy(f => f.Year).ThenBy(f => f.Month);
                                     }
+
+                                    // Get Position
+                                    string position = "";
+                                    if (!current.pyps.Any()) // No playing time, get stored from Mlb
+                                        position = db.Site_PlayerBio.Single(f => f.Id == current.MlbId).Position;
+                                    else
+                                    {
+                                        var prevCurrentPyps = current.pyps.Where(f => f.Year <= year) // All values <= selected year
+                                            .OrderByDescending(f => f.Year);
+                                        if (prevCurrentPyps.Any())
+                                            position = prevCurrentPyps.First().Position; // Get most recent
+                                        else
+                                            position = current.pyps.OrderBy(f => f.Year).First().Position; // Get next value (slight future bias)
+                                    }
+
+                                    // Get highest level player has reached this far
+                                    int highestLevel = 20;
+                                    if (playerWarList.First().isHitter)
+                                    {
+                                        var hitterLevels = current.hitterStats.Where(f => (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
+                                        if (hitterLevels.Any())
+                                            highestLevel = hitterLevels.First();
+                                    }
+                                    else
+                                    {
+                                        var pitcherLevels = current.pitcherStats.Where(f => (f.Year < year || (f.Year == year && f.Month <= month))).Select(f => f.LevelId).Distinct().OrderBy(f => f);
+                                        if (pitcherLevels.Any())
+                                            highestLevel = pitcherLevels.First();
+                                    }
+
+
+                                    pmwList.Add(new PlayerMonthWar
+                                    {
+                                        MLbId = current.MlbId,
+                                        ModelId = current.ModelId,
+                                        isHitter = current.isHitter,
+                                        War = current.War,
+                                        ParentOrgId = poms.Any() ? poms // Few players only played on VSL teams that were multiple teams (no parent)
+                                            .First().ParentOrgId : 0,
+                                        position = position,
+                                        HighestLevel = highestLevel,
+                                    });
                                 }
+                                
 
                                 // Create overall ranking
                                 pmwList = pmwList.OrderByDescending(f => f.War).ToList();
@@ -294,8 +317,7 @@ namespace SitePrep
                                     }
                                 }
 
-                                siteDb.AddRange(ranks);
-                                siteDb.SaveChanges();
+                                siteDb.BulkInsert(ranks);
                                 siteDb.ChangeTracker.Clear();
 
                                 topChild.Tick();

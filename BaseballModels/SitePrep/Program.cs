@@ -18,11 +18,11 @@ namespace SitePrep
             //if (!GeneratePlayerPositions.MainFunc())
             //    return;
 
-            if (!GeneratePredictions.Update())
-                return;
-
-            //if (!GenerateRankings.Main(year, month))
+            //if (!GeneratePredictions.Update())
             //    return;
+
+            if (!GenerateRankings.Main(year, month))
+                return;
 
             //if (!GenerateWarRankings.MainFunc(year, month))
             //    return;
