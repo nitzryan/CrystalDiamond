@@ -115,11 +115,12 @@ namespace SitePrep
                                 // Calculate value
                                 float bsr = (leagueBaselineAvg.RunSB * SB) + (leagueBaselineAvg.RunCS * CS);
                                 float def = Utilities.CalculateDef(player.Pa, player.PercC, player.Perc1B, player.Perc2B, player.Perc3B, player.PercSS, player.PercLF, player.PercCF, player.PercRF, player.PercDH);
-                                float off = wRAAPerPA * player.Pa;
+                                float off_runs = wRAAPerPA * player.Pa;
+                                float off = (wOBA - leagueBaselineAvg.AvgHitterWOBA) / leagueBaselineAvg.WOBAScale * player.Pa;
                                 float replacementRuns =
                                     Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
                                     leagueBaselineAvg.LeagueGames * leagueBaselineAvg.RPerWin / leagueBaselineAvg.LeaguePA * player.Pa;
-                                float runsAboveRep = replacementRuns + bsr + def + off;
+                                float runsAboveRep = replacementRuns + bsr + def + off_runs;
                                 float war = runsAboveRep / leagueBaselineAvg.RPerWin;
 
                                 if (level == 0 && date.Year == 2025 && date.Month == 9 && player.MlbId == 691406)

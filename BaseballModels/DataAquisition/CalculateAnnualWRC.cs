@@ -18,21 +18,9 @@ namespace DataAquisition
                 {
                     foreach (int league in leagues)
                     {
-                        Player_Hitter_GameLog lps = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league && f.Position != 1)
-                            .Aggregate(Utilities.HitterGameLogAggregation);
-
                         LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == league && f.Year == year).Single();
 
-                        // Calculate League wRC
-                        double leaguewRC = (lps.BB * ls.WBB) +
-                            (lps.HBP * ls.WHBP) +
-                            ((lps.H - lps.Hit2B - lps.Hit3B - lps.HR) * ls.W1B) +
-                            (lps.Hit2B * ls.W2B) +
-                            (lps.Hit3B * ls.W3B) +
-                            (lps.HR * ls.WHR);
-
-                        float leagueHittersWOBA = (float)leaguewRC / lps.PA;
-                        float leaguewRCperPA = (((leagueHittersWOBA - ls.AvgWOBA) / ls.WOBAScale) + ls.RPerPA);
+                        float leaguewRCperPA = (((ls.AvgHitterWOBA - ls.AvgWOBA) / ls.WOBAScale) + ls.RPerPA);
 
                         // Iterate through player month stats
                         var monthsAdvanced = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.LeagueId == league);

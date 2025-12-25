@@ -47,26 +47,26 @@ namespace DataAquisition
                     //if (!CalculateLeagueBaselines.Main(year, month))
                     //    return;
 
-                    //if (!CalculateMonthStats.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthStats.Main(year, month))
+                        return;
 
-                    //if (!CalculateMonthRatios.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
                 }
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
-                //if (!CalculateAnnualWRC.Main(year))
-                //    return;
+                if (!CalculateAnnualWRC.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {
-                    //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
-                    //    return;
+                    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
+                        return;
 
                     //if (year == END_YEAR && month == END_MONTH)
                     //    break;
@@ -104,8 +104,8 @@ namespace DataAquisition
             //while (!await GetLeagues.Main())
             //{ }
 
-            while (!await SitePlayerBio.Main(END_YEAR))
-            { }
+            //while (!await SitePlayerBio.Main(END_YEAR))
+            //{ }
 
             // 1 Year trailing stats
             foreach (var year in years)
