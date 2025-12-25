@@ -194,6 +194,9 @@ function getParentAbbr(id: number) : string
     if (org_map === null)
         throw new Error("Org map null accessing getParentAbbr")
 
+    if (id === 0)
+        return "FA"
+
     const parents = org_map["parents"] as JsonObject
     const parent = parents[id] as JsonObject
     return parent["abbr"] as string

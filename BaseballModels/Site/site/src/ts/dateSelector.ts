@@ -3,6 +3,7 @@ const year_select = getElementByIdStrict('year_select') as HTMLSelectElement
 const month_select = getElementByIdStrict('month_select') as HTMLSelectElement
 const model_select = getElementByIdStrict('model_select') as HTMLSelectElement
 const team_select = document.getElementById('team_select') as HTMLSelectElement | null
+const level_select = document.getElementById('level_select') as HTMLSelectElement | null
 const rankings_button = getElementByIdStrict('rankings_button') as HTMLButtonElement
 const rankings_error = getElementByIdStrict('rankings_error')
 
@@ -16,7 +17,8 @@ type SelectorArgs = {
     startYear : number,
     endYear : number, 
     endMonth : number,
-    startTeam : number | null
+    startTeam : number | null,
+    level : number | null
 }
 function setupSelector(args : SelectorArgs)
 {
@@ -49,6 +51,11 @@ function setupSelector(args : SelectorArgs)
     if (team_select !== null && args.startTeam !== null){
         setupTeamSelector(args.startTeam)
         team_select.addEventListener('change', selectorEventHandler)
+    }
+
+    if (level_select !== null && args.level !== null){
+        level_select.value = args.level.toString()
+        level_select.addEventListener('change', selectorEventHandler)
     }
 }
 

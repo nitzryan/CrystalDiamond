@@ -3,10 +3,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Crystal Diamond</title>
-        <link rel="stylesheet" type="text/css" href="../css/home.css">
+        <title>Baseball Models</title>
+        <link rel="stylesheet" type="text/css" href="../css/stats.css">
         <link href="favicon.ico" rel="icon" type="image/x-icon"/>
-        <script type="text/javascript" src="../js/home.js" defer></script>
+        <script type="text/javascript" src="../js/stats.js" defer></script>
     </head>
     <body>
         <div id="banner">
@@ -39,20 +39,27 @@
     </div>
 </div>
 <div id="colorbar"></div>
-        <h1 id="home_title">Home</h1>
-        <div id="rankings_selector" class="row center">
-            <select id="year_select"></select>
-            <select id="month_select"></select>
-            <select id="model_select"><option value="1">Base WAR</option>
+        <div id="rankings_main">
+            <div id="rankings_selector" class="row">
+                <select id="year_select"></select>
+                <select id="month_select"></select>
+                <select id="model_select"><option value="1">Base WAR</option>
 <option value="2">Stats Only WAR</option>
 <option value="3">Experimental WAR</option></select>
-            <div id="rankings_get">
-                <button id="rankings_button">Update</button>
-                <div id="rankings_error" class="hidden">Invalid Date</div>
+                <select id="level_select"><option value="0">MLB</option>
+<option value="1">AAA</option>
+<option value="2">AA</option>
+<option value="3">A+</option>
+<option value="4">A</option>
+<option value="5">A-</option>
+<option value="6">Rk</option>
+<option value="7">DSL</option></select>
+                <div id="rankings_get">
+                    <button id="rankings_button">Update</button>
+                    <div id="rankings_error" class="hidden">Invalid Date</div>
+                </div>
             </div>
-        </div>
-        <div id="homeDataContainer">
-
+            <div id="stats_tables"></div>
         </div>
     </body>
 </html>

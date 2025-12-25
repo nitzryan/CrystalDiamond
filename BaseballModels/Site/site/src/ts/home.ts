@@ -86,7 +86,8 @@ async function main()
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
-        startTeam : null
+        startTeam : null,
+        level : null
     })
 
     searchBar = new SearchBar(await player_search_data)

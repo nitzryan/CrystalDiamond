@@ -52,7 +52,8 @@ async function main()
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
-        startTeam : null
+        startTeam : null,
+        level : null
     })
     org_map = await retrieveJson("../../assets/map.json.gz")
     

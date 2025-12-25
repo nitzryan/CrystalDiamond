@@ -18,6 +18,7 @@
         {"path": "./tsconfig.home.json"},
         {"path": "./tsconfig.methodology.json"},
         {"path": "./tsconfig.error.json"},
-        {"path": "./tsconfig.mlbrankings.json"}
+        {"path": "./tsconfig.mlbrankings.json"},
+        {"path": "./tsconfig.stats.json"}
     ],
 }

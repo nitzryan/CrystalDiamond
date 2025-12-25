@@ -38,22 +38,49 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var month;
 var year;
 var modelId;
+var teamId = null;
+var levelId;
+var statsTables = getElementByIdStrict('stats_tables');
+function GetHitterPromise() {
+    if (teamId !== null) {
+        return fetch("/stats_hitter?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, "&level=").concat(levelId, "&team=").concat(teamId));
+    }
+    else {
+        return fetch("/stats_hitter?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, "&level=").concat(levelId));
+    }
+}
+function GetPitcherPromise() {
+    if (teamId !== null) {
+        return fetch("/stats_pitcher?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, "&level=").concat(levelId, "&team=").concat(teamId));
+    }
+    else {
+        return fetch("/stats_pitcher?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, "&level=").concat(levelId));
+    }
+}
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, modelId, _a;
+        var datesJsonPromise, player_search_data, org_map_promise, datesJson, statsHitterPromise, statsPitcherPromise, statsHitter, statsPitcher, lnk, al_r, al_l, br, bl, hitterStatsViewer, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     datesJsonPromise = retrieveJson('../../assets/dates.json.gz');
                     player_search_data = retrieveJson('../../assets/player_search.json.gz');
+                    org_map_promise = retrieveJson("../../assets/map.json.gz");
                     return [4, datesJsonPromise];
                 case 1:
                     datesJson = _b.sent();
                     endYear = datesJson["endYear"];
                     endMonth = datesJson["endMonth"];
-                    month = getQueryParamBackup("month", endMonth);
-                    year = getQueryParamBackup("year", endYear);
+                    month = getQueryParamBackup('month', endMonth);
+                    year = getQueryParamBackup('year', endYear);
                     modelId = getQueryParamBackup("model", 1);
+                    teamId = getQueryParamNullable('team');
+                    levelId = getQueryParamBackup('level', 0);
+                    statsHitterPromise = GetHitterPromise();
+                    statsPitcherPromise = GetPitcherPromise();
+                    return [4, org_map_promise];
+                case 2:
+                    org_map = _b.sent();
                     setupSelector({
                         month: month,
                         year: year,
@@ -61,38 +88,406 @@ function main() {
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: null,
-                        level: null
+                        startTeam: teamId,
+                        level: levelId
                     });
-                    return [4, retrieveJson("../../assets/map.json.gz")];
-                case 2:
-                    org_map = _b.sent();
-                    setupRankings({
-                        month: month,
-                        year: year,
-                        model: modelId,
-                        teamId: null,
-                        period: 0,
-                        type: PlayerLoaderType.Prospect
-                    }, 100);
+                    return [4, statsHitterPromise];
+                case 3: return [4, (_b.sent()).json()];
+                case 4:
+                    statsHitter = _b.sent();
+                    return [4, statsPitcherPromise];
+                case 5: return [4, (_b.sent()).json()];
+                case 6:
+                    statsPitcher = _b.sent();
+                    lnk = 'link';
+                    al_r = 'align_right';
+                    al_l = 'align_left';
+                    br = 'border_right';
+                    bl = 'border_left';
+                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "crOFF", "crBSR", "crDEF", "crWAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
+                        [getParentAbbr(f.player.orgId), [al_l, lnk]],
+                        [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]],
+                        [f.player.position, [al_l, br]],
+                        [f.obj.Pa.toFixed(0), [al_r]], [f.obj.Hit1B.toFixed(1), [al_r]], [f.obj.Hit2B.toFixed(1), [al_r]], [f.obj.Hit3B.toFixed(1), [al_r]], [f.obj.HitHR.toFixed(1), [al_r, br]],
+                        [(f.obj.BB / f.obj.Pa * 100).toFixed(1), [al_r]], [(f.obj.K / f.obj.Pa * 100).toFixed(1), [al_r, br]],
+                        [f.obj.SB.toFixed(1), [al_r]], [f.obj.CS.toFixed(1), [al_r, br]],
+                        [f.obj.AVG.toFixed(3), [al_r]], [f.obj.OBP.toFixed(3), [al_r]], [f.obj.SLG.toFixed(3), [al_r]], [f.obj.ISO.toFixed(3), [al_r, br]],
+                        [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
+                    statsTables.appendChild(hitterStatsViewer.baseElement);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
-                case 3:
+                case 7:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
+                    getElementByIdStrict('nav_stats').classList.add('selected');
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
                         var model = model_select.value;
-                        window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
+                        var level = level_select === null || level_select === void 0 ? void 0 : level_select.value;
+                        window.location.href = "./stats?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&level=").concat(level);
                     });
-                    getElementByIdStrict('nav_rankings').classList.add('selected');
-                    document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Rankings");
                     return [2];
             }
         });
     });
 }
 main();
+var PageSelector = (function () {
+    function PageSelector(numPages, callback) {
+        var _this = this;
+        this.callback = callback;
+        this.baseElement = document.createElement('div');
+        var pageInput = document.createElement('input');
+        pageInput.type = "number";
+        pageInput.min = "1";
+        pageInput.value = pageInput.min;
+        pageInput.max = numPages.toString();
+        pageInput.addEventListener('change', function (f) { return _this.callback(Number(pageInput.value) - 1); });
+        var minPageButton = document.createElement('button');
+        minPageButton.innerText = "<<";
+        minPageButton.addEventListener('click', function (f) {
+            pageInput.value = pageInput.min;
+            _this.callback(Number(pageInput.value) - 1);
+        });
+        var maxPageButton = document.createElement('button');
+        maxPageButton.innerText = ">>";
+        maxPageButton.addEventListener('click', function (f) {
+            pageInput.value = pageInput.max;
+            _this.callback(Number(pageInput.value) - 1);
+        });
+        this.baseElement.appendChild(minPageButton);
+        this.baseElement.appendChild(pageInput);
+        this.baseElement.appendChild(maxPageButton);
+    }
+    return PageSelector;
+}());
+var SortableStatsViewer = (function () {
+    function SortableStatsViewer(vars, itemConstructor, titles, fRow, startIdx, numEntriesVisible) {
+        if (startIdx === void 0) { startIdx = 1; }
+        if (numEntriesVisible === void 0) { numEntriesVisible = 30; }
+        var _this = this;
+        this.itemConstructor = itemConstructor;
+        this.data = vars.map(function (f) {
+            f = f;
+            return {
+                player: new DB_Player(f),
+                obj: new itemConstructor(f)
+            };
+        });
+        this.fRow = fRow;
+        this.startIdx = startIdx;
+        this.numEntriesVisible = numEntriesVisible;
+        this.tableElement = document.createElement('table');
+        this.tableElement.classList.add('stats_table');
+        var tableHeaderText = titles.map(function (f) { return "<td>".concat(f, "</td>"); }).reduce(function (a, b) { return a + b; });
+        this.tableElement.innerHTML = "<thead><tr>".concat(tableHeaderText, "</tr></thead>");
+        this.tableBody = document.createElement('tbody');
+        this.tableElement.appendChild(this.tableBody);
+        this.pageSelector = new PageSelector(Math.ceil(this.data.length / this.numEntriesVisible), function (page) { return _this.ChangePage(page); });
+        this.baseElement = document.createElement('div');
+        this.baseElement.classList.add('sortableStatsViewer');
+        this.baseElement.appendChild(this.tableElement);
+        this.baseElement.appendChild(this.pageSelector.baseElement);
+        this.ChangePage(0);
+    }
+    SortableStatsViewer.prototype.ChangePage = function (pageIdx) {
+        var _a;
+        var _this = this;
+        if (this.data.length == 0)
+            return;
+        this.startIdx = pageIdx * this.numEntriesVisible;
+        if (this.startIdx >= this.data.length)
+            return this.ChangePage(pageIdx - 1);
+        var tableRows = this.data.slice(this.startIdx, this.startIdx + this.numEntriesVisible)
+            .map(function (f) {
+            var tr = document.createElement('tr');
+            var row_values = _this.fRow(f);
+            row_values.forEach(function (g) {
+                var td = document.createElement('td');
+                td.innerHTML = g[0];
+                g[1].forEach(function (h) { return td.classList.add(h); });
+                tr.appendChild(td);
+            });
+            return tr;
+        });
+        (_a = this.tableBody).replaceChildren.apply(_a, tableRows);
+    };
+    return SortableStatsViewer;
+}());
+var DB_Player = (function () {
+    function DB_Player(data) {
+        this.mlbId = data['mlbId'];
+        this.firstName = data['firstName'];
+        this.lastName = data['lastName'];
+        this.birthYear = data['birthYear'];
+        this.birthMonth = data['birthMonth'];
+        this.birthDate = data['birthDate'];
+        this.startYear = data['startYear'];
+        this.position = data['position'];
+        this.status = data['status'];
+        this.orgId = data['orgId'];
+        this.draftPick = data['draftPick'];
+        this.draftRound = data['draftRound'];
+        this.draftBonus = data['draftBonus'];
+        this.isHitter = data['isHitter'];
+        this.isPitcher = data['isPitcher'];
+        this.inTraining = data['inTraining'];
+    }
+    return DB_Player;
+}());
+var DB_HitterYearStats = (function () {
+    function DB_HitterYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterYearStats;
+}());
+var DB_HitterMonthStats = (function () {
+    function DB_HitterMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterMonthStats;
+}());
+var DB_PitcherYearStats = (function () {
+    function DB_PitcherYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherYearStats;
+}());
+var DB_PitcherMonthStats = (function () {
+    function DB_PitcherMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherMonthStats;
+}());
+var DB_Prediction_HitterStats = (function () {
+    function DB_Prediction_HitterStats(data) {
+        this.MlbId = data['MlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.LevelId = data['LevelId'];
+        this.Pa = data['Pa'];
+        this.Hit1B = data['Hit1B'];
+        this.Hit2B = data['Hit2B'];
+        this.Hit3B = data['Hit3B'];
+        this.HitHR = data['HitHR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.PercC = data['PercC'];
+        this.Perc1B = data['Perc1B'];
+        this.Perc2B = data['Perc2B'];
+        this.Perc3B = data['Perc3B'];
+        this.PercSS = data['PercSS'];
+        this.PercLF = data['PercLF'];
+        this.PercCF = data['PercCF'];
+        this.PercRF = data['PercRF'];
+        this.PercDH = data['PercDH'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.wRC = data['wRC'];
+        this.crOFF = data['crOFF'];
+        this.crBSR = data['crBSR'];
+        this.crDEF = data['crDEF'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_HitterStats;
+}());
+var DB_Prediction_PitcherStats = (function () {
+    function DB_Prediction_PitcherStats(data) {
+        this.mlbId = data['mlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.levelId = data['levelId'];
+        this.Outs_SP = data['Outs_SP'];
+        this.Outs_RP = data['Outs_RP'];
+        this.GS = data['GS'];
+        this.GR = data['GR'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR = data['HR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.SP_Perc = data['SP_Perc'];
+        this.RP_Perc = data['RP_Perc'];
+        this.crRAA = data['crRAA'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_PitcherStats;
+}());
+var DB_PlayerModel = (function () {
+    function DB_PlayerModel(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.probsWar = data['probsWar'];
+        this.rankWar = data['rankWar'];
+    }
+    return DB_PlayerModel;
+}());
+var DB_PlayerRank = (function () {
+    function DB_PlayerRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.position = data['position'];
+        this.war = data['war'];
+        this.rankWar = data['rankWar'];
+        this.teamRankWar = data['teamRankWar'];
+        this.highestLevel = data['highestLevel'];
+    }
+    return DB_PlayerRank;
+}());
+var DB_HitterWarRank = (function () {
+    function DB_HitterWarRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.position = data['position'];
+        this.war = data['war'];
+        this.rankWar = data['rankWar'];
+        this.pa = data['pa'];
+    }
+    return DB_HitterWarRank;
+}());
+var DB_PitcherWarRank = (function () {
+    function DB_PitcherWarRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.spWar = data['spWar'];
+        this.spIP = data['spIP'];
+        this.rpWar = data['rpWar'];
+        this.rpIP = data['rpIP'];
+        this.spRank = data['spRank'];
+        this.rpRank = data['rpRank'];
+    }
+    return DB_PitcherWarRank;
+}());
+var DB_TeamRank = (function () {
+    function DB_TeamRank(data) {
+        this.teamId = data['teamId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.highestRank = data['highestRank'];
+        this.top10 = data['top10'];
+        this.top50 = data['top50'];
+        this.top100 = data['top100'];
+        this.top200 = data['top200'];
+        this.top500 = data['top500'];
+        this.rank = data['rank'];
+        this.war = data['war'];
+    }
+    return DB_TeamRank;
+}());
+var DB_Models = (function () {
+    function DB_Models(data) {
+        this.modelId = data['modelId'];
+        this.name = data['name'];
+    }
+    return DB_Models;
+}());
+var DB_PlayerYearPositions = (function () {
+    function DB_PlayerYearPositions(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.isHitter = data['isHitter'];
+        this.position = data['position'];
+    }
+    return DB_PlayerYearPositions;
+}());
+var DB_HomeData = (function () {
+    function DB_HomeData(data) {
+        this.year = data['year'];
+        this.month = data['month'];
+        this.rankType = data['rankType'];
+        this.modelId = data['modelId'];
+        this.isWar = data['isWar'];
+        this.mlbId = data['mlbId'];
+        this.data = data['data'];
+        this.rank = data['rank'];
+    }
+    return DB_HomeData;
+}());
+var DB_HomeDataType = (function () {
+    function DB_HomeDataType(data) {
+        this.type = data['type'];
+        this.name = data['name'];
+    }
+    return DB_HomeDataType;
+}());
 var rankings_selector = getElementByIdStrict('rankings_selector');
 var year_select = getElementByIdStrict('year_select');
 var month_select = getElementByIdStrict('month_select');
@@ -171,217 +566,6 @@ function setupTeamSelector(teamId) {
         team_select.appendChild(el);
     }
     team_select.value = teamId.toString();
-}
-var rankings_header = getElementByIdStrict('rankings_header');
-var rankings_table = getElementByIdStrict('rankings_table');
-var rankings_table_head = getElementByIdStrict('rankings_table_head');
-var rankings_table_body = getElementByIdStrict('rankings_table_body');
-var rankings_load = getElementByIdStrict('rankings_load');
-function createPlayer(obj) {
-    var p = {
-        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: getJsonNumber(obj, "war"),
-        id: getJsonNumber(obj, "mlbId"),
-        team: getJsonNumber(obj, "teamId"),
-        position: getJsonString(obj, "position"),
-        birthYear: getJsonNumber(obj, "birthYear"),
-        birthMonth: getJsonNumber(obj, "birthMonth"),
-        level: getJsonNumber(obj, "highestLevel"),
-        playingTime: null
-    };
-    return p;
-}
-function createMLBHitter(obj) {
-    var p = {
-        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: getJsonNumber(obj, "war"),
-        id: getJsonNumber(obj, "mlbId"),
-        team: getJsonNumber(obj, "teamId"),
-        position: getJsonString(obj, "position"),
-        birthYear: getJsonNumber(obj, "birthYear"),
-        birthMonth: getJsonNumber(obj, "birthMonth"),
-        level: null,
-        playingTime: getJsonNumber(obj, "pa")
-    };
-    return p;
-}
-function createMLBStarter(obj) {
-    var p = {
-        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: getJsonNumber(obj, "spWar"),
-        id: getJsonNumber(obj, "mlbId"),
-        team: getJsonNumber(obj, "teamId"),
-        position: "SP",
-        birthYear: getJsonNumber(obj, "birthYear"),
-        birthMonth: getJsonNumber(obj, "birthMonth"),
-        level: null,
-        playingTime: getJsonNumber(obj, "spIP")
-    };
-    return p;
-}
-function createMLBReliever(obj) {
-    var p = {
-        name: getJsonString(obj, "firstName") + " " + getJsonString(obj, "lastName"),
-        war: getJsonNumber(obj, "rpWar"),
-        id: getJsonNumber(obj, "mlbId"),
-        team: getJsonNumber(obj, "teamId"),
-        position: "RP",
-        birthYear: getJsonNumber(obj, "birthYear"),
-        birthMonth: getJsonNumber(obj, "birthMonth"),
-        level: null,
-        playingTime: getJsonNumber(obj, "rpIP")
-    };
-    return p;
-}
-var __current_rank = 1;
-function createPlayerElement(player, year, month, modelId) {
-    var el = document.createElement('tr');
-    el.classList.add('rankings_item');
-    var teamAbbr = player.team == 0 ? "" : getParentAbbr(player.team);
-    var ageInYears = year - player.birthYear;
-    if (month < player.birthMonth)
-        ageInYears--;
-    var levelString = player.level !== null ? "<td class='c_lvl'>".concat(level_map[player.level], "</td>") : "";
-    var ptString = player.playingTime !== null ? "<td class='c_pt'>".concat(player.playingTime.toFixed(0), "</td>") : "";
-    el.innerHTML = "\n            <td>".concat(__current_rank, "</td>\n            <td class='c_name'><a href='./player?id=").concat(player.id, "'>").concat(player.name, "</a></td>\n            <td class='c_team'><a href='./teams?id=").concat(player.team, "&year=").concat(year, "&month=").concat(month, "'>").concat(teamAbbr, "</a></td>\n            <td class='c_value'>").concat(formatModelString(player.war), "</td>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <td class='c_pos'>").concat(player.position, "</td>\n            <td class='c_age'>").concat(ageInYears, "</td>\n        ");
-    __current_rank += 1;
-    return el;
-}
-var PlayerLoaderType;
-(function (PlayerLoaderType) {
-    PlayerLoaderType[PlayerLoaderType["Prospect"] = 0] = "Prospect";
-    PlayerLoaderType[PlayerLoaderType["MLBHitter"] = 1] = "MLBHitter";
-    PlayerLoaderType[PlayerLoaderType["MLBStarter"] = 2] = "MLBStarter";
-    PlayerLoaderType[PlayerLoaderType["MLBReliever"] = 3] = "MLBReliever";
-})(PlayerLoaderType || (PlayerLoaderType = {}));
-var PlayerLoader = (function () {
-    function PlayerLoader(args) {
-        this.exhaustedElements = false;
-        this.index = 0;
-        this.year = args.year;
-        this.month = args.month;
-        this.teamId = args.teamId;
-        this.model = args.model;
-        this.type = args.type;
-        this.period = args.period;
-    }
-    PlayerLoader.prototype.getElements = function (num_elements) {
-        return __awaiter(this, void 0, void 0, function () {
-            var endRank, response, _a, typeInt, _b, players;
-            var _this = this;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0:
-                        if (this.exhaustedElements)
-                            return [2, []];
-                        endRank = this.index + num_elements;
-                        if (!(this.type === PlayerLoaderType.Prospect)) return [3, 5];
-                        if (!(this.teamId !== null)) return [3, 2];
-                        return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model))];
-                    case 1:
-                        _a = _c.sent();
-                        return [3, 4];
-                    case 2: return [4, fetch("/rankingsRequest?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model))];
-                    case 3:
-                        _a = _c.sent();
-                        _c.label = 4;
-                    case 4:
-                        response = _a;
-                        return [3, 11];
-                    case 5:
-                        if (!(this.type === PlayerLoaderType.MLBHitter || this.type == PlayerLoaderType.MLBStarter || this.type == PlayerLoaderType.MLBReliever)) return [3, 10];
-                        typeInt = this.type;
-                        if (!(this.teamId !== null)) return [3, 7];
-                        return [4, fetch("/mlbRank?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&teamId=").concat(this.teamId, "&model=").concat(this.model, "&period=").concat(this.period, "&reqType=").concat(typeInt))];
-                    case 6:
-                        _b = _c.sent();
-                        return [3, 9];
-                    case 7: return [4, fetch("/mlbRank?year=".concat(this.year, "&month=").concat(this.month, "&startRank=").concat(this.index + 1, "&endRank=").concat(endRank, "&model=").concat(this.model, "&period=").concat(this.period, "&reqType=").concat(typeInt))];
-                    case 8:
-                        _b = _c.sent();
-                        _c.label = 9;
-                    case 9:
-                        response = _b;
-                        return [3, 11];
-                    case 10: throw new Error("No type in PlayerLoader");
-                    case 11: return [4, response.json()];
-                    case 12:
-                        players = _c.sent();
-                        this.exhaustedElements = (players.length != num_elements);
-                        this.index += players.length;
-                        if (this.type === PlayerLoaderType.Prospect)
-                            return [2, players.map(function (f) {
-                                    return createPlayerElement(createPlayer(f), _this.year, _this.month, _this.model);
-                                })];
-                        else if (this.type === PlayerLoaderType.MLBHitter)
-                            return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBHitter(f), _this.year, _this.month, _this.model);
-                                })];
-                        else if (this.type === PlayerLoaderType.MLBStarter)
-                            return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBStarter(f), _this.year, _this.month, _this.model);
-                                })];
-                        else
-                            return [2, players.map(function (f) {
-                                    return createPlayerElement(createMLBReliever(f), _this.year, _this.month, _this.model);
-                                })];
-                        return [2];
-                }
-            });
-        });
-    };
-    return PlayerLoader;
-}());
-var playerLoader;
-function setupRankings(args, num_elements) {
-    var _this = this;
-    playerLoader = new PlayerLoader(args);
-    var teamString = args.teamId !== null ? org_map["parents"][args.teamId]["name"] + " " : "";
-    var typeString = args.type === PlayerLoaderType.Prospect ?
-        "Prospect" : args.type === PlayerLoaderType.MLBHitter ? "MLB Hitter" :
-        args.type === PlayerLoaderType.MLBStarter ? "MLB Starter" : "MLB Reliever";
-    rankings_header.innerText = "".concat(typeString, " Rankings for ").concat(teamString).concat(MONTH_CODES[month], " ").concat(year);
-    rankings_load.addEventListener('click', function (event) { return __awaiter(_this, void 0, void 0, function () {
-        var elements, _i, elements_2, el;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4, playerLoader.getElements(num_elements)];
-                case 1:
-                    elements = _a.sent();
-                    for (_i = 0, elements_2 = elements; _i < elements_2.length; _i++) {
-                        el = elements_2[_i];
-                        rankings_table_body.appendChild(el);
-                    }
-                    return [2];
-            }
-        });
-    }); });
-    var valueString;
-    var levelString = "";
-    var ptString = "";
-    if (args.type === PlayerLoaderType.Prospect) {
-        levelString = "<th>Level</th>";
-        valueString = "WAR";
-    }
-    else {
-        if (args.type === PlayerLoaderType.MLBHitter) {
-            valueString = "WAR / 600PA";
-            ptString = "<th>PA</th>";
-        }
-        else if (args.type === PlayerLoaderType.MLBStarter) {
-            valueString = "WAR / 150IP";
-            ptString = "<th>IP</th>";
-        }
-        else if (args.type === PlayerLoaderType.MLBReliever) {
-            valueString = "WAR / 50IP";
-            ptString = "<th>IP</th>";
-        }
-        else {
-            throw new Error("Invalid args.type in PlayerLoader");
-        }
-    }
-    rankings_table_head.innerHTML = "\n        <tr>\n            <th></th>\n            <th>Name</th>\n            <th>Team</th>\n            <th>".concat(valueString, "</th>\n            ").concat(levelString, "\n            ").concat(ptString, "\n            <th>Position</th>\n            <th>Age</th>\n        <tr>\n    ");
-    rankings_load.dispatchEvent(new Event('click'));
 }
 var searchBar = null;
 var SearchBar = (function () {

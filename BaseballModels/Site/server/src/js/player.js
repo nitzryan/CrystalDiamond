@@ -813,6 +813,8 @@ function getTeamAbbr(id, year) {
 function getParentAbbr(id) {
     if (org_map === null)
         throw new Error("Org map null accessing getParentAbbr");
+    if (id === 0)
+        return "FA";
     var parents = org_map["parents"];
     var parent = parents[id];
     return parent["abbr"];

@@ -1,0 +1,28 @@
+td.link * {
+    color: var(--text-high);
+    font-weight: bold;
+}
+
+td.align_right * {
+    text-align: right;
+    padding-right: 0.1em;
+}
+
+td.align_left * {
+    text-align: left;
+    padding-left: 0.1em;
+}
+
+td.border_left {
+    border-left: 0.05em solid var(--text-low);
+    padding-left: 0.5em;
+}
+
+td.border_right {
+    border-right: 0.2em solid var(--text-low);
+    padding-right: 0.5em;
+}
+
+.stats_table th, td{
+    padding: 0.2em 0.3em;
+}

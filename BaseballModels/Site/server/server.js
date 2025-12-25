@@ -43,6 +43,10 @@ app.get('/mlbranks/', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/mlbrankings.html"))
 })
 
+app.get('/stats/', (req, res) => {
+    res.sendFile(path.join(__dirname, "src/html/stats.html"))
+})
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/home.html"))
 })
@@ -231,7 +235,93 @@ app.get('/homedata', async (req, res) => {
     }
     catch (e)
     {
-        res.status(500).send("Error in rankingsRequest: " + e)
+        res.status(500).send("Error in homeData: " + e)
+    }
+})
+
+app.get('/stats_hitter', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const model = req.query.model
+        const level = req.query.level
+        const team = req.query.team
+
+        if (team === undefined)
+        {
+            db.all(`
+            SELECT phs.*, p.* 
+            FROM Prediction_HitterStats AS phs
+            INNER JOIN Player AS p
+            ON phs.mlbId = p.mlbId
+            WHERE year=? AND month=? AND model=? AND LevelId=?
+            ORDER BY crWAR DESC
+            `,
+            [year, month, model, level], (err, rows) => {
+                res.json(rows)
+            })
+        }
+        else
+        {
+            db.all(`
+            SELECT phs.*, p.* 
+            FROM Prediction_HitterStats AS phs
+            INNER JOIN Player AS p
+            ON phs.mlbId = p.mlbId
+            WHERE year=? AND month=? AND model=? AND LevelId=? AND orgId=?
+            ORDER BY crWAR DESC
+            `,
+            [year, month, model, level, team], (err, rows) => {
+                res.json(rows)
+            })
+        }
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in statsHitter: " + e)
+    }
+})
+
+app.get('/stats_pitcher', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const model = req.query.model
+        const level = req.query.level
+        const team = req.query.team
+
+        if (team === undefined)
+        {
+            db.all(`
+            SELECT phs.*, p.* 
+            FROM Prediction_PitcherStats AS phs
+            INNER JOIN Player AS p
+            ON phs.mlbId = p.mlbId
+            WHERE year=? AND month=? AND model=? AND LevelId=?
+            ORDER BY crWAR DESC
+            `,
+            [year, month, model, level], (err, rows) => {
+                res.json(rows)
+            })
+        }
+        else
+        {
+            db.all(`
+            SELECT phs.*, p.* 
+            FROM Prediction_PitcherStats AS phs
+            INNER JOIN Player AS p
+            ON phs.mlbId = p.mlbId
+            WHERE year=? AND month=? AND model=? AND LevelId=? AND orgId=?
+            ORDER BY crWAR DESC
+            `,
+            [year, month, model, level, team], (err, rows) => {
+                res.json(rows)
+            })
+        }
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in statsPitcher: " + e)
     }
 })
 

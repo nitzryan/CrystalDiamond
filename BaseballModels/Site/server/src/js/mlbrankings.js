@@ -80,7 +80,8 @@ function main() {
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: null
+                        startTeam: null,
+                        level: null
                     });
                     return [4, retrieveJson("../../assets/map.json.gz")];
                 case 2:
@@ -117,6 +118,7 @@ var year_select = getElementByIdStrict('year_select');
 var month_select = getElementByIdStrict('month_select');
 var model_select = getElementByIdStrict('model_select');
 var team_select = document.getElementById('team_select');
+var level_select = document.getElementById('level_select');
 var rankings_button = getElementByIdStrict('rankings_button');
 var rankings_error = getElementByIdStrict('rankings_error');
 var endYear = 0;
@@ -144,6 +146,10 @@ function setupSelector(args) {
     if (team_select !== null && args.startTeam !== null) {
         setupTeamSelector(args.startTeam);
         team_select.addEventListener('change', selectorEventHandler);
+    }
+    if (level_select !== null && args.level !== null) {
+        level_select.value = args.level.toString();
+        level_select.addEventListener('change', selectorEventHandler);
     }
 }
 function selectorEventHandler(ev) {
@@ -657,6 +663,8 @@ function getTeamAbbr(id, year) {
 function getParentAbbr(id) {
     if (org_map === null)
         throw new Error("Org map null accessing getParentAbbr");
+    if (id === 0)
+        return "FA";
     var parents = org_map["parents"];
     var parent = parents[id];
     return parent["abbr"];

@@ -28,7 +28,8 @@ async function main()
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
-        startTeam : teamId
+        startTeam : teamId,
+        level : null
     })
     if (teamId === null)
     {

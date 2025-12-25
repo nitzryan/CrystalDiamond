@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "none",
+        "outFile": "../server/src/js/stats.js",
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["src/ts/stats.ts", "src/ts/sortableStatsViewer.ts", "src/ts/dbtypes.ts", "src/ts/dateSelector.ts", "src/ts/searchbar.ts", "src/ts/keycontrols.ts", "src/ts/css_styles.ts", "src/ts/utility.ts", "src/*.d.ts", "src/ts/global.d.ts"],
+}
