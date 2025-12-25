@@ -103,7 +103,7 @@ namespace SiteTesting
         [Test, TestCaseSource(nameof(AllTeamRanks))]
         public void LoadTeamRanksNoErrors(int year, int month, int teamId, int modelId)
         {
-            string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&team={teamId}&model={modelId}";
+            string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&team={teamId}&model={modelId}";
             var driver = driverDict[TestContext.CurrentContext.WorkerId];
             bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
             Assert.That(pageLoaded, $"{year}-{month} team {teamId} not loaded");
@@ -137,24 +137,45 @@ namespace SiteTesting
                 yield return new object[] { d.Year, d.Month, d.ModelId };
         }
 
-        // MLB Ranks
-        [Test, TestCaseSource(nameof(AllMlbPlayerRankings))]
-        public void LoadMlbRankingsNoErrors(int year, int month, int modelId, int playerType)
+        // Stat Predictions
+        [Test, TestCaseSource(nameof(AllStatPredictions))]
+        public void LoadStatPredictionsNoErrors(int year, int month, int modelId, int level)
         {
-            string url = $"http://127.0.0.1:3000/mlbRanks?year={year}&month={month}&model={modelId}&type={playerType}";
+            string url = $"http://127.0.0.1:3000/stats?year={year}&month={month}&model={modelId}&level={level}";
             var driver = driverDict[TestContext.CurrentContext.WorkerId];
             bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
-            Assert.That(pageLoaded, $"{year}-{month}-{modelId}-{playerType} not loaded");
+            Assert.That(pageLoaded, $"{year}-{month}-{modelId}-{level} not loaded");
             var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
-            Assert.That(!errors, $"{year}-{month}-{modelId}-{playerType} error: {msg}");
+            Assert.That(!errors, $"{year}-{month}-{modelId}-{level} error: {msg}");
         }
 
-        static IEnumerable<object> AllMlbPlayerRankings()
+        static IEnumerable<object> AllStatPredictions()
         {
-            var dates = siteDb.PlayerRank.Select(f => new { f.Year, f.Month, f.ModelId }).Distinct();
+            var dates = siteDb.Prediction_HitterStats.Select(f => new { f.Year, f.Month, f.Model, f.LevelId }).Distinct();
             foreach (var d in dates)
-                foreach (var type in new List<int>([1, 2, 3]))
-                    yield return new object[] { d.Year, d.Month, d.ModelId, type };
+                yield return new object[] { d.Year, d.Month, d.Model, d.LevelId };
+        }
+
+        // Team Stat Predictions
+        [Test, TestCaseSource(nameof(AllTeamStatPredictions))]
+        public void LoadTeamStatPredictionsNoErrors(int year, int month, int modelId, int level, int team)
+        {
+            string url = $"http://127.0.0.1:3000/stats?year={year}&month={month}&model={modelId}&level={level}&team={team}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+            Assert.That(pageLoaded, $"{year}-{month}-{modelId}-{level}-{team} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{month}-{modelId}-{level}-{team} error: {msg}");
+        }
+
+        static IEnumerable<object> AllTeamStatPredictions()
+        {
+            var dates = siteDb.Prediction_HitterStats.Select(f => new { f.Year, f.Month, f.Model, f.LevelId }).
+                Where(f => f.LevelId == 0 && f.Month == 5).Distinct(); // Restrict so this test case doesn't have too many
+            var orgIds = siteDb.Player.Where(f => f.OrgId != 0).Select(f => f.OrgId).Distinct();
+            foreach (var d in dates)
+                foreach (var org in orgIds)
+                    yield return new object[] { d.Year, d.Month, d.Model, d.LevelId, org };
         }
 
         [OneTimeTearDown]
