@@ -59,7 +59,7 @@ function GetPitcherPromise() {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, org_map_promise, datesJson, statsHitterPromise, statsPitcherPromise, statsHitter, statsPitcher, lnk, al_r, al_l, br, bl, hitterStatsViewer, _a;
+        var datesJsonPromise, player_search_data, org_map_promise, datesJson, statsHitterPromise, statsPitcherPromise, statsHitter, statsPitcher, lnk, al_r, al_l, br, bl, hitterStatsViewer, pitcherStatsViewer, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -114,6 +114,13 @@ function main() {
                         [f.obj.AVG.toFixed(3), [al_r]], [f.obj.OBP.toFixed(3), [al_r]], [f.obj.SLG.toFixed(3), [al_r]], [f.obj.ISO.toFixed(3), [al_r, br]],
                         [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
                     statsTables.appendChild(hitterStatsViewer.baseElement);
+                    pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "crRAA", "crWAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
+                        [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]],
+                        [formatOutsToIP(f.obj.Outs_RP + f.obj.Outs_SP), [al_r]], [(f.obj.GS + f.obj.GR).toFixed(1), [al_r]], [f.obj.GS.toFixed(1), [al_r, br]],
+                        [f.obj.ERA.toFixed(2), [al_r]], [f.obj.FIP.toFixed(2), [al_r, br]],
+                        [(f.obj.K / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r]], [(f.obj.BB / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r]], [(f.obj.HR / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r, br]],
+                        [f.obj.crRAA.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
+                    statsTables.appendChild(pitcherStatsViewer.baseElement);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
                 case 7:
@@ -868,6 +875,12 @@ function getOrdinalNumber(num) {
     if (lastDigit === 3 && last2Digits !== 13)
         return num + "rd";
     return num + "th";
+}
+function formatOutsToIP(outs) {
+    var ip = outs / 3;
+    var full_ip = Math.trunc(ip);
+    var partial_ip = Math.trunc((ip - full_ip) * 3);
+    return full_ip.toFixed(0) + "." + partial_ip.toFixed(0);
 }
 function formatModelString(val) {
     return "".concat(val.toFixed(1));

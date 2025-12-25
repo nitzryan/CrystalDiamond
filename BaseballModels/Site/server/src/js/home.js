@@ -490,6 +490,12 @@ function getOrdinalNumber(num) {
         return num + "rd";
     return num + "th";
 }
+function formatOutsToIP(outs) {
+    var ip = outs / 3;
+    var full_ip = Math.trunc(ip);
+    var partial_ip = Math.trunc((ip - full_ip) * 3);
+    return full_ip.toFixed(0) + "." + partial_ip.toFixed(0);
+}
 function formatModelString(val) {
     return "".concat(val.toFixed(1));
 }

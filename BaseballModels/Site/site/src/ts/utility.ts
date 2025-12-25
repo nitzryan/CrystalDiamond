@@ -251,6 +251,14 @@ function getOrdinalNumber(num : number) : string
     return num + "th"
 }
 
+function formatOutsToIP(outs : number) : string
+{
+    const ip = outs / 3
+    const full_ip = Math.trunc(ip)
+    const partial_ip = Math.trunc((ip - full_ip) * 3)
+    return full_ip.toFixed(0) + "." + partial_ip.toFixed(0)
+}
+
 function formatModelString(val : number) : string
 {
     return `${val.toFixed(1)}`
