@@ -1,0 +1,14 @@
+#rankings_main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#rankings_selector {
+    gap: 2em;
+    padding-bottom: 1em;
+}
+
+#rankings_selector * {
+    font-size: 1.25em;
+}

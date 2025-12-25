@@ -13,6 +13,7 @@ class PageSelector
     {
         this.callback = callback
         this.baseElement = document.createElement('div')
+        this.baseElement.classList.add('page_selector')
 
         const pageInput = document.createElement('input') as HTMLInputElement
         pageInput.type = "number"

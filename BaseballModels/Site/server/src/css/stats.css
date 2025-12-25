@@ -432,4 +432,54 @@ td.border_right {
 
 .stats_table th, td{
     padding: 0.2em 0.3em;
+    border: 0.05em solid rgb(from var(--text-low) r g b / 0.5);
+}
+
+.stats_table > thead td {
+    text-align: center;
+}
+
+#stats_table_holder {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.page_selector {
+    padding-top: 1em;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+}
+
+#stat_selector {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 4em;
+    padding-bottom: 1em;
+}
+
+#stat_selector button.selected {
+    background-color: var(--color-high);
+}
+
+#stat_selector button {
+    background-color: var(--background-low);
+}
+#rankings_main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#rankings_selector {
+    gap: 2em;
+    padding-bottom: 1em;
+}
+
+#rankings_selector * {
+    font-size: 1.25em;
 }

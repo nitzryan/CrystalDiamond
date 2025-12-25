@@ -4,7 +4,9 @@ let modelId : number
 let teamId : number | null = null
 let levelId : number
 
-const statsTables = getElementByIdStrict('stats_tables')
+const statsTables = getElementByIdStrict('stats_table_holder')
+const stat_hitter_btn = getElementByIdStrict('stat_hitter_btn')
+const stat_pitcher_btn = getElementByIdStrict('stat_pitcher_btn')
 
 function GetHitterPromise()
 {
@@ -74,7 +76,7 @@ async function main()
     const hitterStatsViewer = new SortableStatsViewer(
         statsHitter,
         DB_Prediction_HitterStats,
-        ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "crOFF", "crBSR", "crDEF", "crWAR"],
+        ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"],
         f => [[`<a href='.player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], 
             [getParentAbbr(f.player.orgId), [al_l, lnk]], 
             [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]], 
@@ -90,7 +92,7 @@ async function main()
     const pitcherStatsViewer = new SortableStatsViewer(
         statsPitcher,
         DB_Prediction_PitcherStats,
-        ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "crRAA", "crWAR"],
+        ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"],
         f => [[`<a href='.player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]], 
             [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]], 
             [formatOutsToIP(f.obj.Outs_RP + f.obj.Outs_SP),  [al_r]], [(f.obj.GS + f.obj.GR).toFixed(1), [al_r]], [f.obj.GS.toFixed(1), [al_r, br]],
@@ -100,6 +102,20 @@ async function main()
         ]
     )
     statsTables.appendChild(pitcherStatsViewer.baseElement)
+
+    stat_hitter_btn.addEventListener('click', () => {
+        stat_hitter_btn.classList.add('selected')
+        stat_pitcher_btn.classList.remove('selected')
+        hitterStatsViewer.baseElement.classList.remove('hidden')
+        pitcherStatsViewer.baseElement.classList.add('hidden')
+    })
+    stat_pitcher_btn.addEventListener('click', () => {
+        stat_hitter_btn.classList.remove('selected')
+        stat_pitcher_btn.classList.add('selected')
+        hitterStatsViewer.baseElement.classList.add('hidden')
+        pitcherStatsViewer.baseElement.classList.remove('hidden')
+    })
+    stat_hitter_btn.click()
 
     searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_stats').classList.add('selected')

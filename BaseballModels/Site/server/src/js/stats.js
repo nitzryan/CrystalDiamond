@@ -40,7 +40,9 @@ var year;
 var modelId;
 var teamId = null;
 var levelId;
-var statsTables = getElementByIdStrict('stats_tables');
+var statsTables = getElementByIdStrict('stats_table_holder');
+var stat_hitter_btn = getElementByIdStrict('stat_hitter_btn');
+var stat_pitcher_btn = getElementByIdStrict('stat_pitcher_btn');
 function GetHitterPromise() {
     if (teamId !== null) {
         return fetch("/stats_hitter?year=".concat(year, "&month=").concat(month, "&model=").concat(modelId, "&level=").concat(levelId, "&team=").concat(teamId));
@@ -104,7 +106,7 @@ function main() {
                     al_l = 'align_left';
                     br = 'border_right';
                     bl = 'border_left';
-                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "crOFF", "crBSR", "crDEF", "crWAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
+                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
                         [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]],
                         [f.player.position, [al_l, br]],
@@ -114,13 +116,26 @@ function main() {
                         [f.obj.AVG.toFixed(3), [al_r]], [f.obj.OBP.toFixed(3), [al_r]], [f.obj.SLG.toFixed(3), [al_r]], [f.obj.ISO.toFixed(3), [al_r, br]],
                         [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
                     statsTables.appendChild(hitterStatsViewer.baseElement);
-                    pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "crRAA", "crWAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
+                    pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]],
                         [formatOutsToIP(f.obj.Outs_RP + f.obj.Outs_SP), [al_r]], [(f.obj.GS + f.obj.GR).toFixed(1), [al_r]], [f.obj.GS.toFixed(1), [al_r, br]],
                         [f.obj.ERA.toFixed(2), [al_r]], [f.obj.FIP.toFixed(2), [al_r, br]],
                         [(f.obj.K / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r]], [(f.obj.BB / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r]], [(f.obj.HR / (f.obj.Outs_RP + f.obj.Outs_SP) * 27).toFixed(1), [al_r, br]],
                         [f.obj.crRAA.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
                     statsTables.appendChild(pitcherStatsViewer.baseElement);
+                    stat_hitter_btn.addEventListener('click', function () {
+                        stat_hitter_btn.classList.add('selected');
+                        stat_pitcher_btn.classList.remove('selected');
+                        hitterStatsViewer.baseElement.classList.remove('hidden');
+                        pitcherStatsViewer.baseElement.classList.add('hidden');
+                    });
+                    stat_pitcher_btn.addEventListener('click', function () {
+                        stat_hitter_btn.classList.remove('selected');
+                        stat_pitcher_btn.classList.add('selected');
+                        hitterStatsViewer.baseElement.classList.add('hidden');
+                        pitcherStatsViewer.baseElement.classList.remove('hidden');
+                    });
+                    stat_hitter_btn.click();
                     _a = SearchBar.bind;
                     return [4, player_search_data];
                 case 7:
@@ -144,6 +159,7 @@ var PageSelector = (function () {
         var _this = this;
         this.callback = callback;
         this.baseElement = document.createElement('div');
+        this.baseElement.classList.add('page_selector');
         var pageInput = document.createElement('input');
         pageInput.type = "number";
         pageInput.min = "1";

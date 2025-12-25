@@ -11,7 +11,7 @@ python css_bundler.py player.css player.css
 python css_bundler.py rankings.css ranking.css
 python css_bundler.py teams.css ranking.css
 python css_bundler.py home.css home.css
-python css_bundler.py stats.css stats.css
+python css_bundler.py stats.css stats.css,ranking_selector.css
 
 REM Compile typescript
 tsc -b
