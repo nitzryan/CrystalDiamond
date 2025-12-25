@@ -100,7 +100,7 @@ namespace SitePrep
                                 float ab = (player.Pa - BB - HBP);
                                 float avg = (hit1B + hit2B + hit3B + hitHR) / ab;
                                 float slg = (hit1B + (2 * hit2B) + (3 * hit3B) + (4 * hitHR)) / ab;
-                                float iso = avg - slg;
+                                float iso = slg - avg;
                                 float obp = (hit1B + hit2B + hit3B + hitHR + BB + HBP) / player.Pa;
 
                                 // Calculate wRC and OFF
@@ -256,7 +256,7 @@ namespace SitePrep
                                 float era = player.ERA * leagueStatsAvg.ERA;
 
                                 // Calculate value
-                                float fip = Utilities.CalculateFip(lbs.CFIP, player.HR, player.K, player.BB + player.HBP, player.Outs_SP + player.Outs_RP);
+                                float fip = Utilities.CalculateFip(lbs.CFIP, hitHR, K, BB + HBP, player.Outs_SP + player.Outs_RP);
                                 float fipr9 = fip + lbs.FIPR9Adjustment;
                                 float pFIPR9 = fipr9 / player.ParkRunFactor;
                                 float raap9 = leagueFIPR9 - pFIPR9;

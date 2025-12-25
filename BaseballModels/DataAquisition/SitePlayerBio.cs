@@ -63,7 +63,7 @@ namespace DataAquisition
 
                             var phya = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).FirstOrDefault();
                             int playerLastYear = phya != null ? phya.Year : year;
-                            var games = db.Player_Hitter_GameLog.Where(f => f.MlbId == player.MlbId && f.Year >= playerLastYear - 1 && f.Position < 10)
+                            var games = db.Player_Hitter_GameLog.Where(f => f.MlbId == player.MlbId && f.Year >= playerLastYear - 1 && f.Position < 12)
                                 .AsEnumerable();
                             
                             if (games.Any())
@@ -96,7 +96,12 @@ namespace DataAquisition
                                     position = "RF";
                                 else if (gamesProp[7] + gamesProp[8] + gamesProp[9] > SINGLE_POSITION_CUTOFF)
                                     position = "OF";
-                                else {
+                                else if (sp[10])
+                                    position = "DH";
+                                else if (sp[11])
+                                    position = "P";
+                                else
+                                {
                                     if (mps[2])
                                         position += "C/";
                                     if (mps[3])
@@ -113,6 +118,10 @@ namespace DataAquisition
                                         position += "CF/";
                                     if (mps[9])
                                         position += "RF/";
+                                    if (mps[10])
+                                        position += "DH/";
+                                    if (mps[11])
+                                        position += "P/";
 
                                     if (position.Length > 0)
                                         position = position.Substring(0, position.Length - 1);

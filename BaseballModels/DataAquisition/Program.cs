@@ -44,8 +44,8 @@ namespace DataAquisition
                     //    if (!CreateLevelGameCounts.Main(year, month))
                     //        return;
 
-                    if (!CalculateLeagueBaselines.Main(year, month))
-                        return;
+                    //if (!CalculateLeagueBaselines.Main(year, month))
+                    //    return;
 
                     //if (!CalculateMonthStats.Main(year, month))
                     //    return;
@@ -104,8 +104,8 @@ namespace DataAquisition
             //while (!await GetLeagues.Main())
             //{ }
 
-            //while (!await SitePlayerBio.Main(END_YEAR))
-            //{ }
+            while (!await SitePlayerBio.Main(END_YEAR))
+            { }
 
             // 1 Year trailing stats
             foreach (var year in years)
