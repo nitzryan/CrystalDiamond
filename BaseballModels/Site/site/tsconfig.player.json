@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/ts/player.ts", "src/ts/searchbar.ts", "src/ts/keycontrols.ts", "src/ts/css_styles.ts", "src/ts/utility.ts", "src/ts/linegraph.ts", "src/ts/piegraph.ts", "src/*.d.ts", "src/ts/global.d.ts"],
+    "include": ["src/ts/player.ts", "src/ts/searchbar.ts", "src/ts/dbtypes.ts", "src/ts/keycontrols.ts", "src/ts/css_styles.ts", "src/ts/utility.ts", "src/ts/linegraph.ts", "src/ts/piegraph.ts", "src/*.d.ts", "src/ts/global.d.ts"],
 }

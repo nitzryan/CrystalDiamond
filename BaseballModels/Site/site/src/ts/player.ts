@@ -348,6 +348,51 @@ function updateHitterStats(hitterStats : HitterStats[])
     })
 }
 
+function updateHitterPredictions(hitterPredictions : DB_Prediction_HitterStats[])
+{
+    // Remove existing predictions
+    const stats_body = getElementByIdStrict('h_stats_body')
+    stats_body.querySelectorAll(":scope > .pred").forEach(
+        f => f.remove()
+    )
+
+    const month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
+        "hidden" : ""
+
+    let is_first = true
+    hitterPredictions.forEach(f => {
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+            <td></td>
+            <td>P</td>
+            <td class='table_month ${month_class_hidden}'></td>
+            <td>${level_map2[f.LevelId]}</td>
+            <td></td>
+            <td></td>
+            <td class="align_right">${f.Pa}</td>
+            <td class="align_right">${f.AVG.toFixed(3)}</td>
+            <td class="align_right">${f.OBP.toFixed(3)}</td>
+            <td class="align_right">${f.SLG.toFixed(3)}</td>
+            <td class="align_right">${f.ISO.toFixed(3)}</td>
+            <td class="align_right">${f.wRC.toFixed(0)}</td>
+            <td class="align_right">${f.HitHR.toFixed(1)}</td>
+            <td class="align_right">${(f.BB / f.Pa * 100).toFixed(1)}</td>
+            <td class="align_right">${(f.K / f.Pa * 100).toFixed(1)}</td>
+            <td class="align_right">${f.SB.toFixed(1)}</td>
+            <td class="align_right">${f.CS.toFixed(1)}</td>
+        `
+
+        if (is_first)
+        {
+            tr.classList.add("row_first")
+            is_first = false
+        }
+        tr.classList.add('pred')
+
+        stats_body.appendChild(tr)
+    })
+}
+
 function updatePitcherStats(pitcherStats : PitcherStats[])
 {
     const stats_body = getElementByIdStrict('p_stats_body')
@@ -439,10 +484,50 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
     })
 }
 
+function updatePitcherPredictions(pitcherPredictions : DB_Prediction_PitcherStats[])
+{
+    // Remove existing predictions
+    const stats_body = getElementByIdStrict('p_stats_body')
+    stats_body.querySelectorAll(":scope > .pred").forEach(
+        f => f.remove()
+    )
+    
+    const month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
+        "hidden" : ""
+
+    let is_first = true
+    pitcherPredictions.forEach(f => {
+        const tr = document.createElement('tr')
+
+        tr.innerHTML = `
+            <td></td>
+            <td>P</td>
+            <td class='table_month ${month_class_hidden}'></td>
+            <td>${level_map2[f.levelId]}</td>
+            <td></td>
+            <td></td>
+            <td class="align_right">${formatOutsToIP(f.Outs_RP + f.Outs_SP)}</td>
+            <td class="align_right">${f.ERA.toFixed(2)}</td>
+            <td class="align_right">${f.FIP.toFixed(2)}</td>
+            <td class="align_right">${f.HR.toFixed(1)}</td>
+            <td class="align_right">${f.BB.toFixed(1)}</td>
+            <td class="align_right">${f.K.toFixed(1)}</td>
+            <td class="align_right"></td>
+        `
+
+        if (is_first)
+        {
+            tr.classList.add("row_first")
+            is_first = false
+        }
+        tr.classList.add('pred')
+
+        stats_body.appendChild(tr)
+    })
+}
+
 const WAR_BUCKETS = [0,0.5,3,7.5,15,25,35]
 const WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
-const VALUE_BUCKETS = [0, 2.5, 12.5, 35, 75, 150, 250]
-const VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M", "200M+"]
 
 function piePointGenerator(model : Model) : Point[]
 {
@@ -588,7 +673,10 @@ function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][
     graph_selector.addEventListener('change', () => {
         if (line_graph !== null)
         {
-            line_graph.setDataset(parseInt(graph_selector.value))
+            const idx = parseInt(graph_selector.value)
+            line_graph.setDataset(idx)
+            updateHitterPredictions(predHitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
+            updatePitcherPredictions(predPitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
             line_graph.fireCallback()
         }
     })
@@ -631,7 +719,6 @@ function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
 
     
     const datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
-    console.log(datasets)
     if (datasets.length > 0)
     {
         line_graph = new LineGraph(model_graph, datasets, lineCallback)
@@ -660,6 +747,9 @@ let keyControls : KeyControls
 let person : Person
 let hitterModels : Model[][]
 let pitcherModels : Model[][]
+
+let predHitStats : DB_Prediction_HitterStats[]
+let predPitStats : DB_Prediction_PitcherStats[]
 
 async function main()
 {
@@ -741,6 +831,17 @@ async function main()
     let pitcher_title_element = getElementByIdStrict('pitcher_stats_title')
     hitter_title_element.textContent = `Hitter Stats through ${MONTH_CODES[endMonth]} ${endYear}`
     pitcher_title_element.textContent = `Pitcher Stats through ${MONTH_CODES[endMonth]} ${endYear}`
+
+    // Load predictions
+    const hitterStatsPredictionPromise = fetch(`/prediction_hitter?id=${id}&year=${endYear}&month=${endMonth}`)
+    const pitcherStatsPredictionPromise = fetch(`/prediction_pitcher?id=${id}&year=${endYear}&month=${endMonth}`)
+
+    const hitterStatsPredictions = await (await hitterStatsPredictionPromise).json() as JsonArray
+    const pitcherStatsPredictions = await (await pitcherStatsPredictionPromise).json() as JsonArray
+    predHitStats = hitterStatsPredictions.map(f => new DB_Prediction_HitterStats(f as JsonObject)).sort(f => f.LevelId)
+    predPitStats = pitcherStatsPredictions.map(f => new DB_Prediction_PitcherStats(f as JsonObject)).sort(f => f.levelId)
+    updateHitterPredictions(predHitStats.filter(f => f.Model === 1))
+    updatePitcherPredictions(predPitStats.filter(f => f.Model === 1))
 }
 
 main()

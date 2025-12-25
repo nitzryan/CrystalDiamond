@@ -283,6 +283,50 @@ app.get('/stats_pitcher', (req, res) => {
     }
 })
 
+app.get('/prediction_hitter', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const id = req.query.id
+
+        db.all(`
+        SELECT *
+        FROM Prediction_HitterStats
+        WHERE year=? AND month=? AND mlbId=?
+        ORDER BY LevelId DESC
+        `,
+        [year, month, id], (err, rows) => {
+            res.json(rows)
+        })
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in prediction_hitter: " + e)
+    }
+})
+
+app.get('/prediction_pitcher', (req, res) => {
+    try {
+        const year = req.query.year
+        const month = req.query.month
+        const id = req.query.id
+
+        db.all(`
+        SELECT *
+        FROM Prediction_PitcherStats
+        WHERE year=? AND month=? AND mlbId=?
+        ORDER BY LevelId DESC
+        `,
+        [year, month, id], (err, rows) => {
+            res.json(rows)
+        })
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in prediction_pitcher: " + e)
+    }
+})
+
 app.get('/brew', async (req, res) => {
     let html = await fs.readFile(path.join(__dirname, "src/html/error.html"), "utf8")
     html = html.replace("<!-- ERROR TEXT -->", `<p class='center_text'>Short and stout</p>`)

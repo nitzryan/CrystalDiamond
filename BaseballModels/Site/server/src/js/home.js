@@ -506,6 +506,7 @@ var MODEL_VALUES = [1, 2, 3];
 var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
+var level_map2 = ["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"];
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var DB_Player = (function () {
     function DB_Player(data) {
@@ -697,36 +698,6 @@ var DB_PlayerRank = (function () {
         this.highestLevel = data['highestLevel'];
     }
     return DB_PlayerRank;
-}());
-var DB_HitterWarRank = (function () {
-    function DB_HitterWarRank(data) {
-        this.mlbId = data['mlbId'];
-        this.modelId = data['modelId'];
-        this.year = data['year'];
-        this.month = data['month'];
-        this.teamId = data['teamId'];
-        this.position = data['position'];
-        this.war = data['war'];
-        this.rankWar = data['rankWar'];
-        this.pa = data['pa'];
-    }
-    return DB_HitterWarRank;
-}());
-var DB_PitcherWarRank = (function () {
-    function DB_PitcherWarRank(data) {
-        this.mlbId = data['mlbId'];
-        this.modelId = data['modelId'];
-        this.year = data['year'];
-        this.month = data['month'];
-        this.teamId = data['teamId'];
-        this.spWar = data['spWar'];
-        this.spIP = data['spIP'];
-        this.rpWar = data['rpWar'];
-        this.rpIP = data['rpIP'];
-        this.spRank = data['spRank'];
-        this.rpRank = data['rpRank'];
-    }
-    return DB_PitcherWarRank;
 }());
 var DB_TeamRank = (function () {
     function DB_TeamRank(data) {

@@ -247,6 +247,23 @@ function updateHitterStats(hitterStats) {
         stats_body.appendChild(tr);
     });
 }
+function updateHitterPredictions(hitterPredictions) {
+    var stats_body = getElementByIdStrict('h_stats_body');
+    stats_body.querySelectorAll(":scope > .pred").forEach(function (f) { return f.remove(); });
+    var month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
+        "hidden" : "";
+    var is_first = true;
+    hitterPredictions.forEach(function (f) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = "\n            <td></td>\n            <td>P</td>\n            <td class='table_month ".concat(month_class_hidden, "'></td>\n            <td>").concat(level_map2[f.LevelId], "</td>\n            <td></td>\n            <td></td>\n            <td class=\"align_right\">").concat(f.Pa, "</td>\n            <td class=\"align_right\">").concat(f.AVG.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.OBP.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.SLG.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.ISO.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wRC.toFixed(0), "</td>\n            <td class=\"align_right\">").concat(f.HitHR.toFixed(1), "</td>\n            <td class=\"align_right\">").concat((f.BB / f.Pa * 100).toFixed(1), "</td>\n            <td class=\"align_right\">").concat((f.K / f.Pa * 100).toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.SB.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.CS.toFixed(1), "</td>\n        ");
+        if (is_first) {
+            tr.classList.add("row_first");
+            is_first = false;
+        }
+        tr.classList.add('pred');
+        stats_body.appendChild(tr);
+    });
+}
 function updatePitcherStats(pitcherStats) {
     var stats_body = getElementByIdStrict('p_stats_body');
     var pcol_month = getElementByIdStrict('pcol_month');
@@ -303,10 +320,25 @@ function updatePitcherStats(pitcherStats) {
         stats_body.append(tr);
     });
 }
+function updatePitcherPredictions(pitcherPredictions) {
+    var stats_body = getElementByIdStrict('p_stats_body');
+    stats_body.querySelectorAll(":scope > .pred").forEach(function (f) { return f.remove(); });
+    var month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
+        "hidden" : "";
+    var is_first = true;
+    pitcherPredictions.forEach(function (f) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = "\n            <td></td>\n            <td>P</td>\n            <td class='table_month ".concat(month_class_hidden, "'></td>\n            <td>").concat(level_map2[f.levelId], "</td>\n            <td></td>\n            <td></td>\n            <td class=\"align_right\">").concat(formatOutsToIP(f.Outs_RP + f.Outs_SP), "</td>\n            <td class=\"align_right\">").concat(f.ERA.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.FIP.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.HR.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.BB.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.K.toFixed(1), "</td>\n            <td class=\"align_right\"></td>\n        ");
+        if (is_first) {
+            tr.classList.add("row_first");
+            is_first = false;
+        }
+        tr.classList.add('pred');
+        stats_body.appendChild(tr);
+    });
+}
 var WAR_BUCKETS = [0, 0.5, 3, 7.5, 15, 25, 35];
 var WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"];
-var VALUE_BUCKETS = [0, 2.5, 12.5, 35, 75, 150, 250];
-var VALUE_LABELS = ["<=0", "0M-5M", "5M-20M", "20M-50M", "50M-100M", "100M-200M", "200M+"];
 function piePointGenerator(model) {
     var points = [];
     for (var i = 0; i < WAR_LABELS.length; i++) {
@@ -416,7 +448,10 @@ function setupSelector(hitter_war_list, hitter_ranks_list, pitcher_war_list, pit
     graph_selector.value = "0";
     graph_selector.addEventListener('change', function () {
         if (line_graph !== null) {
-            line_graph.setDataset(parseInt(graph_selector.value));
+            var idx_1 = parseInt(graph_selector.value);
+            line_graph.setDataset(idx_1);
+            updateHitterPredictions(predHitStats.filter(function (f) { return f.Model == Math.trunc(idx_1 / 2) + 1; }));
+            updatePitcherPredictions(predPitStats.filter(function (f) { return f.Model == Math.trunc(idx_1 / 2) + 1; }));
             line_graph.fireCallback();
         }
     });
@@ -450,7 +485,6 @@ function setupModel(hitterModels, pitcherModels) {
     var hitter_rank_points = hitterModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var pitcher_rank_points = pitcherModels.map(function (m) { return m.filter(function (f) { return f.rank !== null; }).map(rank_map); });
     var datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
-    console.log(datasets);
     if (datasets.length > 0) {
         line_graph = new LineGraph(model_graph, datasets, lineCallback);
         setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points);
@@ -475,9 +509,11 @@ var keyControls;
 var person;
 var hitterModels;
 var pitcherModels;
+var predHitStats;
+var predPitStats;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, trainingWarning, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element;
+        var datesJsonPromise, id, player_data, player_search_data, pd, hitterStats, pitcherStats, trainingWarning, player_team, age, round, _a, datesJson, endYear, endMonth, hitter_title_element, pitcher_title_element, hitterStatsPredictionPromise, pitcherStatsPredictionPromise, hitterStatsPredictions, pitcherStatsPredictions;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -547,6 +583,20 @@ function main() {
                     pitcher_title_element = getElementByIdStrict('pitcher_stats_title');
                     hitter_title_element.textContent = "Hitter Stats through ".concat(MONTH_CODES[endMonth], " ").concat(endYear);
                     pitcher_title_element.textContent = "Pitcher Stats through ".concat(MONTH_CODES[endMonth], " ").concat(endYear);
+                    hitterStatsPredictionPromise = fetch("/prediction_hitter?id=".concat(id, "&year=").concat(endYear, "&month=").concat(endMonth));
+                    pitcherStatsPredictionPromise = fetch("/prediction_pitcher?id=".concat(id, "&year=").concat(endYear, "&month=").concat(endMonth));
+                    return [4, hitterStatsPredictionPromise];
+                case 6: return [4, (_b.sent()).json()];
+                case 7:
+                    hitterStatsPredictions = _b.sent();
+                    return [4, pitcherStatsPredictionPromise];
+                case 8: return [4, (_b.sent()).json()];
+                case 9:
+                    pitcherStatsPredictions = _b.sent();
+                    predHitStats = hitterStatsPredictions.map(function (f) { return new DB_Prediction_HitterStats(f); }).sort(function (f) { return f.LevelId; });
+                    predPitStats = pitcherStatsPredictions.map(function (f) { return new DB_Prediction_PitcherStats(f); }).sort(function (f) { return f.levelId; });
+                    updateHitterPredictions(predHitStats.filter(function (f) { return f.Model === 1; }));
+                    updatePitcherPredictions(predPitStats.filter(function (f) { return f.Model === 1; }));
                     return [2];
             }
         });
@@ -623,6 +673,250 @@ var SearchBar = (function () {
         return [htmlMajorsStrings, htmlMinorsStrings];
     };
     return SearchBar;
+}());
+var DB_Player = (function () {
+    function DB_Player(data) {
+        this.mlbId = data['mlbId'];
+        this.firstName = data['firstName'];
+        this.lastName = data['lastName'];
+        this.birthYear = data['birthYear'];
+        this.birthMonth = data['birthMonth'];
+        this.birthDate = data['birthDate'];
+        this.startYear = data['startYear'];
+        this.position = data['position'];
+        this.status = data['status'];
+        this.orgId = data['orgId'];
+        this.draftPick = data['draftPick'];
+        this.draftRound = data['draftRound'];
+        this.draftBonus = data['draftBonus'];
+        this.isHitter = data['isHitter'];
+        this.isPitcher = data['isPitcher'];
+        this.inTraining = data['inTraining'];
+    }
+    return DB_Player;
+}());
+var DB_HitterYearStats = (function () {
+    function DB_HitterYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterYearStats;
+}());
+var DB_HitterMonthStats = (function () {
+    function DB_HitterMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.PA = data['PA'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.WRC = data['WRC'];
+        this.HR = data['HR'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+    }
+    return DB_HitterMonthStats;
+}());
+var DB_PitcherYearStats = (function () {
+    function DB_PitcherYearStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherYearStats;
+}());
+var DB_PitcherMonthStats = (function () {
+    function DB_PitcherMonthStats(data) {
+        this.mlbId = data['mlbId'];
+        this.levelId = data['levelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.leagueId = data['leagueId'];
+        this.IP = data['IP'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.GOPerc = data['GOPerc'];
+    }
+    return DB_PitcherMonthStats;
+}());
+var DB_Prediction_HitterStats = (function () {
+    function DB_Prediction_HitterStats(data) {
+        this.MlbId = data['MlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.LevelId = data['LevelId'];
+        this.Pa = data['Pa'];
+        this.Hit1B = data['Hit1B'];
+        this.Hit2B = data['Hit2B'];
+        this.Hit3B = data['Hit3B'];
+        this.HitHR = data['HitHR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.SB = data['SB'];
+        this.CS = data['CS'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.PercC = data['PercC'];
+        this.Perc1B = data['Perc1B'];
+        this.Perc2B = data['Perc2B'];
+        this.Perc3B = data['Perc3B'];
+        this.PercSS = data['PercSS'];
+        this.PercLF = data['PercLF'];
+        this.PercCF = data['PercCF'];
+        this.PercRF = data['PercRF'];
+        this.PercDH = data['PercDH'];
+        this.AVG = data['AVG'];
+        this.OBP = data['OBP'];
+        this.SLG = data['SLG'];
+        this.ISO = data['ISO'];
+        this.wRC = data['wRC'];
+        this.crOFF = data['crOFF'];
+        this.crBSR = data['crBSR'];
+        this.crDEF = data['crDEF'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_HitterStats;
+}());
+var DB_Prediction_PitcherStats = (function () {
+    function DB_Prediction_PitcherStats(data) {
+        this.mlbId = data['mlbId'];
+        this.Model = data['Model'];
+        this.Year = data['Year'];
+        this.Month = data['Month'];
+        this.levelId = data['levelId'];
+        this.Outs_SP = data['Outs_SP'];
+        this.Outs_RP = data['Outs_RP'];
+        this.GS = data['GS'];
+        this.GR = data['GR'];
+        this.ERA = data['ERA'];
+        this.FIP = data['FIP'];
+        this.HR = data['HR'];
+        this.BB = data['BB'];
+        this.HBP = data['HBP'];
+        this.K = data['K'];
+        this.ParkRunFactor = data['ParkRunFactor'];
+        this.SP_Perc = data['SP_Perc'];
+        this.RP_Perc = data['RP_Perc'];
+        this.crRAA = data['crRAA'];
+        this.crWAR = data['crWAR'];
+    }
+    return DB_Prediction_PitcherStats;
+}());
+var DB_PlayerModel = (function () {
+    function DB_PlayerModel(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.probsWar = data['probsWar'];
+        this.rankWar = data['rankWar'];
+    }
+    return DB_PlayerModel;
+}());
+var DB_PlayerRank = (function () {
+    function DB_PlayerRank(data) {
+        this.mlbId = data['mlbId'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.teamId = data['teamId'];
+        this.position = data['position'];
+        this.war = data['war'];
+        this.rankWar = data['rankWar'];
+        this.teamRankWar = data['teamRankWar'];
+        this.highestLevel = data['highestLevel'];
+    }
+    return DB_PlayerRank;
+}());
+var DB_TeamRank = (function () {
+    function DB_TeamRank(data) {
+        this.teamId = data['teamId'];
+        this.modelId = data['modelId'];
+        this.year = data['year'];
+        this.month = data['month'];
+        this.highestRank = data['highestRank'];
+        this.top10 = data['top10'];
+        this.top50 = data['top50'];
+        this.top100 = data['top100'];
+        this.top200 = data['top200'];
+        this.top500 = data['top500'];
+        this.rank = data['rank'];
+        this.war = data['war'];
+    }
+    return DB_TeamRank;
+}());
+var DB_Models = (function () {
+    function DB_Models(data) {
+        this.modelId = data['modelId'];
+        this.name = data['name'];
+    }
+    return DB_Models;
+}());
+var DB_PlayerYearPositions = (function () {
+    function DB_PlayerYearPositions(data) {
+        this.mlbId = data['mlbId'];
+        this.year = data['year'];
+        this.isHitter = data['isHitter'];
+        this.position = data['position'];
+    }
+    return DB_PlayerYearPositions;
+}());
+var DB_HomeData = (function () {
+    function DB_HomeData(data) {
+        this.year = data['year'];
+        this.month = data['month'];
+        this.rankType = data['rankType'];
+        this.modelId = data['modelId'];
+        this.isWar = data['isWar'];
+        this.mlbId = data['mlbId'];
+        this.data = data['data'];
+        this.rank = data['rank'];
+    }
+    return DB_HomeData;
+}());
+var DB_HomeDataType = (function () {
+    function DB_HomeDataType(data) {
+        this.type = data['type'];
+        this.name = data['name'];
+    }
+    return DB_HomeDataType;
 }());
 var KeyControls = (function () {
     function KeyControls(document, callback) {
@@ -868,6 +1162,7 @@ var MODEL_VALUES = [1, 2, 3];
 var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
+var level_map2 = ["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"];
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var POINT_DEFAULT_SIZE = 3;
 var POINT_HIGHLIGHT_SIZE = 9;

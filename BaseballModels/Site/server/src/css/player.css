@@ -9,6 +9,10 @@
     --color-high: #DD0000;
     --color-med: #BB2222;
     --color-low: #994444;
+
+    --pred-color-high : #0000DD;
+    --pred-color-med : #2222BB;
+    --pred-color-low : #444499;
 }
 
 .hidden {
@@ -69,6 +73,16 @@ tbody tr:nth-child(even)
 tbody tr:nth-child(odd)
 {
     background: color-mix(in srgb, var(--color-med), transparent 75%);
+}
+
+tbody tr.pred:nth-child(even)
+{
+    background: color-mix(in srgb, var(--pred-color-med), transparent 50%);
+}
+
+tbody tr.pred:nth-child(odd)
+{
+    background: color-mix(in srgb, var(--pred-color-med), transparent 75%);
 }
 
 th {
@@ -405,7 +419,6 @@ nav p {
     background-color: rgb(18, 40, 75);
     color: rgb(255, 197, 47);
 }
-
 #player {
     width: 20em;
     display: flex;

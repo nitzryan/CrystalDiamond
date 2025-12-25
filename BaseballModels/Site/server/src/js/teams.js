@@ -729,4 +729,5 @@ var MODEL_VALUES = [1, 2, 3];
 var MODEL_STRINGS = ["Base", "Stats Only", "Experimental"];
 var org_map = null;
 var level_map = { 1: "MLB", 11: "AAA", 12: "AA", 13: "A+", 14: "A", 15: "A-", 16: "Rk", 17: "DSL", 20: "" };
+var level_map2 = ["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"];
 var MONTH_CODES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
