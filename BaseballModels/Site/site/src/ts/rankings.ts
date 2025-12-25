@@ -1,6 +1,8 @@
 let month : number
 let year : number
 let modelId : number
+let teamId : number | null
+
 async function main()
 {
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
@@ -13,8 +15,10 @@ async function main()
     
     month = getQueryParamBackup("month", endMonth)
     year = getQueryParamBackup("year", endYear)
+    teamId = getQueryParamNullable('team')
     const modelId = getQueryParamBackup("model", 1)
 
+    org_map = await retrieveJson("../../assets/map.json.gz")
     setupSelector({
         month : month,
         year : year,
@@ -22,16 +26,15 @@ async function main()
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
-        startTeam : null,
+        startTeam : teamId,
         level : null
     })
-    org_map = await retrieveJson("../../assets/map.json.gz")
     
     setupRankings({
         month : month,
         year : year,
         model : modelId,
-        teamId : null,
+        teamId : teamId,
         period : 0,
         type: PlayerLoaderType.Prospect
     }, 100)
@@ -41,7 +44,12 @@ async function main()
         const mnth = month_select.value
         const yr = year_select.value
         const model = model_select.value
-        window.location.href = `./rankings?year=${yr}&month=${mnth}&model=${model}`
+        const team = team_select?.value
+
+        if (team === "0")
+            window.location.href = `./rankings?year=${yr}&month=${mnth}&model=${model}`
+        else
+            window.location.href = `./rankings?year=${yr}&month=${mnth}&model=${model}&team=${team}`
     })
 
     getElementByIdStrict('nav_rankings').classList.add('selected')

@@ -106,7 +106,7 @@ function main() {
                     al_l = 'align_left';
                     br = 'border_right';
                     bl = 'border_left';
-                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
+                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"], function (f) { return [["<a href='player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
                         [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]],
                         [f.player.position, [al_l, br]],
@@ -146,7 +146,11 @@ function main() {
                         var yr = year_select.value;
                         var model = model_select.value;
                         var level = level_select === null || level_select === void 0 ? void 0 : level_select.value;
-                        window.location.href = "./stats?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&level=").concat(level);
+                        var team = team_select === null || team_select === void 0 ? void 0 : team_select.value;
+                        if (team !== "0")
+                            window.location.href = "./stats?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&level=").concat(level, "&team=").concat(team);
+                        else
+                            window.location.href = "./stats?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&level=").concat(level);
                     });
                     return [2];
             }
@@ -541,7 +545,7 @@ function setupSelector(args) {
     model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
-    if (team_select !== null && args.startTeam !== null) {
+    if (team_select !== null) {
         setupTeamSelector(args.startTeam);
         team_select.addEventListener('change', selectorEventHandler);
     }
@@ -568,7 +572,7 @@ function setupTeamSelector(teamId) {
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector');
     var parents = org_map["parents"];
-    var teams = [];
+    var teams = [{ id: 0, abbr: 'All' }];
     for (var id in parents) {
         teams.push({
             id: parseInt(id),
@@ -588,7 +592,10 @@ function setupTeamSelector(teamId) {
         var el = elements_1[_i];
         team_select.appendChild(el);
     }
-    team_select.value = teamId.toString();
+    if (teamId !== null)
+        team_select.value = teamId.toString();
+    else
+        team_select.value = "0";
 }
 var searchBar = null;
 var SearchBar = (function () {

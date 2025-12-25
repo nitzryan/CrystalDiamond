@@ -1,8 +1,6 @@
 let month : number
 let year : number
 let modelId : number
-let teamId : number | null = null
-let rankings_overall = document.getElementById('rankings_overall') as HTMLButtonElement
 
 async function main()
 {
@@ -17,9 +15,7 @@ async function main()
     endMonth = datesJson["endMonth"] as number
     month = getQueryParamBackup('month', endMonth)
     year = getQueryParamBackup('year', endYear)
-    const mdl = getQueryParamBackupStr("model", "1.1").split(".",2).map(f => Number(f))
-    modelId = mdl[0]
-    teamId = getQueryParamNullable('team')
+    modelId = getQueryParamBackup("model", 1)
     
     setupSelector({
         month : month,
@@ -28,51 +24,14 @@ async function main()
         endYear : endYear,
         endMonth : endMonth,
         startYear : datesJson["startYear"] as number,
-        startTeam : teamId,
+        startTeam : null,
         level : null
     })
-    if (teamId === null)
-    {
-        createOverviewPage(datesJson)
-    } else 
-    {
-        createTeamPage(datesJson)
-    }
+
+    createOverviewPage(datesJson)
 
     searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_teams').classList.add('selected')
-
-    rankings_overall.addEventListener('click', () => {
-        const mnth = month_select.value
-        const yr = year_select.value
-        window.location.href = `./teams?year=${yr}&month=${mnth}`
-    })
-}
-
-async function createTeamPage(datesJson : JsonObject)
-{
-    if (teamId === null)
-        throw new Error("Null month in createTeamPage")
-    
-    setupRankings({
-        month : month,
-        year : year,
-        model : modelId,
-        teamId : teamId,
-        period : 0,
-        type : PlayerLoaderType.Prospect
-        }, 30)
-
-    rankings_button.addEventListener('click', (event) => {
-        const mnth = month_select.value
-        const yr = year_select.value
-        const tm = team_select?.value
-        const model = model_select.value
-        
-        window.location.href = `./teams?year=${yr}&month=${mnth}&team=${tm}&model=${model}`
-    })
-
-    document.title = `${getParentAbbr(teamId)} ${MONTH_CODES[month]} ${year} Rankings`
 }
 
 function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
@@ -86,7 +45,7 @@ function TeamOverviewMap(team : JsonValue) : HTMLTableRowElement
     el.innerHTML = 
         `
         <td class='c_rank'>${__current_rank}</td>
-        <td class='c_name'><a href='./teams?team=${id}&year=${year}&month=${month}&model=${modelId}'>${getParentName(id)}</a></td>
+        <td class='c_name'><a href='./rankings?team=${id}&year=${year}&month=${month}&model=${modelId}'>${getParentName(id)}</a></td>
         <td class='c_value'>${team["highestRank"]}</td>
         <td class='c_value'>${value_string}</td>
         <td class='c_value'>${team["top10"]}</td>
@@ -127,7 +86,6 @@ async function createOverviewPage(datesJson : JsonObject)
     rankings_header.innerText = `Team Rankings for ${MONTH_CODES[month]} ${year}`
     rankings_load.classList.add('hidden')
     team_select?.classList.add('hidden')
-    rankings_overall.classList.add('hidden')
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value

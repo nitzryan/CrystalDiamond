@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var month;
 var year;
 var modelId;
+var teamId;
 function main() {
     return __awaiter(this, void 0, void 0, function () {
         var datesJsonPromise, player_search_data, datesJson, modelId, _a;
@@ -53,7 +54,11 @@ function main() {
                     endMonth = datesJson["endMonth"];
                     month = getQueryParamBackup("month", endMonth);
                     year = getQueryParamBackup("year", endYear);
+                    teamId = getQueryParamNullable('team');
                     modelId = getQueryParamBackup("model", 1);
+                    return [4, retrieveJson("../../assets/map.json.gz")];
+                case 2:
+                    org_map = _b.sent();
                     setupSelector({
                         month: month,
                         year: year,
@@ -61,17 +66,14 @@ function main() {
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: null,
+                        startTeam: teamId,
                         level: null
                     });
-                    return [4, retrieveJson("../../assets/map.json.gz")];
-                case 2:
-                    org_map = _b.sent();
                     setupRankings({
                         month: month,
                         year: year,
                         model: modelId,
-                        teamId: null,
+                        teamId: teamId,
                         period: 0,
                         type: PlayerLoaderType.Prospect
                     }, 100);
@@ -83,7 +85,11 @@ function main() {
                         var mnth = month_select.value;
                         var yr = year_select.value;
                         var model = model_select.value;
-                        window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
+                        var team = team_select === null || team_select === void 0 ? void 0 : team_select.value;
+                        if (team === "0")
+                            window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model);
+                        else
+                            window.location.href = "./rankings?year=".concat(yr, "&month=").concat(mnth, "&model=").concat(model, "&team=").concat(team);
                     });
                     getElementByIdStrict('nav_rankings').classList.add('selected');
                     document.title = "".concat(MONTH_CODES[month], " ").concat(year, " Rankings");
@@ -123,7 +129,7 @@ function setupSelector(args) {
     model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
-    if (team_select !== null && args.startTeam !== null) {
+    if (team_select !== null) {
         setupTeamSelector(args.startTeam);
         team_select.addEventListener('change', selectorEventHandler);
     }
@@ -150,7 +156,7 @@ function setupTeamSelector(teamId) {
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector');
     var parents = org_map["parents"];
-    var teams = [];
+    var teams = [{ id: 0, abbr: 'All' }];
     for (var id in parents) {
         teams.push({
             id: parseInt(id),
@@ -170,7 +176,10 @@ function setupTeamSelector(teamId) {
         var el = elements_1[_i];
         team_select.appendChild(el);
     }
-    team_select.value = teamId.toString();
+    if (teamId !== null)
+        team_select.value = teamId.toString();
+    else
+        team_select.value = "0";
 }
 var rankings_header = getElementByIdStrict('rankings_header');
 var rankings_table = getElementByIdStrict('rankings_table');

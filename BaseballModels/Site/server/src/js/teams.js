@@ -38,11 +38,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var month;
 var year;
 var modelId;
-var teamId = null;
-var rankings_overall = document.getElementById('rankings_overall');
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var datesJsonPromise, player_search_data, datesJson, mdl, _a;
+        var datesJsonPromise, player_search_data, datesJson, _a;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -58,9 +56,7 @@ function main() {
                     endMonth = datesJson["endMonth"];
                     month = getQueryParamBackup('month', endMonth);
                     year = getQueryParamBackup('year', endYear);
-                    mdl = getQueryParamBackupStr("model", "1.1").split(".", 2).map(function (f) { return Number(f); });
-                    modelId = mdl[0];
-                    teamId = getQueryParamNullable('team');
+                    modelId = getQueryParamBackup("model", 1);
                     setupSelector({
                         month: month,
                         year: year,
@@ -68,52 +64,17 @@ function main() {
                         endYear: endYear,
                         endMonth: endMonth,
                         startYear: datesJson["startYear"],
-                        startTeam: teamId,
+                        startTeam: null,
                         level: null
                     });
-                    if (teamId === null) {
-                        createOverviewPage(datesJson);
-                    }
-                    else {
-                        createTeamPage(datesJson);
-                    }
+                    createOverviewPage(datesJson);
                     _a = SearchBar.bind;
                     return [4, player_search_data];
                 case 3:
                     searchBar = new (_a.apply(SearchBar, [void 0, _b.sent()]))();
                     getElementByIdStrict('nav_teams').classList.add('selected');
-                    rankings_overall.addEventListener('click', function () {
-                        var mnth = month_select.value;
-                        var yr = year_select.value;
-                        window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth);
-                    });
                     return [2];
             }
-        });
-    });
-}
-function createTeamPage(datesJson) {
-    return __awaiter(this, void 0, void 0, function () {
-        return __generator(this, function (_a) {
-            if (teamId === null)
-                throw new Error("Null month in createTeamPage");
-            setupRankings({
-                month: month,
-                year: year,
-                model: modelId,
-                teamId: teamId,
-                period: 0,
-                type: PlayerLoaderType.Prospect
-            }, 30);
-            rankings_button.addEventListener('click', function (event) {
-                var mnth = month_select.value;
-                var yr = year_select.value;
-                var tm = team_select === null || team_select === void 0 ? void 0 : team_select.value;
-                var model = model_select.value;
-                window.location.href = "./teams?year=".concat(yr, "&month=").concat(mnth, "&team=").concat(tm, "&model=").concat(model);
-            });
-            document.title = "".concat(getParentAbbr(teamId), " ").concat(MONTH_CODES[month], " ").concat(year, " Rankings");
-            return [2];
         });
     });
 }
@@ -124,7 +85,7 @@ function TeamOverviewMap(team) {
     var el = document.createElement('tr');
     el.classList.add('rankings_item');
     el.innerHTML =
-        "\n        <td class='c_rank'>".concat(__current_rank, "</td>\n        <td class='c_name'><a href='./teams?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, "'>").concat(getParentName(id), "</a></td>\n        <td class='c_value'>").concat(team["highestRank"], "</td>\n        <td class='c_value'>").concat(value_string, "</td>\n        <td class='c_value'>").concat(team["top10"], "</td>\n        <td class='c_value'>").concat(team["top50"], "</td>\n        <td class='c_value'>").concat(team["top100"], "</td>\n        <td class='c_value'>").concat(team["top200"], "</td>\n        <td class='c_value'>").concat(team["top500"], "</td>\n        ");
+        "\n        <td class='c_rank'>".concat(__current_rank, "</td>\n        <td class='c_name'><a href='./rankings?team=").concat(id, "&year=").concat(year, "&month=").concat(month, "&model=").concat(modelId, "'>").concat(getParentName(id), "</a></td>\n        <td class='c_value'>").concat(team["highestRank"], "</td>\n        <td class='c_value'>").concat(value_string, "</td>\n        <td class='c_value'>").concat(team["top10"], "</td>\n        <td class='c_value'>").concat(team["top50"], "</td>\n        <td class='c_value'>").concat(team["top100"], "</td>\n        <td class='c_value'>").concat(team["top200"], "</td>\n        <td class='c_value'>").concat(team["top500"], "</td>\n        ");
     __current_rank += 1;
     return el;
 }
@@ -147,7 +108,6 @@ function createOverviewPage(datesJson) {
                     rankings_header.innerText = "Team Rankings for ".concat(MONTH_CODES[month], " ").concat(year);
                     rankings_load.classList.add('hidden');
                     team_select === null || team_select === void 0 ? void 0 : team_select.classList.add('hidden');
-                    rankings_overall.classList.add('hidden');
                     rankings_button.addEventListener('click', function (event) {
                         var mnth = month_select.value;
                         var yr = year_select.value;
@@ -191,7 +151,7 @@ function setupSelector(args) {
     model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
-    if (team_select !== null && args.startTeam !== null) {
+    if (team_select !== null) {
         setupTeamSelector(args.startTeam);
         team_select.addEventListener('change', selectorEventHandler);
     }
@@ -218,7 +178,7 @@ function setupTeamSelector(teamId) {
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector');
     var parents = org_map["parents"];
-    var teams = [];
+    var teams = [{ id: 0, abbr: 'All' }];
     for (var id in parents) {
         teams.push({
             id: parseInt(id),
@@ -238,7 +198,10 @@ function setupTeamSelector(teamId) {
         var el = elements_1[_i];
         team_select.appendChild(el);
     }
-    team_select.value = teamId.toString();
+    if (teamId !== null)
+        team_select.value = teamId.toString();
+    else
+        team_select.value = "0";
 }
 var rankings_header = getElementByIdStrict('rankings_header');
 var rankings_table = getElementByIdStrict('rankings_table');

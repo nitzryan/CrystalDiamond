@@ -77,7 +77,7 @@ async function main()
         statsHitter,
         DB_Prediction_HitterStats,
         ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"],
-        f => [[`<a href='.player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], 
+        f => [[`<a href='player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], 
             [getParentAbbr(f.player.orgId), [al_l, lnk]], 
             [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]], 
             [f.player.position, [al_l, br]],
@@ -125,7 +125,11 @@ async function main()
         const yr = year_select.value
         const model = model_select.value
         const level = level_select?.value as string
-        window.location.href = `./stats?year=${yr}&month=${mnth}&model=${model}&level=${level}`
+        const team = team_select?.value as string
+        if (team !== "0")
+            window.location.href = `./stats?year=${yr}&month=${mnth}&model=${model}&level=${level}&team=${team}`
+        else
+            window.location.href = `./stats?year=${yr}&month=${mnth}&model=${model}&level=${level}`
     })
 }
 

@@ -48,7 +48,7 @@ function setupSelector(args : SelectorArgs)
     year_select.addEventListener('change', selectorEventHandler)
     month_select.addEventListener('change', selectorEventHandler)
     
-    if (team_select !== null && args.startTeam !== null){
+    if (team_select !== null){
         setupTeamSelector(args.startTeam)
         team_select.addEventListener('change', selectorEventHandler)
     }
@@ -74,7 +74,7 @@ function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
     }
 }
 
-function setupTeamSelector(teamId : number)
+function setupTeamSelector(teamId : number | null)
 {
     if (org_map === null)
         throw new Error("org_map null at setupSelector")
@@ -83,7 +83,7 @@ function setupTeamSelector(teamId : number)
         throw new Error('team_select null in setupTeamSelector')
 
     var parents = org_map["parents"] as JsonObject
-    var teams = []
+    var teams = [{id: 0, abbr: 'All'}]
     for (var id in parents)
     {
         teams.push({
@@ -109,5 +109,8 @@ function setupTeamSelector(teamId : number)
     for (var el of elements)
         team_select.appendChild(el)
 
-    team_select.value = teamId.toString()
+    if (teamId !== null)
+        team_select.value = teamId.toString()
+    else
+        team_select.value = "0"
 }

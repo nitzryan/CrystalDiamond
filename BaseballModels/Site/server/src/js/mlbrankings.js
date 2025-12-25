@@ -143,7 +143,7 @@ function setupSelector(args) {
     model_select.value = args.modelId.toString();
     year_select.addEventListener('change', selectorEventHandler);
     month_select.addEventListener('change', selectorEventHandler);
-    if (team_select !== null && args.startTeam !== null) {
+    if (team_select !== null) {
         setupTeamSelector(args.startTeam);
         team_select.addEventListener('change', selectorEventHandler);
     }
@@ -170,7 +170,7 @@ function setupTeamSelector(teamId) {
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector');
     var parents = org_map["parents"];
-    var teams = [];
+    var teams = [{ id: 0, abbr: 'All' }];
     for (var id in parents) {
         teams.push({
             id: parseInt(id),
@@ -190,7 +190,10 @@ function setupTeamSelector(teamId) {
         var el = elements_1[_i];
         team_select.appendChild(el);
     }
-    team_select.value = teamId.toString();
+    if (teamId !== null)
+        team_select.value = teamId.toString();
+    else
+        team_select.value = "0";
 }
 var rankings_header = getElementByIdStrict('rankings_header');
 var rankings_table = getElementByIdStrict('rankings_table');
