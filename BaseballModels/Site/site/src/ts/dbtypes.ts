@@ -362,62 +362,6 @@ class DB_PlayerRank
 	}
 }
 
-class DB_HitterWarRank
-{
-	public mlbId : number
-	public modelId : number
-	public year : number
-	public month : number
-	public teamId : number
-	public position : string
-	public war : number
-	public rankWar : number
-	public pa : number
-
-	constructor(data : JsonObject)
-	{
-		this.mlbId = data['mlbId'] as number
-		this.modelId = data['modelId'] as number
-		this.year = data['year'] as number
-		this.month = data['month'] as number
-		this.teamId = data['teamId'] as number
-		this.position = data['position'] as string
-		this.war = data['war'] as number
-		this.rankWar = data['rankWar'] as number
-		this.pa = data['pa'] as number
-	}
-}
-
-class DB_PitcherWarRank
-{
-	public mlbId : number
-	public modelId : number
-	public year : number
-	public month : number
-	public teamId : number
-	public spWar : number
-	public spIP : number
-	public rpWar : number
-	public rpIP : number
-	public spRank : number
-	public rpRank : number
-
-	constructor(data : JsonObject)
-	{
-		this.mlbId = data['mlbId'] as number
-		this.modelId = data['modelId'] as number
-		this.year = data['year'] as number
-		this.month = data['month'] as number
-		this.teamId = data['teamId'] as number
-		this.spWar = data['spWar'] as number
-		this.spIP = data['spIP'] as number
-		this.rpWar = data['rpWar'] as number
-		this.rpIP = data['rpIP'] as number
-		this.spRank = data['spRank'] as number
-		this.rpRank = data['rpRank'] as number
-	}
-}
-
 class DB_TeamRank
 {
 	public teamId : number

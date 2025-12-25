@@ -180,34 +180,6 @@ CREATE TABLE "PlayerRank" (
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
 
-CREATE TABLE "HitterWarRank" (
-	"mlbId" INTEGER NOT NULL,
-	"modelId" INTEGER NOT NULL,
-	"year" INTEGER NOT NULL,
-	"month" INTEGER NOT NULL,
-	"teamId" INTEGER NOT NULL,
-	"position" TEXT NOT NULL,
-	"war" REAL NOT NULL,
-	"rankWar" INTEGER NOT NULL,
-	"pa" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "year", "month", "modelId")
-);
-
-CREATE TABLE "PitcherWarRank" (
-	"mlbId" INTEGER NOT NULL,
-	"modelId" INTEGER NOT NULL,
-	"year" INTEGER NOT NULL,
-	"month" INTEGER NOT NULL,
-	"teamId" INTEGER NOT NULL,
-	"spWar" REAL NOT NULL,
-	"spIP" REAL NOT NULL,
-	"rpWar" REAL NOT NULL,
-	"rpIP" REAL NOT NULL,
-	"spRank" INTEGER,
-	"rpRank" INTEGER,
-	PRIMARY KEY("mlbId", "year", "month", "modelId")
-);
-
 CREATE TABLE "TeamRank" (
 	"teamId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,

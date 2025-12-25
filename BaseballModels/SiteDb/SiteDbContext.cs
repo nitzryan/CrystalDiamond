@@ -13,8 +13,6 @@ namespace SiteDb
 		public DbSet<Prediction_PitcherStats> Prediction_PitcherStats {get; set;}
 		public DbSet<PlayerModel> PlayerModel {get; set;}
 		public DbSet<PlayerRank> PlayerRank {get; set;}
-		public DbSet<HitterWarRank> HitterWarRank {get; set;}
-		public DbSet<PitcherWarRank> PitcherWarRank {get; set;}
 		public DbSet<TeamRank> TeamRank {get; set;}
 		public DbSet<Models> Models {get; set;}
 		public DbSet<PlayerYearPositions> PlayerYearPositions {get; set;}
@@ -34,8 +32,6 @@ namespace SiteDb
 			modelBuilder.Entity<Prediction_PitcherStats>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId,f.IsHitter});
 			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelId,f.IsHitter,f.Year,f.Month});
-			modelBuilder.Entity<HitterWarRank>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
-			modelBuilder.Entity<PitcherWarRank>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
 			modelBuilder.Entity<TeamRank>().HasKey(f => new {f.TeamId,f.ModelId,f.Year,f.Month});
 			modelBuilder.Entity<Models>().HasKey(f => new {f.ModelId});
 			modelBuilder.Entity<PlayerYearPositions>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});

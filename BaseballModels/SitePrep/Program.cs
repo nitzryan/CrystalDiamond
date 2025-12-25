@@ -24,9 +24,6 @@ namespace SitePrep
             if (!GenerateRankings.Main(year, month))
                 return;
 
-            if (!GenerateWarRankings.MainFunc(year, month))
-                return;
-
             if (!GenerateTeamRank.Main())
                 return;
 
