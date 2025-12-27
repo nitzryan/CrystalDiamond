@@ -15,6 +15,7 @@ namespace Db
 		public required float WHR {get; set;}
 		public required float RunSB {get; set;}
 		public required float RunCS {get; set;}
+		public required float RunErr {get; set;}
 		public required float RPerPA {get; set;}
 		public required float RPerWin {get; set;}
 		public required int LeaguePA {get; set;}
@@ -40,6 +41,7 @@ namespace Db
 				WHR = this.WHR,
 				RunSB = this.RunSB,
 				RunCS = this.RunCS,
+				RunErr = this.RunErr,
 				RPerPA = this.RPerPA,
 				RPerWin = this.RPerWin,
 				LeaguePA = this.LeaguePA,

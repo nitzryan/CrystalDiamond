@@ -65,5 +65,15 @@
             Medium = 1 << 1,
             Hard = 1 << 2,
         }
+
+        [Flags]
+        public enum BaseOccupancy
+        { 
+            Empty = 0,
+            B1 = 1 << 0,
+            B2 = 1 << 1,
+            B3 = 1 << 2,
+            Invalid = 1 << 3,
+        }
     }
 }

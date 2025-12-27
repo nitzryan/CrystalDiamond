@@ -7,7 +7,6 @@ namespace DataAquisition
         const int START_YEAR = 2005;
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
-        const bool FORCE_COMPLETE_RESET = false;
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
@@ -39,8 +38,8 @@ namespace DataAquisition
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                //if (!await CalculateLeagueStats.Main(year, false))
-                //    return;
+                if (!CalculateLeagueStats.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {

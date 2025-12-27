@@ -2,7 +2,6 @@
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using System.IO.Pipelines;
 using System.Text.Json;
 using static Db.DbEnums;
 
@@ -78,8 +77,13 @@ namespace DataAquisition
                 {
                     botInningEvents[i].RunsScoredInningAfterEvent = botInningEvents.Skip(i).Sum(f => f.RunsScored);
                 }
-                pbp.AddRange(topInningEvents);
-                pbp.AddRange(botInningEvents);
+
+                // Some old MiLB games have broken PBP data.  Check for nonsensical data here
+                if (!topInningEvents.Any(f => f.StartOuts >= 3 || f.EndOuts > 3))
+                    pbp.AddRange(topInningEvents);
+
+                if (!botInningEvents.Any(f => f.StartOuts >= 3 || f.EndOuts > 3))
+                    pbp.AddRange(botInningEvents);
             }
 
             return pbp;
@@ -201,11 +205,11 @@ namespace DataAquisition
             throw new Exception($"Unexpected string found for ParseHitHardness: {hardnessString}");
         }
 
-        private static int OccupancyArrayToInt(List<int?> occupancy)
+        private static BaseOccupancy OccupancyArrayToInt(List<int?> occupancy)
         {
-            return (occupancy[0] != null ? 1 : 0) +
-                    (occupancy[1] != null ? 2 : 0) +
-                    (occupancy[2] != null ? 4 : 0);
+            return (occupancy[0] != null ? BaseOccupancy.B1 : BaseOccupancy.Empty) |
+                    (occupancy[1] != null ? BaseOccupancy.B2 : BaseOccupancy.Empty) |
+                    (occupancy[2] != null ? BaseOccupancy.B3 : BaseOccupancy.Empty);
         }
 
         private static GamePlayByPlay GetEmptyEvent(Player_Hitter_GameLog game, int inning, bool topOfInning, int outs, List<int?> currentOccupancy)
@@ -227,7 +231,7 @@ namespace DataAquisition
                 IsTop = topOfInning ? 1 : 0,
                 StartBaseOccupancy = OccupancyArrayToInt(currentOccupancy),
                 EndOuts = outs,
-                EndBaseOccupancy = -1,
+                EndBaseOccupancy = BaseOccupancy.Invalid,
                 RunsScored = 0,
                 RunsScoredInningAfterEvent = 0,
                 Result = PBP_Events.NONE,
@@ -250,7 +254,7 @@ namespace DataAquisition
             int endBase = JsonElementToBaseInt(movement.GetProperty("end"));
 
             var isOutElement = movement.GetProperty("isOut");
-            bool isOut = isOutElement.ValueKind == JsonValueKind.False && isOutElement.GetBoolean();
+            bool isOut = isOutElement.ValueKind == JsonValueKind.True;
 
             // Update Runner
             var runDetails = runnerElement.GetProperty("details");
@@ -429,6 +433,8 @@ namespace DataAquisition
                         pbp.Add(gpbp);
                         for (int j = 0; j < 3; j++)
                             currentOccupancy[j] = nextOccupancy[j];
+
+                        outs = gpbp.EndOuts;
                         gpbp = GetEmptyEvent(game, inning, topOfInning, outs, currentOccupancy);
                         currentPlayIndex = playIndex;
                     }

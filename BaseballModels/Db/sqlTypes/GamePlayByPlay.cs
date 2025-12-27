@@ -16,9 +16,9 @@ namespace Db
 		public required int StartOuts {get; set;}
 		public required int Inning {get; set;}
 		public required int IsTop {get; set;}
-		public required int StartBaseOccupancy {get; set;}
+		public required DbEnums.BaseOccupancy StartBaseOccupancy {get; set;}
 		public required int EndOuts {get; set;}
-		public required int EndBaseOccupancy {get; set;}
+		public required DbEnums.BaseOccupancy EndBaseOccupancy {get; set;}
 		public required int RunsScored {get; set;}
 		public required int RunsScoredInningAfterEvent {get; set;}
 		public required DbEnums.PBP_Events Result {get; set;}
