@@ -7,7 +7,7 @@ namespace DataAquisition
         const int START_YEAR = 2005;
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
-        const bool FORCE_COMPLETE_RESET = true;
+        const bool FORCE_COMPLETE_RESET = false;
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
@@ -33,6 +33,9 @@ namespace DataAquisition
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
 
+                while (!await GetPlayByPlay.Update(year, year == END_YEAR))
+                { }
+
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
@@ -47,26 +50,26 @@ namespace DataAquisition
                     //if (!CalculateLeagueBaselines.Main(year, month))
                     //    return;
 
-                    if (!CalculateMonthStats.Main(year, month))
-                        return;
+                    //if (!CalculateMonthStats.Main(year, month))
+                    //    return;
 
-                    if (!CalculateMonthRatios.Main(year, month))
-                        return;
+                    //if (!CalculateMonthRatios.Main(year, month))
+                    //    return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
                 }
 
-                if (!CalculateAnnualStats.Main(year))
-                    return;
+                //if (!CalculateAnnualStats.Main(year))
+                //    return;
 
-                if (!CalculateAnnualWRC.Main(year))
-                    return;
+                //if (!CalculateAnnualWRC.Main(year))
+                //    return;
 
                 foreach (int month in months)
                 {
-                    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
-                        return;
+                    //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
+                    //    return;
 
                     //if (year == END_YEAR && month == END_MONTH)
                     //    break;

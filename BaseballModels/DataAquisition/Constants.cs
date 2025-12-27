@@ -1,7 +1,6 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace DataAquisition
 {

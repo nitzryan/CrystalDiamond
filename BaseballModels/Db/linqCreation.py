@@ -11,7 +11,9 @@ tables = cursor.fetchall()
 
 # For columns that will be created by insertion to be primary key, and value itself doesn't matter
 # Allows for not being required to create column, but not being nullable
-autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), ("Player_Pitcher_GameLog", "GameLogId"), ("Transaction_Log", "TransactionId")]
+autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), ("Player_Pitcher_GameLog", "GameLogId"), ("Transaction_Log", "TransactionId"), ("GamePlayByPlay", "EventId")]
+
+type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"), ("GamePlayByPlay", "HitTrajectory", "DbEnums.PBP_HitTrajectory"), ("GamePlayByPlay", "HitHardness", "DbEnums.PBP_HitHardness")]
 
 for table, in tables:
     # Get table data
@@ -42,6 +44,10 @@ for table, in tables:
                 csharp_type = "string"
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
+        
+            for (tbl, col, typ) in type_overrides:
+                if (tbl == table) and (col == name):
+                    csharp_type = typ
         
             if notnull == 0:
                 csharp_type += '?'

@@ -1750,3 +1750,71 @@ class DB_Output_PlayerWarAggregation:
 
 
 ##############################################################################################
+class DB_LeagueRunMatrix:
+	def __init__(self, values : tuple[any]):
+		self.LeagueId = values[0]
+		self.Year = values[1]
+		self.runExpDict = values[2]
+		self.fieldOutcomeDict = values[3]
+		self.baserunningDict = values[4]
+
+	NUM_ELEMENTS = 5
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.LeagueId,self.Year,self.runExpDict,self.fieldOutcomeDict,self.baserunningDict)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_LeagueRunMatrix']:
+		items = cursor.execute("SELECT * FROM LeagueRunMatrix " + conditional, values).fetchall()
+		return [DB_LeagueRunMatrix(i) for i in items]
+
+
+##############################################################################################
+class DB_GamePlayByPlay:
+	def __init__(self, values : tuple[any]):
+		self.EventId = values[0]
+		self.GameId = values[1]
+		self.LeagueId = values[2]
+		self.Year = values[3]
+		self.Month = values[4]
+		self.HitterId = values[5]
+		self.PitcherId = values[6]
+		self.FielderId = values[7]
+		self.Run1stId = values[8]
+		self.Run2ndId = values[9]
+		self.Run3rdId = values[10]
+		self.StartOuts = values[11]
+		self.Inning = values[12]
+		self.IsTop = values[13]
+		self.StartBaseOccupancy = values[14]
+		self.EndOuts = values[15]
+		self.EndBaseOccupancy = values[16]
+		self.RunsScored = values[17]
+		self.RunsScoredInningAfterEvent = values[18]
+		self.Result = values[19]
+		self.HitZone = values[20]
+		self.HitHardness = values[21]
+		self.HitTrajectory = values[22]
+		self.HitCoordX = values[23]
+		self.HitCoordY = values[24]
+		self.LaunchSpeed = values[25]
+		self.LaunchAngle = values[26]
+		self.LaunchDistance = values[27]
+		self.Run1stOutcome = values[28]
+		self.Run2ndOutcome = values[29]
+		self.Run3rdOutcome = values[30]
+
+	NUM_ELEMENTS = 31
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.EventId,self.GameId,self.LeagueId,self.Year,self.Month,self.HitterId,self.PitcherId,self.FielderId,self.Run1stId,self.Run2ndId,self.Run3rdId,self.StartOuts,self.Inning,self.IsTop,self.StartBaseOccupancy,self.EndOuts,self.EndBaseOccupancy,self.RunsScored,self.RunsScoredInningAfterEvent,self.Result,self.HitZone,self.HitHardness,self.HitTrajectory,self.HitCoordX,self.HitCoordY,self.LaunchSpeed,self.LaunchAngle,self.LaunchDistance,self.Run1stOutcome,self.Run2ndOutcome,self.Run3rdOutcome)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_GamePlayByPlay']:
+		items = cursor.execute("SELECT * FROM GamePlayByPlay " + conditional, values).fetchall()
+		return [DB_GamePlayByPlay(i) for i in items]
+
+
+##############################################################################################

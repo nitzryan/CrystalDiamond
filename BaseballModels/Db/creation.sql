@@ -947,6 +947,52 @@ CREATE TABLE "LeagueStats" (
 	PRIMARY KEY ("LeagueId", "Year")
 );
 
+CREATE TABLE "LeagueRunMatrix" (
+	"LeagueId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"runExpDict" TEXT NOT NULL,
+	"fieldOutcomeDict" TEXT NOT NULL,
+	"baserunningDict" TEXT NOT NULL,
+	PRIMARY KEY("LeagueId", "Year")
+);
+
+CREATE TABLE "GamePlayByPlay" (
+	"EventId" INTEGER NOT NULL,
+	"GameId" INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"HitterId" INTEGER NOT NULL,
+	"PitcherId" INTEGER NOT NULL,
+	"FielderId" INTEGER,
+	"Run1stId" INTEGER,
+	"Run2ndId" INTEGER,
+	"Run3rdId" INTEGER,
+	"StartOuts" INTEGER NOT NULL,
+	"Inning" INTEGER NOT NULL,
+	"IsTop" INTEGER NOT NULL,
+	"StartBaseOccupancy" INTEGER NOT NULL,
+	"EndOuts" INTEGER NOT NULL,
+	"EndBaseOccupancy" INTEGER NOT NULL,
+	"RunsScored" INTEGER NOT NULL,
+	"RunsScoredInningAfterEvent" INTEGER NOT NULL,
+	"Result" INTEGER NOT NULL,
+	"HitZone" INTEGER,
+	"HitHardness" INTEGER,
+	"HitTrajectory" INTEGER,
+	"HitCoordX" REAL,
+	"HitCoordY" REAL,
+	"LaunchSpeed" REAL,
+	"LaunchAngle" REAL,
+	"LaunchDistance" REAL,
+	"Run1stOutcome" INTEGER,
+	"Run2ndOutcome" INTEGER,
+	"Run3rdOutcome" INTEGER,
+	PRIMARY KEY("EventId")
+);
+
+-- GamePlayByPlay needs to remove indexes when adding data for speed, so look to GetPlayByPlay.cs for those
+
 CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
 	"Year",
 	"Month",
