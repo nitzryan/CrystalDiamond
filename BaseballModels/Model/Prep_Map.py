@@ -54,39 +54,8 @@ __map_mlb_pit_value : Callable[[DB_Player_MonthlyWar], list[float]] = \
     lambda p : [p.IP_SP, p.IP_RP, p.WAR_s, p.WAR_r]
 __mlb_hit_value_size = 4
 __mlb_pit_value_size = 4
-       
-        
-# Comments are explained variance ratios
-base_prep_map = Prep_Map(
-    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
-    map_off=lambda h : [h.ParkHRFactor, h.ParkRunFactor, h.AVGRatio, h.OBPRatio, h.ISORatio, h.wRC, h.HRPercRatio, h.BBPercRatio, h.kPercRatio],
-    map_bsr=lambda h : [h.SBRateRatio, h.SBPercRatio],
-    map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
-    map_hitterpt=lambda h : [h.PA, h.MonthFrac, h.InjStatus],
-    map_pitcherpt=lambda p : [p.BF, p.MonthFrac, p.InjStatus],
-    map_hitterlvl=lambda h : [h.Age, h.LevelId, h.Month],
-    map_pitcherlvl=lambda p : [p.Age, p.LevelId, p.Month],
-    map_pit=lambda p : [p.ParkRunFactor, p.ParkHRFactor, p.GBPercRatio, p.ERARatio, p.FIPRatio, p.wOBARatio, p.HRPercRatio, p.BBPercRatio, p.KPercRatio],
-    map_pit_first=lambda p, y : 1 if p.Year == y else 0,
-    map_hit_first=lambda h, y : 1 if h.Year == y else 0,
-    map_mlb_hit_value=__map_mlb_hit_value,
-    map_mlb_pit_value=__map_mlb_pit_value,
-    mlb_hit_value_size=__mlb_hit_value_size,
-    mlb_pit_value_size=__mlb_pit_value_size,
-    bio_size=2,
-    hitterlvl_size=3,
-    hitterpt_size=3,
-    off_size=7,
-    bsr_size=2,
-    def_size=9,
-    hitfirst_size=1,
-    pitcherlvl_size=3,
-    pitcherpt_size=3,
-    pit_size=8,
-    pitfirst_size=1
-)
 
-experimental_prep_map = Prep_Map(
+base_prep_map = Prep_Map(
     map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
     map_off=lambda h : [h.ParkRunFactor, min(h.Hit1B, 4), min(h.Hit2B, 4), min(h.Hit3B, 10), min(h.HitHR, 10), min(h.BB, 3), min(h.K, 2.5), min(h.HBP, 8), min(h.SB, 10), min(h.CS, 10), h.crOFF, h.crDEF, h.crWAR],
     map_bsr=lambda h : [math.sqrt(h.SBRateRatio), h.SBPercRatio],

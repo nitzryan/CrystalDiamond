@@ -109,6 +109,7 @@ namespace SitePrep
                 RunCS = 0,
                 RPerPA = 0,
                 RPerWin = 0,
+                RunErr = 0,
                 LeaguePA = 0,
                 LeagueGames = 0,
                 CFIP = 0,

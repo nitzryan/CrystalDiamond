@@ -25,8 +25,6 @@ if __name__ == "__main__":
             prep_map = Prep_Map.base_prep_map
         elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
-        elif model_id == 3:
-            prep_map = Prep_Map.experimental_prep_map
         
         output_map = Output_Map.base_output_map
         
