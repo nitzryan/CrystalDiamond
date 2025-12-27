@@ -186,10 +186,10 @@ function tableUpdateCallback(tablebody, monthcol, year, type) {
     var monthly_elements = document.getElementsByClassName('table_month');
     if (any_monthly)
         for (var i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.remove('hidden');
+            monthly_elements[i].classList.remove('hidden-col');
     else
         for (var i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.add('hidden');
+            monthly_elements[i].classList.add('hidden-col');
 }
 function updateHitterStats(hitterStats) {
     var stats_body = getElementByIdStrict('h_stats_body');
@@ -220,7 +220,7 @@ function updateHitterStats(hitterStats) {
             if (f.league != 134 && f.league != 130)
                 throw e;
         }
-        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden-col'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.pa, "</td>\n            <td class=\"align_right\">").concat(f.avg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.obp.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.slg.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.iso.toFixed(3), "</td>\n            <td class=\"align_right\">").concat(f.wrc, "</td>\n            <td class=\"align_right\">").concat(f.hr, "</td>\n            <td class=\"align_right\">").concat(f.bbPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.sb, "</td>\n            <td class=\"align_right\">").concat(f.cs, "</td>\n        ");
         tr.dataset.year = f.year.toString();
         tr.dataset.type = f.month === null ? "year" : "month";
         if (isFirst) {
@@ -250,8 +250,8 @@ function updateHitterStats(hitterStats) {
 function updateHitterPredictions(hitterPredictions) {
     var stats_body = getElementByIdStrict('h_stats_body');
     stats_body.querySelectorAll(":scope > .pred").forEach(function (f) { return f.remove(); });
-    var month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
-        "hidden" : "";
+    var month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
+        "hidden-col" : "";
     var is_first = true;
     hitterPredictions.forEach(function (f) {
         var tr = document.createElement('tr');
@@ -293,7 +293,7 @@ function updatePitcherStats(pitcherStats) {
             if (f.league != 134 && f.league != 130)
                 throw e;
         }
-        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden-col'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
         tr.dataset.year = f.year.toString();
         tr.dataset.type = f.month === null ? "year" : "month";
         if (isFirst) {
@@ -323,8 +323,8 @@ function updatePitcherStats(pitcherStats) {
 function updatePitcherPredictions(pitcherPredictions) {
     var stats_body = getElementByIdStrict('p_stats_body');
     stats_body.querySelectorAll(":scope > .pred").forEach(function (f) { return f.remove(); });
-    var month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
-        "hidden" : "";
+    var month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
+        "hidden-col" : "";
     var is_first = true;
     pitcherPredictions.forEach(function (f) {
         var tr = document.createElement('tr');

@@ -247,10 +247,10 @@ function tableUpdateCallback(tablebody : HTMLElement, monthcol : HTMLElement, ye
     var monthly_elements = document.getElementsByClassName('table_month')
     if (any_monthly)
         for (let i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.remove('hidden')
+            monthly_elements[i].classList.remove('hidden-col')
     else
         for (let i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.add('hidden')
+            monthly_elements[i].classList.add('hidden-col')
 }
 
 function updateHitterStats(hitterStats : HitterStats[])
@@ -294,7 +294,7 @@ function updateHitterStats(hitterStats : HitterStats[])
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
-            <td class='table_month hidden'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
+            <td class='table_month hidden-col'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
@@ -356,8 +356,8 @@ function updateHitterPredictions(hitterPredictions : DB_Prediction_HitterStats[]
         f => f.remove()
     )
 
-    const month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
-        "hidden" : ""
+    const month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
+        "hidden-col" : ""
 
     let is_first = true
     hitterPredictions.forEach(f => {
@@ -434,7 +434,7 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
         tr.innerHTML = `
             <td></td>
             <td>${f.year}</td>
-            <td class='table_month hidden'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
+            <td class='table_month hidden-col'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
             <td>${level_map[f.level]}</td>
             <td>${teamAbbr}</td>
             <td>${getLeagueAbbr(f.league)}</td>
@@ -492,8 +492,8 @@ function updatePitcherPredictions(pitcherPredictions : DB_Prediction_PitcherStat
         f => f.remove()
     )
     
-    const month_class_hidden = stats_body.querySelector(".table_month.hidden") !== null ?
-        "hidden" : ""
+    const month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
+        "hidden-col" : ""
 
     let is_first = true
     pitcherPredictions.forEach(f => {

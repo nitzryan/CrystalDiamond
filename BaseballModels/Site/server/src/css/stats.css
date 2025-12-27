@@ -19,6 +19,16 @@
     display: none !important;
 }
 
+.hidden-col {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    overflow: hidden;
+}
+
 .vis_hidden {
     visibility: hidden;
 }
