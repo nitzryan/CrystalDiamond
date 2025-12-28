@@ -29,20 +29,35 @@
             FORCEOUT = 1 << 19,
             SAC_FLY = 1 << 20,
             RUNNER_OUT = 1 << 21,
-            BUNT_POPOUT = 1 << 22,
+            BUNT_OUT = 1 << 22,
             IBB = 1 << 23,
             SAC_BUNT = 1 << 24,
             FIELDERS_CHOICE = 1 << 25,
-            BUNT_GROUNDOUT = 1 << 26,
-            FB_DOUBLE_PLAY = 1 << 27,
-            FIELDERS_CHOICE_OUT = 1 << 28,
-            PICKOFF = 1 << 29,
-            CATCH_INT = 1 << 30,
-            OTHER = 1 << 31, // Batter Interference
-            TRIPLE_PLAY = 1 << 32,
-            DISENGAGEMENT_VIOLATION = 1 << 33,
-            OFFICIAL_SCORER_PENDING = 1 << 34,
+            FB_DOUBLE_PLAY = 1 << 26,
+            FIELDERS_CHOICE_OUT = 1 << 27,
+            PICKOFF = 1 << 28,
+            CATCH_INT = 1 << 39,
+            OTHER = 1 << 30, // Batter Interference, Offical Scorer Pending, Disengagement Violation, Defensive Indifference, Bunt Out
+            TRIPLE_PLAY = 1 << 31,
         }
+
+        public static PBP_Events PBP_OUT_EVENTS = PBP_Events.K |
+                                                PBP_Events.GIDP |
+                                                PBP_Events.POPOUT |
+                                                PBP_Events.GNDOUT |
+                                                PBP_Events.FLYOUT |
+                                                PBP_Events.LINEOUT |
+                                                PBP_Events.FORCEOUT |
+                                                PBP_Events.SAC_BUNT |
+                                                PBP_Events.BUNT_OUT |
+                                                PBP_Events.SAC_FLY |
+                                                PBP_Events.FIELDERS_CHOICE_OUT |
+                                                PBP_Events.FB_DOUBLE_PLAY |
+                                                PBP_Events.TRIPLE_PLAY;
+
+        public static PBP_Events PBP_HIT_IP_EVENTS = PBP_Events.SINGLE | PBP_Events.DOUBLE | PBP_Events.TRIPLE;
+
+        public static PBP_Events PBP_IN_PLAY_EVENT = PBP_HIT_IP_EVENTS | PBP_OUT_EVENTS | PBP_Events.FIELD_ERROR | PBP_Events.FIELDERS_CHOICE;
 
         [Flags]
         public enum PBP_HitTrajectory

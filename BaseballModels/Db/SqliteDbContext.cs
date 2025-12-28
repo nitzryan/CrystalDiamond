@@ -33,6 +33,7 @@ namespace Db
 		public DbSet<Player_Hitter_GameLog> Player_Hitter_GameLog {get; set;}
 		public DbSet<Player_Hitter_MonthAdvanced> Player_Hitter_MonthAdvanced {get; set;}
 		public DbSet<Player_Hitter_MonthStats> Player_Hitter_MonthStats {get; set;}
+		public DbSet<Player_Hitter_MonthBaserunning> Player_Hitter_MonthBaserunning {get; set;}
 		public DbSet<Player_Hitter_MonthlyRatios> Player_Hitter_MonthlyRatios {get; set;}
 		public DbSet<Player_Hitter_YearAdvanced> Player_Hitter_YearAdvanced {get; set;}
 		public DbSet<Player_OrgMap> Player_OrgMap {get; set;}
@@ -55,14 +56,14 @@ namespace Db
 		public DbSet<Site_PlayerBio> Site_PlayerBio {get; set;}
 		public DbSet<ModelIdx> ModelIdx {get; set;}
 		public DbSet<PlayersInTrainingData> PlayersInTrainingData {get; set;}
+		public DbSet<LeagueStats> LeagueStats {get; set;}
+		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
+		public DbSet<GamePlayByPlay> GamePlayByPlay {get; set;}
 		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
 		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
 		public DbSet<Output_PitcherValueAggregation> Output_PitcherValueAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
-		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
-		public DbSet<GamePlayByPlay> GamePlayByPlay {get; set;}
-		public DbSet<LeagueStats> LeagueStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -97,6 +98,7 @@ namespace Db
 			modelBuilder.Entity<Player_Hitter_GameLog>().HasKey(f => new {f.GameLogId});
 			modelBuilder.Entity<Player_Hitter_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_Hitter_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
+			modelBuilder.Entity<Player_Hitter_MonthBaserunning>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_Hitter_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_Hitter_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Day});
@@ -119,14 +121,14 @@ namespace Db
 			modelBuilder.Entity<Site_PlayerBio>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<ModelIdx>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.ModelIdx});
+			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
+			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
+			modelBuilder.Entity<GamePlayByPlay>().HasKey(f => new {f.EventId});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
-			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
-			modelBuilder.Entity<GamePlayByPlay>().HasKey(f => new {f.EventId});
-			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
 		}
 	}
 }

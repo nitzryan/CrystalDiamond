@@ -383,6 +383,14 @@ CREATE TABLE "Output_PlayerWar" (
 	PRIMARY KEY("mlbId", "model", "isHitter", "ModelIdx","year","month")
 );
 
+CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
 CREATE TABLE Output_HitterStats (
 	"MlbId" INTEGER NOT NULL,
 	"Model" INTEGER NOT NULL,
@@ -413,6 +421,15 @@ CREATE TABLE Output_HitterStats (
 	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
 );
 
+CREATE INDEX "idx_Output_HitterStats" ON "Output_HitterStats" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month",
+	"levelId"
+);
+
 CREATE TABLE "Output_PitcherStats" (
 	"mlbId" INTEGER NOT NULL,
 	"Model" INTEGER NOT NULL,
@@ -434,6 +451,15 @@ CREATE TABLE "Output_PitcherStats" (
 	"SP_Perc" REAL NOT NULL,
 	"RP_Perc" REAL NOT NULL,
 	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
+);
+
+CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month",
+	"levelId"
 );
 
 CREATE TABLE "Output_HitterValue" (
@@ -460,6 +486,14 @@ CREATE TABLE "Output_HitterValue" (
 	PRIMARY KEY("mlbId", "model", "ModelIdx", "month", "year")
 );
 
+CREATE INDEX "idx_Output_HitterValue" ON "Output_HitterValue" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
 CREATE TABLE "Output_PitcherValue" (
 	"mlbId" INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
@@ -479,6 +513,14 @@ CREATE TABLE "Output_PitcherValue" (
 	"IPSP3Year" REAL NOT NULL,
 	"IPRP3Year" REAL NOT NULL,
 	PRIMARY KEY("mlbId", "model", "ModelIdx", "month", "year")
+);
+
+CREATE INDEX "idx_Output_PitcherValue" ON "Output_PitcherValue" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
 );
 
 CREATE TABLE "Park_Factors" (
@@ -558,6 +600,32 @@ CREATE TABLE "Player_Hitter_GameLog" (
 	PRIMARY KEY("gameLogId")
 );
 
+CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
+	"Year",
+	"Month",
+	"Day"
+);
+
+CREATE INDEX "idx_HitterGameLog_GamePlayer" ON "Player_Hitter_GameLog" (
+	"gameId",
+	"mlbId"
+);
+
+CREATE INDEX "idx_HitterGameLog_mlbIdDate" ON "Player_Hitter_GameLog" (
+	"mlbId",
+	"Year",
+	"Month",
+	"Day"
+);
+
+CREATE INDEX "idx_HitterGameLogForYearStats" ON "Player_Hitter_GameLog" (
+	"mlbId",
+	"LevelId",
+	"TeamId",
+	"LeagueId",
+	"Year"
+);
+
 CREATE TABLE "Player_Hitter_MonthAdvanced" (
 	"mlbId"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
@@ -617,6 +685,34 @@ CREATE TABLE "Player_Hitter_MonthStats" (
 	"GamesRF"	INTEGER NOT NULL,
 	"GamesDH"	INTEGER NOT NULL,
 	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
+);
+
+CREATE INDEX "Player_Hitter_MonthStats_Date" ON "Player_Hitter_MonthStats" (
+	"Year", "Month", "LeagueId"
+);
+
+CREATE INDEX "idx_HitterMonthStats_LevelDate" ON "Player_Hitter_MonthStats" (
+	"LevelId",
+	"Year",
+	"Month"
+);
+
+CREATE TABLE "Player_Hitter_MonthBaserunning" (
+	"mlbId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"Month"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"rSB" REAL NOT NULL,
+	"rUBR" REAL NOT NULL,
+	"rGIDP" REAL NOT NULL,
+	"TimesOnFirst" INTEGER NOT NULL,
+	"TimesOnBase" INTEGER NOT NULL,
+	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
+);
+
+CREATE INDEX "idx_Player_Hitter_MonthBaserunning_Date" ON "Player_Hitter_MonthBaserunning" (
+	"Year", "Month"
 );
 
 CREATE TABLE "Player_Hitter_MonthlyRatios" (
@@ -688,6 +784,13 @@ CREATE TABLE "Transaction_Log" (
 	PRIMARY KEY("transactionId")
 );
 
+CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
+	"mlbId",
+	"year",
+	"month",
+	"day"
+);
+
 CREATE TABLE "Player_Pitcher_GameLog" (
 	"gameLogId"	INTEGER NOT NULL,
 	"gameId"	INTEGER NOT NULL,
@@ -718,6 +821,32 @@ CREATE TABLE "Player_Pitcher_GameLog" (
 	PRIMARY KEY("gameLogId")
 );
 
+CREATE INDEX "idx_PitcherGameLog_Date" ON "Player_Pitcher_GameLog" (
+	"year",
+	"month",
+	"day"
+);
+
+CREATE INDEX "idx_PitcherGameLog_GamePlayer" ON "Player_Pitcher_GameLog" (
+	"gameId",
+	"mlbId"
+);
+
+CREATE INDEX "idx_PitcherGameLog_mlbIdDate" ON "Player_Pitcher_GameLog" (
+	"mlbId",
+	"year",
+	"month",
+	"day"
+);
+
+CREATE INDEX "idx_PitcherGameLogForYearStats" ON "Player_Pitcher_GameLog" (
+	"mlbId",
+	"LevelId",
+	"TeamId",
+	"LeagueId",
+	"Year"
+);
+
 CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"mlbId"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
@@ -738,6 +867,12 @@ CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"wOBA"	REAL NOT NULL,
 	"crWAR" REAL NOT NULL,
 	PRIMARY KEY("leagueId","teamId","month","year","levelId","mlbId")
+);
+
+CREATE INDEX "idx_PitcherAdvanced" ON "Player_Pitcher_MonthAdvanced" (
+	"mlbId",
+	"year",
+	"month"
 );
 
 CREATE TABLE "Player_Pitcher_MonthStats" (
@@ -763,6 +898,19 @@ CREATE TABLE "Player_Pitcher_MonthStats" (
 	"ParkRunFactor"	REAL NOT NULL,
 	"ParkHRFactor"	REAL NOT NULL,
 	PRIMARY KEY("mlbId","year","month","levelId", "leagueId")
+);
+
+CREATE INDEX "idx_PitcherMonthStats_LevelDate" ON "Player_Pitcher_MonthStats" (
+	"levelId",
+	"year",
+	"month"
+);
+
+CREATE INDEX "idx_PitcherMonthStats_PlayerDate" ON "Player_Pitcher_MonthStats" (
+	"mlbId",
+	"year",
+	"month",
+	"levelId"
 );
 
 CREATE TABLE "Player_Pitcher_MonthlyRatios" (
@@ -799,6 +947,11 @@ CREATE TABLE "Player_Pitcher_YearAdvanced" (
 	"HR"	INTEGER NOT NULL,
 	"wOBA"	REAL NOT NULL,
 	PRIMARY KEY("leagueId","teamId","year","levelId","mlbId")
+);
+
+CREATE INDEX "idx_PitcherAdvancedYear" ON "Player_Pitcher_YearAdvanced" (
+	"mlbId",
+	"year"
 );
 
 CREATE TABLE "Player_ServiceLapse" (
@@ -938,6 +1091,8 @@ CREATE TABLE "LeagueStats" (
 	"runSB" REAL NOT NULL,
 	"runCS" REAL NOT NULL,
 	"runErr" REAL NOT NULL,
+	"runGIDP" REAL NOT NULL,
+	"probGIDP" REAL NOT NULL,
 	"RPerPA" REAL NOT NULL,
 	"RPerWin" REAL NOT NULL,
 	"LeaguePA" INTEGER NOT NULL,
@@ -953,7 +1108,14 @@ CREATE TABLE "LeagueRunMatrix" (
 	"Year" INTEGER NOT NULL,
 	"runExpDict" TEXT NOT NULL,
 	"fieldOutcomeDict" TEXT NOT NULL,
-	"baserunningDict" TEXT NOT NULL,
+	"bsrAdv1st3rdSingleDict" TEXT NOT NULL,
+	"bsrAdv2ndHomeSingleDict" TEXT NOT NULL,
+	"bsrAdv1stHomeDoubleDict" TEXT NOT NULL,
+	"bsrAvoidForce2ndDict" TEXT NOT NULL,
+	"bsrAdv2nd3rdGroundoutDict" TEXT NOT NULL,
+	"bsrAdv1st2ndFlyoutDict" TEXT NOT NULL,
+	"bsrAdv2nd3rdFlyoutDict" TEXT NOT NULL,
+	"bsrAdv3rdHomeFlyoutDict" TEXT NOT NULL,
 	PRIMARY KEY("LeagueId", "Year")
 );
 
@@ -994,148 +1156,22 @@ CREATE TABLE "GamePlayByPlay" (
 
 -- GamePlayByPlay needs to remove indexes when adding data for speed, so look to GetPlayByPlay.cs for those
 
-CREATE INDEX "idx_HitterGameLog_Date" ON "Player_Hitter_GameLog" (
-	"Year",
-	"Month",
-	"Day"
-);
 
-CREATE INDEX "idx_HitterGameLog_GamePlayer" ON "Player_Hitter_GameLog" (
-	"gameId",
-	"mlbId"
-);
 
-CREATE INDEX "idx_HitterGameLog_mlbIdDate" ON "Player_Hitter_GameLog" (
-	"mlbId",
-	"Year",
-	"Month",
-	"Day"
-);
 
-CREATE INDEX "idx_HitterMonthStats_LevelDate" ON "Player_Hitter_MonthStats" (
-	"LevelId",
-	"Year",
-	"Month"
-);
 
-CREATE INDEX "idx_HitterMonthStats_PlayerDate" ON "Player_Hitter_MonthStats" (
-	"mlbId",
-	"Year",
-	"Month",
-	"LevelId"
-);
 
-CREATE INDEX "idx_PitcherAdvanced" ON "Player_Pitcher_MonthAdvanced" (
-	"mlbId",
-	"year",
-	"month"
-);
 
-CREATE INDEX "idx_PitcherAdvancedYear" ON "Player_Pitcher_YearAdvanced" (
-	"mlbId",
-	"year"
-);
 
-CREATE INDEX "idx_PitcherGameLog_Date" ON "Player_Pitcher_GameLog" (
-	"year",
-	"month",
-	"day"
-);
 
-CREATE INDEX "idx_PitcherGameLog_GamePlayer" ON "Player_Pitcher_GameLog" (
-	"gameId",
-	"mlbId"
-);
 
-CREATE INDEX "idx_PitcherGameLog_mlbIdDate" ON "Player_Pitcher_GameLog" (
-	"mlbId",
-	"year",
-	"month",
-	"day"
-);
 
-CREATE INDEX "idx_PitcherMonthStats_LevelDate" ON "Player_Pitcher_MonthStats" (
-	"levelId",
-	"year",
-	"month"
-);
 
-CREATE INDEX "idx_PitcherMonthStats_PlayerDate" ON "Player_Pitcher_MonthStats" (
-	"mlbId",
-	"year",
-	"month",
-	"levelId"
-);
 
-CREATE INDEX "idx_TransactionLog" ON "Transaction_Log" (
-	"mlbId",
-	"year",
-	"month",
-	"day"
-);
 
-CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
-	"model",
-	"modelIdx",
-	"mlbId",
-	"year",
-	"month"
-);
 
-CREATE INDEX "idx_Output_PitcherValue" ON "Output_PitcherValue" (
-	"model",
-	"modelIdx",
-	"mlbId",
-	"year",
-	"month"
-);
 
-CREATE INDEX "idx_Output_HitterValue" ON "Output_HitterValue" (
-	"model",
-	"modelIdx",
-	"mlbId",
-	"year",
-	"month"
-);
 
-CREATE INDEX "idx_Output_HitterStats" ON "Output_HitterStats" (
-	"model",
-	"modelIdx",
-	"mlbId",
-	"year",
-	"month",
-	"levelId"
-);
 
-CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
-	"model",
-	"modelIdx",
-	"mlbId",
-	"year",
-	"month",
-	"levelId"
-);
 
-CREATE INDEX "idx_HitterGameLog_Player" ON "Player_Hitter_GameLog" (
-	"mlbId"
-);
 
-CREATE INDEX "idx_PitcherGameLog_Player" ON "Player_Pitcher_GameLog" (
-	"mlbId"
-);
-
-CREATE INDEX "idx_HitterGameLogForYearStats" ON "Player_Hitter_GameLog" (
-	"mlbId",
-	"LevelId",
-	"TeamId",
-	"LeagueId",
-	"Year"
-);
-
-CREATE INDEX "idx_PitcherGameLogForYearStats" ON "Player_Pitcher_GameLog" (
-	"mlbId",
-	"LevelId",
-	"TeamId",
-	"LeagueId",
-	"Year"
-);

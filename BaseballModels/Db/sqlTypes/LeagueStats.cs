@@ -16,6 +16,8 @@ namespace Db
 		public required float RunSB {get; set;}
 		public required float RunCS {get; set;}
 		public required float RunErr {get; set;}
+		public required float RunGIDP {get; set;}
+		public required float ProbGIDP {get; set;}
 		public required float RPerPA {get; set;}
 		public required float RPerWin {get; set;}
 		public required int LeaguePA {get; set;}
@@ -42,6 +44,8 @@ namespace Db
 				RunSB = this.RunSB,
 				RunCS = this.RunCS,
 				RunErr = this.RunErr,
+				RunGIDP = this.RunGIDP,
+				ProbGIDP = this.ProbGIDP,
 				RPerPA = this.RPerPA,
 				RPerWin = this.RPerWin,
 				LeaguePA = this.LeaguePA,

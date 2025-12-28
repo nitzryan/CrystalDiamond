@@ -1,6 +1,7 @@
 ﻿using Db;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
+using RTools_NTS.Util;
 using ShellProgressBar;
 using System.Text.Json;
 using static Db.DbEnums;
@@ -131,13 +132,13 @@ namespace DataAquisition
             {"Forceout", PBP_Events.FORCEOUT},
             {"Sac Fly", PBP_Events.SAC_FLY},
             {"Runner Out", PBP_Events.RUNNER_OUT},
-            {"Bunt Pop Out", PBP_Events.BUNT_POPOUT},
-            {"Bunt Lineout", PBP_Events.BUNT_POPOUT},
+            {"Bunt Pop Out", PBP_Events.BUNT_OUT},
+            {"Bunt Lineout", PBP_Events.BUNT_OUT},
             {"Intent Walk", PBP_Events.IBB},
             {"Sac Bunt", PBP_Events.SAC_BUNT},
             {"Fielders Choice", PBP_Events.FIELDERS_CHOICE},
             {"Fielders Choice Out", PBP_Events.FIELDERS_CHOICE_OUT},
-            {"Bunt Groundout", PBP_Events.BUNT_GROUNDOUT},
+            {"Bunt Groundout", PBP_Events.BUNT_OUT},
             {"Double Play", PBP_Events.FB_DOUBLE_PLAY},
             {"Strikeout Double Play", PBP_Events.K | PBP_Events.CS},
             {"Catcher Interference", PBP_Events.CATCH_INT},
@@ -148,8 +149,8 @@ namespace DataAquisition
             {"Triple Play", PBP_Events.TRIPLE_PLAY},
             {"Strikeout Triple Play", PBP_Events.K | PBP_Events.CS}, // Gameid=34270, I want to see this play
             {"Runner Double Play", PBP_Events.RUNNER_OUT},
-            {"Disengagement Violation", PBP_Events.DISENGAGEMENT_VIOLATION},
-            {"Official Scorer Ruling Pending",PBP_Events.OFFICIAL_SCORER_PENDING},
+            {"Disengagement Violation", PBP_Events.OTHER},
+            {"Official Scorer Ruling Pending",PBP_Events.OTHER},
         };
 
         private static PBP_Events EventStringToInt(string eventString)
@@ -305,7 +306,7 @@ namespace DataAquisition
                     string trajectoryString = "";
                     string hardnessString = "";
                     if (hitData.TryGetProperty("trajectory", out var trajElement))
-                        trajectoryString = trajectoryString.ToString();
+                        trajectoryString = trajElement.ToString();
                     if (hitData.TryGetProperty("hardness", out var hardElement))
                         hardnessString = hardElement.ToString();
 
@@ -332,6 +333,36 @@ namespace DataAquisition
                         gpbp.LaunchDistance = totalDistElement.GetSingle();
 
                     return;
+                }
+            }
+        }
+
+        private static void InsertPinchRunners(GamePlayByPlay gpbp, JsonElement.ArrayEnumerator playEvents, List<int?> currentOccupany)
+        {
+            foreach (var pe in playEvents)
+            {
+                if (pe.TryGetProperty("details", out var detailsEvent))
+                {
+                    if (detailsEvent.TryGetProperty("event", out var eventEvent))
+                    {
+                        if (eventEvent.ToString() == "Offensive Substitution")
+                        {
+                            int subId = pe.GetProperty("player").GetProperty("id").GetInt32();
+                            int repId = pe.GetProperty("replacedPlayer").GetProperty("id").GetInt32();
+                            if (gpbp.Run1stId == repId)
+                                gpbp.Run1stId = subId;
+                            if (gpbp.Run2ndId == repId)
+                                gpbp.Run2ndId = subId;
+                            if (gpbp.Run3rdId == repId)
+                                gpbp.Run3rdId = subId;
+
+                            for (int i = 0; i < 3; i++)
+                            {
+                                if (currentOccupany[i] == repId)
+                                    currentOccupany[i] = subId;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -453,6 +484,9 @@ namespace DataAquisition
                 UpdateHitData(gpbp, playEvents);
 
                 gpbp.EndBaseOccupancy = OccupancyArrayToInt(nextOccupancy);
+
+                InsertPinchRunners(gpbp, playEvents, currentOccupancy);
+
                 SetEndRunnerOutcomes(gpbp, currentOccupancy, nextOccupancy);
                 pbp.Add(gpbp);
                 outs = gpbp.EndOuts;
@@ -507,43 +541,46 @@ namespace DataAquisition
 
                 // Use transaction to speed up insert
                 await using var transaction = await db.Database.BeginTransactionAsync();
-                try {
-                    // Get data
-                    using (ProgressBar progressBar = new(gameIds.Count(), $"Generating PBP Stats for {year}"))
-                    {
-                        // Send out gameIds for threads to collect data
-                        for (int i = 0; i < NUM_THREADS; i++)
-                        {
-                            if (i >= id_partitions.Count())
-                                break;
-                            int idx = i;
-                            Task<List<GamePlayByPlay>> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
-                            tasks.Add(task);
-                        }
-
-                        // Collect data from threads, insert to db
-                        List<List<GamePlayByPlay>> gamesList = new();
-                        foreach (var task in tasks)
-                        {
-                            gamesList.Add(await task);
-                            progress_bar_thread++;
-                        }
-
-                        // Need to wait until all threads are done to start inserting to prevent locking the db
-                        foreach (var games in gamesList)
-                        {
-                            await db.BulkInsertAsync(games);
-                        }
-
-                        progressBar.Tick(gameIds.Count());
-                    }
-
-                    await transaction.CommitAsync();
-                }
-                catch (Exception)
                 {
-                    await transaction.RollbackAsync();
-                    throw;
+                    try
+                    {
+                        // Get data
+                        using (ProgressBar progressBar = new(gameIds.Count(), $"Generating PBP Stats for {year}"))
+                        {
+                            // Send out gameIds for threads to collect data
+                            for (int i = 0; i < NUM_THREADS; i++)
+                            {
+                                if (i >= id_partitions.Count())
+                                    break;
+                                int idx = i;
+                                Task<List<GamePlayByPlay>> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
+                                tasks.Add(task);
+                            }
+
+                            // Collect data from threads, insert to db
+                            List<List<GamePlayByPlay>> gamesList = new();
+                            foreach (var task in tasks)
+                            {
+                                gamesList.Add(await task);
+                                progress_bar_thread++;
+                            }
+
+                            // Need to wait until all threads are done to start inserting to prevent locking the db
+                            foreach (var games in gamesList)
+                            {
+                                await db.BulkInsertAsync(games);
+                            }
+
+                            progressBar.Tick(gameIds.Count());
+                        }
+
+                        await transaction.CommitAsync();
+                    }
+                    catch (Exception)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
                 }
 
                 if (updateIndices)

@@ -1,4 +1,5 @@
-﻿using static System.Net.Mime.MediaTypeNames;
+﻿using System;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DataAquisition
 {
@@ -32,14 +33,14 @@ namespace DataAquisition
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
 
-                while (!await GetPlayByPlay.Update(year, year == END_YEAR))
-                { }
+                //while (!await GetPlayByPlay.Update(year, year == END_YEAR))
+                //{ }
 
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                if (!CalculateLeagueStats.Main(year))
-                    return;
+                //if (!CalculateLeagueStats.Main(year))
+                //    return;
 
                 foreach (int month in months)
                 {
@@ -54,6 +55,9 @@ namespace DataAquisition
 
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
+
+                    if (!CalculateMonthBaserunning.Update(year, month))
+                        return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
