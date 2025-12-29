@@ -33,14 +33,14 @@ namespace DataAquisition
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
 
-                //while (!await GetPlayByPlay.Update(year, year == END_YEAR))
-                //{ }
+                while (!await GetPlayByPlay.Update(year))
+                { }
 
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                //if (!CalculateLeagueStats.Main(year))
-                //    return;
+                if (!CalculateLeagueStats.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {

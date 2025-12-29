@@ -8,25 +8,26 @@ tables = cursor.fetchall()
 
 insert_tables = ["Model_TrainingHistory", "Output_PlayerWar"]
 
-with open("../Model/DBTypes.py", "w") as file:
-    file.write("import sqlite3\n\n")
-    for table, in tables:
-        cursor.execute(f"PRAGMA table_info({table})")
-        vars = cursor.fetchall()
-        constructor_string = ""
-        tuple_string = ""
-        class_name = "DB_" + table
-        insert_string = ""
-        for i, (_, name, type, notnull, _, pk) in enumerate(vars):
-            constructor_string += f"\t\tself.{name} = values[{i}]\n"
-            tuple_string += f"self.{name},"
-            insert_string += "?,"
-        tuple_string = tuple_string[:-1]
-        insert_string = insert_string[:-1]
-        constructor_string += f"\n\tNUM_ELEMENTS = {len(vars)}\n"
-            
-        file.write(
-f'''class {class_name}:
+for fn in ["../Model/DBTypes.py", "../Misc/DBTypes.py"]:
+    with open(fn, "w") as file:
+        file.write("import sqlite3\n\n")
+        for table, in tables:
+            cursor.execute(f"PRAGMA table_info({table})")
+            vars = cursor.fetchall()
+            constructor_string = ""
+            tuple_string = ""
+            class_name = "DB_" + table
+            insert_string = ""
+            for i, (_, name, type, notnull, _, pk) in enumerate(vars):
+                constructor_string += f"\t\tself.{name} = values[{i}]\n"
+                tuple_string += f"self.{name},"
+                insert_string += "?,"
+            tuple_string = tuple_string[:-1]
+            insert_string = insert_string[:-1]
+            constructor_string += f"\n\tNUM_ELEMENTS = {len(vars)}\n"
+                
+            file.write(
+    f'''class {class_name}:
 \tdef __init__(self, values : tuple[any]):
 {constructor_string}
                             

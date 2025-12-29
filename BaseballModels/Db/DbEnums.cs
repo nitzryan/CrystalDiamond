@@ -36,9 +36,8 @@
             FB_DOUBLE_PLAY = 1 << 26,
             FIELDERS_CHOICE_OUT = 1 << 27,
             PICKOFF = 1 << 28,
-            CATCH_INT = 1 << 39,
-            OTHER = 1 << 30, // Batter Interference, Offical Scorer Pending, Disengagement Violation, Defensive Indifference, Bunt Out
-            TRIPLE_PLAY = 1 << 31,
+            TRIPLE_PLAY = 1 << 29,
+            OTHER = 1 << 30, // Batter Interference, Offical Scorer Pending, Disengagement Violation, Defensive Indifference, Bunt Out, Catchers Interference
         }
 
         public static PBP_Events PBP_OUT_EVENTS = PBP_Events.K |

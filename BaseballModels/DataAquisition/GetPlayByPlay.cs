@@ -141,7 +141,7 @@ namespace DataAquisition
             {"Bunt Groundout", PBP_Events.BUNT_OUT},
             {"Double Play", PBP_Events.FB_DOUBLE_PLAY},
             {"Strikeout Double Play", PBP_Events.K | PBP_Events.CS},
-            {"Catcher Interference", PBP_Events.CATCH_INT},
+            {"Catcher Interference", PBP_Events.OTHER},
             {"Sac Fly Double Play", PBP_Events.SAC_FLY | PBP_Events.RUNNER_OUT},
             {"Other Advance", PBP_Events.NONE}, // Not sure on this, believe it always comes with other event which takes precedence
             {"Sac Bunt Double Play", PBP_Events.SAC_BUNT | PBP_Events.RUNNER_OUT},
@@ -500,7 +500,7 @@ namespace DataAquisition
 
         private const int GAMES_TO_DROP_INDEXES = 10000;
 
-        public static async Task<bool> Update(int year, bool updateIndices)
+        public static async Task<bool> Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -521,7 +521,8 @@ namespace DataAquisition
                 thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
                 List<Task<List<GamePlayByPlay>>> tasks = new(NUM_THREADS);
 
-                if (gameIds.Count() > GAMES_TO_DROP_INDEXES)
+                bool updateIndices = gameIds.Count() > GAMES_TO_DROP_INDEXES;
+                if (updateIndices)
                 {
                     // Drop indexes to speedup insertion
                     List<string> indexNames = ["idx_PBP_HitterYearMonth", "idx_PBP_Run1stYearMonth", "idx_PBP_Run2ndYearMonth", "idx_PBP_Run3rdYearMonth", "idx_PBP_YearLeagueSituation", "idx_PBP_FielderYearMonth", "idx_PBP_Game"];
