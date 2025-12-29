@@ -89,5 +89,14 @@
             B3 = 1 << 2,
             Invalid = 1 << 3,
         }
+
+        [Flags]
+        public enum GameFlags
+        { 
+            Valid = 0,
+            OutputsSkewed = 1 << 0,
+            HitPositionImpossible = 1 << 2,
+            HitPositionTooRight2017 = 1 << 3,
+        }
     }
 }

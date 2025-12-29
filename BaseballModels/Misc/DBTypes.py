@@ -1728,5 +1728,21 @@ class DB_Output_PlayerWarAggregation:
 		items = cursor.execute("SELECT * FROM Output_PlayerWarAggregation " + conditional, values).fetchall()
 		return [DB_Output_PlayerWarAggregation(i) for i in items]
 
+class DB_GamePlayByPlayFlags:
+	def __init__(self, values : tuple[any]):
+		self.EventId = values[0]
+		self.Flag = values[1]
+
+	NUM_ELEMENTS = 2
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.EventId,self.Flag)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_GamePlayByPlayFlags']:
+		items = cursor.execute("SELECT * FROM GamePlayByPlayFlags " + conditional, values).fetchall()
+		return [DB_GamePlayByPlayFlags(i) for i in items]
+
 
 ##############################################################################################

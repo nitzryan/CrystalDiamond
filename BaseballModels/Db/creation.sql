@@ -1156,7 +1156,11 @@ CREATE TABLE "GamePlayByPlay" (
 
 -- GamePlayByPlay needs to remove indexes when adding data for speed, so look to GetPlayByPlay.cs for those
 
-
+CREATE TABLE "GamePlayByPlayFlags" (
+	"EventId" INTEGER NOT NULL,
+	"Flag" INTEGER NOT NULL,
+	PRIMARY KEY("EventId")
+);
 
 
 
