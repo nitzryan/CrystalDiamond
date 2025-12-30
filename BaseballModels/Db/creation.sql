@@ -1204,3 +1204,19 @@ CREATE TABLE "GamePlayByPlay" (
 );
 
 -- GamePlayByPlay needs to remove indexes when adding data for speed, so look to GetPlayByPlay.cs for those
+
+CREATE TABLE "GamePlayByPlay_GameFielders" (
+	"GameId" INTEGER NOT NULL,
+	"IsHome" INTEGER NOT NULL,
+	"IdP" INTEGER NOT NULL,
+	"IdC" INTEGER NOT NULL,
+	"Id1B" INTEGER NOT NULL,
+	"Id2B" INTEGER NOT NULL,
+	"Id3B" INTEGER NOT NULL,
+	"IdSS" INTEGER NOT NULL,
+	"IdLF" INTEGER NOT NULL,
+	"IdCF" INTEGER NOT NULL,
+	"IdRF" INTEGER NOT NULL,
+	"SubList" TEXT NOT NULL,
+	PRIMARY KEY("GameId", "IsHome")
+);

@@ -39,7 +39,6 @@ namespace Db
 				IsRetired = this.IsRetired,
 				UseFirstName = this.UseFirstName,
 				UseLastName = this.UseLastName,
-				
 			};
 		}
 	}

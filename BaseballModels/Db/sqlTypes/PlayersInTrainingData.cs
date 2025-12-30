@@ -11,7 +11,6 @@ namespace Db
 			{
 				MlbId = this.MlbId,
 				ModelIdx = this.ModelIdx,
-				
 			};
 		}
 	}

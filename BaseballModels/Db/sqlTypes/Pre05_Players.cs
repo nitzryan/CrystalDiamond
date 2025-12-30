@@ -11,7 +11,6 @@ namespace Db
 			{
 				MlbId = this.MlbId,
 				CareerStartYear = this.CareerStartYear,
-				
 			};
 		}
 	}

@@ -19,7 +19,6 @@ namespace Db
 				Year = this.Year,
 				RunFactor = this.RunFactor,
 				HRFactor = this.HRFactor,
-				
 			};
 		}
 	}

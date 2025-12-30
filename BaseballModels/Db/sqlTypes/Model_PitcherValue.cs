@@ -37,7 +37,6 @@ namespace Db
 				IPRP1Year = this.IPRP1Year,
 				IPRP2Year = this.IPRP2Year,
 				IPRP3Year = this.IPRP3Year,
-				
 			};
 		}
 	}

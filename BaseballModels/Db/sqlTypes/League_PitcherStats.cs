@@ -33,7 +33,6 @@ namespace Db
 				GOPerc = this.GOPerc,
 				Avg = this.Avg,
 				Iso = this.Iso,
-				
 			};
 		}
 	}

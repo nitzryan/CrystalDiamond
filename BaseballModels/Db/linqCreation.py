@@ -25,7 +25,8 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
                   ("Player_Fielder_GameLog", "Position", "DbEnums.Position")]
 
-boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"])]
+boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
+                 ("GamePlayByPlay_GameFielders", ["IsHome"])]
 
 for table, in tables:
     # Get table data
@@ -34,14 +35,14 @@ for table, in tables:
     #Setup DbContext string
     dbSetStrings.append(f"public DbSet<{table}> {table} {{get; set;}}")
     modelBuilderString = f"modelBuilder.Entity<{table}>().HasKey(f => new " + "{"
-    cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t\t"
+    cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t"
     # Write type to class file
     with open(f"sqlTypes/{table}.cs", "w") as classFile:
         classFile.write("namespace Db\n{\n")
         classFile.write(f"\tpublic class {table}\n" + '\t{\n')
         for _, name, type, notnull, _, pk in vals:
             name = name[0].capitalize() + name[1:]
-            cloneFunctionString += f"{name} = this.{name},\n\t\t\t\t"
+            cloneFunctionString += f"\t{name} = this.{name},\n\t\t\t"
             
             # Need to write primary keys
             if pk > 0:
@@ -77,7 +78,7 @@ for table, in tables:
         modelBuilderString = modelBuilderString[:-1]
         modelBuilderString += "})"
         
-        classFile.write(cloneFunctionString + '\n\t\t\t};\n\t\t}\n')
+        classFile.write(cloneFunctionString + '};\n\t\t}\n')
         classFile.write('\t}\n}')
         modelBuilderStrings.append(modelBuilderString)
         

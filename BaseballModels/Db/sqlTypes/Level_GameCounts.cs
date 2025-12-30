@@ -15,7 +15,6 @@ namespace Db
 				Year = this.Year,
 				Month = this.Month,
 				MaxPA = this.MaxPA,
-				
 			};
 		}
 	}

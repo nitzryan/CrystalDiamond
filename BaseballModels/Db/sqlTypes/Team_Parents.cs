@@ -13,7 +13,6 @@ namespace Db
 				Id = this.Id,
 				Abbr = this.Abbr,
 				Name = this.Name,
-				
 			};
 		}
 	}

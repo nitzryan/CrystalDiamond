@@ -17,7 +17,6 @@ namespace Db
 				Month = this.Month,
 				Day = this.Day,
 				ParentOrgId = this.ParentOrgId,
-				
 			};
 		}
 	}

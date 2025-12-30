@@ -43,7 +43,6 @@ namespace Db
 				SB = this.SB,
 				CS = this.CS,
 				PassedBall = this.PassedBall,
-				
 			};
 		}
 	}

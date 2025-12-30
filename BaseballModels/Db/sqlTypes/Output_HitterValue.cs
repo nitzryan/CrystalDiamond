@@ -47,7 +47,6 @@ namespace Db
 				PA1Year = this.PA1Year,
 				PA2Year = this.PA2Year,
 				PA3Year = this.PA3Year,
-				
 			};
 		}
 	}

@@ -45,7 +45,6 @@ namespace Db
 				ParkRunFactor = this.ParkRunFactor,
 				SP_Perc = this.SP_Perc,
 				RP_Perc = this.RP_Perc,
-				
 			};
 		}
 	}

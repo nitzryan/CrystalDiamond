@@ -31,7 +31,6 @@ namespace Db
 				BsrAdv1st2ndFlyoutDict = this.BsrAdv1st2ndFlyoutDict,
 				BsrAdv2nd3rdFlyoutDict = this.BsrAdv2nd3rdFlyoutDict,
 				BsrAdv3rdHomeFlyoutDict = this.BsrAdv3rdHomeFlyoutDict,
-				
 			};
 		}
 	}

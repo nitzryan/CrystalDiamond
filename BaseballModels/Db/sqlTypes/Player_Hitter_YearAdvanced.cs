@@ -43,7 +43,6 @@ namespace Db
 				KPerc = this.KPerc,
 				SB = this.SB,
 				CS = this.CS,
-				
 			};
 		}
 	}

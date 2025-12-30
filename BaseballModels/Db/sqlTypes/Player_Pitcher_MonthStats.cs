@@ -49,7 +49,6 @@ namespace Db
 				HR = this.HR,
 				ParkRunFactor = this.ParkRunFactor,
 				ParkHRFactor = this.ParkHRFactor,
-				
 			};
 		}
 	}

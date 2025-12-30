@@ -19,7 +19,6 @@ namespace Db
 				ModelIdx = this.ModelIdx,
 				IsHitter = this.IsHitter,
 				Rank = this.Rank,
-				
 			};
 		}
 	}

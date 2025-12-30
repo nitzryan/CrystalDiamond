@@ -21,7 +21,6 @@ namespace Db
 				Day = this.Day,
 				ToIL = this.ToIL,
 				ParentOrgId = this.ParentOrgId,
-				
 			};
 		}
 	}

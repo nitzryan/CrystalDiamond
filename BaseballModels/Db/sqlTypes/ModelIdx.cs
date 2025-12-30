@@ -15,7 +15,6 @@ namespace Db
 				PitcherModelName = this.PitcherModelName,
 				HitterModelName = this.HitterModelName,
 				ModelName = this.ModelName,
-				
 			};
 		}
 	}

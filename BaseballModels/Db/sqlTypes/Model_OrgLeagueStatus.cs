@@ -45,7 +45,6 @@ namespace Db
 				LA_MonthsFrac = this.LA_MonthsFrac,
 				Rk_MonthsFrac = this.Rk_MonthsFrac,
 				DSL_MonthsFrac = this.DSL_MonthsFrac,
-				
 			};
 		}
 	}

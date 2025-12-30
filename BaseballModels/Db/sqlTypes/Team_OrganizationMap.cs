@@ -13,7 +13,6 @@ namespace Db
 				TeamId = this.TeamId,
 				Year = this.Year,
 				ParentOrgId = this.ParentOrgId,
-				
 			};
 		}
 	}

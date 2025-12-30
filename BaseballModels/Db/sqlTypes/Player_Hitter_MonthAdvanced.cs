@@ -59,7 +59,6 @@ namespace Db
 				CrOFF = this.CrOFF,
 				CrBSR = this.CrBSR,
 				CrDEF = this.CrDEF,
-				
 			};
 		}
 	}

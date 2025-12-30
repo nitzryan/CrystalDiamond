@@ -43,7 +43,6 @@ namespace Db
 				HR = this.HR,
 				WOBA = this.WOBA,
 				CrWAR = this.CrWAR,
-				
 			};
 		}
 	}

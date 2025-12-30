@@ -29,7 +29,6 @@ namespace Db
 				DEF = this.DEF,
 				BSR = this.BSR,
 				REP = this.REP,
-				
 			};
 		}
 	}

@@ -31,7 +31,6 @@ namespace Db
 				DraftRound = this.DraftRound,
 				DraftBonus = this.DraftBonus,
 				SigningYear = this.SigningYear,
-				
 			};
 		}
 	}

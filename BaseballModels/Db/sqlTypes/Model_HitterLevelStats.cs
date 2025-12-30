@@ -37,7 +37,6 @@ namespace Db
 				SB = this.SB,
 				CS = this.CS,
 				ParkRunFactor = this.ParkRunFactor,
-				
 			};
 		}
 	}

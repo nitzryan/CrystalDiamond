@@ -37,7 +37,6 @@ namespace Db
 				IgnorePlayer = this.IgnorePlayer,
 				HighestLevelPitcher = this.HighestLevelPitcher,
 				HighestLevelHitter = this.HighestLevelHitter,
-				
 			};
 		}
 	}

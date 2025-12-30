@@ -15,7 +15,6 @@ namespace Db
 				Year = this.Year,
 				ServiceYear = this.ServiceYear,
 				ServiceDays = this.ServiceDays,
-				
 			};
 		}
 	}

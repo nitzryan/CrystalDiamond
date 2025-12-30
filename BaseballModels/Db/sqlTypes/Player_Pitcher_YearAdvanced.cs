@@ -37,7 +37,6 @@ namespace Db
 				BBPerc = this.BBPerc,
 				HR = this.HR,
 				WOBA = this.WOBA,
-				
 			};
 		}
 	}

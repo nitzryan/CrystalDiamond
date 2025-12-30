@@ -21,7 +21,6 @@ namespace Db
 				Signed = this.Signed,
 				Bonus = this.Bonus,
 				BonusRank = this.BonusRank,
-				
 			};
 		}
 	}

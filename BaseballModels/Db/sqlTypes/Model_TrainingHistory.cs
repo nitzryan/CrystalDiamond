@@ -19,7 +19,6 @@ namespace Db
 				ModelIdx = this.ModelIdx,
 				NumLayers = this.NumLayers,
 				HiddenSize = this.HiddenSize,
-				
 			};
 		}
 	}

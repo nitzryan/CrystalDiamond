@@ -61,7 +61,6 @@ namespace Db
 				GamesCF = this.GamesCF,
 				GamesRF = this.GamesRF,
 				GamesDH = this.GamesDH,
-				
 			};
 		}
 	}

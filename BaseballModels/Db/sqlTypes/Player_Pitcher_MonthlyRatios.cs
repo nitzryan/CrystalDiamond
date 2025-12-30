@@ -33,7 +33,6 @@ namespace Db
 				HRPercRatio = this.HRPercRatio,
 				BBPercRatio = this.BBPercRatio,
 				KPercRatio = this.KPercRatio,
-				
 			};
 		}
 	}

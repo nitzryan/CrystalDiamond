@@ -47,7 +47,6 @@ namespace Db
 				BBPercRatio = this.BBPercRatio,
 				KPercRatio = this.KPercRatio,
 				CrWAR = this.CrWAR,
-				
 			};
 		}
 	}

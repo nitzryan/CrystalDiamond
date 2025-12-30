@@ -53,7 +53,6 @@ namespace Db
 				CFIP = this.CFIP,
 				FIPR9Adjustment = this.FIPR9Adjustment,
 				LeagueERA = this.LeagueERA,
-				
 			};
 		}
 	}

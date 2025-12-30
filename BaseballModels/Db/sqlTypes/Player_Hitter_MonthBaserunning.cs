@@ -27,7 +27,6 @@ namespace Db
 				RGIDP = this.RGIDP,
 				TimesOnFirst = this.TimesOnFirst,
 				TimesOnBase = this.TimesOnBase,
-				
 			};
 		}
 	}

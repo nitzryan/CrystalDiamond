@@ -13,7 +13,6 @@ namespace Db
 				TeamId = this.TeamId,
 				LeagueId = this.LeagueId,
 				Year = this.Year,
-				
 			};
 		}
 	}

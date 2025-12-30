@@ -59,7 +59,6 @@ namespace Db
 				TeamId = this.TeamId,
 				OppTeamId = this.OppTeamId,
 				LeagueId = this.LeagueId,
-				
 			};
 		}
 	}

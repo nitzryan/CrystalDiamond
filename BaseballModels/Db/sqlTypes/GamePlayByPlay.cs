@@ -71,7 +71,6 @@ namespace Db
 				Run2ndOutcome = this.Run2ndOutcome,
 				Run3rdOutcome = this.Run3rdOutcome,
 				EventFlag = this.EventFlag,
-				
 			};
 		}
 	}

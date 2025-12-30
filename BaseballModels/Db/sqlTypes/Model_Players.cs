@@ -57,7 +57,6 @@ namespace Db
 				RateOff = this.RateOff,
 				RateBsr = this.RateBsr,
 				RateDef = this.RateDef,
-				
 			};
 		}
 	}

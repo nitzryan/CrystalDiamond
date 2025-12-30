@@ -27,7 +27,6 @@ namespace Db
 				BB = this.BB,
 				HBP = this.HBP,
 				K = this.K,
-				
 			};
 		}
 	}

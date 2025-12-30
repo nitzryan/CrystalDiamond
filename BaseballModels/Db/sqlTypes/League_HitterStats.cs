@@ -53,7 +53,6 @@ namespace Db
 				K = this.K,
 				SB = this.SB,
 				CS = this.CS,
-				
 			};
 		}
 	}
