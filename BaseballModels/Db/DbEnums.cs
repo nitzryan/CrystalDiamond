@@ -98,5 +98,20 @@
             HitPositionImpossible = 1 << 1,
             HitPositionTooRight2017 = 1 << 2,
         }
+
+        // Should not be combined
+        public enum Position
+        {
+            P = 1,
+            C = 2,
+            B1 = 3,
+            B2 = 4,
+            B3 = 5,
+            SS = 6,
+            LF = 7,
+            CF = 8,
+            RF = 9,
+            DH = 10,
+        }
     }
 }

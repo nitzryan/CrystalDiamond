@@ -1,7 +1,4 @@
-﻿using System;
-using static System.Net.Mime.MediaTypeNames;
-
-namespace DataAquisition
+﻿namespace DataAquisition
 {
     internal class Program
     {
@@ -33,17 +30,20 @@ namespace DataAquisition
                 //while (!await GameLogUpdate.Main(year, 3, 10))
                 //{ }
 
+                while (!await FielderGameLog.Update(year, year == END_YEAR))
+                { }
+
                 //while (!await GetPlayByPlay.Update(year))
                 //{ }
 
-                if (!GetPlayByPlayFlags.UpdateFlags(year))
-                    return;
+                //if (!GetPlayByPlayFlags.UpdateFlags(year))
+                //    return;
 
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                if (!CalculateLeagueStats.Main(year))
-                    return;
+                //if (!CalculateLeagueStats.Main(year))
+                //    return;
 
                 foreach (int month in months)
                 {

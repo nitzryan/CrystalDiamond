@@ -626,6 +626,54 @@ CREATE INDEX "idx_HitterGameLogForYearStats" ON "Player_Hitter_GameLog" (
 	"Year"
 );
 
+CREATE TABLE "Player_Fielder_GameLog" (
+	"gameLogId"	INTEGER NOT NULL,
+	"gameId"	INTEGER NOT NULL,
+	"mlbId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"TeamId"	INTEGER NOT NULL,
+	"Day"	INTEGER NOT NULL,
+	"Month"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"Position" INTEGER NOT NULL,
+	"Outs" INTEGER NOT NULL,
+	"Chances" INTEGER NOT NULL,
+	"Errors" INTEGER NOT NULL,
+	"ThrowErrors" INTEGER NOT NULL,
+	"Started" INTEGER NOT NULL,
+	"IsHome" INTEGER NOT NULL,
+	"SB" INTEGER NOT NULL,
+	"CS" INTEGER NOT NULL,
+	"PassedBall" INTEGER NOT NULL,
+	PRIMARY KEY("gameLogId")
+);
+
+CREATE INDEX "idx_FielderGameLog_Date" ON "Player_Fielder_GameLog" (
+	"Year",
+	"Month",
+	"Day"
+);
+
+CREATE INDEX "idx_FielderGameLog_GamePlayer" ON "Player_Fielder_GameLog" (
+	"gameId",
+	"mlbId"
+);
+
+CREATE INDEX "idx_FielderGameLog_mlbIdDate" ON "Player_Fielder_GameLog" (
+	"mlbId",
+	"Year",
+	"Month",
+	"Day"
+);
+
+CREATE INDEX "idx_FielderGameLogForYearStats" ON "Player_Fielder_GameLog" (
+	"mlbId",
+	"LeagueId",
+	"TeamId",
+	"LeagueId",
+	"Year"
+);
+
 CREATE TABLE "Player_Hitter_MonthAdvanced" (
 	"mlbId"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,

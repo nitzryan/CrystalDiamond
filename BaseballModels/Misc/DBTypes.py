@@ -1729,5 +1729,37 @@ class DB_GamePlayByPlay:
 		items = cursor.execute("SELECT * FROM GamePlayByPlay " + conditional, values).fetchall()
 		return [DB_GamePlayByPlay(i) for i in items]
 
+class DB_Player_Fielder_GameLog:
+	def __init__(self, values : tuple[any]):
+		self.gameLogId = values[0]
+		self.gameId = values[1]
+		self.mlbId = values[2]
+		self.LeagueId = values[3]
+		self.TeamId = values[4]
+		self.Day = values[5]
+		self.Month = values[6]
+		self.Year = values[7]
+		self.Position = values[8]
+		self.Outs = values[9]
+		self.Chances = values[10]
+		self.Errors = values[11]
+		self.ThrowErrors = values[12]
+		self.Started = values[13]
+		self.IsHome = values[14]
+		self.SB = values[15]
+		self.CS = values[16]
+		self.PassedBall = values[17]
+
+	NUM_ELEMENTS = 18
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.gameLogId,self.gameId,self.mlbId,self.LeagueId,self.TeamId,self.Day,self.Month,self.Year,self.Position,self.Outs,self.Chances,self.Errors,self.ThrowErrors,self.Started,self.IsHome,self.SB,self.CS,self.PassedBall)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_Fielder_GameLog']:
+		items = cursor.execute("SELECT * FROM Player_Fielder_GameLog " + conditional, values).fetchall()
+		return [DB_Player_Fielder_GameLog(i) for i in items]
+
 
 ##############################################################################################
