@@ -68,16 +68,15 @@ namespace DataAquisition
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                
+
                 // Remove game flags for current year
-                db.GamePlayByPlayFlags.RemoveRange(
-                    db.GamePlayByPlayFlags.Join(db.GamePlayByPlay, f => f.EventId, f => f.EventId, (a, b) => new { flags = a, year = b.Year })
-                    .Where(f => f.year == year)
-                    .Select(f => f.flags));
+                foreach (var item in db.GamePlayByPlay.Where(f => f.Year == year))
+                {
+                    item.EventFlag = null;
+                }
                 db.SaveChanges();
 
                 var thisYearPBP = db.GamePlayByPlay.Where(f => f.Year == year).GroupBy(f => f.GameId).AsEnumerable();
-                List<GamePlayByPlayFlags> updateFlags = new(thisYearPBP.Sum(f => f.Count()));
                 using (ProgressBar progressBar = new(thisYearPBP.Count(), $"Generating GamePlayByPlayGameFlags for {year}"))
                 {
                     foreach (var game in thisYearPBP)
@@ -89,11 +88,7 @@ namespace DataAquisition
                             GameFlags eventFlag = GameFlags.Valid;
                             eventFlag |= IsHitPositionImpossible(e); // Field position would be in the stands
                             eventFlag |= IsHitPositionTooFarRight2017(e); // First year of statcast data, some messups
-                            updateFlags.Add(new GamePlayByPlayFlags
-                            {
-                                EventId = game.Key,
-                                Flag = eventFlag | gameFlag
-                            });
+                            e.EventFlag = eventFlag | gameFlag;
                         }
 
                         
@@ -101,7 +96,7 @@ namespace DataAquisition
                     }
                 }
 
-                db.BulkInsert(updateFlags);
+                db.SaveChanges();
                 return true;
             }
             catch (Exception e)

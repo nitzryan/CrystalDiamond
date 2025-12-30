@@ -18,7 +18,7 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("GamePlayByPlay", "HitHardness", "DbEnums.PBP_HitHardness"), 
                   ("GamePlayByPlay", "StartBaseOccupancy", "DbEnums.BaseOccupancy"), 
                   ("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
-                  ("GamePlayByPlayFlags", "Flag", "DbEnums.GameFlags")]
+                  ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags")]
 
 for table, in tables:
     # Get table data

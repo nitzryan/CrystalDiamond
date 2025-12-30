@@ -42,8 +42,8 @@ namespace DataAquisition
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                //if (!CalculateLeagueStats.Main(year))
-                //    return;
+                if (!CalculateLeagueStats.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {

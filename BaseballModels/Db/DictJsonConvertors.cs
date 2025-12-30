@@ -96,7 +96,8 @@ namespace Db
             if (reader.TokenType != JsonTokenType.StartObject)
                 throw new JsonException("Expected StartObject");
 
-            int? zone = null;
+            int? zoneAngle = null;
+            int? zoneDist = null;
             PBP_HitTrajectory? trajectory = null;
             PBP_HitHardness? hardness = null;
 
@@ -114,8 +115,11 @@ namespace Db
 
                 switch (prop)
                 {
-                    case nameof(FieldingScenario.Zone):
-                        zone = reader.GetInt32();
+                    case nameof(FieldingScenario.ZoneAngle):
+                        zoneAngle = reader.GetInt32();
+                        break;
+                    case nameof(FieldingScenario.ZoneDist):
+                        zoneDist = reader.GetInt32();
                         break;
                     case nameof(FieldingScenario.Trajectory):
                         trajectory = JsonSerializer.Deserialize<PBP_HitTrajectory>(ref reader, options);
@@ -129,12 +133,13 @@ namespace Db
                 }
             }
 
-            if (zone is null || trajectory is null || hardness is null)
+            if (zoneAngle is null || zoneDist is null || trajectory is null || hardness is null)
                 throw new JsonException("Missing required properties for FieldingScenario");
 
             return new FieldingScenario
             {
-                Zone = zone.Value,
+                ZoneAngle = zoneAngle.Value,
+                ZoneDist = zoneDist.Value,
                 Trajectory = trajectory.Value,
                 Hardness = hardness.Value
             };
@@ -146,7 +151,8 @@ namespace Db
             JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WriteNumber(nameof(FieldingScenario.Zone), value.Zone);
+            writer.WriteNumber(nameof(FieldingScenario.ZoneAngle), value.ZoneAngle);
+            writer.WriteNumber(nameof(FieldingScenario.ZoneDist), value.ZoneDist);
             writer.WritePropertyName(nameof(FieldingScenario.Trajectory));
             JsonSerializer.Serialize(writer, value.Trajectory, options);
             writer.WritePropertyName(nameof(FieldingScenario.Hardness));
@@ -156,7 +162,7 @@ namespace Db
 
         public override void WriteAsPropertyName(Utf8JsonWriter writer, [DisallowNull] FieldingScenario value, JsonSerializerOptions options)
         {
-            writer.WritePropertyName($"{value.Zone}:{(int)value.Trajectory}:{(int)value.Hardness}");
+            writer.WritePropertyName($"{value.ZoneAngle}:{value.ZoneDist}:{(int)value.Trajectory}:{(int)value.Hardness}");
         }
 
         public override FieldingScenario ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -165,11 +171,14 @@ namespace Db
             if (string.IsNullOrEmpty(key))
                 throw new JsonException("Dictionary key cannot be empty");
 
-            var parts = key.Split(':', 3);
-            if (parts.Length != 3 || !int.TryParse(parts[0], out int zone) || !Enum.TryParse<PBP_HitTrajectory>(parts[1], out var traj) || !Enum.TryParse<PBP_HitHardness>(parts[2], out var hard))
+            var parts = key.Split(':', 4);
+            if (parts.Length != 4 || !int.TryParse(parts[0], out int zoneAngle) 
+                                    || !int.TryParse(parts[1], out int zoneDist)
+                                    || !Enum.TryParse<PBP_HitTrajectory>(parts[2], out var traj) 
+                                    || !Enum.TryParse<PBP_HitHardness>(parts[3], out var hard))
                 throw new JsonException($"Invalid GameScenarios key format: {key}");
 
-            return new FieldingScenario { Zone = zone, Trajectory = traj, Hardness = hard };
+            return new FieldingScenario { ZoneAngle = zoneAngle, ZoneDist=zoneDist, Trajectory = traj, Hardness = hard };
         }
     }
 

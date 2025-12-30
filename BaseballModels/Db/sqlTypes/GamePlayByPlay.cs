@@ -33,6 +33,7 @@ namespace Db
 		public int? Run1stOutcome {get; set;}
 		public int? Run2ndOutcome {get; set;}
 		public int? Run3rdOutcome {get; set;}
+		public DbEnums.GameFlags? EventFlag {get; set;}
 
 		public GamePlayByPlay Clone()
 		{
@@ -69,6 +70,7 @@ namespace Db
 				Run1stOutcome = this.Run1stOutcome,
 				Run2ndOutcome = this.Run2ndOutcome,
 				Run3rdOutcome = this.Run3rdOutcome,
+				EventFlag = this.EventFlag,
 				
 			};
 		}

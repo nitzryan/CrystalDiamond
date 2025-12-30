@@ -257,7 +257,7 @@ namespace DataAquisition
 
                         // Calculate Fielding Outcome Dict
                         FieldingDict fieldingDict = new();
-                        var leaguePBPFieldingGroupings = leaguePBP.GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
+                        var leaguePBPFieldingGroupings = leaguePBP.Where(f => f.EventFlag == GameFlags.Valid).GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
                         foreach (var fg in leaguePBPFieldingGroupings)
                         {
                             if (fg.Key == null)
@@ -265,8 +265,16 @@ namespace DataAquisition
 
                             var madePlays = fg.Where(f => (f.Result & PBP_OUT_EVENTS) != 0);
                             var missedPlays = fg.Where(f => (f.Result & PBP_HIT_IP_EVENTS) != 0);
+                            int[] madePlaysCount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                            foreach (var play in madePlays)
+                            {
+                                madePlaysCount[(int)play.HitZone - 1]++;
+                            }
+
                             int totalPlays = madePlays.Count() + missedPlays.Count();
-                            float probMake = (float)madePlays.Count() / (float)(totalPlays);
+                            float[] probMake = [ .. madePlaysCount.Select(f => (float)f / totalPlays)];
+                            float probMissed = 1.0f - probMake.Sum();
+
                             float madeValue = GetAverageEventValue(runExpectancyDict, madePlays);
                             float missedValue = GetAverageEventValue(runExpectancyDict, missedPlays);
 
@@ -279,14 +287,22 @@ namespace DataAquisition
 
                             if (totalPlays == 0 || madePlays.Count() == 0 || missedPlays.Count() == 0)
                             {
-                                probMake = 0;
-                                madeValue = 0;
-                                missedValue = 0;
+                                fieldingDict.Add(fg.Key, new FieldingResults
+                                {
+                                    NumOccurences = 0,
+                                    ProbMake = [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    ProbMiss = 1,
+                                    RunsMake = 0,
+                                    RunsMiss = 0
+                                });
+                                continue;
                             }
+
 
                             fieldingDict.Add(fg.Key, new FieldingResults
                             {
                                 ProbMake = probMake,
+                                ProbMiss = probMissed,
                                 RunsMake = madeValue,
                                 RunsMiss = missedValue,
                                 NumOccurences = totalPlays,

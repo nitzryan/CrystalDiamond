@@ -13,13 +13,15 @@ namespace Db
     // Fielding Records
     public record FieldingScenario
     {
-        public required int Zone { get; set; }
+        public required int ZoneAngle { get; set; }
+        public required int ZoneDist { get; set; }
         public required PBP_HitTrajectory Trajectory { get; set; }
         public required PBP_HitHardness Hardness { get; set; }
     }
     public record FieldingResults
     {
-        public required float ProbMake { get; set; }
+        public required float[] ProbMake { get; set; } // Probs for each position
+        public required float ProbMiss { get; set; }
         public required float RunsMake { get; set; }
         public required float RunsMiss { get; set; }
         public required int NumOccurences { get; set; }
@@ -92,7 +94,7 @@ namespace Db
                 ?? throw new Exception("Unable to deserialize GetFieldingDict");
         }
 
-        // Baserunning Outcoomes Dict
+        // Baserunning Outcomes Dict
         public static BaserunningDict GetBaserunningDict(string json)
         {
             return JsonSerializer.Deserialize<BaserunningDict>(json, DefaultOptions)
@@ -107,16 +109,170 @@ namespace Db
             return new GameScenarios { outs = pbp.StartOuts, occupancy = pbp.StartBaseOccupancy };
         }
 
+        // https://beanumber.github.io/abdwr3e/C_statcast.html#fig-spray-diagram
+        private static float GetHitAngle(GamePlayByPlay pbp)
+        {
+            if (pbp.HitCoordX == null || pbp.HitCoordY == null)
+                throw new Exception("Tried to get HitAngle with null HitCoords");
+
+            return MathF.Atan2((float)pbp.HitCoordX - 125.42f, 198.27f - (float)pbp.HitCoordY);
+        }
+
+        private static float GetHitDist(GamePlayByPlay pbp)
+        {
+            if (pbp.HitCoordX == null || pbp.HitCoordY == null)
+                throw new Exception("Tried to get GetHitDist with null HitCoords");
+
+            float deltaX = (float)pbp.HitCoordX - 125.42f;
+            float deltaY = 198.27f - (float)pbp.HitCoordY;
+            return MathF.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+        }
+
+        private static double[] Linspace(double start, double stop, int numPoints)
+        {
+            if (numPoints < 2) return new[] { start };
+
+            double step = (stop - start) / (numPoints - 1);
+
+            return Enumerable.Range(0, numPoints)
+                             .Select(i => start + i * step)
+                             .ToArray();
+        }
+
+        private static readonly double[] GroundballZoneXs = Linspace(-1.05 * Math.PI / 4, 1.05 * Math.PI / 4, 31);
+        public static FieldingScenario GetGroundballScenario(GamePlayByPlay pbp)
+        {
+            float hitDist = GetHitDist(pbp);
+
+            // Check for shortly hit ground balls
+            if (hitDist < 30)
+                return new FieldingScenario
+                {
+                    Hardness = PBP_HitHardness.None, // Set to none so this is never accidentally hit
+                    Trajectory = PBP_HitTrajectory.Groundball,
+                    ZoneAngle = 0, // So close to home plate that all are about the same
+                    ZoneDist = 0
+                };
+
+            // Get hit angle
+            float hitAngle = GetHitAngle(pbp);
+            int hitZone = GroundballZoneXs.Length;
+            for (int i = 0; i < GroundballZoneXs.Length; i++)
+            {
+                if (hitAngle < GroundballZoneXs[i])
+                {
+                    hitZone = i;
+                    break;
+                }
+            }
+
+            return new FieldingScenario
+            {
+                Hardness = (PBP_HitHardness)pbp.HitHardness,
+                Trajectory = PBP_HitTrajectory.Groundball,
+                ZoneAngle = hitZone,
+                ZoneDist = 1
+            };
+        }
+
+        private static readonly double[] LinedriveZoneAngles = Linspace(-1.05 * Math.PI / 4, 1.05 * Math.PI / 4, 31);
+        private static readonly double[] LinedriveZoneDists = Linspace(80.0, 160.0, 22);
+        public static FieldingScenario GetLinedriveScenario(GamePlayByPlay pbp)
+        {
+            float hitDist = GetHitDist(pbp);
+            float hitAngle = GetHitAngle(pbp);
+
+            int hitZoneAngle = LinedriveZoneAngles.Length;
+            for (int i = 0; i < LinedriveZoneAngles.Length; i++)
+            {
+                if (hitAngle < LinedriveZoneAngles[i])
+                {
+                    hitZoneAngle = i;
+                    break;
+                }
+            }
+
+            int hitZoneDist = LinedriveZoneDists.Length;
+            for (int i = 0; i < LinedriveZoneDists.Length; i++)
+            {
+                if (hitDist < LinedriveZoneDists[i])
+                {
+                    hitZoneDist = i;
+                    break;
+                }
+            }
+
+            return new FieldingScenario
+            {
+                Hardness = PBP_HitHardness.None, // Set to none so this is never accidentally hit
+                                                // Not enough hard/soft hit to split by them
+                Trajectory = PBP_HitTrajectory.Linedrive,
+                ZoneAngle = hitZoneAngle,
+                ZoneDist = hitZoneDist
+            };
+        }
+
+        // Currently identical to linedrives, but may want to change in future
+        private static readonly double[] FlyballZoneAngles = Linspace(-1.05 * Math.PI / 4, 1.05 * Math.PI / 4, 31);
+        private static readonly double[] FlyballZoneDists = Linspace(80.0, 160.0, 22);
+        public static FieldingScenario GetFlyballScenario(GamePlayByPlay pbp)
+        {
+            float hitDist = GetHitDist(pbp);
+            float hitAngle = GetHitAngle(pbp);
+
+            int hitZoneAngle = FlyballZoneAngles.Length;
+            for (int i = 0; i < FlyballZoneAngles.Length; i++)
+            {
+                if (hitAngle < FlyballZoneAngles[i])
+                {
+                    hitZoneAngle = i;
+                    break;
+                }
+            }
+
+            int hitZoneDist = FlyballZoneDists.Length;
+            for (int i = 0; i < FlyballZoneDists.Length; i++)
+            {
+                if (hitDist < FlyballZoneDists[i])
+                {
+                    hitZoneDist = i;
+                    break;
+                }
+            }
+
+            return new FieldingScenario
+            {
+                Hardness = PBP_HitHardness.None, // Set to none so this is never accidentally hit
+                                                 // Not enough hard/soft hit to split by them
+                Trajectory = PBP_HitTrajectory.Flyball,
+                ZoneAngle = hitZoneAngle,
+                ZoneDist = hitZoneDist
+            };
+        }
+
         public static FieldingScenario? GetFieldingScenario(GamePlayByPlay pbp)
         {
-            if (pbp.HitHardness == null || pbp.HitTrajectory == null || pbp.HitZone == null)
+            if (pbp.HitHardness == null || pbp.HitTrajectory == null || pbp.HitZone == null || pbp.HitCoordX == null || pbp.HitCoordY == null)
                 return null;
 
-            return new FieldingScenario { 
-                Zone = (int)pbp.HitZone, 
-                Hardness = (PBP_HitHardness)pbp.HitHardness, 
-                Trajectory = (PBP_HitTrajectory)pbp.HitTrajectory! 
-            };
+            // Basically all popups are caught, and dropped will be caught in errors
+            if (pbp.HitTrajectory == PBP_HitTrajectory.Popup) 
+                return null;
+
+            // Not handling bunts, too small sample size
+            if ((pbp.HitTrajectory & (PBP_HitTrajectory.BuntGrounder | PBP_HitTrajectory.BuntLinedrive | PBP_HitTrajectory.BuntPopup)) != 0)
+                return null;
+
+            if (pbp.HitTrajectory == PBP_HitTrajectory.Groundball)
+                return GetGroundballScenario(pbp);
+
+            if (pbp.HitTrajectory == PBP_HitTrajectory.Linedrive)
+                return GetLinedriveScenario(pbp);
+
+            if (pbp.HitTrajectory == PBP_HitTrajectory.Flyball)
+                return GetFlyballScenario(pbp);
+
+            throw new Exception($"GetFieldingScenario unexpectedly reached end for pbpEventId={pbp.EventId}");
         }
 
         public static BaserunningScenario? GetBaserunningScenario(GamePlayByPlay pbp)
