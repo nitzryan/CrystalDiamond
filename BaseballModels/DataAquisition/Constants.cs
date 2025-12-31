@@ -8,7 +8,9 @@ namespace DataAquisition
     {
         public const int START_YEAR = 2005;
         public static ReadOnlyCollection<int> SPORT_IDS = new([1, 11, 12, 13, 14, 15, 16, 17]);
+        public static ReadOnlyCollection<int> SPORT_IDS_MLBAPI = new([1, 11, 12, 13, 14, 15, 16, 5442]);
         public static ReadOnlyCollection<string> SPORT_ID_NAMES = new(["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"]);
+        public static ReadOnlyCollection<string> SPORT_ID_NAMES_MLPAPI = new(["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "Rk2019"]);
         public const int MEXICAN_LEAGUE_ID = 125;
         public const int DSL_LEAGUE_ID = 130;
         public const int VSL_LEAGUE_ID = 134;

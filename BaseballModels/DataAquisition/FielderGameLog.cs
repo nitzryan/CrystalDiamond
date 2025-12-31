@@ -1,4 +1,5 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
 using ShellProgressBar;
 using System.Text.Json;
 
@@ -181,19 +182,57 @@ namespace DataAquisition
             return logs;
         }
 
+        private static async Task<List<int>> GetPlayerIds(int sportId, int year)
+        {
+            HttpClient httpClient = new();
+
+            HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group=fielding&gameType=R&limit=10000&offset=0&order=desc&playerPool=All");
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                throw new Exception($"Getting fielder stats for year={year}: {response.StatusCode}");
+            }
+
+            // Parse JSON to get player Ids
+            string responseBody = await response.Content.ReadAsStringAsync();
+            JsonDocument json = JsonDocument.Parse(responseBody);
+            var stats = json.RootElement.GetProperty("stats");
+            var statsArray = stats.EnumerateArray();
+
+            return statsArray.Select(f => f.GetProperty("playerId").GetInt32()).ToList();
+        }
+
         public static async Task<bool> Update(int year, bool rescan)
         { 
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-                var hitterIds = db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct().AsEnumerable();
-                var pitcherIds = db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct().AsEnumerable();
-                var ids = Enumerable.Concat(hitterIds, pitcherIds).Distinct();
+                // Get ids
+                HttpClient httpClient = new();
+                List<int> ids = new(20000);
+
+                using (ProgressBar progressBar = new(Constants.SPORT_IDS_MLBAPI.Count, $"Getting Fielder Ids {year}"))
+                {
+                    List<Task<List<int>>> getIdsTasks = new(Constants.SPORT_IDS_MLBAPI.Count);
+                    foreach (int level in Constants.SPORT_IDS_MLBAPI)
+                    {
+                        getIdsTasks.Add(GetPlayerIds(level, year));
+                    }
+
+                    foreach (var task in getIdsTasks)
+                    {
+                        ids.AddRange(await task);
+                        ids = ids.Distinct().ToList();
+                        progressBar.Tick();
+                    }
+                }
+                
 
                 if (!rescan)
                 {
                     int[] yearIds = [.. db.Player_Fielder_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
-                    ids = ids.Where(f => !yearIds.Contains(f));
+                    ids = ids.Where(f => !yearIds.Contains(f)).ToList();
+                } else {
+                    db.BulkDelete(db.Player_Fielder_GameLog.Where(f => f.Year == year));
                 }
 
                 if (!ids.Any())

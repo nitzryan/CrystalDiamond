@@ -1,4 +1,5 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
 using ShellProgressBar;
 using System.Text.Json;
 
@@ -10,7 +11,7 @@ namespace DataAquisition
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts;
 
-        private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int startMonth, int endMonth, int year, int thread_idx, ProgressBar progressBar, int progressSum)
+        private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int year, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -25,7 +26,7 @@ namespace DataAquisition
                 {
                     try
                     {
-                        gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                        gameLogs = await GetPlayer_Hitter_GameLogsAsync(id, httpClient, year);
                         break;
                     }
                     catch (Exception)
@@ -54,7 +55,7 @@ namespace DataAquisition
             return logs;
         }
 
-        private static async Task<List<Player_Pitcher_GameLog>> Get_Pitcher_GameLogs_ThreadFunction(IEnumerable<int> ids, int startMonth, int endMonth, int year, int thread_idx, ProgressBar progressBar, int progressSum)
+        private static async Task<List<Player_Pitcher_GameLog>> Get_Pitcher_GameLogs_ThreadFunction(IEnumerable<int> ids, int year, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             HttpClient httpClient = new();
             List<Player_Pitcher_GameLog> logs = new();
@@ -68,7 +69,7 @@ namespace DataAquisition
                 for (var i = 0; i < 3; i++)
                 {
                     try {
-                        gameLogs = await GetPlayer_Pitcher_GameLogsAsync(id, httpClient, startMonth, endMonth, year);
+                        gameLogs = await GetPlayer_Pitcher_GameLogsAsync(id, httpClient, year);
                         break;
                     } catch(Exception)
                     {
@@ -95,7 +96,7 @@ namespace DataAquisition
             return logs;
         }
 
-        private static async Task<List<Player_Hitter_GameLog>> GetPlayer_Hitter_GameLogsAsync(int id, HttpClient httpClient, int startMonth, int endMonth, int year)
+        private static async Task<List<Player_Hitter_GameLog>> GetPlayer_Hitter_GameLogsAsync(int id, HttpClient httpClient, int year)
         {
             List<Player_Hitter_GameLog> log = new();
 
@@ -124,8 +125,6 @@ namespace DataAquisition
                     // Make sure game is in proper month
                     string[] gamedate = game.GetProperty("date").GetString().Split("-");
                     int gameMonth = Convert.ToInt32(gamedate[1]);
-                    if (gameMonth < startMonth || gameMonth > endMonth)
-                        continue;
 
                     var stats = game.GetProperty("stat");
                     var positions = game.GetProperty("positionsPlayed").EnumerateArray();
@@ -182,7 +181,7 @@ namespace DataAquisition
             return log;
         }
 
-        private static async Task<List<Player_Pitcher_GameLog>> GetPlayer_Pitcher_GameLogsAsync(int id, HttpClient httpClient, int startMonth, int endMonth, int year)
+        private static async Task<List<Player_Pitcher_GameLog>> GetPlayer_Pitcher_GameLogsAsync(int id, HttpClient httpClient, int year)
         {
             List<Player_Pitcher_GameLog> log = new();
 
@@ -212,8 +211,6 @@ namespace DataAquisition
                     // Make sure game is in proper month
                     string[] gamedate = game.GetProperty("date").GetString().Split("-");
                     int gameMonth = Convert.ToInt32(gamedate[1]);
-                    if (gameMonth < startMonth || gameMonth > endMonth)
-                        continue;
 
                     var stats = game.GetProperty("stat");
 
@@ -268,11 +265,15 @@ namespace DataAquisition
             return log;
         }
 
-        private static async Task<bool> GetHitterLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, int startMonth, int endMonth)
+        private static async Task<bool> GetHitterLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, bool rescan)
         {
+            if (rescan)
+                db.BulkDelete(db.Player_Hitter_GameLog.Where(f => f.Year == year));
+            int[] yearIds = [.. db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
+
             // Get stats for each level
             int sport_id_idx = 0;
-            foreach(int sportId in Constants.SPORT_IDS)
+            foreach(int sportId in Constants.SPORT_IDS_MLBAPI)
             {
                 // Get hitters that have stats at level
                 HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group=hitting&gameType=R&limit=5000&offset=0&sortStat=homeRuns&order=desc");
@@ -288,6 +289,11 @@ namespace DataAquisition
                 var statsArray = stats.EnumerateArray();
                 IEnumerable<int> ids = statsArray.Select(f => f.GetProperty("playerId").GetInt32());
 
+                if (!rescan)
+                {
+                    ids = ids.Where(f => !yearIds.Contains(f)).ToList();
+                }
+
                 // Check for empty (Covid year)
                 if (!ids.Any())
                     continue;
@@ -300,7 +306,7 @@ namespace DataAquisition
 
                 // Distribute tasks out into threads
                 List<Task<List<Player_Hitter_GameLog>>> tasks = new(NUM_THREADS);
-                using (ProgressBar progressBar = new(ids.Count(), $"Getting Hitter Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]} {year}"))
+                using (ProgressBar progressBar = new(ids.Count(), $"Getting Hitter Game Logs for {Constants.SPORT_ID_NAMES_MLPAPI[sport_id_idx]} {year}"))
                 {
                     progress_bar_thread = 0;
                     thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
@@ -308,7 +314,9 @@ namespace DataAquisition
                     for (int i = 0; i < NUM_THREADS; i++)
                     {
                         int idx = i;
-                        Task<List<Player_Hitter_GameLog>> task = Get_Hitter_GameLogs_ThreadFunction(id_partitions.ElementAt(i), startMonth, endMonth, year, idx, progressBar, ids.Count());
+                        if (idx >= id_partitions.Count())
+                            break;
+                        Task<List<Player_Hitter_GameLog>> task = Get_Hitter_GameLogs_ThreadFunction(id_partitions.ElementAt(i), year, idx, progressBar, ids.Count());
                         tasks.Add(task);
                     }
 
@@ -327,17 +335,22 @@ namespace DataAquisition
             return true;
         }
 
-        private static async Task<bool> GetPitcherLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, int startMonth, int endMonth)
+        private static async Task<bool> GetPitcherLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, bool rescan)
         {
+            if (rescan)
+                db.BulkDelete(db.Player_Pitcher_GameLog.Where(f => f.Year == year));
+            int[] yearIds = [.. db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
+
             // Get stats for each level
             int sport_id_idx = 0;
-            foreach (int sportId in Constants.SPORT_IDS)
+
+            foreach (int sportId in Constants.SPORT_IDS_MLBAPI)
             {
                 // Get hitters that have stats at level
                 HttpResponseMessage response = await httpClient.GetAsync($"https://bdfed.stitch.mlbinfra.com/bdfed/stats/player?stitch_env=prod&season={year}&sportId={sportId}&stats=season&group=pitching&gameType=R&limit=5000&offset=0&sortStat=homeRuns&order=desc");
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
-                    throw new Exception($"Getting hitter stats for year={year}: {response.StatusCode}");
+                    throw new Exception($"Getting pitcher stats for year={year}: {response.StatusCode}");
                 }
 
                 // Parse JSON to get player Ids
@@ -346,6 +359,11 @@ namespace DataAquisition
                 var stats = json.RootElement.GetProperty("stats");
                 var statsArray = stats.EnumerateArray();
                 IEnumerable<int> ids = statsArray.Select(f => f.GetProperty("playerId").GetInt32());
+
+                if (!rescan)
+                {
+                    ids = ids.Where(f => !yearIds.Contains(f)).ToList();
+                }
 
                 // Check for empty (Covid year)
                 if (!ids.Any())
@@ -359,7 +377,7 @@ namespace DataAquisition
 
                 // Distribute tasks out into threads
                 List<Task<List<Player_Pitcher_GameLog>>> tasks = new(NUM_THREADS);
-                using (ProgressBar progressBar = new(ids.Count(), $"Getting Pitcher Game Logs for {Constants.SPORT_ID_NAMES[sport_id_idx]} {year}"))
+                using (ProgressBar progressBar = new(ids.Count(), $"Getting Pitcher Game Logs for {Constants.SPORT_ID_NAMES_MLPAPI[sport_id_idx]} {year}"))
                 {
                     progress_bar_thread = 0;
                     thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
@@ -367,7 +385,9 @@ namespace DataAquisition
                     for (int i = 0; i < NUM_THREADS; i++)
                     {
                         int idx = i;
-                        Task<List<Player_Pitcher_GameLog>> task = Get_Pitcher_GameLogs_ThreadFunction(id_partitions.ElementAt(i), startMonth, endMonth, year, idx, progressBar, ids.Count());
+                        if (idx >= id_partitions.Count())
+                            break;
+                        Task<List<Player_Pitcher_GameLog>> task = Get_Pitcher_GameLogs_ThreadFunction(id_partitions.ElementAt(i), year, idx, progressBar, ids.Count());
                         tasks.Add(task);
                     }
 
@@ -386,14 +406,14 @@ namespace DataAquisition
             return true;
         }
 
-        public static async Task<bool> Main(int year, int startMonth, int endMonth)
+        public static async Task<bool> Main(int year, bool rescan)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             try
             {
-                await GetHitterLogsAsync(db, httpClient, year, startMonth, endMonth);
+                await GetHitterLogsAsync(db, httpClient, year, rescan);
             }
             catch (Exception e)
             {
@@ -404,7 +424,7 @@ namespace DataAquisition
 
             try
             {
-                await GetPitcherLogsAsync(db, httpClient, year, startMonth, endMonth);
+                await GetPitcherLogsAsync(db, httpClient, year, rescan);
             }
             catch (Exception e)
             {
