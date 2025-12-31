@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
 using static Db.DbEnums;
+using static Db.DbTextColumns;
 
 namespace DataAquisition
 {
@@ -16,17 +17,21 @@ namespace DataAquisition
 
         private const string PBP_LOG_DIRECTORY = Constants.DATA_AQ_DIRECTORY + "/Logs/GPBP/";
 
-        private static async Task<List<GamePlayByPlay>> GetPBPThreadFunction(IEnumerable<int> gameIds, int thread_idx, ProgressBar progressBar, int totalCount)
+        private static async Task<(List<GamePlayByPlay>, List<GamePlayByPlay_GameFielders>)> GetPBPThreadFunction(IEnumerable<int> gameIds, int thread_idx, ProgressBar progressBar, int totalCount)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             List<GamePlayByPlay> pbp = new(gameIds.Count() * EVENTS_PER_GAME); // 100 PAs/Game will be a slight overestimate
+            List<GamePlayByPlay_GameFielders> pbp_f = new(gameIds.Count() * 2);
             IProgress<float> progress = progressBar.AsProgress<float>();
 
             foreach (int gameId in gameIds)
             {
                 try {
-                    pbp.AddRange(await GetPlayByPlayAsync(gameId, httpClient, db));
+                    (var gamePbp, var gfHome, var gfAway) = await GetPlayByPlayAsync(gameId, httpClient, db);
+                    pbp.AddRange(gamePbp);
+                    pbp_f.Add(gfHome);
+                    pbp_f.Add(gfAway);
                 } catch (Exception e)
                 {
                     File.WriteAllText(PBP_LOG_DIRECTORY + $"GetPlayByPlay_{gameId}.txt", e.Message + "\n\n" + e.InnerException + "\n\n" + e.StackTrace);
@@ -41,14 +46,16 @@ namespace DataAquisition
                 }
             }
 
-            return pbp;
+            return (pbp, pbp_f);
         }
 
-        private static async Task<List<GamePlayByPlay>> GetPlayByPlayAsync(int gameId, HttpClient httpClient, SqliteDbContext db)
+        private static async Task<(List<GamePlayByPlay>, GamePlayByPlay_GameFielders, GamePlayByPlay_GameFielders)> GetPlayByPlayAsync(int gameId, HttpClient httpClient, SqliteDbContext db)
         {
             Player_Hitter_GameLog game = db.Player_Hitter_GameLog.Where(f => f.GameId == gameId).First();
 
             List<GamePlayByPlay> pbp = new(2 * EVENTS_PER_GAME);
+            List<FielderSub> homeSubsList = new(10);
+            List<FielderSub> awaySubsList = new(10);
 
             HttpResponseMessage response = await httpClient.GetAsync($"https://statsapi.mlb.com/api/v1/game/{gameId}/playByPlay");
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -65,8 +72,8 @@ namespace DataAquisition
                 var top = inning.GetProperty("top").EnumerateArray().Select(f => f.GetInt32());
                 var bot = inning.GetProperty("bottom").EnumerateArray().Select(f => f.GetInt32());
 
-                var topInningEvents = GetInningEvents(allPlaysArray, top, game);
-                var botInningEvents = GetInningEvents(allPlaysArray, bot, game);
+                (var topInningEvents, var homeSubs) = GetInningEvents(allPlaysArray, top, game);
+                (var botInningEvents, var awaySubs) = GetInningEvents(allPlaysArray, bot, game);
 
                 // Apply the number of runs scored the inning to each event (only during or after the specific event)
                 for (int i = 0; i < topInningEvents.Count(); i++)
@@ -84,9 +91,49 @@ namespace DataAquisition
 
                 if (!botInningEvents.Any(f => f.StartOuts >= 3 || f.EndOuts > 3))
                     pbp.AddRange(botInningEvents);
+
+                awaySubsList.AddRange(awaySubs);
+                homeSubsList.AddRange(homeSubs);
             }
 
-            return pbp;
+            // Get Home and away starters from fielding game logs
+            var gameStarters = db.Player_Fielder_GameLog.Where(f => f.GameId == gameId && f.Started).ToArray();
+            var homeStarters = gameStarters.Where(f => f.IsHome).ToArray();
+            GamePlayByPlay_GameFielders homeFielders = new()
+            {
+                GameId = gameId,
+                IsHome = true,
+                IdP = homeStarters.Where(f => f.Position == Position.P).Single().MlbId,
+                IdC = homeStarters.Where(f => f.Position == Position.C).Single().MlbId,
+                Id1B = homeStarters.Where(f => f.Position == Position.B1).Single().MlbId,
+                Id2B = homeStarters.Where(f => f.Position == Position.B2).Single().MlbId,
+                Id3B = homeStarters.Where(f => f.Position == Position.B3).Single().MlbId,
+                IdSS = homeStarters.Where(f => f.Position == Position.SS).Single().MlbId,
+                IdLF = homeStarters.Where(f => f.Position == Position.LF).Single().MlbId,
+                IdCF = homeStarters.Where(f => f.Position == Position.CF).Single().MlbId,
+                IdRF = homeStarters.Where(f => f.Position == Position.RF).Single().MlbId,
+                SubList = JsonSerializer.Serialize(homeSubsList),
+            };
+            var awayStarters = gameStarters.Where(f => !f.IsHome).ToArray();
+            GamePlayByPlay_GameFielders awayFielders = new()
+            {
+                GameId = gameId,
+                IsHome = false,
+                IdP = awayStarters.Where(f => f.Position == Position.P).Single().MlbId,
+                IdC = awayStarters.Where(f => f.Position == Position.C).Single().MlbId,
+                Id1B = awayStarters.Where(f => f.Position == Position.B1).Single().MlbId,
+                Id2B = awayStarters.Where(f => f.Position == Position.B2).Single().MlbId,
+                Id3B = awayStarters.Where(f => f.Position == Position.B3).Single().MlbId,
+                IdSS = awayStarters.Where(f => f.Position == Position.SS).Single().MlbId,
+                IdLF = awayStarters.Where(f => f.Position == Position.LF).Single().MlbId,
+                IdCF = awayStarters.Where(f => f.Position == Position.CF).Single().MlbId,
+                IdRF = awayStarters.Where(f => f.Position == Position.RF).Single().MlbId,
+                SubList = JsonSerializer.Serialize(awaySubsList),
+            };
+
+            var testDeserialize = JsonSerializer.Deserialize<List<FielderSub>>(awayFielders.SubList);
+
+            return (pbp, homeFielders, awayFielders);
         }
 
         private static int JsonElementToBaseInt(JsonElement b)
@@ -347,7 +394,10 @@ namespace DataAquisition
                         if (eventEvent.ToString() == "Offensive Substitution")
                         {
                             int subId = pe.GetProperty("player").GetProperty("id").GetInt32();
-                            int repId = pe.GetProperty("replacedPlayer").GetProperty("id").GetInt32();
+                            if (!pe.TryGetProperty("replacedPlayer", out var replacedPlayerElement))
+                                continue; // Bug on MLB API's end, normally used for pinch hitters
+
+                            int repId = replacedPlayerElement.GetProperty("id").GetInt32();
                             if (gpbp.Run1stId == repId)
                                 gpbp.Run1stId = subId;
                             if (gpbp.Run2ndId == repId)
@@ -414,9 +464,49 @@ namespace DataAquisition
             }
         }
 
-        private static List<GamePlayByPlay> GetInningEvents(JsonElement.ArrayEnumerator allPlaysArray, IEnumerable<int> plays, Player_Hitter_GameLog game)
+        private static List<FielderSub> GetSubEvents(JsonElement playElement)
+        {
+            List<FielderSub> subList = new(5);
+            // Get indexes in play for all runner events
+            var runnersElements = playElement.GetProperty("runners").EnumerateArray();
+            List<int> playIdxs = [];
+            foreach (var runner in runnersElements)
+            {
+                int playIdx = runner.GetProperty("details").GetProperty("playIndex").GetInt32();
+                if (!playIdxs.Contains(playIdx))
+                    playIdxs.Add(playIdx);
+            }
+
+            // Iterate through play events to get defensive subs
+            var playEvents = playElement.GetProperty("playEvents").EnumerateArray();
+            foreach (var pe in playEvents)
+            {
+                var detailsElement = pe.GetProperty("details");
+                if (!detailsElement.TryGetProperty("event", out var eventElement))
+                    continue; // If no event, not a sub
+                
+                string? eventName = eventElement.GetString();
+                if (!(eventName == "Defensive Switch" || eventName == "Defensive Sub" || eventName == "Pitching Substitution"))
+                    continue;
+
+                int actionIndex = pe.GetProperty("index").GetInt32();
+                subList.Add(new FielderSub
+                {
+                    Inning = -1, // Will get set elsewhere
+                    IsHome = false, // Will get set elsewhere
+                    MlbId = pe.GetProperty("player").GetProperty("id").GetInt32(),
+                    Position = Int32.Parse(pe.GetProperty("position").GetProperty("code").GetString()),
+                    HalfInningEventNum = playIdxs.Where(f => f < actionIndex).Count(), // Relative to play, will get adjusted for half inning
+                });
+            }
+
+            return subList;
+        }
+
+        private static (List<GamePlayByPlay>, List<FielderSub>) GetInningEvents(JsonElement.ArrayEnumerator allPlaysArray, IEnumerable<int> plays, Player_Hitter_GameLog game)
         {
             List<GamePlayByPlay> pbp = new(plays.Count() + 1);
+            List<FielderSub> subList = new(5);
 
             // For events, need to track which bases had runners since API won't say anything about them if they dont' move a base
             List<int?> currentOccupancy = [null, null, null];
@@ -431,7 +521,7 @@ namespace DataAquisition
                 // Some games just cut off, so if there is no events don't log the half-inning since it will throw off calculations
                 if (!result.TryGetProperty("event", out var resultEventElement))
                 {
-                    return [];
+                    return ([], []);
                 }
 
                 var resultEvent = resultEventElement.ToString();
@@ -442,6 +532,12 @@ namespace DataAquisition
                 var pitchIndexes = play.GetProperty("pitchIndex").EnumerateArray();
                 int pitchIndex = pitchIndexes.Any() ? pitchIndexes.Last().GetInt32() : -1;
 
+                // Get fielder substitutions, offset for currently logged events
+                List<FielderSub> subEvents = GetSubEvents(play);
+                foreach (var sub in subEvents)
+                    sub.HalfInningEventNum += pbp.Count();
+
+                // Go through runner events
                 var runners = play.GetProperty("runners").EnumerateArray();
                 int currentPlayIndex = -1;
                 GamePlayByPlay gpbp = GetEmptyEvent(game, inning, topOfInning, outs, currentOccupancy);
@@ -469,6 +565,7 @@ namespace DataAquisition
                         currentPlayIndex = playIndex;
                     }
 
+                    // Move runners
                     UpdatePBPForRunner(gpbp, r, currentOccupancy, nextOccupancy);
                     PBP_Events runEventId = EventStringToInt(runEvent);
                     if ((gpbp.Result & runEventId) == 0)
@@ -492,9 +589,15 @@ namespace DataAquisition
                 for (int i = 0; i < 3; i++)
                     currentOccupancy[i] = nextOccupancy[i];
 
+                foreach (var se in subEvents)
+                {
+                    se.IsHome = topOfInning;
+                    se.Inning = inning;
+                }
+                subList.AddRange(subEvents);
             }
 
-            return pbp;
+            return (pbp, subList);
         }
 
         private const int GAMES_TO_DROP_INDEXES = 10000;
@@ -510,16 +613,7 @@ namespace DataAquisition
                 if (!gameIds.Any())
                     return true;
 
-                // Split ids into groups for tasks
-                int j = 0;
-                IEnumerable<IEnumerable<int>> id_partitions = from item in gameIds
-                                                              group item by j++ % NUM_THREADS into part
-                                                              select part.AsEnumerable();
-
-                progress_bar_thread = 0;
-                thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
-                List<Task<List<GamePlayByPlay>>> tasks = new(NUM_THREADS);
-
+                // Drop indexes to speed up inserts
                 bool updateIndices = gameIds.Count() > GAMES_TO_DROP_INDEXES;
                 if (updateIndices)
                 {
@@ -537,7 +631,16 @@ namespace DataAquisition
                         }
                     }
                 }
-                
+
+                // Split ids into groups for tasks
+                int j = 0;
+                IEnumerable<IEnumerable<int>> id_partitions = from item in gameIds
+                                                              group item by j++ % NUM_THREADS into part
+                                                              select part.AsEnumerable();
+
+                progress_bar_thread = 0;
+                thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+                List<Task<(List<GamePlayByPlay>, List<GamePlayByPlay_GameFielders>)>> tasks = new(NUM_THREADS);
 
                 // Use transaction to speed up insert
                 await using var transaction = await db.Database.BeginTransactionAsync();
@@ -553,15 +656,19 @@ namespace DataAquisition
                                 if (i >= id_partitions.Count())
                                     break;
                                 int idx = i;
-                                Task<List<GamePlayByPlay>> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
+                                Task<(List<GamePlayByPlay>, List<GamePlayByPlay_GameFielders>)> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
                                 tasks.Add(task);
                             }
 
                             // Collect data from threads, insert to db
                             List<List<GamePlayByPlay>> gamesList = new();
+                            List<List<GamePlayByPlay_GameFielders>> fieldersList = new();
                             foreach (var task in tasks)
                             {
-                                gamesList.Add(await task);
+                                (var pbpList, var subList) = await task;
+                                gamesList.Add(pbpList);
+                                fieldersList.Add(subList);
+
                                 progress_bar_thread++;
                             }
 
@@ -569,6 +676,10 @@ namespace DataAquisition
                             foreach (var games in gamesList)
                             {
                                 await db.BulkInsertAsync(games);
+                            }
+                            foreach (var fl in fieldersList)
+                            {
+                                await db.BulkInsertAsync(fl);
                             }
 
                             progressBar.Tick(gameIds.Count());

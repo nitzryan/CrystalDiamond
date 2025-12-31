@@ -33,11 +33,11 @@
                 while (!await FielderGameLog.Update(year, year == END_YEAR))
                 { }
 
-                //while (!await GetPlayByPlay.Update(year))
-                //{ }
+                while (!await GetPlayByPlay.Update(year))
+                { }
 
-                //if (!GetPlayByPlayFlags.UpdateFlags(year))
-                //    return;
+                if (!GetPlayByPlayFlags.UpdateFlags(year))
+                    return;
 
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;

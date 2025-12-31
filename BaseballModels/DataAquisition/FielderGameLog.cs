@@ -186,7 +186,9 @@ namespace DataAquisition
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-                var ids = db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct().AsEnumerable();
+                var hitterIds = db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct().AsEnumerable();
+                var pitcherIds = db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct().AsEnumerable();
+                var ids = Enumerable.Concat(hitterIds, pitcherIds).Distinct();
 
                 if (!rescan)
                 {
