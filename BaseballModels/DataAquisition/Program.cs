@@ -42,8 +42,8 @@
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                if (!CalculateLeagueStats.Main(year))
-                    return;
+                //if (!CalculateLeagueStats.Main(year))
+                //    return;
 
                 foreach (int month in months)
                 {
@@ -59,8 +59,8 @@
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
 
-                    //if (!CalculateMonthBaserunning.Update(year, month))
-                    //    return;
+                    if (!CalculateMonthBaserunning.Update(year, month))
+                        return;
 
                     if (!CalculateMonthFielding.Update(year, month))
                         return;
@@ -69,8 +69,8 @@
                         break;
                 }
 
-                //if (!CalculateAnnualStats.Main(year))
-                //    return;
+                if (!CalculateAnnualStats.Main(year))
+                    return;
 
                 //if (!CalculateAnnualWRC.Main(year))
                 //    return;

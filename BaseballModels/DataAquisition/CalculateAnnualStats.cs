@@ -1,148 +1,208 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
+using static System.Net.WebRequestMethods;
 
 namespace DataAquisition
 {
     internal class CalculateAnnualStats
     {
-        private class PlayerTeamType
+        private static void CreateBaserunningYearStats(SqliteDbContext db, int year)
         {
-            public required int MlbId { get; set; }
-            public required int LevelId { get; set; }
-            public required int TeamId { get; set; }
-            public required int LeagueId { get; set; }
+            db.Player_Hitter_YearBaserunning.Where(f => f.Year == year).ExecuteDelete();
 
-            public override bool Equals(object obj)
+            var playerTeams = db.Player_Hitter_MonthBaserunning.Where(f => f.Year == year)
+                .GroupBy(f => new { f.MlbId, f.TeamId });
+
+            int yearStatsCount = playerTeams.Count();
+
+            List<Player_Hitter_YearBaserunning> output = new(yearStatsCount);
+            foreach (var pt in playerTeams)
             {
-                if (obj is PlayerTeamType other)
+                Player_Hitter_MonthBaserunning[] stats = pt.ToArray();
+                output.Add(new Player_Hitter_YearBaserunning
                 {
-                    return MlbId == other.MlbId && LevelId == other.LevelId
-                        && TeamId == other.TeamId && LeagueId == other.LeagueId;
-                }
-                return false;
+                    MlbId = pt.Key.MlbId,
+                    Year = year,
+                    LevelId = stats[0].LevelId,
+                    LeagueId = stats[0].LeagueId,
+                    TeamId = pt.Key.TeamId,
+                    RSB = stats.Sum(f => f.RSB),
+                    RSBNorm = stats.Sum(f => f.RSBNorm),
+                    RUBR = stats.Sum(f => f.RUBR),
+                    RGIDP = stats.Sum(f => f.RGIDP),
+                    RBSR = stats.Sum(f => f.RBSR),
+                    TimesOnBase = stats.Sum(f => f.TimesOnBase),
+                    TimesOnFirst = stats.Sum(f => f.TimesOnFirst)
+                });
             }
 
-            public override int GetHashCode()
+            db.BulkInsert(output);
+        }
+
+        private static void CreateFieldingYearStats(SqliteDbContext db, int year)
+        {
+            db.Player_Fielder_YearStats.Where(f => f.Year == year).ExecuteDelete();
+
+            var playerTeamPositions = db.Player_Fielder_MonthStats.Where(f => f.Year == year)
+                .GroupBy(f => new { f.MlbId, f.TeamId, f.Position });
+
+            int yearStatsCount = playerTeamPositions.Count();
+
+            List<Player_Fielder_YearStats> output = new(yearStatsCount);
+            foreach (var ptp in playerTeamPositions)
             {
-                return HashCode.Combine(MlbId, LevelId, TeamId, LeagueId);
+                Player_Fielder_MonthStats[] stats = ptp.ToArray();
+                output.Add(new Player_Fielder_YearStats
+                {
+                    MlbId = ptp.Key.MlbId,
+                    Year = year,
+                    LevelId = stats[0].LevelId,
+                    LeagueId = stats[0].LeagueId,
+                    TeamId = ptp.Key.TeamId,
+                    Position = ptp.Key.Position,
+                    Chances = stats.Sum(f => f.Chances),
+                    Errors = stats.Sum(f => f.Errors),
+                    ThrowErrors = stats.Sum(f => f.ThrowErrors),
+                    Outs = stats.Sum(f => f.Outs),
+                    R_ERR = stats.Sum(f => f.R_ERR),
+                    R_PM = stats.Sum(f => f.R_PM),
+                    PosAdjust = stats.Sum(f => f.PosAdjust),
+                    D_RAA = stats.Sum(f => f.D_RAA),
+                    R_GIDP = stats.Sum(f => f.R_GIDP),
+                    R_ARM = stats.Sum(f => f.R_ARM),
+                    R_SB = stats.Sum(f => f.R_SB),
+                    SB = stats.Sum(f => f.SB),
+                    CS = stats.Sum(f => f.CS),
+                    R_PB = stats.Sum(f => f.R_PB),
+                    PB = stats.Sum(f => f.PB)
+                });
             }
+
+            db.BulkInsert(output);
+        }
+
+        private static void CreateHittingYearStats(SqliteDbContext db, int year)
+        {
+            db.Player_Hitter_YearAdvanced.Where(f => f.Year == year).ExecuteDelete();
+            var hitterData = db.Player_Hitter_GameLog.Where(f => f.Year == year)
+                .GroupBy(f => new { f.MlbId, f.TeamId });
+
+            Dictionary<int, LeagueStats> leagueDict = new();
+            foreach (int league in db.Player_Hitter_MonthStats.Where(f => f.Year == year).Select(f => f.LeagueId).Distinct())
+            {
+                LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == league && f.Year == year).Single();
+                leagueDict.Add(league, ls);
+            }
+
+            int yearStatsCount = hitterData.Count();
+            List<Player_Hitter_YearAdvanced> output = new(yearStatsCount);
+            foreach (var games in hitterData)
+            {
+                var s = games.Aggregate(Utilities.HitterGameLogAggregation);
+                var (parkFactor, parkHRFactor) = Utilities.GetParkFactors(games, db);
+
+                int pa = s.PA;
+                float iso = s.AB > 0 ? (float)(s.Hit2B + (2 * s.Hit3B) + (3 * s.HR)) / s.AB : 0;
+                float avg = s.AB > 0 ? (float)s.H / s.AB : 0;
+                int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
+                int leagueId = games.First().LeagueId;
+
+                LeagueStats ls = leagueDict[leagueId];
+                float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, s.PA);
+                output.Add(new Player_Hitter_YearAdvanced
+                {
+                    MlbId = games.Key.MlbId,
+                    LevelId = games.First().LevelId,
+                    Year = year,
+                    TeamId = games.Key.TeamId,
+                    LeagueId = leagueId,
+                    ParkFactor = parkFactor,
+                    PA = pa,
+                    AVG = avg,
+                    OBP = pa > 0 ? (float)(s.H + s.BB + s.HBP) / pa : 0,
+                    SLG = avg + iso,
+                    ISO = iso,
+                    WOBA = woba,
+                    WRC = -1,
+                    HR = s.HR,
+                    BBPerc = pa > 0 ? (float)s.BB / pa : 0,
+                    KPerc = pa > 0 ? (float)s.K / pa : 0,
+                    SB = s.SB,
+                    CS = s.CS
+                });
+            }
+
+            db.BulkInsert(output);
+        }
+
+        private static void CreatePitchingYearStats(SqliteDbContext db, int year)
+        {
+            db.Player_Pitcher_YearAdvanced.Where(f => f.Year == year).ExecuteDelete();
+
+            var pitcherData = db.Player_Pitcher_GameLog.Where(f => f.Year == year)
+                .GroupBy(f => new { f.MlbId, f.TeamId });
+
+            Dictionary<int, LeagueStats> leagueDict = new();
+            foreach (int league in db.Player_Hitter_MonthStats.Where(f => f.Year == year).Select(f => f.LeagueId).Distinct())
+            {
+                LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == league && f.Year == year).Single();
+                leagueDict.Add(league, ls);
+            }
+
+            int yearStatsCount = pitcherData.Count();
+            List<Player_Pitcher_YearAdvanced> output = new(yearStatsCount);
+            foreach (var games in pitcherData)
+            {
+                var s = games.Aggregate(Utilities.PitcherGameLogAggregation);
+                int outsSP = games.Where(f => f.Started == 1).Sum(f => f.Outs);
+
+                int leagueId = games.First().LeagueId;
+                LeagueStats ls = leagueDict[leagueId];
+
+                int pa = s.BattersFaced;
+                int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
+                float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, pa);
+                int outs = s.Outs > 0 ? s.Outs : 1;
+                output.Add(new Player_Pitcher_YearAdvanced
+                {
+                    MlbId = games.Key.MlbId,
+                    LevelId = games.First().LevelId,
+                    Year = year,
+                    TeamId = games.Key.TeamId,
+                    LeagueId = leagueId,
+                    SPPerc = s.Outs > 0 ? (float)(outsSP) / s.Outs : 0.5f,
+                    BF = s.BattersFaced,
+                    Outs = s.Outs,
+                    GBRatio = s.AO > 0 ? (float)s.GO / (s.GO + s.AO) : 1,
+                    ERA = (float)s.ER * 27 / outs,
+                    FIP = Utilities.CalculateFip(ls.CFIP, s.HR, s.K, s.BB + s.HBP, s.Outs),
+                    WOBA = woba,
+                    HR = s.HR,
+                    BBPerc = pa > 0 ? (float)s.BB / pa : 0,
+                    KPerc = pa > 0 ? (float)s.K / pa : 0,
+                });
+            }
+            db.SaveChanges();
         }
 
         public static bool Main(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-
-                // Hitter Yearly Stats
-                db.Player_Hitter_YearAdvanced.RemoveRange(
-                    db.Player_Hitter_YearAdvanced.Where(f => f.Year == year)
-                );
-                db.SaveChanges();
-
-                var hitterData = db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => new PlayerTeamType { MlbId=f.MlbId, LevelId=f.LevelId, TeamId=f.TeamId, LeagueId=f.LeagueId }).Distinct();
-                var hitterGames = db.Player_Hitter_GameLog.Where(f => f.Year == year)
-                    .OrderBy(f => f.MlbId)
-                    .ThenBy(f => f.LevelId)
-                    .ThenBy(f => f.TeamId)
-                    .ThenBy(f => f.LeagueId);
-                using (ProgressBar progressBar = new ProgressBar(hitterData.Count(), $"Calculating Hitter Advanced stats for Year={year}"))
-                {
-                    foreach (var d in hitterData)
-                    {
-                        var games = hitterGames.Where(f => f.MlbId == d.MlbId
-                                                        && f.LevelId == d.LevelId
-                                                        && f.TeamId == d.TeamId
-                                                        && f.LeagueId == d.LeagueId);
-                        var s = games.Aggregate(Utilities.HitterGameLogAggregation);
-                        var (parkFactor, parkHRFactor) = Utilities.GetParkFactors(games, db);
-
-                        int pa = s.PA;
-                        float iso = s.AB > 0 ? (float)(s.Hit2B + (2 * s.Hit3B) + (3 * s.HR)) / s.AB : 0;
-                        float avg = s.AB > 0 ? (float)s.H / s.AB : 0;
-                        int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
-                        LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == d.LeagueId && f.Year == year).Single();
-                        float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, s.PA);
-                        db.Player_Hitter_YearAdvanced.Add(new Player_Hitter_YearAdvanced
-                        {
-                            MlbId = d.MlbId,
-                            LevelId = d.LevelId,
-                            Year = year,
-                            TeamId = d.TeamId,
-                            LeagueId = d.LeagueId,
-                            ParkFactor = parkFactor,
-                            PA = pa,
-                            AVG = avg,
-                            OBP = pa > 0 ? (float)(s.H + s.BB + s.HBP) / pa : 0,
-                            SLG = avg + iso,
-                            ISO = iso,
-                            WOBA = woba,
-                            WRC = -1,
-                            HR = s.HR,
-                            BBPerc = pa > 0 ? (float)s.BB / pa : 0,
-                            KPerc = pa > 0 ? (float)s.K / pa : 0,
-                            SB = s.SB,
-                            CS = s.CS
-                        });
-
-                        progressBar.Tick();
-                    }
-                }
                 
-                db.SaveChanges();
-
-                // Pitcher Yearly Stats
-                db.Player_Pitcher_YearAdvanced.RemoveRange(
-                    db.Player_Pitcher_YearAdvanced.Where(f => f.Year == year)
-                );
-                db.SaveChanges();
-
-                var pitcherData = db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => new PlayerTeamType { MlbId = f.MlbId, LevelId = f.LevelId, TeamId = f.TeamId, LeagueId = f.LeagueId }).Distinct();
-                var pitcherGames = db.Player_Pitcher_GameLog.Where(f => f.Year == year)
-                    .OrderBy(f => f.MlbId)
-                    .ThenBy(f => f.LevelId)
-                    .ThenBy(f => f.TeamId)
-                    .ThenBy(f => f.LeagueId);
-                using (ProgressBar progressBar = new ProgressBar(pitcherData.Count(), $"Calculating Pitcher Advanced stats for Year={year}"))
+                using (ProgressBar progressBar = new ProgressBar(4, $"Calculating Annual stats for Year={year}"))
                 {
-                    foreach (var d in pitcherData)
-                    {
-                        var games = pitcherGames.Where(f => f.MlbId == d.MlbId
-                                                        && f.LevelId == d.LevelId
-                                                        && f.TeamId == d.TeamId
-                                                        && f.LeagueId == d.LeagueId);
-
-                        var s = games.Aggregate(Utilities.PitcherGameLogAggregation);
-                        int outsSP = games.Where(f => f.Started == 1).Sum(f => f.Outs);
-
-                        LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == d.LeagueId && f.Year == year).Single();
-
-                        int pa = s.BattersFaced;
-                        int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
-                        float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, pa);
-                        int outs = s.Outs > 0 ? s.Outs : 1;
-                        db.Player_Pitcher_YearAdvanced.Add(new Player_Pitcher_YearAdvanced
-                        {
-                            MlbId = d.MlbId,
-                            LevelId = d.LevelId,
-                            Year = year,
-                            TeamId = d.TeamId,
-                            LeagueId = d.LeagueId,
-                            SPPerc = s.Outs > 0 ? (float)(outsSP) / s.Outs : 0.5f,
-                            BF = s.BattersFaced,
-                            Outs = s.Outs,
-                            GBRatio = s.AO > 0 ? (float)s.GO / (s.GO + s.AO) : 1,
-                            ERA = (float)s.ER * 27 / outs,
-                            FIP = Utilities.CalculateFip(ls.CFIP, s.HR, s.K, s.BB + s.HBP, s.Outs),
-                            WOBA = woba,
-                            HR = s.HR,
-                            BBPerc = pa > 0 ? (float)s.BB / pa : 0,
-                            KPerc = pa > 0 ? (float)s.K / pa : 0,
-                        });
-
-                        progressBar.Tick();
-                    }
+                    CreateHittingYearStats(db, year);
+                    progressBar.Tick();
+                    CreatePitchingYearStats(db, year);
+                    progressBar.Tick();
+                    CreateBaserunningYearStats(db, year);
+                    progressBar.Tick();
+                    CreateFieldingYearStats(db, year);
+                    progressBar.Tick();
                 }
-                db.SaveChanges();
 
                 return true;
             } catch (Exception e)

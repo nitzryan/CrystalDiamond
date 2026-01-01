@@ -630,6 +630,10 @@ CREATE INDEX "idx_HitterGameLog_YearLeaguePos" ON "Player_Hitter_GameLog" (
 	"Year", "LeagueId", "Position"
 );
 
+CREATE INDEX "idx_HitterGameLog_DateLeaguePlayerTeam" ON "Player_Hitter_GameLog" (
+	"Year", "Month", "LeagueId", "MlbId", "TeamId"
+);
+
 CREATE TABLE "Player_Fielder_GameLog" (
 	"gameLogId"	INTEGER NOT NULL,
 	"gameId"	INTEGER NOT NULL,
@@ -671,11 +675,7 @@ CREATE INDEX "idx_FielderGameLog_mlbIdDate" ON "Player_Fielder_GameLog" (
 );
 
 CREATE INDEX "idx_FielderGameLogForYearStats" ON "Player_Fielder_GameLog" (
-	"mlbId",
-	"LeagueId",
-	"TeamId",
-	"LeagueId",
-	"Year"
+	"Year", "Month", "LeagueId", "MlbId", "Position", "TeamId"
 );
 
 CREATE INDEX "idx_FielderGameLog_YearLeaguePos" ON "Player_Fielder_GameLog" (
@@ -759,6 +759,7 @@ CREATE TABLE "Player_Fielder_MonthStats" (
 	"Month"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
 	"LeagueId" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
 	"Position" INTEGER NOT NULL,
 	"Chances" INTEGER NOT NULL,
 	"Errors" INTEGER NOT NULL,
@@ -779,11 +780,11 @@ CREATE TABLE "Player_Fielder_MonthStats" (
 	"CS" INTEGER NOT NULL,
 	"r_PB" REAL NOT NULL,
 	"PB" INTEGER NOT NULL,
-	PRIMARY KEY("MlbId", "Year", "Month", "LevelId", "LeagueId", "Position")
+	PRIMARY KEY("MlbId", "Year", "Month", "LevelId", "LeagueId", "TeamId", "Position")
 );
 
 CREATE INDEX "idx_Player_Fielder_MonthStats_Date" ON "Player_Fielder_MonthStats" (
-	"Year", "Month", "LeagueId"
+	"Year", "Month", "LeagueId", "TeamId"
 );
 
 CREATE INDEX "idx_FielderMonthStats_LevelDate" ON "Player_Fielder_MonthStats" (
@@ -793,12 +794,46 @@ CREATE INDEX "idx_FielderMonthStats_LevelDate" ON "Player_Fielder_MonthStats" (
 	"Position"
 );
 
+CREATE INDEX "idx_Player_Fielder_YearTeamPos" ON "Player_Fielder_MonthStats" (
+	"Year", "MlbId", "TeamId", "Position"
+);
+
+CREATE TABLE "Player_Fielder_YearStats" (
+	"MlbId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
+	"Position" INTEGER NOT NULL,
+	"Chances" INTEGER NOT NULL,
+	"Errors" INTEGER NOT NULL,
+	"ThrowErrors" INTEGER NOT NULL,
+	"Outs" INTEGER NOT NULL,
+	-- All fielders
+	"r_ERR" REAL NOT NULL,
+	"r_PM" REAL NOT NULL,
+	"PosAdjust" REAL NOT NULL,
+	"d_RAA" REAL NOT NULL,
+	-- 1B/2B/SS/3B Only
+	"r_GIDP" REAL NOT NULL,
+	-- Outfielder Only
+	"r_ARM" REAL NOT NULL,
+	-- Catcher Only
+	"r_SB" REAL NOT NULL,
+	"SB" INTEGER NOT NULL,
+	"CS" INTEGER NOT NULL,
+	"r_PB" REAL NOT NULL,
+	"PB" INTEGER NOT NULL,
+	PRIMARY KEY("MlbId", "Year", "LevelId", "LeagueId", "TeamId", "Position")
+);
+
 CREATE TABLE "Player_Hitter_MonthBaserunning" (
 	"mlbId"	INTEGER NOT NULL,
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"LevelId"	INTEGER NOT NULL,
 	"LeagueId" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
 	"rSB" REAL NOT NULL,
 	"rSBNorm" REAL NOT NULL,
 	"rUBR" REAL NOT NULL,
@@ -806,11 +841,31 @@ CREATE TABLE "Player_Hitter_MonthBaserunning" (
 	"rBSR" REAL NOT NULL,
 	"TimesOnFirst" INTEGER NOT NULL,
 	"TimesOnBase" INTEGER NOT NULL,
-	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
+	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId", "TeamId")
 );
 
 CREATE INDEX "idx_Player_Hitter_MonthBaserunning_Date" ON "Player_Hitter_MonthBaserunning" (
-	"Year", "Month", "LeagueId"
+	"Year", "Month", "LeagueId", "TeamId"
+);
+
+CREATE INDEX "idx_Player_Hitter_MonthBaserunning_YearTeam" ON "Player_Hitter_MonthBaserunning" (
+	"Year", "MlbId", "TeamId"
+);
+
+CREATE TABLE "Player_Hitter_YearBaserunning" (
+	"mlbId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
+	"rSB" REAL NOT NULL,
+	"rSBNorm" REAL NOT NULL,
+	"rUBR" REAL NOT NULL,
+	"rGIDP" REAL NOT NULL,
+	"rBSR" REAL NOT NULL,
+	"TimesOnFirst" INTEGER NOT NULL,
+	"TimesOnBase" INTEGER NOT NULL,
+	PRIMARY KEY("mlbId","Year","LevelId", "LeagueId", "TeamId")
 );
 
 CREATE TABLE "Player_Hitter_MonthlyRatios" (

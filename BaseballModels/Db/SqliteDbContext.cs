@@ -64,9 +64,11 @@ namespace Db
 		public DbSet<GamePlayByPlay_GameFielders> GamePlayByPlay_GameFielders {get; set;}
 		public DbSet<GamePlayByPlay> GamePlayByPlay {get; set;}
 		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
-		public DbSet<Player_Fielder_MonthStats> Player_Fielder_MonthStats {get; set;}
-		public DbSet<Player_Hitter_MonthBaserunning> Player_Hitter_MonthBaserunning {get; set;}
 		public DbSet<LeagueStats> LeagueStats {get; set;}
+		public DbSet<Player_Hitter_MonthBaserunning> Player_Hitter_MonthBaserunning {get; set;}
+		public DbSet<Player_Hitter_YearBaserunning> Player_Hitter_YearBaserunning {get; set;}
+		public DbSet<Player_Fielder_MonthStats> Player_Fielder_MonthStats {get; set;}
+		public DbSet<Player_Fielder_YearStats> Player_Fielder_YearStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -132,9 +134,11 @@ namespace Db
 			modelBuilder.Entity<GamePlayByPlay_GameFielders>().HasKey(f => new {f.GameId,f.IsHome});
 			modelBuilder.Entity<GamePlayByPlay>().HasKey(f => new {f.EventId});
 			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
-			modelBuilder.Entity<Player_Fielder_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId,f.Position});
-			modelBuilder.Entity<Player_Hitter_MonthBaserunning>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
+			modelBuilder.Entity<Player_Hitter_MonthBaserunning>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId,f.TeamId});
+			modelBuilder.Entity<Player_Hitter_YearBaserunning>().HasKey(f => new {f.MlbId,f.Year,f.LevelId,f.LeagueId,f.TeamId});
+			modelBuilder.Entity<Player_Fielder_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId,f.TeamId,f.Position});
+			modelBuilder.Entity<Player_Fielder_YearStats>().HasKey(f => new {f.MlbId,f.Year,f.LevelId,f.LeagueId,f.TeamId,f.Position});
 		}
 	}
 }

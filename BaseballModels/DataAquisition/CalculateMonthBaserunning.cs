@@ -31,7 +31,8 @@ namespace DataAquisition
                     {
                         var leaguePBP = monthPBP.Where(f => f.LeagueId == league).ToList();
                         LeagueStats leagueStats = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == league).Single();
-                        var monthStats = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month && f.LeagueId == league).ToList();
+                        var monthLogs = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month && f.LeagueId == league)
+                            .GroupBy(f => new { f.MlbId, f.TeamId });
 
                         LeagueRunMatrix lrm = db.LeagueRunMatrix.Where(f => f.Year == year && f.LeagueId == league).Single();
                         BaserunningDict BsrAdv1st3rdSingleDict = LeagueRunMatrixDicts.GetBaserunningDict(lrm.BsrAdv1st3rdSingleDict);
@@ -43,8 +44,9 @@ namespace DataAquisition
                         BaserunningDict BsrAdv3rdHomeFlyoutDict = LeagueRunMatrixDicts.GetBaserunningDict(lrm.BsrAdv3rdHomeFlyoutDict);
                         BaserunningDict BsrAdv2nd3rdGroundoutDict = LeagueRunMatrixDicts.GetBaserunningDict(lrm.BsrAdv2nd3rdGroundoutDict);
 
-                        foreach (var stat in monthStats)
-                        { 
+                        foreach (var logs in monthLogs)
+                        {
+                            var stat = logs.Aggregate(Utilities.HitterGameLogAggregation);
                             var hitterPBP = leaguePBP.Where(f => f.HitterId == stat.MlbId).ToArray();
                             var onFirstPBP = leaguePBP.Where(f => f.Run1stId == stat.MlbId).ToArray();
                             var onSecondPBP = leaguePBP.Where(f => f.Run2ndId == stat.MlbId).ToArray();
@@ -81,6 +83,7 @@ namespace DataAquisition
                                 Month = month,
                                 LevelId = stat.LevelId,
                                 LeagueId = stat.LeagueId,
+                                TeamId = stat.TeamId,
                                 RSB = rSB,
                                 RUBR = advanceRuns,
                                 RGIDP = rGIDP,

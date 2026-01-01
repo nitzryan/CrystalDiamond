@@ -1,10 +1,9 @@
 namespace Db
 {
-	public class Player_Fielder_MonthStats
+	public class Player_Fielder_YearStats
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
-		public required int Month {get; set;}
 		public required int LevelId {get; set;}
 		public required int LeagueId {get; set;}
 		public required int TeamId {get; set;}
@@ -25,13 +24,12 @@ namespace Db
 		public required float R_PB {get; set;}
 		public required int PB {get; set;}
 
-		public Player_Fielder_MonthStats Clone()
+		public Player_Fielder_YearStats Clone()
 		{
-			return new Player_Fielder_MonthStats
+			return new Player_Fielder_YearStats
 			{
 				MlbId = this.MlbId,
 				Year = this.Year,
-				Month = this.Month,
 				LevelId = this.LevelId,
 				LeagueId = this.LeagueId,
 				TeamId = this.TeamId,

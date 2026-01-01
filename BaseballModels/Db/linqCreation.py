@@ -24,7 +24,8 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
                   ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
                   ("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
-                  ("Player_Fielder_MonthStats", "Position", "DbEnums.Position")]
+                  ("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
+                  ("Player_Fielder_YearStats", "Position", "DbEnums.Position")]
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
                  ("GamePlayByPlay_GameFielders", ["IsHome"])]

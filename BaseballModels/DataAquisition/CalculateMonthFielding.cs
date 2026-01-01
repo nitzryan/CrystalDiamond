@@ -13,6 +13,7 @@ namespace DataAquisition
         private record PlayerPosition {
             public required int MlbId { get; set; }
             public required Position Pos { get; set; }
+            public required int TeamId { get; set; }
         }
 
         private record CurrentLineup {
@@ -175,19 +176,19 @@ namespace DataAquisition
             try { playerDict[lineup.IdRF].R_PM -= expectedResult.RunsMiss * expectedResult.ProbMakeWhenMade[8]; } catch { }
         }
 
-        private static void UpdatePlayerStatsForGame(IEnumerable<GamePlayByPlay> pbp, GamePlayByPlay_GameFielders gf, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict)
+        private static void UpdatePlayerStatsForGame(IEnumerable<GamePlayByPlay> pbp, GamePlayByPlay_GameFielders gf, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict, int teamId)
         {
             CurrentLineup lineup = new() 
             { 
-                IdP = new PlayerPosition { MlbId = gf.IdP, Pos = Position.P }, 
-                IdC = new PlayerPosition { MlbId = gf.IdC, Pos = Position.C },
-                Id1B = new PlayerPosition { MlbId = gf.Id1B, Pos = Position.B1 },
-                Id2B = new PlayerPosition { MlbId = gf.Id2B, Pos = Position.B2 },
-                Id3B = new PlayerPosition { MlbId = gf.Id3B, Pos = Position.B3 },
-                IdSS = new PlayerPosition { MlbId = gf.IdSS, Pos = Position.SS },
-                IdLF = new PlayerPosition { MlbId = gf.IdLF, Pos = Position.LF },
-                IdCF = new PlayerPosition { MlbId = gf.IdCF, Pos = Position.CF },
-                IdRF = new PlayerPosition { MlbId = gf.IdRF, Pos = Position.RF },
+                IdP = new PlayerPosition { MlbId = gf.IdP, Pos = Position.P, TeamId = teamId }, 
+                IdC = new PlayerPosition { MlbId = gf.IdC, Pos = Position.C, TeamId = teamId },
+                Id1B = new PlayerPosition { MlbId = gf.Id1B, Pos = Position.B1, TeamId = teamId },
+                Id2B = new PlayerPosition { MlbId = gf.Id2B, Pos = Position.B2, TeamId = teamId },
+                Id3B = new PlayerPosition { MlbId = gf.Id3B, Pos = Position.B3, TeamId = teamId },
+                IdSS = new PlayerPosition { MlbId = gf.IdSS, Pos = Position.SS, TeamId = teamId },
+                IdLF = new PlayerPosition { MlbId = gf.IdLF, Pos = Position.LF, TeamId = teamId },
+                IdCF = new PlayerPosition { MlbId = gf.IdCF, Pos = Position.CF, TeamId = teamId },
+                IdRF = new PlayerPosition { MlbId = gf.IdRF, Pos = Position.RF, TeamId = teamId },
             };
             List<FielderSub> subs = JsonSerializer.Deserialize<List<FielderSub>>(gf.SubList) ?? throw new Exception($"Could not deserialize for gameId={pbp.First().GameId}");
 
@@ -293,18 +294,19 @@ namespace DataAquisition
                     {
                         int levelId = leagueId == 1 ? 1 : db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).First().LevelId;
                         // Create hash table of all player-position combinations at this league this month
-                        var playerPositions = thisMonthsLogs.Where(f => f.LeagueId == leagueId).Select(f => new PlayerPosition { MlbId=f.MlbId, Pos=f.Position }).Distinct();
-                        Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict = new(playerPositions.Count());
-                        foreach (var pp in playerPositions)
+                        var playerTeamPositions = thisMonthsLogs.Where(f => f.LeagueId == leagueId).Select(f => new PlayerPosition { MlbId=f.MlbId, Pos=f.Position, TeamId=f.TeamId }).Distinct();
+                        Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict = new(playerTeamPositions.Count());
+                        foreach (var ptp in playerTeamPositions)
                         {
-                            playerDict.Add(pp, new Player_Fielder_MonthStats
+                            playerDict.Add(ptp, new Player_Fielder_MonthStats
                             {
-                                MlbId = pp.MlbId,
+                                MlbId = ptp.MlbId,
                                 Year = year,
                                 Month = month,
                                 LevelId = levelId,
                                 LeagueId = leagueId,
-                                Position = pp.Pos,
+                                TeamId = ptp.TeamId,
+                                Position = ptp.Pos,
                                 Chances = 0,
                                 Errors = 0,
                                 ThrowErrors = 0,
@@ -343,7 +345,8 @@ namespace DataAquisition
                         foreach (var gamePBP in leaguePBP)
                         {
                             var gameFielders = db.GamePlayByPlay_GameFielders.Where(f => f.GameId == gamePBP.Key.GameId && f.IsHome == (gamePBP.Key.IsTop == 1)).Single();
-                            UpdatePlayerStatsForGame(gamePBP, gameFielders, playerDict);
+                            int teamId = db.Player_Hitter_GameLog.Where(f => f.GameId == gamePBP.Key.GameId && f.IsHome == gamePBP.Key.IsTop).First().TeamId;
+                            UpdatePlayerStatsForGame(gamePBP, gameFielders, playerDict, teamId);
                         }
 
                         // Update counting stats
