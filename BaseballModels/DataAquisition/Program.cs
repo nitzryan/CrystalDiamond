@@ -59,11 +59,11 @@
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
 
-                    if (!CalculateMonthBaserunning.Update(year, month))
-                        return;
-
-                    //if (!CalculateMonthFielding.Update(year, month))
+                    //if (!CalculateMonthBaserunning.Update(year, month))
                     //    return;
+
+                    if (!CalculateMonthFielding.Update(year, month))
+                        return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;

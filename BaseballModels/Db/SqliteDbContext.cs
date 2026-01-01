@@ -55,7 +55,6 @@ namespace Db
 		public DbSet<Site_PlayerBio> Site_PlayerBio {get; set;}
 		public DbSet<ModelIdx> ModelIdx {get; set;}
 		public DbSet<PlayersInTrainingData> PlayersInTrainingData {get; set;}
-		public DbSet<LeagueStats> LeagueStats {get; set;}
 		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
 		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
@@ -67,6 +66,7 @@ namespace Db
 		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
 		public DbSet<Player_Fielder_MonthStats> Player_Fielder_MonthStats {get; set;}
 		public DbSet<Player_Hitter_MonthBaserunning> Player_Hitter_MonthBaserunning {get; set;}
+		public DbSet<LeagueStats> LeagueStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -123,7 +123,6 @@ namespace Db
 			modelBuilder.Entity<Site_PlayerBio>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<ModelIdx>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.ModelIdx});
-			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
@@ -135,6 +134,7 @@ namespace Db
 			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<Player_Fielder_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId,f.Position});
 			modelBuilder.Entity<Player_Hitter_MonthBaserunning>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
+			modelBuilder.Entity<LeagueStats>().HasKey(f => new {f.LeagueId,f.Year});
 		}
 	}
 }

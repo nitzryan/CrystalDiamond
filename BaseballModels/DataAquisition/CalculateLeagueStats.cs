@@ -215,6 +215,7 @@ namespace DataAquisition
                         float runCS = GetAverageEventValue(runExpectancyDict, leaguePBP, PBP_Events.CS);
                         float runErr = GetAverageEventValue(runExpectancyDict, leaguePBP, PBP_Events.FIELD_ERROR);
                         float wOuts = GetAverageEventValue(runExpectancyDict, leaguePBP, PBP_Events.GNDOUT | PBP_Events.GIDP | PBP_Events.LINEOUT | PBP_Events.SAC_FLY | PBP_Events.FLYOUT | PBP_Events.FIELDERS_CHOICE | PBP_Events.FIELDERS_CHOICE_OUT);
+                        float runPB = GetAverageEventValue(runExpectancyDict, leaguePBP, PBP_Events.PB);
 
                         // Adjust values so out is worth 0
                         w1B -= wOuts;
@@ -230,6 +231,14 @@ namespace DataAquisition
                         int gidpOccurances = dpOpportunities.Count(f => f.Result.HasFlag(PBP_Events.GIDP));
                         float probGIDP = (float)gidpOccurances / (float)gidpOpportunities;
                         float runGIDP = GetAverageEventValue(runExpectancyDict, dpOpportunities, PBP_Events.GIDP) - wOuts;
+
+                        // Get PB Run Values
+                        var catcherFieldGames = (league == 103 || league == 104) ?
+                            db.Player_Fielder_GameLog.Where(f => f.Year == year && f.LeagueId == 1 && f.Position == Position.C) :
+                            db.Player_Fielder_GameLog.Where(f => f.Year == year && f.LeagueId == league && f.Position == Position.C);
+                        int catcherOuts = catcherFieldGames.Sum(f => f.Outs);
+                        int catcherPB = catcherFieldGames.Sum(f => f.PassedBall);
+                        float pbPerOut = (float)(catcherPB) / catcherOuts;
 
                         // Get league hitting stats
                         var leagueHittingStats = (league == 1 ? 
@@ -302,6 +311,8 @@ namespace DataAquisition
                             RunErr = runErr,
                             RunGIDP = runGIDP,
                             ProbGIDP = probGIDP,
+                            RunPB = runPB,
+                            PBPerOut = pbPerOut,
                             RPerPA = (float)totalRunsScoredInLeague / leagueHittingStats.PA,
                             RPerWin = runsPerWin,
                             LeaguePA = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league)

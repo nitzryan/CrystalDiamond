@@ -678,6 +678,10 @@ CREATE INDEX "idx_FielderGameLogForYearStats" ON "Player_Fielder_GameLog" (
 	"Year"
 );
 
+CREATE INDEX "idx_FielderGameLog_YearLeaguePos" ON "Player_Fielder_GameLog" (
+	"Year", "LeagueId", "Position"
+);
+
 CREATE TABLE "Player_Hitter_MonthAdvanced" (
 	"mlbId"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
@@ -1191,6 +1195,8 @@ CREATE TABLE "LeagueStats" (
 	"runErr" REAL NOT NULL,
 	"runGIDP" REAL NOT NULL,
 	"probGIDP" REAL NOT NULL,
+	"runPB" REAL NOT NULL,
+	"PBPerOut" REAL NOT NULL,
 	"RPerPA" REAL NOT NULL,
 	"RPerWin" REAL NOT NULL,
 	"LeaguePA" INTEGER NOT NULL,

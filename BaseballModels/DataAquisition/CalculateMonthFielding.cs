@@ -363,11 +363,16 @@ namespace DataAquisition
                                 pv.CS = stats.CS;
                                 pv.PB = stats.PassedBall;
                                 pv.R_SB = -((leagueStats.RunCS * stats.CS) + (leagueStats.RunSB + stats.SB));
+
+                                // Get PB runs above average
+                                float expectedPB = pv.Outs * leagueStats.PBPerOut;
+                                float pbBelowAverage = expectedPB - stats.PassedBall;
+                                pv.R_PB = pbBelowAverage * leagueStats.RunPB;
                             }
                             // Get error runs above average
                             float expectedErrors = errorRates[pv.Position] * stats.Chances;
-                            float errorsAboveAverage = expectedErrors - stats.Errors;
-                            pv.R_ERR = errorsAboveAverage * leagueStats.RunErr;
+                            float errorsBelowAverage = expectedErrors - stats.Errors;
+                            pv.R_ERR = errorsBelowAverage * leagueStats.RunErr;
 
                             pv.PosAdjust = Utilities.CalculatePosValue(pv.Position, pv.Outs);
                             pv.D_RAA = pv.R_ERR + pv.R_PM + pv.R_GIDP + pv.R_ARM + pv.R_SB + pv.R_PB;
