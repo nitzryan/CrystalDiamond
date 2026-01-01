@@ -15,11 +15,11 @@ namespace DataAquisition
 
                 List<GamePlayByPlay> monthPBP;
                 if (month == 4)
-                    monthPBP = db.GamePlayByPlay.Where(f => f.Year == year && f.Month <= 4).AsNoTracking().ToList();
+                    monthPBP = db.GamePlayByPlay.Where(f => f.EventFlag == DbEnums.GameFlags.Valid && f.Year == year && f.Month <= 4).AsNoTracking().ToList();
                 else if (month == 9)
-                    monthPBP = db.GamePlayByPlay.Where(f => f.Year == year && f.Month >= 9).AsNoTracking().ToList();
+                    monthPBP = db.GamePlayByPlay.Where(f => f.EventFlag == DbEnums.GameFlags.Valid && f.Year == year && f.Month >= 9).AsNoTracking().ToList();
                 else
-                    monthPBP = db.GamePlayByPlay.Where(f => f.Year == year && f.Month == month).AsNoTracking().ToList();
+                    monthPBP = db.GamePlayByPlay.Where(f => f.EventFlag == DbEnums.GameFlags.Valid && f.Year == year && f.Month == month).AsNoTracking().ToList();
 
                 var leagues = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month)
                                     .Select(f => f.LeagueId).Distinct();
@@ -84,10 +84,23 @@ namespace DataAquisition
                                 RSB = rSB,
                                 RUBR = advanceRuns,
                                 RGIDP = rGIDP,
+                                RSBNorm = rSB, // Will normalize after all of months events
+                                RBSR = 0, // Will calculate once rSB has been normalized
                                 TimesOnFirst = stat.H + stat.BB + stat.HBP - stat.Hit2B - stat.Hit3B - stat.HR,
                                 TimesOnBase = stat.H + stat.BB + stat.HBP - stat.HR
                             });
                         }
+
+                        // Normalize rSB so the mean is 0 for each league each month
+                        double rSBSum = output.Where(f => f.LeagueId == league).Sum(f => f.RSB);
+                        int timesOnFirst = output.Where(f => f.LeagueId == league).Sum(f => f.TimesOnFirst);
+                        double rSbSumPerTimesOnFirst = rSBSum / timesOnFirst;
+                        foreach (var phmb in output.Where(f => f.LeagueId == league))
+                        {
+                            phmb.RSBNorm -= (float)(phmb.TimesOnFirst * rSbSumPerTimesOnFirst);
+                            phmb.RBSR = phmb.RUBR + phmb.RGIDP + phmb.RSBNorm;
+                        }
+
                         progressBar.Tick();
                     }
                 }

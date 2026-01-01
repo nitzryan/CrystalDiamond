@@ -8,8 +8,10 @@ namespace Db
 		public required int LevelId {get; set;}
 		public required int LeagueId {get; set;}
 		public required float RSB {get; set;}
+		public required float RSBNorm {get; set;}
 		public required float RUBR {get; set;}
 		public required float RGIDP {get; set;}
+		public required float RBSR {get; set;}
 		public required int TimesOnFirst {get; set;}
 		public required int TimesOnBase {get; set;}
 
@@ -23,8 +25,10 @@ namespace Db
 				LevelId = this.LevelId,
 				LeagueId = this.LeagueId,
 				RSB = this.RSB,
+				RSBNorm = this.RSBNorm,
 				RUBR = this.RUBR,
 				RGIDP = this.RGIDP,
+				RBSR = this.RBSR,
 				TimesOnFirst = this.TimesOnFirst,
 				TimesOnBase = this.TimesOnBase,
 			};

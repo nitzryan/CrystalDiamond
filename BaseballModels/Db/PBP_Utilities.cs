@@ -10,7 +10,7 @@ namespace Db
 
         public static IEnumerable<GamePlayByPlay> GetDoublePlayOpportunities(IEnumerable<GamePlayByPlay> pbp)
         {
-            return pbp.Where(f => f.StartBaseOccupancy.HasFlag(BaseOccupancy.B1) && f.StartOuts <= 1);
+            return pbp.Where(f => f.StartBaseOccupancy.HasFlag(BaseOccupancy.B1) && f.StartOuts <= 1 && f.HitterId != -1);
         }
 
         private static float GetBaserunningRunsAdded(GamePlayByPlay pbp, BaserunningDict dict, int targetBase, int? finalBase)
@@ -27,13 +27,12 @@ namespace Db
             if (numOccurancesProportion <= 0)
                 return 0;
 
-            float expectedRuns = result.GetExpected();
-            if (finalBase == -1)
-                return numOccurancesProportion * (result.RunsOut - expectedRuns);
+            if (finalBase == 0)
+                return numOccurancesProportion * result.RunsOut;
             else if (finalBase >= targetBase)
-                return numOccurancesProportion * (result.RunsAdvance - expectedRuns);
+                return numOccurancesProportion * result.RunsAdvance;
             else
-                return numOccurancesProportion * (result.RunsStay - expectedRuns);
+                return numOccurancesProportion * result.RunsStay;
         }
 
         public static float GetScenarioRunsScored(IEnumerable<GamePlayByPlay> pbp, 
@@ -79,6 +78,7 @@ namespace Db
             return pbp.Where(f =>
                 f.StartBaseOccupancy.HasFlag(BaseOccupancy.B1) &&
                 ((f.Result & (PBP_Events.GNDOUT | PBP_Events.FIELDERS_CHOICE | PBP_Events.FIELDERS_CHOICE_OUT | PBP_Events.GIDP)) != 0) &&
+                (f.Run2ndOutcome != 0 && f.Run3rdOutcome != 0) && // No other leading runner got out
                 f.StartOuts != 2);
         }
 

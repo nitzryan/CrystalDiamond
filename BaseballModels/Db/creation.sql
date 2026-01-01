@@ -796,15 +796,17 @@ CREATE TABLE "Player_Hitter_MonthBaserunning" (
 	"LevelId"	INTEGER NOT NULL,
 	"LeagueId" INTEGER NOT NULL,
 	"rSB" REAL NOT NULL,
+	"rSBNorm" REAL NOT NULL,
 	"rUBR" REAL NOT NULL,
 	"rGIDP" REAL NOT NULL,
+	"rBSR" REAL NOT NULL,
 	"TimesOnFirst" INTEGER NOT NULL,
 	"TimesOnBase" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
 );
 
 CREATE INDEX "idx_Player_Hitter_MonthBaserunning_Date" ON "Player_Hitter_MonthBaserunning" (
-	"Year", "Month"
+	"Year", "Month", "LeagueId"
 );
 
 CREATE TABLE "Player_Hitter_MonthlyRatios" (

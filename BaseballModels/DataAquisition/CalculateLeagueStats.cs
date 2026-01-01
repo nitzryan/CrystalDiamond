@@ -318,7 +318,7 @@ namespace DataAquisition
                         {
                             // Calculate Fielding Outcome Dict
                             FieldingDict fieldingDict = new();
-                            var leaguePBPFieldingGroupings = leaguePBP.Where(f => f.EventFlag == GameFlags.Valid).GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
+                            var leaguePBPFieldingGroupings = leaguePBP.GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
                             foreach (var fg in leaguePBPFieldingGroupings)
                             {
                                 if (fg.Key == null)

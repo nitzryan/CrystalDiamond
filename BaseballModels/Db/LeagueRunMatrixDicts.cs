@@ -314,6 +314,9 @@ namespace Db
             if (pbp.EventFlag != GameFlags.Valid)
                 return null;
 
+            if (pbp.HitterId == -1)
+                return null;
+
             return new BaserunningScenario
             {
                 Zone = (int)pbp.HitZone,
