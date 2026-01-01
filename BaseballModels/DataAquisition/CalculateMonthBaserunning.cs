@@ -11,9 +11,7 @@ namespace DataAquisition
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Database.ExecuteSqlRaw(
-                    "DELETE FROM Player_Hitter_MonthBaserunning WHERE Year = {0} AND Month = {1}",
-                    year, month);
+                db.Player_Hitter_MonthBaserunning.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
                 List<GamePlayByPlay> monthPBP;
                 if (month == 4)

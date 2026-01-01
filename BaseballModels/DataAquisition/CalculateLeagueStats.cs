@@ -179,10 +179,10 @@ namespace DataAquisition
                             continue;
                         }
 
-                        // Get trailing year for more data, prevent first couple of months of year from having wild swings that adjust later
+                        // Get PBP data for year
                         var leaguePBP = league == 1 ?
-                            db.GamePlayByPlay.Where(f => (f.Year == year) && (f.LeagueId == 103 || f.LeagueId == 104)).ToArray() :
-                            db.GamePlayByPlay.Where(f => (f.Year == year) && f.LeagueId == league).ToArray();
+                            db.GamePlayByPlay.Where(f => (f.Year == year) && (f.LeagueId == 103 || f.LeagueId == 104) && f.EventFlag == GameFlags.Valid).ToArray() :
+                            db.GamePlayByPlay.Where(f => (f.Year == year) && f.LeagueId == league && f.EventFlag == GameFlags.Valid).ToArray();
 
                         // Determine the run expectancy of every out/base pairing
                         GameScenarioDict runExpectancyDict = new();
@@ -373,7 +373,6 @@ namespace DataAquisition
                             }
 
                             // Calcualate baserunning outcome dicts
-                            var leaguePBPInPlay = leaguePBP.Where(f => (f.Result & PBP_IN_PLAY_EVENT) != 0);
                             BaserunningDict BsrAdv1st3rdSingleDict = new();
                             BaserunningDict BsrAdv2ndHomeSingleDict = new();
                             BaserunningDict BsrAdv1stHomeDoubleDict = new();
@@ -382,7 +381,7 @@ namespace DataAquisition
                             BaserunningDict BsrAdv2nd3rdFlyoutDict = new();
                             BaserunningDict BsrAdv3rdHomeFlyoutDict = new();
                             BaserunningDict BsrAdv2nd3rdGroundoutDict = new();
-                            var leaguePBPBaserunningGroupings = leaguePBPInPlay.GroupBy(f => PBP_TypeConversions.GetBaserunningScenario(f));
+                            var leaguePBPBaserunningGroupings = leaguePBP.GroupBy(f => PBP_TypeConversions.GetBaserunningScenario(f));
                             foreach (var fg in leaguePBPBaserunningGroupings)
                             {
                                 if (fg.Key == null)
@@ -400,7 +399,7 @@ namespace DataAquisition
 
                             // Calculate Double Play Turned Dict
                             DoublePlayDict doublePlayDict = new();
-                            var leaguePBP_DPGroupings = leaguePBPInPlay.GroupBy(f => PBP_TypeConversions.GetDoublePlayScenario(f));
+                            var leaguePBP_DPGroupings = leaguePBP.GroupBy(f => PBP_TypeConversions.GetDoublePlayScenario(f));
                             foreach (var fg in leaguePBP_DPGroupings)
                             {
                                 if (fg.Key == null)

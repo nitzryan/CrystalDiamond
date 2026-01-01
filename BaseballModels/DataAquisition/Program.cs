@@ -59,8 +59,8 @@
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
 
-                    //if (!CalculateMonthBaserunning.Update(year, month))
-                    //    return;
+                    if (!CalculateMonthBaserunning.Update(year, month))
+                        return;
 
                     if (!CalculateMonthFielding.Update(year, month))
                         return;

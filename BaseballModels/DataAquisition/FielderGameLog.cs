@@ -1,5 +1,6 @@
 ﻿using Db;
 using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
 
@@ -242,7 +243,7 @@ namespace DataAquisition
                     int[] yearIds = [.. db.Player_Fielder_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
                     ids = ids.Where(f => !yearIds.Contains(f)).ToList();
                 } else {
-                    db.BulkDelete(db.Player_Fielder_GameLog.Where(f => f.Year == year));
+                    db.Player_Fielder_GameLog.Where(f => f.Year == year).ExecuteDelete();
                 }
 
                 if (!ids.Any())

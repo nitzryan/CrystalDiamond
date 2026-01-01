@@ -92,10 +92,10 @@ namespace DataAquisition
             }
         }
 
-        private static bool UpdateSpecificArmScenario(PlayerPosition pp, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict, IEnumerable<GamePlayByPlay> pbpEnumerable, Func<IEnumerable<GamePlayByPlay>, IEnumerable<GamePlayByPlay>> fCheck, int startBase, int endBase, BaserunningDict baserunningDict, BaserunningScenario scenario)
+        private static void UpdateSpecificArmScenario(PlayerPosition pp, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict, IEnumerable<GamePlayByPlay> pbpEnumerable, Func<IEnumerable<GamePlayByPlay>, IEnumerable<GamePlayByPlay>> fCheck, int startBase, int endBase, BaserunningDict baserunningDict, BaserunningScenario scenario)
         {
             if (!fCheck(pbpEnumerable).Any())
-                return false;
+                return;
 
             GamePlayByPlay pbp = pbpEnumerable.Single();
             int outcomeBase = -1;
@@ -116,11 +116,9 @@ namespace DataAquisition
             // Player advanced
             else if (outcomeBase >= endBase)
                 try { playerDict[pp].R_ARM -= baserunningDict[scenario].RunsAdvance; } catch { }
-                    // Player Stayed
-                    else
+            // Player Stayed
+            else
                 try { playerDict[pp].R_ARM -= baserunningDict[scenario].RunsStay; } catch { }
-
-            return true;
         }
 
         private static void WriteArmRuns(GamePlayByPlay pbp, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict, CurrentLineup lineup)
@@ -139,23 +137,12 @@ namespace DataAquisition
 
             // Loop through different scenarios
             var pbpEnumerable = Enumerable.Repeat(pbp, 1);
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stTo3rdOnSingle_Opportunities, 1, 3, BsrAdv1st3rdSingleDict, scenario))
-                return;
-
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_2ndToHomeOnSingle_Opportunities, 2, 4, BsrAdv2ndHomeSingleDict, scenario))
-                return;
-
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stToHomeOnDouble_Opportunities, 1, 4, BsrAdv1stHomeDoubleDict, scenario))
-                return;
-
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stTo2ndOnFlyout_Opportunities, 1, 2, BsrAdv1st2ndFlyoutDict, scenario))
-                return;
-
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_2ndTo3rdOnFlyout_Opportunities, 2, 3, BsrAdv2nd3rdFlyoutDict, scenario))
-                return;
-
-            if (UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_3rdToHomeOnFlyout_Opportunities, 3, 4, BsrAdv3rdHomeFlyoutDict, scenario))
-                return;
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stTo3rdOnSingle_Opportunities, 1, 3, BsrAdv1st3rdSingleDict, scenario);
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_2ndToHomeOnSingle_Opportunities, 2, 4, BsrAdv2ndHomeSingleDict, scenario);
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stToHomeOnDouble_Opportunities, 1, 4, BsrAdv1stHomeDoubleDict, scenario);
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_1stTo2ndOnFlyout_Opportunities, 1, 2, BsrAdv1st2ndFlyoutDict, scenario);
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_2ndTo3rdOnFlyout_Opportunities, 2, 3, BsrAdv2nd3rdFlyoutDict, scenario);
+            UpdateSpecificArmScenario(pp, playerDict, pbpEnumerable, PBP_Utilities.GetAdvance_3rdToHomeOnFlyout_Opportunities, 3, 4, BsrAdv3rdHomeFlyoutDict, scenario);
         }
 
         private static void WritePMRuns(GamePlayByPlay pbp, Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict, CurrentLineup lineup)
@@ -360,12 +347,12 @@ namespace DataAquisition
                         }
 
                         // Update counting stats
-                        Dictionary<Position, float> errorRates = GetExpectedErrorRate(thisMonthsLogs);
+                        Dictionary<Position, float> errorRates = GetExpectedErrorRate(thisMonthsLogs.Where(f => f.LeagueId == leagueId));
                         LeagueStats leagueStats = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == leagueId).Single();
                         var playerValues = playerDict.Values;
                         foreach (var pv in playerValues)
                         {
-                            var stats = thisMonthsLogs.Where(f => f.MlbId == pv.MlbId && f.Position == pv.Position).Aggregate(Utilities.FielderGameLogAggregation);
+                            var stats = thisMonthsLogs.Where(f => f.MlbId == pv.MlbId && f.LeagueId == leagueId && f.Position == pv.Position).Aggregate(Utilities.FielderGameLogAggregation);
                             pv.Chances = stats.Chances;
                             pv.Errors = stats.Errors;
                             pv.ThrowErrors = stats.ThrowErrors;
@@ -380,7 +367,7 @@ namespace DataAquisition
                             // Get error runs above average
                             float expectedErrors = errorRates[pv.Position] * stats.Chances;
                             float errorsAboveAverage = expectedErrors - stats.Errors;
-                            pv.R_ERR = -errorsAboveAverage * leagueStats.RunErr;
+                            pv.R_ERR = errorsAboveAverage * leagueStats.RunErr;
 
                             pv.PosAdjust = Utilities.CalculatePosValue(pv.Position, pv.Outs);
                             pv.D_RAA = pv.R_ERR + pv.R_PM + pv.R_GIDP + pv.R_ARM + pv.R_SB + pv.R_PB;
