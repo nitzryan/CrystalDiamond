@@ -1,5 +1,6 @@
 ﻿using Db;
 using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
 
@@ -268,7 +269,7 @@ namespace DataAquisition
         private static async Task<bool> GetHitterLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, bool rescan)
         {
             if (rescan)
-                db.BulkDelete(db.Player_Hitter_GameLog.Where(f => f.Year == year));
+                db.Player_Hitter_GameLog.Where(f => f.Year == year).ExecuteDelete();
             int[] yearIds = [.. db.Player_Hitter_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
 
             // Get stats for each level
@@ -338,7 +339,7 @@ namespace DataAquisition
         private static async Task<bool> GetPitcherLogsAsync(SqliteDbContext db, HttpClient httpClient, int year, bool rescan)
         {
             if (rescan)
-                db.BulkDelete(db.Player_Pitcher_GameLog.Where(f => f.Year == year));
+                db.Player_Pitcher_GameLog.Where(f => f.Year == year).ExecuteDelete();
             int[] yearIds = [.. db.Player_Pitcher_GameLog.Where(f => f.Year == year).Select(f => f.MlbId).Distinct()];
 
             // Get stats for each level
