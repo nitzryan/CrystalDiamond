@@ -14,6 +14,7 @@ namespace Db
 		public required string BsrAdv1st2ndFlyoutDict {get; set;}
 		public required string BsrAdv2nd3rdFlyoutDict {get; set;}
 		public required string BsrAdv3rdHomeFlyoutDict {get; set;}
+		public required string DoublePlayDict {get; set;}
 
 		public LeagueRunMatrix Clone()
 		{
@@ -31,6 +32,7 @@ namespace Db
 				BsrAdv1st2ndFlyoutDict = this.BsrAdv1st2ndFlyoutDict,
 				BsrAdv2nd3rdFlyoutDict = this.BsrAdv2nd3rdFlyoutDict,
 				BsrAdv3rdHomeFlyoutDict = this.BsrAdv3rdHomeFlyoutDict,
+				DoublePlayDict = this.DoublePlayDict,
 			};
 		}
 	}

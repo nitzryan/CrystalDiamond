@@ -131,8 +131,6 @@ namespace DataAquisition
                 SubList = JsonSerializer.Serialize(awaySubsList),
             };
 
-            var testDeserialize = JsonSerializer.Deserialize<List<FielderSub>>(awayFielders.SubList);
-
             return (pbp, homeFielders, awayFielders);
         }
 

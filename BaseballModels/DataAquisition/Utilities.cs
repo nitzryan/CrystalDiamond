@@ -112,6 +112,29 @@ namespace DataAquisition
             LeagueId = a.LeagueId
         };
 
+        public static Func<Player_Fielder_GameLog, Player_Fielder_GameLog, Player_Fielder_GameLog> FielderGameLogAggregation = (a, b) =>
+        new Player_Fielder_GameLog
+        {
+            GameLogId = a.GameLogId,
+            GameId = a.GameId,
+            MlbId = a.MlbId,
+            LeagueId = a.LeagueId,
+            TeamId = a.TeamId,
+            Day = a.Day,
+            Month = a.Month,
+            Year = a.Year,
+            Position = a.Position,
+            Outs = a.Outs + b.Outs,
+            Chances = a.Chances + b.Chances,
+            Errors = a.Errors + b.Errors,
+            ThrowErrors = a.ThrowErrors + b.ThrowErrors,
+            Started = a.Started,
+            IsHome = a.IsHome,
+            SB = a.SB + b.SB,
+            CS = a.CS + b.CS,
+            PassedBall = a.PassedBall + b.PassedBall,
+        };
+
         public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls, SqliteDbContext db)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
@@ -324,6 +347,27 @@ namespace DataAquisition
             if (!tom.Any())
                 return -2;
             return tom.Single().ParentOrgId;
+        }
+
+        //https://tht.fangraphs.com/re-examining-wars-defensive-spectrum/
+        public static float CalculatePosValue(DbEnums.Position pos, int outs)
+        {
+            float seasons = outs / (1458.0f * 3);
+
+            switch(pos)
+            {
+                case DbEnums.Position.P: return 0;
+                case DbEnums.Position.C: return 7.75f * seasons;
+                case DbEnums.Position.B1: return -9.25f * seasons;
+                case DbEnums.Position.B2: return 1.75f * seasons;
+                case DbEnums.Position.B3: return 1.75f * seasons;
+                case DbEnums.Position.SS: return 4.75f * seasons;
+                case DbEnums.Position.LF: return -4.25f * seasons;
+                case DbEnums.Position.CF: return 1.75f * seasons;
+                case DbEnums.Position.RF: return -4.25f * seasons;
+                case DbEnums.Position.DH: return -9.25f * seasons;
+                default: throw new Exception($"Unexpected Position encounted at CalculatePosValue: {pos}");
+            }
         }
     }
 }

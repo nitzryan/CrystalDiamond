@@ -58,6 +58,8 @@
 
         public static PBP_Events PBP_IN_PLAY_EVENT = PBP_HIT_IP_EVENTS | PBP_OUT_EVENTS | PBP_Events.FIELD_ERROR | PBP_Events.FIELDERS_CHOICE;
 
+        public static PBP_Events PBP_HIT_EVENT = PBP_Events.SINGLE | PBP_Events.DOUBLE | PBP_Events.TRIPLE | PBP_Events.HR;
+
         [Flags]
         public enum PBP_HitTrajectory
         {

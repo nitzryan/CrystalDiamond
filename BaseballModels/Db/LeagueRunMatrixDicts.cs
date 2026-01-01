@@ -20,7 +20,7 @@ namespace Db
     }
     public record FieldingResults
     {
-        public required float[] ProbMake { get; set; } // Probs for each position
+        public required float[] ProbMakeWhenMade { get; set; } // Probs for each position, conditional on making
         public required float ProbMiss { get; set; }
         public required float RunsMake { get; set; }
         public required float RunsMiss { get; set; }
@@ -42,11 +42,28 @@ namespace Db
             return (ProbAdvance * RunsAdvance) + (ProbStay * RunsStay) + (ProbOut * RunsOut);
         }
     }
+    public record DoublePlayResult 
+    {
+        public required float ProbsLeadingOnly { get; set; }
+        public required float ProbsHitterOnly { get; set; }
+        public required float ProbsDP { get; set; }
+        public required float ProbsNeither { get; set; }
+        public required float RunsLeading { get; set; }
+        public required float RunsHitter { get; set; }
+        public required float RunsDP { get; set; }
+        public required float RunsNeither { get; set; }
+        public required int NumOccurences { get; set; }
+    }
     public record BaserunningScenario
     {
         public required int Zone { get; set; }
         public required PBP_HitTrajectory Trajectory { get; set; }
         public required PBP_HitHardness Hardness { get; set; }
+    }
+
+    public record DoublePlayScenario
+    {
+        public required int Zone { get; set; }
     }
 
     public static class LeagueRunMatrixDicts
@@ -66,6 +83,7 @@ namespace Db
             options.Converters.Add(new GameScenariosConverter());
             options.Converters.Add(new FieldingScenarioConverter());
             options.Converters.Add(new BaserunningScenarioConverter());
+            options.Converters.Add(new DoublePLayScenarioConverter());
             return options;
         }
 
@@ -98,6 +116,13 @@ namespace Db
         public static BaserunningDict GetBaserunningDict(string json)
         {
             return JsonSerializer.Deserialize<BaserunningDict>(json, DefaultOptions)
+                ?? throw new Exception("Unable to deserialize GetBaserunningDict");
+        }
+
+        // DoublePlay Outcomes Dict
+        public static DoublePlayDict GetDoublePlayDict(string json)
+        {
+            return JsonSerializer.Deserialize<DoublePlayDict>(json, DefaultOptions)
                 ?? throw new Exception("Unable to deserialize GetBaserunningDict");
         }
     }
@@ -255,6 +280,12 @@ namespace Db
             if (pbp.HitHardness == null || pbp.HitTrajectory == null || pbp.HitZone == null || pbp.HitCoordX == null || pbp.HitCoordY == null)
                 return null;
 
+            if (pbp.Result.HasFlag(PBP_Events.HR))
+                return null;
+
+            if (pbp.EventFlag != GameFlags.Valid)
+                return null;
+
             // Basically all popups are caught, and dropped will be caught in errors
             if (pbp.HitTrajectory == PBP_HitTrajectory.Popup) 
                 return null;
@@ -280,11 +311,30 @@ namespace Db
             if (pbp.HitHardness == null || pbp.HitTrajectory == null || pbp.HitZone == null)
                 return null;
 
+            if (pbp.EventFlag != GameFlags.Valid)
+                return null;
+
             return new BaserunningScenario
             {
                 Zone = (int)pbp.HitZone,
                 Hardness = (PBP_HitHardness)pbp.HitHardness,
                 Trajectory = (PBP_HitTrajectory)pbp.HitTrajectory!
+            };
+        }
+
+        public static DoublePlayScenario? GetDoublePlayScenario(GamePlayByPlay pbp)
+        {
+            if (pbp.HitZone == null || pbp.HitZone < 3 || pbp.HitZone > 6 || pbp.HitTrajectory != PBP_HitTrajectory.Groundball
+                || pbp.StartOuts >= 2 || !pbp.StartBaseOccupancy.HasFlag(BaseOccupancy.B1) || ((pbp.Result & PBP_HIT_EVENT) != 0))
+
+                return null;
+
+            if (pbp.EventFlag != GameFlags.Valid)
+                return null;
+
+            return new DoublePlayScenario
+            {
+                Zone = pbp.HitZone.Value,
             };
         }
     }

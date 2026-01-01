@@ -1,4 +1,5 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using static Db.DbEnums;
 
@@ -36,6 +37,54 @@ namespace DataAquisition
             }
 
             return runningTotal / numEvents;
+        }
+
+        private static DoublePlayResult GetDoublePlayResult(GameScenarioDict runExpectancyDict, IEnumerable<GamePlayByPlay> events, DoublePlayScenario scenario)
+        {
+            events = PBP_Utilities.GetDoublePlayOpportunities(events);
+
+            // Get expectancy and count of each event;
+            var dpEvents = events.Where(f => f.EndOuts - f.StartOuts >= 2);
+            var noOutEvents = events.Where(f => f.EndOuts == f.StartOuts);
+            var leadOnlyEvents = events.Where(f => (f.EndOuts - f.StartOuts == 1) && (f.Run1stOutcome == 0 || f.Run2ndOutcome == 0 || f.Run3rdOutcome == 0));
+            var hitterOnlyEvents = events.Where(f => (f.EndOuts - f.StartOuts == 1) && f.Run1stOutcome != 0 && f.Run2ndOutcome != 0 && f.Run3rdOutcome != 0);
+
+            int dpCount = dpEvents.Count();
+            int noCount = noOutEvents.Count();
+            int leadCount = leadOnlyEvents.Count();
+            int hitterCount = hitterOnlyEvents.Count();
+            
+            float dpExpectancy = GetAverageEventValue(runExpectancyDict, dpEvents);
+            float noOutExpectancy = GetAverageEventValue(runExpectancyDict, noOutEvents);
+            float leadOnlyExpectany = GetAverageEventValue(runExpectancyDict, leadOnlyEvents);
+            float hitterOnlyExpectancy = GetAverageEventValue(runExpectancyDict, hitterOnlyEvents);
+
+            // Adjust all so that the expected value is 0, since eval is of fielders not hitters
+
+            int totalEvents = dpCount + noCount + leadCount + hitterCount;
+            float avgExpectancy = ((dpExpectancy * dpCount) + 
+                                    (noOutExpectancy * noCount) + 
+                                    (leadOnlyExpectany * leadCount) + 
+                                    (hitterOnlyExpectancy * hitterCount)) / totalEvents;
+
+            dpExpectancy -= avgExpectancy;
+            noOutExpectancy -= avgExpectancy;
+            leadOnlyExpectany -= avgExpectancy;
+            hitterOnlyExpectancy -= avgExpectancy;
+
+            return new DoublePlayResult
+            {
+                ProbsLeadingOnly = (float)leadCount / totalEvents,
+                ProbsDP = (float)dpCount / totalEvents,
+                ProbsHitterOnly = (float)hitterCount / totalEvents,
+                ProbsNeither = (float)noCount / totalEvents,
+                RunsDP = dpExpectancy / 2, // Gives expectancy for each player, 2 players get adjusted
+                RunsHitter = hitterOnlyExpectancy / 2,
+                RunsLeading = leadOnlyExpectany / 2,
+                RunsNeither = noOutExpectancy / 2,
+                NumOccurences = totalEvents
+            };
+
         }
 
         private static BaserunningResult GetBaserunningResult(GameScenarioDict runExpectancyDict, IEnumerable<GamePlayByPlay> events, int startBase, int targetBase)
@@ -109,12 +158,13 @@ namespace DataAquisition
             try
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.LeagueStats.RemoveRange(db.LeagueStats.Where(f => f.Year == year));
-                db.LeagueRunMatrix.RemoveRange(db.LeagueRunMatrix.Where(f => f.Year == year));
-                db.SaveChanges();
+                db.LeagueStats.Where(f => f.Year == year).ExecuteDelete();
+                db.LeagueRunMatrix.Where(f => f.Year == year).ExecuteDelete();
 
-                var leagues = db.Player_Hitter_GameLog.Where(f => f.Year == year)
-                    .Select(f => f.LeagueId).Distinct().ToList();
+                // Get leagues, with combined Major Leagues
+                var leagues = new List<int>() { 1 }.Concat(db.Player_Hitter_GameLog.Where(f => f.Year == year)
+                    .Select(f => f.LeagueId).Distinct().ToArray());
+                
 
                 var yearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year).ToList();
 
@@ -130,7 +180,9 @@ namespace DataAquisition
                         }
 
                         // Get trailing year for more data, prevent first couple of months of year from having wild swings that adjust later
-                        var leaguePBP = db.GamePlayByPlay.Where(f => (f.Year == year || f.Year == year - 1) && f.LeagueId == league).ToList();
+                        var leaguePBP = league == 1 ?
+                            db.GamePlayByPlay.Where(f => (f.Year == year) && (f.LeagueId == 103 || f.LeagueId == 104)).ToArray() :
+                            db.GamePlayByPlay.Where(f => (f.Year == year) && f.LeagueId == league).ToArray();
 
                         // Determine the run expectancy of every out/base pairing
                         GameScenarioDict runExpectancyDict = new();
@@ -180,7 +232,9 @@ namespace DataAquisition
                         float runGIDP = GetAverageEventValue(runExpectancyDict, dpOpportunities, PBP_Events.GIDP) - wOuts;
 
                         // Get league hitting stats
-                        var leagueHittingStats = yearGames.Where(f => f.LeagueId == league).Aggregate(Utilities.HitterGameLogAggregation);
+                        var leagueHittingStats = (league == 1 ? 
+                            yearGames.Where(f => f.LeagueId == 103 || f.LeagueId == 104) : 
+                            yearGames.Where(f => f.LeagueId == league)).Aggregate(Utilities.HitterGameLogAggregation);
 
                         int singles = leagueHittingStats.H - leagueHittingStats.Hit2B - leagueHittingStats.Hit3B - leagueHittingStats.HR;
                         float wobaAccumulator = ((w1B * singles) + (w2B * leagueHittingStats.Hit2B) + (w3B * leagueHittingStats.Hit3B) + (wHR * leagueHittingStats.HR) + (wBB * leagueHittingStats.BB) + (wHBP * leagueHittingStats.HBP)) / leagueHittingStats.PA;
@@ -201,7 +255,9 @@ namespace DataAquisition
                         float runsPerWin = 10.0f * (float)Math.Sqrt((float)totalRunsScoredInLeague / totalInnings);
 
                         // Calculate Pitching adjustments
-                        var leagueStats = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
+                        var leagueStats = league == 1 ?
+                            db.Player_Pitcher_GameLog.Where(f => f.Year == year && (f.LeagueId == 103 || f.LeagueId == 104)) : 
+                            db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.LeagueId == league);
                         int leagueHRs = leagueStats.Select(f => f.HR).Sum();
                         int leagueBBs = leagueStats.Select(f => f.BB + f.HBP).Sum();
                         int leagueKs = leagueStats.Select(f => f.K).Sum();
@@ -214,7 +270,9 @@ namespace DataAquisition
                         float leagueFIP = Utilities.CalculateFip(0, leagueHRs, leagueKs, leagueBBs, leagueOuts);
 
                         // Get hitter stats for non-pitchers
-                        Player_Hitter_GameLog lps = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league && f.Position != 1)
+                        Player_Hitter_GameLog lps = (league == 1 ?
+                            db.Player_Hitter_GameLog.Where(f => f.Year == year && (f.LeagueId == 103 || f.LeagueId == 104) && f.Position != 1) : 
+                            db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league && f.Position != 1))
                             .Aggregate(Utilities.HitterGameLogAggregation);
 
                         double leaguewRC = (lps.BB * wBB) +
@@ -255,101 +313,146 @@ namespace DataAquisition
                             LeagueERA = leagueERA,
                         });
 
-                        // Calculate Fielding Outcome Dict
-                        FieldingDict fieldingDict = new();
-                        var leaguePBPFieldingGroupings = leaguePBP.Where(f => f.EventFlag == GameFlags.Valid).GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
-                        foreach (var fg in leaguePBPFieldingGroupings)
+                        // Calculate League Run Matrix
+                        if (league != 103 && league != 104)
                         {
-                            if (fg.Key == null)
-                                continue;
-
-                            var madePlays = fg.Where(f => (f.Result & PBP_OUT_EVENTS) != 0);
-                            var missedPlays = fg.Where(f => (f.Result & PBP_HIT_IP_EVENTS) != 0);
-                            int[] madePlaysCount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-                            foreach (var play in madePlays)
+                            // Calculate Fielding Outcome Dict
+                            FieldingDict fieldingDict = new();
+                            var leaguePBPFieldingGroupings = leaguePBP.Where(f => f.EventFlag == GameFlags.Valid).GroupBy(f => PBP_TypeConversions.GetFieldingScenario(f));
+                            foreach (var fg in leaguePBPFieldingGroupings)
                             {
-                                madePlaysCount[(int)play.HitZone - 1]++;
-                            }
+                                if (fg.Key == null)
+                                    continue;
 
-                            int totalPlays = madePlays.Count() + missedPlays.Count();
-                            float[] probMake = [ .. madePlaysCount.Select(f => (float)f / totalPlays)];
-                            float probMissed = 1.0f - probMake.Sum();
+                                var madePlays = fg.Where(f => (f.Result & PBP_HIT_EVENT) == 0);
+                                var missedPlays = fg.Where(f => (f.Result & PBP_HIT_EVENT) != 0);
+                                int[] madePlaysCount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+                                foreach (var play in madePlays)
+                                {
+                                    madePlaysCount[(int)play.HitZone - 1]++;
+                                }
 
-                            float madeValue = GetAverageEventValue(runExpectancyDict, madePlays);
-                            float missedValue = GetAverageEventValue(runExpectancyDict, missedPlays);
+                                int totalPlays = madePlays.Count() + missedPlays.Count();
+                                float[] probMake = [.. madePlaysCount.Select(f => (float)f / totalPlays)];
+                                float probMissed = 1.0f - probMake.Sum();
 
-                            float totalValue = (madeValue * madePlays.Count()) + (missedValue * missedPlays.Count());
+                                float madeValue = GetAverageEventValue(runExpectancyDict, madePlays);
+                                float missedValue = GetAverageEventValue(runExpectancyDict, missedPlays);
 
-                            // Need to adjust so that the expected value for fielding is 0
-                            float valueOvershoot = totalValue / totalPlays;
-                            madeValue -= valueOvershoot;
-                            missedValue -= valueOvershoot;
+                                float totalValue = (madeValue * madePlays.Count()) + (missedValue * missedPlays.Count());
 
-                            if (totalPlays == 0 || madePlays.Count() == 0 || missedPlays.Count() == 0)
-                            {
+                                // Need to adjust so that the expected value for fielding is 0
+                                float valueOvershoot = totalValue / totalPlays;
+                                madeValue -= valueOvershoot;
+                                missedValue -= valueOvershoot;
+
+                                if (totalPlays == 0 || madePlays.Count() == 0 || missedPlays.Count() == 0)
+                                {
+                                    fieldingDict.Add(fg.Key, new FieldingResults
+                                    {
+                                        NumOccurences = 0,
+                                        ProbMakeWhenMade = [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                        ProbMiss = 1,
+                                        RunsMake = 0,
+                                        RunsMiss = 0
+                                    });
+                                    continue;
+                                }
+
+                                // Normalize the probMake matrix so it adds
+                                probMake = probMake.Select(f => f / (1.0f - probMissed)).ToArray();
+
                                 fieldingDict.Add(fg.Key, new FieldingResults
                                 {
-                                    NumOccurences = 0,
-                                    ProbMake = [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                                    ProbMiss = 1,
-                                    RunsMake = 0,
-                                    RunsMiss = 0
+                                    ProbMakeWhenMade = probMake,
+                                    ProbMiss = probMissed,
+                                    RunsMake = madeValue,
+                                    RunsMiss = missedValue,
+                                    NumOccurences = totalPlays,
                                 });
-                                continue;
                             }
 
-
-                            fieldingDict.Add(fg.Key, new FieldingResults
+                            // Calcualate baserunning outcome dicts
+                            var leaguePBPInPlay = leaguePBP.Where(f => (f.Result & PBP_IN_PLAY_EVENT) != 0);
+                            BaserunningDict BsrAdv1st3rdSingleDict = new();
+                            BaserunningDict BsrAdv2ndHomeSingleDict = new();
+                            BaserunningDict BsrAdv1stHomeDoubleDict = new();
+                            BaserunningDict BsrAvoidForce2ndDict = new();
+                            BaserunningDict BsrAdv1st2ndFlyoutDict = new();
+                            BaserunningDict BsrAdv2nd3rdFlyoutDict = new();
+                            BaserunningDict BsrAdv3rdHomeFlyoutDict = new();
+                            BaserunningDict BsrAdv2nd3rdGroundoutDict = new();
+                            var leaguePBPBaserunningGroupings = leaguePBPInPlay.GroupBy(f => PBP_TypeConversions.GetBaserunningScenario(f));
+                            foreach (var fg in leaguePBPBaserunningGroupings)
                             {
-                                ProbMake = probMake,
-                                ProbMiss = probMissed,
-                                RunsMake = madeValue,
-                                RunsMiss = missedValue,
-                                NumOccurences = totalPlays,
+                                if (fg.Key == null)
+                                    continue;
+
+                                BsrAdv1st3rdSingleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stTo3rdOnSingle_Opportunities(fg), 1, 3));
+                                BsrAdv2ndHomeSingleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndToHomeOnSingle_Opportunities(fg), 2, 4));
+                                BsrAdv1stHomeDoubleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stToHomeOnDouble_Opportunities(fg), 1, 4));
+                                BsrAvoidForce2ndDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.Avoid_1stToSecondForceout_Opportunities(fg), 1, 2));
+                                BsrAdv1st2ndFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stTo2ndOnFlyout_Opportunities(fg), 1, 2));
+                                BsrAdv2nd3rdFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndTo3rdOnFlyout_Opportunities(fg), 2, 3));
+                                BsrAdv3rdHomeFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_3rdToHomeOnFlyout_Opportunities(fg), 3, 4));
+                                BsrAdv2nd3rdGroundoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndTo3rdOnGroundout_Opportunities(fg), 2, 3));
+                            }
+
+                            // Calculate Double Play Turned Dict
+                            DoublePlayDict doublePlayDict = new();
+                            var leaguePBP_DPGroupings = leaguePBPInPlay.GroupBy(f => PBP_TypeConversions.GetDoublePlayScenario(f));
+                            foreach (var fg in leaguePBP_DPGroupings)
+                            {
+                                if (fg.Key == null)
+                                    continue;
+
+                                doublePlayDict.Add(fg.Key, GetDoublePlayResult(runExpectancyDict, fg, fg.Key));
+                            }
+
+                            db.LeagueRunMatrix.Add(new LeagueRunMatrix
+                            {
+                                LeagueId = league,
+                                Year = year,
+                                RunExpDict = LeagueRunMatrixDicts.Serialize(runExpectancyDict),
+                                FieldOutcomeDict = LeagueRunMatrixDicts.Serialize(fieldingDict),
+                                BsrAdv1st3rdSingleDict = LeagueRunMatrixDicts.Serialize(BsrAdv1st3rdSingleDict),
+                                BsrAdv2ndHomeSingleDict = LeagueRunMatrixDicts.Serialize(BsrAdv2ndHomeSingleDict),
+                                BsrAdv1stHomeDoubleDict = LeagueRunMatrixDicts.Serialize(BsrAdv1stHomeDoubleDict),
+                                BsrAvoidForce2ndDict = LeagueRunMatrixDicts.Serialize(BsrAvoidForce2ndDict),
+                                BsrAdv1st2ndFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv1st2ndFlyoutDict),
+                                BsrAdv2nd3rdFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv2nd3rdFlyoutDict),
+                                BsrAdv3rdHomeFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv3rdHomeFlyoutDict),
+                                BsrAdv2nd3rdGroundoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv2nd3rdGroundoutDict),
+                                DoublePlayDict = LeagueRunMatrixDicts.Serialize(doublePlayDict),
+                            });
+
+                            // Need to save so MLB can be retrieved by AL/NL
+                            if (league == 1)
+                                db.SaveChanges();
+                        }
+                        else 
+                        {
+                            // For AL and NL, just copy total MLB data
+                            LeagueRunMatrix mlbLeagueRunMatrix = db.LeagueRunMatrix.Where(f => f.Year == year && f.LeagueId == 1).Single();
+                            db.LeagueRunMatrix.Add(new LeagueRunMatrix
+                            {
+                                LeagueId = league,
+                                Year = year,
+                                RunExpDict = mlbLeagueRunMatrix.RunExpDict,
+                                FieldOutcomeDict = mlbLeagueRunMatrix.FieldOutcomeDict,
+                                BsrAdv1st3rdSingleDict = mlbLeagueRunMatrix.BsrAdv1st3rdSingleDict,
+                                BsrAdv2ndHomeSingleDict = mlbLeagueRunMatrix.BsrAdv2ndHomeSingleDict,
+                                BsrAdv1stHomeDoubleDict = mlbLeagueRunMatrix.BsrAdv1stHomeDoubleDict,
+                                BsrAvoidForce2ndDict = mlbLeagueRunMatrix.BsrAvoidForce2ndDict,
+                                BsrAdv1st2ndFlyoutDict = mlbLeagueRunMatrix.BsrAdv1st2ndFlyoutDict,
+                                BsrAdv2nd3rdFlyoutDict = mlbLeagueRunMatrix.BsrAdv2nd3rdFlyoutDict,
+                                BsrAdv3rdHomeFlyoutDict = mlbLeagueRunMatrix.BsrAdv3rdHomeFlyoutDict,
+                                BsrAdv2nd3rdGroundoutDict = mlbLeagueRunMatrix.BsrAdv2nd3rdGroundoutDict,
+                                DoublePlayDict = mlbLeagueRunMatrix.DoublePlayDict,
                             });
                         }
 
-                        // Calcualate baserunning outcome dicts
-                        var leaguePBPInPlay = leaguePBP.Where(f => (f.Result & PBP_IN_PLAY_EVENT) != 0);
-                        BaserunningDict BsrAdv1st3rdSingleDict = new();
-                        BaserunningDict BsrAdv2ndHomeSingleDict = new();
-                        BaserunningDict BsrAdv1stHomeDoubleDict = new();
-                        BaserunningDict BsrAvoidForce2ndDict = new();
-                        BaserunningDict BsrAdv1st2ndFlyoutDict = new();
-                        BaserunningDict BsrAdv2nd3rdFlyoutDict = new();
-                        BaserunningDict BsrAdv3rdHomeFlyoutDict = new();
-                        BaserunningDict BsrAdv2nd3rdGroundoutDict = new();
-                        var leaguePBPBaserunningGroupings = leaguePBPInPlay.GroupBy(f => PBP_TypeConversions.GetBaserunningScenario(f));
-                        foreach (var fg in leaguePBPBaserunningGroupings)
-                        {
-                            if (fg.Key == null)
-                                continue;
 
-                            BsrAdv1st3rdSingleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stTo3rdOnSingle_Opportunities(fg), 1, 3));
-                            BsrAdv2ndHomeSingleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndToHomeOnSingle_Opportunities(fg), 2, 4));
-                            BsrAdv1stHomeDoubleDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stToHomeOnDouble_Opportunities(fg), 1, 4));
-                            BsrAvoidForce2ndDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.Avoid_1stToSecondForceout_Opportunities(fg), 1, 2));
-                            BsrAdv1st2ndFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_1stTo2ndOnFlyout_Opportunities(fg), 1, 2));
-                            BsrAdv2nd3rdFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndTo3rdOnFlyout_Opportunities(fg), 2, 3));
-                            BsrAdv3rdHomeFlyoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_3rdToHomeOnFlyout_Opportunities(fg), 3, 4));
-                            BsrAdv2nd3rdGroundoutDict.Add(fg.Key, GetBaserunningResult(runExpectancyDict, PBP_Utilities.GetAdvance_2ndTo3rdOnGroundout_Opportunities(fg), 2, 3));
-                        }
-
-                        db.LeagueRunMatrix.Add(new LeagueRunMatrix{
-                            LeagueId = league,
-                            Year = year,
-                            RunExpDict = LeagueRunMatrixDicts.Serialize(runExpectancyDict),
-                            FieldOutcomeDict = LeagueRunMatrixDicts.Serialize(fieldingDict),
-                            BsrAdv1st3rdSingleDict = LeagueRunMatrixDicts.Serialize(BsrAdv1st3rdSingleDict),
-                            BsrAdv2ndHomeSingleDict = LeagueRunMatrixDicts.Serialize(BsrAdv2ndHomeSingleDict),
-                            BsrAdv1stHomeDoubleDict = LeagueRunMatrixDicts.Serialize(BsrAdv1stHomeDoubleDict),
-                            BsrAvoidForce2ndDict = LeagueRunMatrixDicts.Serialize(BsrAvoidForce2ndDict),
-                            BsrAdv1st2ndFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv1st2ndFlyoutDict),
-                            BsrAdv2nd3rdFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv2nd3rdFlyoutDict),
-                            BsrAdv3rdHomeFlyoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv3rdHomeFlyoutDict),
-                            BsrAdv2nd3rdGroundoutDict = LeagueRunMatrixDicts.Serialize(BsrAdv2nd3rdGroundoutDict),
-                        });
-                        
                         progressBar.Tick();
                     }
                 }

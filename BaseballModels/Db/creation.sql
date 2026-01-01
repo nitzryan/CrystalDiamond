@@ -626,6 +626,10 @@ CREATE INDEX "idx_HitterGameLogForYearStats" ON "Player_Hitter_GameLog" (
 	"Year"
 );
 
+CREATE INDEX "idx_HitterGameLog_YearLeaguePos" ON "Player_Hitter_GameLog" (
+	"Year", "LeagueId", "Position"
+);
+
 CREATE TABLE "Player_Fielder_GameLog" (
 	"gameLogId"	INTEGER NOT NULL,
 	"gameId"	INTEGER NOT NULL,
@@ -735,7 +739,7 @@ CREATE TABLE "Player_Hitter_MonthStats" (
 	PRIMARY KEY("mlbId","Year","Month","LevelId", "LeagueId")
 );
 
-CREATE INDEX "Player_Hitter_MonthStats_Date" ON "Player_Hitter_MonthStats" (
+CREATE INDEX "idx_Player_Hitter_MonthStats_Date" ON "Player_Hitter_MonthStats" (
 	"Year", "Month", "LeagueId"
 );
 
@@ -743,6 +747,46 @@ CREATE INDEX "idx_HitterMonthStats_LevelDate" ON "Player_Hitter_MonthStats" (
 	"LevelId",
 	"Year",
 	"Month"
+);
+
+CREATE TABLE "Player_Fielder_MonthStats" (
+	"MlbId"	INTEGER NOT NULL,
+	"Year"	INTEGER NOT NULL,
+	"Month"	INTEGER NOT NULL,
+	"LevelId"	INTEGER NOT NULL,
+	"LeagueId" INTEGER NOT NULL,
+	"Position" INTEGER NOT NULL,
+	"Chances" INTEGER NOT NULL,
+	"Errors" INTEGER NOT NULL,
+	"ThrowErrors" INTEGER NOT NULL,
+	"Outs" INTEGER NOT NULL,
+	-- All fielders
+	"r_ERR" REAL NOT NULL,
+	"r_PM" REAL NOT NULL,
+	"PosAdjust" REAL NOT NULL,
+	"d_RAA" REAL NOT NULL,
+	-- 1B/2B/SS/3B Only
+	"r_GIDP" REAL NOT NULL,
+	-- Outfielder Only
+	"r_ARM" REAL NOT NULL,
+	-- Catcher Only
+	"r_SB" REAL NOT NULL,
+	"SB" INTEGER NOT NULL,
+	"CS" INTEGER NOT NULL,
+	"r_PB" REAL NOT NULL,
+	"PB" INTEGER NOT NULL,
+	PRIMARY KEY("MlbId", "Year", "Month", "LevelId", "LeagueId", "Position")
+);
+
+CREATE INDEX "idx_Player_Fielder_MonthStats_Date" ON "Player_Fielder_MonthStats" (
+	"Year", "Month", "LeagueId"
+);
+
+CREATE INDEX "idx_FielderMonthStats_LevelDate" ON "Player_Fielder_MonthStats" (
+	"LevelId",
+	"Year",
+	"Month",
+	"Position"
 );
 
 CREATE TABLE "Player_Hitter_MonthBaserunning" (
@@ -893,6 +937,10 @@ CREATE INDEX "idx_PitcherGameLogForYearStats" ON "Player_Pitcher_GameLog" (
 	"TeamId",
 	"LeagueId",
 	"Year"
+);
+
+CREATE INDEX "idx_PitcherGameLog_YearLeague" ON "Player_Pitcher_GameLog" (
+	"Year", "LeagueId"
 );
 
 CREATE TABLE "Player_Pitcher_MonthAdvanced" (
@@ -1164,6 +1212,7 @@ CREATE TABLE "LeagueRunMatrix" (
 	"bsrAdv1st2ndFlyoutDict" TEXT NOT NULL,
 	"bsrAdv2nd3rdFlyoutDict" TEXT NOT NULL,
 	"bsrAdv3rdHomeFlyoutDict" TEXT NOT NULL,
+	"doublePlayDict" TEXT NOT NULL,
 	PRIMARY KEY("LeagueId", "Year")
 );
 

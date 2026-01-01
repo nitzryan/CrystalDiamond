@@ -123,7 +123,7 @@ namespace DataAquisition
                 int sb = 0;
                 int cs = 0;
                 int pb = 0;
-                if (statElement.TryGetProperty("caughtStealing", out var csElement) 
+                if (statElement.TryGetProperty("caughtStealing", out var csElement)
                     && statElement.TryGetProperty("stolenBases", out var sbElement)
                     && statElement.TryGetProperty("passedBall", out var pbElement))
                 {
@@ -157,11 +157,21 @@ namespace DataAquisition
                 if (!split.TryGetProperty("game", out var gameElement) || !gameElement.TryGetProperty("gamePk", out var gamePkElement))
                     throw new Exception("Did not find property game or game/gamePK");
 
+                int leagueId = leagueIdElement.GetInt32();
+
+                if (leagueId == Constants.MEXICAN_LEAGUE_ID)
+                    continue;
+
+                // Combine fielding stats from AL/NL to MLB
+                // Needed for getting fielding stats in combined games while not splitting other statts that vary by league
+                if (leagueId == 103 || leagueId == 104)
+                    leagueId = 1; 
+
                 logs.Add(new Player_Fielder_GameLog
                 {
                     MlbId = id,
                     GameId = gamePkElement.GetInt32(),
-                    LeagueId = leagueIdElement.GetInt32(),
+                    LeagueId = leagueId,
                     TeamId = teamIdElement.GetInt32(),
                     Day = date[2],
                     Month = date[1],
@@ -275,6 +285,7 @@ namespace DataAquisition
                 }
 
                 db.SaveChanges();
+
                 return true;
             }
             catch (Exception e)

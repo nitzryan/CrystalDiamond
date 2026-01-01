@@ -268,4 +268,75 @@ namespace Db
             return new BaserunningScenario { Zone = zone, Trajectory = traj, Hardness = hard };
         }
     }
+
+    public class DoublePLayScenarioConverter : JsonConverter<DoublePlayScenario>
+    {
+        public override DoublePlayScenario Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException("Expected StartObject");
+
+            int? zone = null;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    continue;
+
+                string? prop = reader.GetString();
+
+                reader.Read();
+
+                switch (prop)
+                {
+                    case nameof(BaserunningScenario.Zone):
+                        zone = reader.GetInt32();
+                        break;
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+
+            if (zone is null )
+                throw new JsonException("Missing required properties for DoublePlayScenario");
+
+            return new DoublePlayScenario
+            {
+                Zone = zone.Value,
+            };
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            DoublePlayScenario value,
+            JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber(nameof(BaserunningScenario.Zone), value.Zone);
+            writer.WriteEndObject();
+        }
+
+        public override void WriteAsPropertyName(Utf8JsonWriter writer, [DisallowNull] DoublePlayScenario value, JsonSerializerOptions options)
+        {
+            writer.WritePropertyName($"{value.Zone}");
+        }
+
+        public override DoublePlayScenario ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            string? key = reader.GetString();
+            if (string.IsNullOrEmpty(key))
+                throw new JsonException("Dictionary key cannot be empty");
+
+            if (!int.TryParse(key, out int zone))
+                throw new JsonException($"Invalid DoublePlayScenario key format: {key}");
+
+            return new DoublePlayScenario { Zone = zone };
+        }
+    }
 }

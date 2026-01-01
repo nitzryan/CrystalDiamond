@@ -56,7 +56,7 @@ namespace Db
                 f.StartBaseOccupancy.HasFlag(BaseOccupancy.B1) &&
                 f.Result.HasFlag(PBP_Events.SINGLE) &&
                 (!f.StartBaseOccupancy.HasFlag(BaseOccupancy.B2) || f.Run2ndOutcome == 4) &&
-                f.HitZone >= 6);
+                f.HitZone >= 7);
         }
 
         public static IEnumerable<GamePlayByPlay> GetAdvance_2ndToHomeOnSingle_Opportunities(IEnumerable<GamePlayByPlay> pbp)

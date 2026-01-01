@@ -27,23 +27,23 @@
                 //while (!await PlayerUpdate.Main(year))
                 //{ }
 
-                //while (!await GameLogUpdate.Main(year, 3, 10))
+                //while (!await GameLogUpdate.Main(year, year == END_YEAR))
                 //{ }
 
-                while (!await FielderGameLog.Update(year, year == END_YEAR))
-                { }
+                //while (!await FielderGameLog.Update(year, year == END_YEAR))
+                //{ }
 
-                while (!await GetPlayByPlay.Update(year))
-                { }
+                //while (!await GetPlayByPlay.Update(year))
+                //{ }
 
-                if (!GetPlayByPlayFlags.UpdateFlags(year))
-                    return;
+                //if (!GetPlayByPlayFlags.UpdateFlags(year))
+                //    return;
 
                 //if (!ParkFactorUpdate.Main(year, false))
                 //    return;
 
-                //if (!CalculateLeagueStats.Main(year))
-                //    return;
+                if (!CalculateLeagueStats.Main(year))
+                    return;
 
                 foreach (int month in months)
                 {
@@ -61,6 +61,9 @@
 
                     //if (!CalculateMonthBaserunning.Update(year, month))
                     //    return;
+
+                    if (!CalculateMonthFielding.Update(year, month))
+                        return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
