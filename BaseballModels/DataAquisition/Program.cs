@@ -75,16 +75,16 @@
                 //if (!CalculateAnnualWRC.Main(year))
                 //    return;
 
-                if (!ScaleFieldingStats.Update(year))
-                    return;
+                //if (!ScaleFieldingStats.Update(year))
+                //    return;
 
                 foreach (int month in months)
                 {
                     //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
                     //    return;
 
-                    if (!CalculateMonthWar.Update(year, month))
-                        return;
+                    //if (!CalculateMonthWar.Update(year, month))
+                    //    return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
@@ -113,7 +113,7 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+            if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
                 return;
 
             //if (!Model_MonthValue.Main())
