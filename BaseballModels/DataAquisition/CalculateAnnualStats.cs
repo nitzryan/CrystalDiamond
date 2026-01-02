@@ -70,6 +70,7 @@ namespace DataAquisition
                     R_PM = stats.Sum(f => f.R_PM),
                     PosAdjust = stats.Sum(f => f.PosAdjust),
                     D_RAA = stats.Sum(f => f.D_RAA),
+                    ScaledDRAA = -100000, // Will get set later
                     R_GIDP = stats.Sum(f => f.R_GIDP),
                     R_ARM = stats.Sum(f => f.R_ARM),
                     R_SB = stats.Sum(f => f.R_SB),

@@ -124,7 +124,8 @@ CREATE TABLE "Model_HitterStats" (
 	"crWAR" REAL NOT NULL,
 	"crOFF" REAL NOT NULL,
 	"crBSR" REAL NOT NULL,
-	"crDEF" REAL NOT NULL,
+	"crDRAA" REAL NOT NULL,
+	"crDPOS" REAL NOT NULL,
 	"SBRateRatio"	REAL NOT NULL,
 	"SBPercRatio"	REAL NOT NULL,
 	"HRPercRatio"	REAL NOT NULL,
@@ -706,10 +707,9 @@ CREATE TABLE "Player_Hitter_MonthAdvanced" (
 	"CS" INTEGER NOT NULL,
 	"HR" INTEGER NOT NULL,
 	"crWAR" REAL NOT NULL,
+	"crREP" REAL NOT NULL,
 	"crOFF" REAL NOT NULL,
-	"crBSR" REAL NOT NULL,
-	"crDEF" REAL NOT NULL,
-	PRIMARY KEY("mlbId","levelId","year","month","teamId","leagueId")
+	PRIMARY KEY("mlbId","year","month","levelId","teamId","leagueId")
 );
 
 CREATE TABLE "Player_Hitter_MonthStats" (
@@ -770,6 +770,7 @@ CREATE TABLE "Player_Fielder_MonthStats" (
 	"r_PM" REAL NOT NULL,
 	"PosAdjust" REAL NOT NULL,
 	"d_RAA" REAL NOT NULL,
+	"scaledDRAA" REAL NOT NULL,
 	-- 1B/2B/SS/3B Only
 	"r_GIDP" REAL NOT NULL,
 	-- Outfielder Only
@@ -814,6 +815,7 @@ CREATE TABLE "Player_Fielder_YearStats" (
 	"r_PM" REAL NOT NULL,
 	"PosAdjust" REAL NOT NULL,
 	"d_RAA" REAL NOT NULL,
+	"scaledDRAA" REAL NOT NULL,
 	-- 1B/2B/SS/3B Only
 	"r_GIDP" REAL NOT NULL,
 	-- Outfielder Only

@@ -47,8 +47,8 @@
 
                 foreach (int month in months)
                 {
-                    //    if (!CreateLevelGameCounts.Main(year, month))
-                    //        return;
+                    //if (!CreateLevelGameCounts.Main(year, month))
+                    //    return;
 
                     //if (!CalculateLeagueBaselines.Main(year, month))
                     //    return;
@@ -59,29 +59,35 @@
                     //if (!CalculateMonthRatios.Main(year, month))
                     //    return;
 
-                    if (!CalculateMonthBaserunning.Update(year, month))
-                        return;
+                    //if (!CalculateMonthBaserunning.Update(year, month))
+                    //    return;
 
-                    if (!CalculateMonthFielding.Update(year, month))
-                        return;
+                    //if (!CalculateMonthFielding.Update(year, month))
+                    //    return;
 
                     if (year == END_YEAR && month == END_MONTH)
                         break;
                 }
 
-                if (!CalculateAnnualStats.Main(year))
-                    return;
+                //if (!CalculateAnnualStats.Main(year))
+                //    return;
 
                 //if (!CalculateAnnualWRC.Main(year))
                 //    return;
+
+                if (!ScaleFieldingStats.Update(year))
+                    return;
 
                 foreach (int month in months)
                 {
                     //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
                     //    return;
 
-                    //if (year == END_YEAR && month == END_MONTH)
-                    //    break;
+                    if (!CalculateMonthWar.Update(year, month))
+                        return;
+
+                    if (year == END_YEAR && month == END_MONTH)
+                        break;
                 }
 
                 //while (!await UpdateParents.Main(year))
@@ -107,8 +113,8 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            //if (!ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
             //if (!Model_MonthValue.Main())
             //    return;

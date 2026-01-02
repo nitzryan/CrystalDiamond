@@ -11,10 +11,8 @@ namespace DataAquisition
             try
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Model_HitterStats.RemoveRange(db.Model_HitterStats);
-                db.Model_PitcherStats.RemoveRange(db.Model_PitcherStats);
-                db.SaveChanges();
-                db.ChangeTracker.Clear();
+                db.Model_HitterStats.ExecuteDelete();
+                db.Model_PitcherStats.ExecuteDelete();
 
                 var hitters = db.Model_Players.Where(f => f.IsHitter == 1).AsNoTracking();
                 using (ProgressBar progressBar = new ProgressBar(hitters.Count(), $"Generating Model Hitter Month Stats"))
@@ -47,7 +45,8 @@ namespace DataAquisition
                             WRC = 100,
                             CrWAR = -100000,
                             CrBSR = -100000,
-                            CrDEF = -100000,
+                            CrDRAA = -100000,
+                            CrDPOS = -100000,
                             CrOFF = -100000,
                             SBPercRatio = -1,
                             SBRateRatio = -1,
@@ -91,6 +90,8 @@ namespace DataAquisition
                             float hitKRatio = Utilities.SafeDivide(stat.K, stat.PA * lhs.K);
                             float hitSBRatio = Utilities.SafeDivide(stat.SB, stat.PA * lhs.SB);
                             float hitCSRatio = Utilities.SafeDivide(stat.CS, stat.PA * lhs.CS);
+
+                            
 
                             if (r.Year == prevYear && r.Month == prevMonth)
                             {
@@ -169,7 +170,8 @@ namespace DataAquisition
                                                 WRC = 100,
                                                 CrWAR = 0,
                                                 CrBSR = 0,
-                                                CrDEF = 0,
+                                                CrDPOS = 0,
+                                                CrDRAA = 0,
                                                 CrOFF = 0,
                                                 SBPercRatio = 1,
                                                 SBRateRatio = 1,
@@ -206,6 +208,8 @@ namespace DataAquisition
                                 }
 
                                 var phma = db.Player_Hitter_MonthAdvanced.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month);
+                                var fieldingStats = db.Player_Fielder_MonthStats.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month);
+                                var runningStats = db.Player_Hitter_MonthBaserunning.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month);
 
                                 currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                                 currentData.PA = stat.AB + stat.BB + stat.HBP;
@@ -221,10 +225,11 @@ namespace DataAquisition
                                 currentData.OBPRatio = r.OBPRatio;
                                 currentData.ISORatio = r.ISORatio;
                                 currentData.WRC = r.WRC;
-                                currentData.CrWAR = phma.Select(f => f.CrWAR).Sum();
-                                currentData.CrOFF = phma.Select(f => f.CrOFF).Sum();
-                                currentData.CrDEF = phma.Select(f => f.CrDEF).Sum();
-                                currentData.CrBSR = phma.Select(f => f.CrBSR).Sum();
+                                currentData.CrWAR = phma.Sum(f => f.CrWAR);
+                                currentData.CrOFF = phma.Sum(f => f.CrOFF);
+                                currentData.CrDPOS = fieldingStats.Sum(f => f.PosAdjust);
+                                currentData.CrDRAA = fieldingStats.Sum(f => f.ScaledDRAA);
+                                currentData.CrBSR = runningStats.Sum(f => f.RBSR);
                                 currentData.SBPercRatio = r.SBPercRatio;
                                 currentData.SBRateRatio = r.SBRateRatio;
                                 currentData.HRPercRatio = r.HRPercRatio;
@@ -298,7 +303,8 @@ namespace DataAquisition
                                         WRC = 100,
                                         CrWAR = 0,
                                         CrBSR = 0,
-                                        CrDEF = 0,
+                                        CrDPOS = 0,
+                                        CrDRAA = 0,
                                         CrOFF = 0,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,
@@ -363,7 +369,8 @@ namespace DataAquisition
                                         WRC = 100,
                                         CrWAR = 0,
                                         CrBSR = 0,
-                                        CrDEF = 0,
+                                        CrDPOS = 0,
+                                        CrDRAA = 0,
                                         CrOFF = 0,
                                         SBPercRatio = 1,
                                         SBRateRatio = 1,

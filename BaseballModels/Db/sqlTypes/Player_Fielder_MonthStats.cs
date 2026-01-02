@@ -17,6 +17,7 @@ namespace Db
 		public required float R_PM {get; set;}
 		public required float PosAdjust {get; set;}
 		public required float D_RAA {get; set;}
+		public required float ScaledDRAA {get; set;}
 		public required float R_GIDP {get; set;}
 		public required float R_ARM {get; set;}
 		public required float R_SB {get; set;}
@@ -44,6 +45,7 @@ namespace Db
 				R_PM = this.R_PM,
 				PosAdjust = this.PosAdjust,
 				D_RAA = this.D_RAA,
+				ScaledDRAA = this.ScaledDRAA,
 				R_GIDP = this.R_GIDP,
 				R_ARM = this.R_ARM,
 				R_SB = this.R_SB,

@@ -190,59 +190,20 @@ namespace DataAquisition
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;
 
-                            if (ma.LevelId == 1)
-                            {
-                                // Use Fangraphs WAR
-                                Player_MonthlyWar? pwm = db.Player_MonthlyWar.Where(f => f.MlbId == mlbId && f.Year == year && f.Month == month).SingleOrDefault();
-                                if (pwm == null)
-                                {
-                                    ma.CrOFF = 0;
-                                    ma.CrBSR = 0;
-                                    ma.CrDEF = 0;
-                                    ma.CrWAR = 0;
-                                }
-                                else
-                                {
-                                    ma.CrOFF = pwm.OFF;
-                                    ma.CrBSR = pwm.BSR;
-                                    ma.CrDEF = pwm.DEF;
-                                    ma.CrWAR = pwm.WAR_h;
-                                }
-                            }
-                            else
-                            {
-                                // Calculate crWAR
-                                LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == a.LeagueId).Single();
-                                float wRAA = ((ma.WOBA - ls.AvgWOBA) / ls.WOBAScale) * ma.PA;
-                                float battingRuns = wRAA + ((ls.RPerPA * (1.0f - ma.ParkFactor)) * ma.PA); // Ignored pitcher adjustment for now
-                                float baserunningRuns = (ma.SB * ls.RunSB) + (ma.CS * ls.RunCS);
-                                float defensiveRuns =
-                                    (Constants.POSITIONAL_ADJUSTMENT_C * stats.GamesC) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_1B * stats.Games1B) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_2B * stats.Games2B) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_3B * stats.Games3B) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_SS * stats.GamesSS) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_LF * stats.GamesLF) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_CF * stats.GamesCF) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_RF * stats.GamesRF) +
-                                    (Constants.POSITIONAL_ADJUSTMENT_DH * stats.GamesDH);
+                            // Calculate crWAR
+                            LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == a.LeagueId).Single();
+                            float wRAA = ((ma.WOBA - ls.AvgWOBA) / ls.WOBAScale) * ma.PA;
+                            float battingRuns = wRAA + ((ls.RPerPA * (1.0f - ma.ParkFactor)) * ma.PA); // Ignored pitcher adjustment for now
 
-                                ma.CrOFF = battingRuns;
-                                ma.CrBSR = baserunningRuns;
-                                ma.CrDEF = defensiveRuns;
+                            ma.CrOFF = battingRuns;
 
-                                float replacementRuns =
-                                    Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
-                                    ls.LeagueGames * ls.RPerWin / ls.LeaguePA * ma.PA;
-
-                                float runsAboveReplacement = battingRuns + baserunningRuns + defensiveRuns + replacementRuns;
-                                ma.CrWAR = runsAboveReplacement / ls.RPerWin;
-                            }
+                            ma.CrREP =
+                                Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
+                                ls.LeagueGames * ls.RPerWin / ls.LeaguePA * ma.PA;
+                            ma.CrWAR = 0; // Needs BSR and DEF which are calculated afterwards
 
                             db.Player_Hitter_MonthAdvanced.Add(ma);
                         }
-
-                    
                     }
                 }
             }

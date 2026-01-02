@@ -35,10 +35,9 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
-                CrBSR = -100000, // Needs to be calculated elsewhere, depends on factors not in this function
-                CrDEF = -100000, // Set as insane value so it's clear in DB if this isn't getting set
                 CrOFF = -100000,
                 CrWAR = -100000,
+                CrREP = -100000,
             };
 
             return ma;
@@ -75,8 +74,7 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
-                CrBSR = -100000, // Needs to be calculated elsewhere, depends on factors not in this function
-                CrDEF = -100000, // Set as insane value so it's clear in DB if this isn't getting set
+                CrREP = -100000,
                 CrOFF = -100000,
                 CrWAR = -100000,
             };

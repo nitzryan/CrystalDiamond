@@ -315,6 +315,7 @@ namespace DataAquisition
                                 R_PM = 0,
                                 PosAdjust = 0,
                                 D_RAA = 0,
+                                ScaledDRAA = -100000, // Will get set later
                                 R_GIDP = 0,
                                 R_ARM = 0,
                                 R_SB = 0,
