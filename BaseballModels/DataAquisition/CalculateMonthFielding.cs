@@ -356,7 +356,7 @@ namespace DataAquisition
                         var playerValues = playerDict.Values;
                         foreach (var pv in playerValues)
                         {
-                            var stats = thisMonthsLogs.Where(f => f.MlbId == pv.MlbId && f.LeagueId == leagueId && f.Position == pv.Position).Aggregate(Utilities.FielderGameLogAggregation);
+                            var stats = thisMonthsLogs.Where(f => f.MlbId == pv.MlbId && f.LeagueId == leagueId && f.TeamId == pv.TeamId && f.Position == pv.Position).Aggregate(Utilities.FielderGameLogAggregation);
                             pv.Chances = stats.Chances;
                             pv.Errors = stats.Errors;
                             pv.ThrowErrors = stats.ThrowErrors;
@@ -366,7 +366,7 @@ namespace DataAquisition
                                 pv.SB = stats.SB;
                                 pv.CS = stats.CS;
                                 pv.PB = stats.PassedBall;
-                                pv.R_SB = -((leagueStats.RunCS * stats.CS) + (leagueStats.RunSB + stats.SB));
+                                pv.R_SB = -((leagueStats.RunCS * stats.CS) + (leagueStats.RunSB * stats.SB));
 
                                 // Get PB runs above average
                                 float expectedPB = pv.Outs * leagueStats.PBPerOut;

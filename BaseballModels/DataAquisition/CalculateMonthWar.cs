@@ -35,6 +35,7 @@ namespace DataAquisition
                         progressBar.Tick();
                     }
                 }
+                db.SaveChanges();
 
                 return true;
             }
