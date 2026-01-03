@@ -303,6 +303,9 @@ CREATE TABLE Model_HitterLevelStats (
 	"SB" REAL NOT NULL,
 	"CS" REAL NOT NULL,
 	"ParkRunFactor" REAL NOT NULL,
+	"BSR" REAL NOT NULL,
+	"DRAA" REAL NOT NULL,
+	"DPOS" REAL NOT NULL,
 	PRIMARY KEY("MlbId", "Year", "Month", "LevelId")
 );
 

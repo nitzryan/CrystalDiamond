@@ -110,6 +110,38 @@ namespace DataAquisition
             LeagueId = a.LeagueId
         };
 
+        public static Func<Player_Hitter_MonthStats, Player_Hitter_MonthStats, Player_Hitter_MonthStats> HitterMonthStatsAggregation = (a, b) =>
+        new Player_Hitter_MonthStats
+        {
+            MlbId = a.MlbId,
+            Month = a.Month,
+            Year = a.Year,
+            AB = a.AB + b.AB,
+            PA = a.PA + b.PA,
+            H = a.H + b.H,
+            Hit2B = a.Hit2B + b.Hit2B,
+            Hit3B = a.Hit3B + b.Hit3B,
+            HR = a.HR + b.HR,
+            K = a.K + b.K,
+            BB = a.BB + b.BB,
+            SB = a.SB + b.SB,
+            CS = a.CS + b.CS,
+            HBP = a.HBP + b.HBP,
+            LevelId = a.LevelId,
+            LeagueId = a.LeagueId,
+            ParkHRFactor = SafeDivide(((a.PA * a.ParkHRFactor) + (b.PA * b.ParkHRFactor)), (a.PA + b.PA)),
+            ParkRunFactor = SafeDivide(((a.PA * a.ParkRunFactor) + (b.PA * b.ParkRunFactor)), (a.PA + b.PA)),
+            Games1B = a.Games1B + b.Games1B,
+            Games2B = a.Games2B + b.Games2B,
+            Games3B = a.Games3B + b.Games3B,
+            GamesC = a.GamesC + b.GamesC,
+            GamesCF = a.GamesCF + b.GamesCF,
+            GamesDH = a.GamesDH + b.GamesDH,
+            GamesLF = a.GamesLF + b.GamesLF,
+            GamesRF = a.GamesRF + b.GamesRF,
+            GamesSS = a.GamesSS + b.GamesSS
+        };
+
         public static Func<Player_Fielder_GameLog, Player_Fielder_GameLog, Player_Fielder_GameLog> FielderGameLogAggregation = (a, b) =>
         new Player_Fielder_GameLog
         {
@@ -189,6 +221,32 @@ namespace DataAquisition
             TeamId = a.TeamId,
             OppTeamId = a.OppTeamId,
             LeagueId = a.LeagueId
+        };
+
+        public static Func<Player_Pitcher_MonthStats, Player_Pitcher_MonthStats, Player_Pitcher_MonthStats> PitcherMonthStatsAggregation = (a, b) =>
+        new Player_Pitcher_MonthStats
+        {
+            MlbId = a.MlbId,
+            Month = a.Month,
+            Year = a.Year,
+            BattersFaced = a.BattersFaced + b.BattersFaced,
+            Outs = a.Outs + b.Outs,
+            H = a.H + b.H,
+            Hit2B = a.Hit2B + b.Hit2B,
+            Hit3B = a.Hit3B + b.Hit3B,
+            HR = a.HR + b.HR,
+            K = a.K + b.K,
+            BB = a.BB + b.BB,
+            GO = a.GO + b.GO,
+            AO = a.AO + b.AO,
+            ER = a.ER + b.ER,
+            R = a.R + b.R,
+            HBP = a.HBP + b.HBP,
+            LevelId = a.LevelId,
+            LeagueId = a.LeagueId,
+            SPPerc = SafeDivide(((a.SPPerc * a.Outs) + (b.SPPerc * b.Outs)), (a.Outs + b.Outs)),
+            ParkHRFactor = SafeDivide(((a.Outs * a.ParkHRFactor) + (b.Outs * b.ParkHRFactor)), (a.Outs + b.Outs)),
+            ParkRunFactor = SafeDivide(((a.Outs * a.ParkRunFactor) + (b.Outs * b.ParkRunFactor)), (a.Outs + b.Outs)),
         };
 
         public static (float, float) GetParkFactors(IEnumerable<Player_Hitter_GameLog> games, SqliteDbContext db)

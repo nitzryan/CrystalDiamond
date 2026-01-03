@@ -11,27 +11,25 @@ STATS_LOSS_MULTIPLIER = 0.4
 POSITION_LOSS_MULTIPLIER = 1.0
 TWAR_LOSS_MULTIPLIER = 0.8
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
-WAR_REGRESSION_LOSS_MULTIPLIER = 0.6
 PT_LOSS_MULTIPLIER = 0.5
 
-ELEMENT_LIST = ["TotalClassification", "Level", "PA", "Stats", "Position", "MLBValue", "Regression", "PlayingTime"]
+ELEMENT_LIST = ["TotalClassification", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool) -> tuple:
   # Get Model Output
   data = data.to(device)
   length = length.to(device)
-  output_war, output_warregression, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length)
   
   # Move targets and masks to GPU
-  target_war, target_level, target_pa, target_warregression, target_yearStats, target_yearPos, target_mlbValue, target_pt = targets
+  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt = targets
   mask_labels, mask_stats, mask_year, mask_mlbValue = masks
-  target_war, target_warregression, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt = target_war.to(device), target_warregression.to(device), target_level.to(device), target_pa.to(device), target_yearStats.to(device), target_yearPos.to(device), target_mlbValue.to(device), target_pt.to(device)
+  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt = target_war.to(device), target_level.to(device), target_pa.to(device), target_yearStats.to(device), target_yearPos.to(device), target_mlbValue.to(device), target_pt.to(device)
   mask_labels, mask_year, mask_stats, mask_mlbValue = mask_labels.to(device), mask_year.to(device), mask_stats.to(device), mask_mlbValue.to(device)
   
   # Get losses
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
-  loss_warregression = Prospect_WarRegression_Loss(output_warregression, target_warregression, mask_labels)
   loss_yearStats = Stats_Loss(output_stats, target_yearStats, mask_stats)
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
@@ -41,13 +39,12 @@ def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackp
     (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_level * LEVEL_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_pa * PA_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_warregression * WAR_REGRESSION_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_yearStats * STATS_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_yearPos * POSITION_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_yearPt * PT_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_mlbValue * MLB_VALUE_LOSS_MULTIPLIER).backward()
   
-  return (loss_war, loss_level, loss_pa, loss_warregression, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
+  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
 
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, should_output=True):
   network.train() #updates any network layers that behave differently in training and execution
@@ -55,7 +52,7 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, sh
   num_batches = 0
   for batch, (data, length, targets, masks) in enumerate(data_generator):
     optimizer.zero_grad()
-    loss_war, loss_level, loss_pa, loss_warregression, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, True, is_hitter)
+    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, True, is_hitter)
     torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
     optimizer.step()
     avg_loss[0] += loss_war.item()
@@ -64,8 +61,7 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, sh
     avg_loss[3] += loss_yearStats.item()
     avg_loss[4] += loss_yearPos.item()
     avg_loss[5] += loss_mlbValue.item()
-    avg_loss[6] += loss_warregression.item()
-    avg_loss[7] += loss_yearPt.item()
+    avg_loss[6] += loss_yearPt.item()
     num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -78,7 +74,7 @@ def test(network, test_loader, num_elements, is_hitter : bool):
   num_batches = 0
   with torch.no_grad():
     for data, length, targets, masks in test_loader:
-      loss_war, loss_level, loss_pa, loss_warregression, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, False, is_hitter)
+      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, False, is_hitter)
       
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_level.item()
@@ -86,8 +82,7 @@ def test(network, test_loader, num_elements, is_hitter : bool):
       avg_loss[3] += loss_yearStats.item()
       avg_loss[4] += loss_yearPos.item()
       avg_loss[5] += loss_mlbValue.item()
-      avg_loss[6] += loss_warregression.item()
-      avg_loss[7] += loss_yearPt.item()
+      avg_loss[6] += loss_yearPt.item()
       num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -135,7 +130,7 @@ def trainAndGraph(network,
   train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
   
-  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7], [8]], verbose=False,
+  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)
   
   iterable = range(num_epochs)

@@ -16,7 +16,6 @@ namespace Db
 		public DbSet<Model_PlayerWar> Model_PlayerWar {get; set;}
 		public DbSet<Model_Players> Model_Players {get; set;}
 		public DbSet<Model_OrgLeagueStatus> Model_OrgLeagueStatus {get; set;}
-		public DbSet<Model_HitterLevelStats> Model_HitterLevelStats {get; set;}
 		public DbSet<Model_LeagueHittingBaselines> Model_LeagueHittingBaselines {get; set;}
 		public DbSet<Model_PitcherLevelStats> Model_PitcherLevelStats {get; set;}
 		public DbSet<Model_LeaguePitchingBaselines> Model_LeaguePitchingBaselines {get; set;}
@@ -69,6 +68,7 @@ namespace Db
 		public DbSet<Model_HitterStats> Model_HitterStats {get; set;}
 		public DbSet<Player_Fielder_MonthStats> Player_Fielder_MonthStats {get; set;}
 		public DbSet<Player_Fielder_YearStats> Player_Fielder_YearStats {get; set;}
+		public DbSet<Model_HitterLevelStats> Model_HitterLevelStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -86,7 +86,6 @@ namespace Db
 			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Model_OrgLeagueStatus>().HasKey(f => new {f.OrgId,f.Year,f.Month});
-			modelBuilder.Entity<Model_HitterLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Model_LeagueHittingBaselines>().HasKey(f => new {f.Year,f.Month,f.LeagueId});
 			modelBuilder.Entity<Model_PitcherLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Model_LeaguePitchingBaselines>().HasKey(f => new {f.Year,f.Month,f.LeagueId});
@@ -139,6 +138,7 @@ namespace Db
 			modelBuilder.Entity<Model_HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Player_Fielder_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId,f.TeamId,f.Position});
 			modelBuilder.Entity<Player_Fielder_YearStats>().HasKey(f => new {f.MlbId,f.Year,f.LevelId,f.LeagueId,f.TeamId,f.Position});
+			modelBuilder.Entity<Model_HitterLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 		}
 	}
 }

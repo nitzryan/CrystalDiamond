@@ -22,8 +22,8 @@ class RNN_Model(nn.Module):
         self.pre2 = nn.Linear(input_size, input_size)
         self.pre3 = nn.Linear(input_size, input_size)
         
-        self.rnn = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
-        #self.rnn = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        #self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size)
         self.linear_war2 = nn.Linear(hidden_size, hidden_size)
         self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
@@ -31,12 +31,6 @@ class RNN_Model(nn.Module):
         self.linear_level2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS))
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
-        
-        # Predict specific war value
-        self.linear_regr_war1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_regr_war2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_regr_war3 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_regr_war4 = nn.Linear(hidden_size // 2, 1)
         
         # Predict next year stats
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
@@ -91,12 +85,12 @@ class RNN_Model(nn.Module):
         stat_mean = -self.stat_offsets.mean()
         pt_mean = -self.pt_offset.mean()
         for layer in [self.linear_yearStats4, self.linear_pt3]:
-            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('relu'))
+            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
             if layer.bias is not None:
                 #init.zeros_(layer.bias)
                 init.constant_(layer.bias, stat_mean)
                 
-        init.constant_(self.linear_yearStats4.bias, stat_mean * 0.75)
+        init.constant_(self.linear_yearStats4.bias, 0)
         init.constant_(self.linear_pt3.bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
@@ -106,9 +100,8 @@ class RNN_Model(nn.Module):
         init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.rnn])
+        shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.recurrent])
         war_class_params = GetParameters([self.linear_war1, self.linear_war2, self.linear_war3])
-        war_regression_params = GetParameters([self.linear_regr_war1, self.linear_regr_war2, self.linear_regr_war3, self.linear_regr_war4])
         level_params = GetParameters([self.linear_level1, self.linear_level2])
         pa_params = GetParameters([self.linear_pa1, self.linear_pa2])
         yearStat_params = GetParameters([self.linear_yearStats1, self.linear_yearStats2, self.linear_yearStats3, self.linear_yearStats4])
@@ -123,7 +116,6 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.03},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': war_regression_params, 'lr': 0.01},
                                            {'params': yearPt_params, 'lr': 0.01}])
         
     def to(self, *args, **kwargs):
@@ -144,18 +136,13 @@ class RNN_Model(nn.Module):
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        packedOutput, _ = self.rnn(packedInput)
+        packedOutput, _ = self.recurrent(packedInput)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         # Generate War predictions
         output_war = self.nonlin(self.linear_war1(output))
         output_war = self.nonlin(self.linear_war2(output_war))
         output_war = self.linear_war3(output_war)
-        
-        output_regression_war = self.nonlin(self.linear_regr_war1(output))
-        output_regression_war = self.nonlin(self.linear_regr_war2(output_regression_war))
-        output_regression_war = self.nonlin(self.linear_regr_war3(output_regression_war))
-        output_regression_war = self.linear_regr_war4(output_regression_war)
         
         # Generate Level Predictions
         output_level = self.nonlin(self.linear_level1(output))
@@ -169,8 +156,8 @@ class RNN_Model(nn.Module):
         output_yearStats = self.nonlin(self.linear_yearStats1(output))
         output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
         output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
-        #output_yearStats = self.linear_yearStats4(output_yearStats)
-        output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
+        output_yearStats = self.linear_yearStats4(output_yearStats)
+        #output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
         
         
         output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
@@ -202,7 +189,7 @@ class RNN_Model(nn.Module):
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
         
-        return output_war, output_regression_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
+        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):

@@ -113,8 +113,8 @@
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
+            //if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
+            //    return;
 
             //if (!Model_MonthValue.Main())
             //    return;
@@ -130,20 +130,11 @@
             {
                 foreach (var month in months)
                 {
-                    //if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
-                    //    break;
+                    if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
+                        break;
 
-                    //if (!Model_RawStats.OrgLeagueStatus(year, month, FORCE_COMPLETE_RESET))
-                    //    return;
-
-                    //if (!Model_RawStats.LeagueBaselines(year, month, FORCE_COMPLETE_RESET))
-                    //    return;
-
-                    //if (!Model_RawStats.HitterPlayerStats(year, month, FORCE_COMPLETE_RESET))
-                    //    return;
-
-                    //if (!Model_RawStats.PitcherPlayerStats(year, month, FORCE_COMPLETE_RESET))
-                    //    return;
+                    if (!Model_RawStats.UpdateRawStats(year, month))
+                        return;
                 }
             }
         }

@@ -61,11 +61,11 @@ class Player_Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         if self.should_use_variants:
             return self.data[:,idx], self.lengths[idx], \
-                (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.v_war_regression[:,idx,self.v_idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
+                (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
                 (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
         else:
             return self.data[:,idx], self.lengths[idx], \
-                (self.o_war_buckets[:,idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_war_values[:,idx], self.o_year_stats[:,idx], self.o_year_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
+                (self.o_war_buckets[:,idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_year_stats[:,idx], self.o_year_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx]), \
                 (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
     
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:

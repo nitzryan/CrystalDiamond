@@ -17,6 +17,9 @@ namespace Db
 		public required float SB {get; set;}
 		public required float CS {get; set;}
 		public required float ParkRunFactor {get; set;}
+		public required float BSR {get; set;}
+		public required float DRAA {get; set;}
+		public required float DPOS {get; set;}
 
 		public Model_HitterLevelStats Clone()
 		{
@@ -37,6 +40,9 @@ namespace Db
 				SB = this.SB,
 				CS = this.CS,
 				ParkRunFactor = this.ParkRunFactor,
+				BSR = this.BSR,
+				DRAA = this.DRAA,
+				DPOS = this.DPOS,
 			};
 		}
 	}
