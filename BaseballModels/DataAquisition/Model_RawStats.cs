@@ -267,7 +267,9 @@ namespace DataAquisition
                         // Group by level
                         var leagueGroups = lvlG.GroupBy(f => f.LeagueId);
                         var defStats = db.Player_Fielder_MonthStats.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)) && f.LevelId == lvlG.Key)
-                            .Select(f => new { f.ScaledDRAA, f.PosAdjust }).ToArray();
+                            .Select(f => new { f.ScaledDRAA, f.PosAdjust, f.LevelId }).ToArray();
+                        var proFieldingStats = db.Player_MonthlyWar.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)))
+                            .Select(f => f.DRAA);
                         int totalPa = leagueGroups.Sum(f => f.Sum(g => g.PA));
                         Model_HitterLevelStats mhls = new Model_HitterLevelStats
                         {
@@ -288,7 +290,7 @@ namespace DataAquisition
                             ParkRunFactor = 1,
                             BSR = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * db.Player_Hitter_MonthBaserunning.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)) && f.LevelId == lvlG.Key)
                                 .Sum(f => f.RBSR), totalPa, 0),
-                            DRAA = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * defStats.Sum(f => f.ScaledDRAA), totalPa, 0),
+                            DRAA = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * (defStats.Where(f => f.LevelId != 1).Sum(f => f.ScaledDRAA) + proFieldingStats.Sum()), totalPa, 0),
                             DPOS = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * defStats.Sum(f => f.PosAdjust), totalPa, 0),
                         };
 

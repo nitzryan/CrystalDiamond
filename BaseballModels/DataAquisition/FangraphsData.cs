@@ -92,6 +92,7 @@ namespace DataAquisition
                                 WAR_s = starterData.Any() ? (float)starterData.First().war : 0,
                                 WAR_r = relieverData.Any() ? (float)relieverData.First().war : 0,
                                 OFF = 0,
+                                DRAA = 0,
                                 DEF = 0,
                                 BSR = 0,
                                 REP = 0,
@@ -110,7 +111,10 @@ namespace DataAquisition
                         var hitters = json.RootElement.GetProperty("data").EnumerateArray();
                         foreach (var hitter in hitters)
                         {
-                            
+                            float draa = 0;
+                            if (hitter.TryGetProperty("Fielding", out var fieldElement) && fieldElement.ValueKind == JsonValueKind.Number)
+                                draa = (float)fieldElement.GetDouble();
+
                             db.Player_YearlyWar.Add(new Player_YearlyWar
                             {
                                 MlbId = hitter.GetProperty("xMLBAMID").GetInt32(),
@@ -121,6 +125,7 @@ namespace DataAquisition
                                 WAR_s = 0,
                                 WAR_r = 0,
                                 OFF = (float)hitter.GetProperty("Batting").GetDouble(),
+                                DRAA = draa,
                                 DEF = (float)hitter.GetProperty("Defense").GetDouble(),
                                 BSR = (float)hitter.GetProperty("BaseRunning").GetDouble(),
                                 REP = (float)hitter.GetProperty("Replacement").GetDouble(),
@@ -211,6 +216,7 @@ namespace DataAquisition
                                 WAR_s = starterData.Any() ? (float)starterData.First().war : 0,
                                 WAR_r = relieverData.Any() ? (float)relieverData.First().war : 0,
                                 OFF = 0,
+                                DRAA = 0,
                                 DEF = 0,
                                 BSR = 0,
                                 REP = 0,
@@ -232,6 +238,10 @@ namespace DataAquisition
 
                         foreach (var hitter in hitters)
                         {
+                            float draa = 0;
+                            if (hitter.TryGetProperty("Fielding", out var fieldElement) && fieldElement.ValueKind == JsonValueKind.Number)
+                                draa = (float)fieldElement.GetDouble();
+
                             // Check if player already has pitcher stats
                             int hitterId = hitter.GetProperty("xMLBAMID").GetInt32();
                             if (playerMonthlyWarList.Any(f => f.MlbId == hitterId)) 
@@ -240,6 +250,7 @@ namespace DataAquisition
                                 pmw.PA = (int)hitter.GetProperty("PA").GetDouble();
                                 pmw.WAR_h = (float)hitter.GetProperty("WAR").GetDouble();
                                 pmw.OFF = (float)hitter.GetProperty("Batting").GetDouble();
+                                pmw.DRAA = draa;
                                 pmw.DEF = (float)hitter.GetProperty("Defense").GetDouble();
                                 pmw.BSR = (float)hitter.GetProperty("BaseRunning").GetDouble();
                                 pmw.REP = (float)hitter.GetProperty("Replacement").GetDouble();
@@ -255,6 +266,7 @@ namespace DataAquisition
                                     WAR_s = 0,
                                     WAR_r = 0,
                                     OFF = (float)hitter.GetProperty("Batting").GetDouble(),
+                                    DRAA = draa,
                                     DEF = (float)hitter.GetProperty("Defense").GetDouble(),
                                     BSR = (float)hitter.GetProperty("BaseRunning").GetDouble(),
                                     REP = (float)hitter.GetProperty("Replacement").GetDouble(),

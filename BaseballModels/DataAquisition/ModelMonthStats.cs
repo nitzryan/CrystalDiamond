@@ -230,7 +230,9 @@ namespace DataAquisition
                         var phma = db.Player_Hitter_MonthAdvanced.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month)
                             .Select(f => new { f.CrWAR, f.CrOFF });
                         var fieldingStats = db.Player_Fielder_MonthStats.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month)
-                            .Select(f => new { f.ScaledDRAA, f.PosAdjust });
+                            .Select(f => new { f.ScaledDRAA, f.PosAdjust, f.LevelId });
+                        var proFieldingStats = db.Player_MonthlyWar.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month)
+                            .Select(f => f.DRAA);
 
                         currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
                         currentData.PA = stat.AB + stat.BB + stat.HBP;
@@ -249,7 +251,8 @@ namespace DataAquisition
                         currentData.CrWAR = phma.Sum(f => f.CrWAR);
                         currentData.CrOFF = phma.Sum(f => f.CrOFF);
                         currentData.CrDPOS = fieldingStats.Sum(f => f.PosAdjust);
-                        currentData.CrDRAA = fieldingStats.Sum(f => f.ScaledDRAA);
+                                                                // Only use for minor league fielding data
+                        currentData.CrDRAA = fieldingStats.Where(f => f.LevelId != 1).Sum(f => f.ScaledDRAA) + proFieldingStats.Sum();
                         currentData.CrBSR = db.Player_Hitter_MonthBaserunning.Where(f => f.MlbId == hitter.MlbId && f.Year == r.Year && f.Month == r.Month)
                             .Sum(f => f.RBSR);
                         currentData.SBPercRatio = r.SBPercRatio;

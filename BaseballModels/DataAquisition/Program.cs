@@ -12,8 +12,8 @@
             //years = [2025];
             //months = [9];
 
-            //if (!await FangraphsData.Main(years))
-            //    return;
+            if (!await FangraphsData.Main(years))
+                return;
 
             //Player could be drafted in 2004 and not play until 2005 or later
             //await DraftResults.Main(2004);
@@ -107,14 +107,14 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            //if (!await TransactionLog.Main())
-            //    return;
+            if (!await TransactionLog.Main())
+                return;
 
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            //if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
-            //    return;
+            if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
+                return;
 
             //if (!Model_MonthValue.Main())
             //    return;

@@ -12,6 +12,7 @@ namespace Db
 		public required float WAR_s {get; set;}
 		public required float WAR_r {get; set;}
 		public required float OFF {get; set;}
+		public required float DRAA {get; set;}
 		public required float DEF {get; set;}
 		public required float BSR {get; set;}
 		public required float REP {get; set;}
@@ -30,6 +31,7 @@ namespace Db
 				WAR_s = this.WAR_s,
 				WAR_r = this.WAR_r,
 				OFF = this.OFF,
+				DRAA = this.DRAA,
 				DEF = this.DEF,
 				BSR = this.BSR,
 				REP = this.REP,

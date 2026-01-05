@@ -1380,60 +1380,6 @@ class DB_Player_ServiceTime:
 		items = cursor.execute("SELECT * FROM Player_ServiceTime " + conditional, values).fetchall()
 		return [DB_Player_ServiceTime(i) for i in items]
 
-class DB_Player_YearlyWar:
-	def __init__(self, values : tuple[any]):
-		self.mlbId = values[0]
-		self.year = values[1]
-		self.isHitter = values[2]
-		self.PA = values[3]
-		self.IP_SP = values[4]
-		self.IP_RP = values[5]
-		self.WAR_h = values[6]
-		self.WAR_s = values[7]
-		self.WAR_r = values[8]
-		self.OFF = values[9]
-		self.DEF = values[10]
-		self.BSR = values[11]
-		self.REP = values[12]
-
-	NUM_ELEMENTS = 13
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.isHitter,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DEF,self.BSR,self.REP)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_YearlyWar']:
-		items = cursor.execute("SELECT * FROM Player_YearlyWar " + conditional, values).fetchall()
-		return [DB_Player_YearlyWar(i) for i in items]
-
-class DB_Player_MonthlyWar:
-	def __init__(self, values : tuple[any]):
-		self.mlbId = values[0]
-		self.year = values[1]
-		self.month = values[2]
-		self.PA = values[3]
-		self.IP_SP = values[4]
-		self.IP_RP = values[5]
-		self.WAR_h = values[6]
-		self.WAR_s = values[7]
-		self.WAR_r = values[8]
-		self.OFF = values[9]
-		self.DEF = values[10]
-		self.BSR = values[11]
-		self.REP = values[12]
-
-	NUM_ELEMENTS = 13
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.month,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DEF,self.BSR,self.REP)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_MonthlyWar']:
-		items = cursor.execute("SELECT * FROM Player_MonthlyWar " + conditional, values).fetchall()
-		return [DB_Player_MonthlyWar(i) for i in items]
-
 class DB_Pre05_Players:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
@@ -1898,6 +1844,62 @@ class DB_Output_PlayerWarAggregation:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PlayerWarAggregation']:
 		items = cursor.execute("SELECT * FROM Output_PlayerWarAggregation " + conditional, values).fetchall()
 		return [DB_Output_PlayerWarAggregation(i) for i in items]
+
+class DB_Player_YearlyWar:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.year = values[1]
+		self.isHitter = values[2]
+		self.PA = values[3]
+		self.IP_SP = values[4]
+		self.IP_RP = values[5]
+		self.WAR_h = values[6]
+		self.WAR_s = values[7]
+		self.WAR_r = values[8]
+		self.OFF = values[9]
+		self.DRAA = values[10]
+		self.DEF = values[11]
+		self.BSR = values[12]
+		self.REP = values[13]
+
+	NUM_ELEMENTS = 14
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.year,self.isHitter,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DRAA,self.DEF,self.BSR,self.REP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_YearlyWar']:
+		items = cursor.execute("SELECT * FROM Player_YearlyWar " + conditional, values).fetchall()
+		return [DB_Player_YearlyWar(i) for i in items]
+
+class DB_Player_MonthlyWar:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.year = values[1]
+		self.month = values[2]
+		self.PA = values[3]
+		self.IP_SP = values[4]
+		self.IP_RP = values[5]
+		self.WAR_h = values[6]
+		self.WAR_s = values[7]
+		self.WAR_r = values[8]
+		self.OFF = values[9]
+		self.DRAA = values[10]
+		self.DEF = values[11]
+		self.BSR = values[12]
+		self.REP = values[13]
+
+	NUM_ELEMENTS = 14
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.year,self.month,self.PA,self.IP_SP,self.IP_RP,self.WAR_h,self.WAR_s,self.WAR_r,self.OFF,self.DRAA,self.DEF,self.BSR,self.REP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_MonthlyWar']:
+		items = cursor.execute("SELECT * FROM Player_MonthlyWar " + conditional, values).fetchall()
+		return [DB_Player_MonthlyWar(i) for i in items]
 
 
 ##############################################################################################
