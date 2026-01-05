@@ -28,15 +28,16 @@ namespace DataAquisition
         //public const int CURRENT_MONTH = 9;
 
         // Positional adjustment
-        public const float POSITIONAL_ADJUSTMENT_C = 12.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_1B = -12.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_2B = 2.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_3B = 2.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_SS = 7.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_LF = -7.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_CF = 2.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_RF = -7.5f / 162;
-        public const float POSITIONAL_ADJUSTMENT_DH = -17.5f / 162;
+        //https://tht.fangraphs.com/re-examining-wars-defensive-spectrum/
+        public const float POSITIONAL_ADJUSTMENT_C = 7.75f;
+        public const float POSITIONAL_ADJUSTMENT_1B = -9.25f;
+        public const float POSITIONAL_ADJUSTMENT_2B = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_3B = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_SS = 4.75f;
+        public const float POSITIONAL_ADJUSTMENT_LF = -4.25f;
+        public const float POSITIONAL_ADJUSTMENT_CF = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_RF = -4.25f;
+        public const float POSITIONAL_ADJUSTMENT_DH = -9.25f;
 
         // WAR Calculation Constants
         public const float REPLACEMENT_LEVEL_WIN_PERCENTAGE = 1000.0f / 2430;

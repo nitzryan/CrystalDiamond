@@ -115,6 +115,10 @@ namespace SitePrep
                 CFIP = 0,
                 FIPR9Adjustment = 0,
                 LeagueERA = 0,
+                PBPerOut = 0,
+                ProbGIDP = 0,
+                RunGIDP = 0,
+                RunPB = 0
             };
 
             for (int i = 0; i < ls.Count(); i++)
@@ -140,6 +144,10 @@ namespace SitePrep
                 leagueStats.CFIP += l.CFIP * abFrac;
                 leagueStats.FIPR9Adjustment += l.FIPR9Adjustment * abFrac;
                 leagueStats.LeagueERA += l.LeagueERA * abFrac;
+                leagueStats.PBPerOut += l.PBPerOut * abFrac;
+                leagueStats.ProbGIDP += l.ProbGIDP * abFrac;
+                leagueStats.RunGIDP += l.RunGIDP * abFrac;
+                leagueStats.RunPB += l.RunPB * abFrac;
             }
 
             return leagueStats;
@@ -267,7 +275,7 @@ namespace SitePrep
 
         public static float CalculateDef(float pa, float percC, float perc1B, float perc2B, float perc3B, float percSS, float percLF, float percCF, float percRF, float percDH)
         {
-            float seasons = pa / 600.0f;
+            float seasons = pa / 650.0f;
             float def = 0;
 
             def += seasons * percC * Constants.POSITIONAL_ADJUSTMENT_C;

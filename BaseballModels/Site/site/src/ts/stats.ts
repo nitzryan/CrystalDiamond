@@ -76,7 +76,7 @@ async function main()
     const hitterStatsViewer = new SortableStatsViewer(
         statsHitter,
         DB_Prediction_HitterStats,
-        ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"],
+        ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "POS", "RAA", "DEF", "WAR"],
         f => [[`<a href='player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], 
             [getParentAbbr(f.player.orgId), [al_l, lnk]], 
             [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]], 
@@ -85,7 +85,9 @@ async function main()
             [(f.obj.BB / f.obj.Pa * 100).toFixed(1), [al_r]], [(f.obj.K / f.obj.Pa * 100).toFixed(1), [al_r, br]], 
             [f.obj.SB.toFixed(1), [al_r]], [f.obj.CS.toFixed(1), [al_r, br]],
             [f.obj.AVG.toFixed(3), [al_r]], [f.obj.OBP.toFixed(3), [al_r]], [f.obj.SLG.toFixed(3), [al_r]], [f.obj.ISO.toFixed(3), [al_r, br]], 
-            [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]
+            [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r, br]], 
+            [f.obj.crDPOS.toFixed(1), [al_r]], [f.obj.crDRAA.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r, br]], 
+            [f.obj.crWAR.toFixed(1), [al_r]]]
     )
     statsTables.appendChild(hitterStatsViewer.baseElement)
 

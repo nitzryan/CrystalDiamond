@@ -113,6 +113,8 @@ namespace SitePrep
                             K = 0,
                             SB = 0,
                             CS = 0,
+                            BSR = 0,
+                            DRAA = 0,
                             ParkRunFactor = 0,
                             PercC = 0,
                             Perc1B = 0,
@@ -137,6 +139,8 @@ namespace SitePrep
                             ohsa.K += result.K / size;
                             ohsa.SB += result.SB / size;
                             ohsa.CS += result.CS / size;
+                            ohsa.BSR += result.BSR / size;
+                            ohsa.DRAA += result.DRAA / size;
                             ohsa.ParkRunFactor += result.ParkRunFactor / size;
                             ohsa.PercC += result.PercC / size;
                             ohsa.Perc1B += result.Perc1B / size;

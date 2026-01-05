@@ -18,6 +18,8 @@ namespace Db
 		public required float K {get; set;}
 		public required float SB {get; set;}
 		public required float CS {get; set;}
+		public required float BSR {get; set;}
+		public required float DRAA {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float PercC {get; set;}
 		public required float Perc1B {get; set;}
@@ -49,6 +51,8 @@ namespace Db
 				K = this.K,
 				SB = this.SB,
 				CS = this.CS,
+				BSR = this.BSR,
+				DRAA = this.DRAA,
 				ParkRunFactor = this.ParkRunFactor,
 				PercC = this.PercC,
 				Perc1B = this.Perc1B,

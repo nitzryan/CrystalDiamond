@@ -113,14 +113,16 @@ namespace SitePrep
                                 float wrc = 100 * (a + (b - c)) / d;
 
                                 // Calculate value
-                                float bsr = (leagueBaselineAvg.RunSB * SB) + (leagueBaselineAvg.RunCS * CS);
-                                float def = Utilities.CalculateDef(player.Pa, player.PercC, player.Perc1B, player.Perc2B, player.Perc3B, player.PercSS, player.PercLF, player.PercCF, player.PercRF, player.PercDH);
+                                float bsr = player.BSR * player.Pa / 100.0f;
+                                float def_pos = Utilities.CalculateDef(player.Pa, player.PercC, player.Perc1B, player.Perc2B, player.Perc3B, player.PercSS, player.PercLF, player.PercCF, player.PercRF, player.PercDH);
+                                float draa = player.DRAA * player.Pa / 100.0f;
+                                float def = def_pos + draa;
                                 float off_runs = wRAAPerPA * player.Pa;
                                 float off = (wOBA - leagueBaselineAvg.AvgHitterWOBA) / leagueBaselineAvg.WOBAScale * player.Pa;
                                 float replacementRuns =
                                     Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
                                     leagueBaselineAvg.LeagueGames * leagueBaselineAvg.RPerWin / leagueBaselineAvg.LeaguePA * player.Pa;
-                                float runsAboveRep = replacementRuns + bsr + def + off_runs;
+                                float runsAboveRep = replacementRuns + player.BSR + def + off_runs;
                                 float war = runsAboveRep / leagueBaselineAvg.RPerWin;
 
                                 if (level == 0 && date.Year == 2025 && date.Month == 9 && player.MlbId == 691406)
@@ -152,6 +154,8 @@ namespace SitePrep
                                     WRC = wrc,
                                     CrOFF = off,
                                     CrDEF = def,
+                                    CrDPOS = def_pos,
+                                    CrDRAA = draa,
                                     CrBSR = bsr,
                                     CrWAR = war,
                                     PercC = player.PercC,

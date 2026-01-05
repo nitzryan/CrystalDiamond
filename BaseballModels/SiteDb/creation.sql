@@ -126,6 +126,8 @@ CREATE TABLE Prediction_HitterStats (
 	"crOFF" REAL NOT NULL,
 	"crBSR" REAL NOT NULL,
 	"crDEF" REAL NOT NULL,
+	"crDPOS" REAL NOT NULL,
+	"crDRAA" REAL NOT NULL,
 	"crWAR" REAL NOT NULL,
 	PRIMARY KEY("MlbId", "Model", "Year", "Month", "LevelId")
 );

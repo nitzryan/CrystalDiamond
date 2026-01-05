@@ -106,7 +106,7 @@ function main() {
                     al_l = 'align_left';
                     br = 'border_right';
                     bl = 'border_left';
-                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "DEF", "WAR"], function (f) { return [["<a href='player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
+                    hitterStatsViewer = new SortableStatsViewer(statsHitter, DB_Prediction_HitterStats, ["Name", "Org", "Age", "Position", "PA", "1B", "2B", "3B", "HR", "BB%", "K%", "SB", "CS", "AVG", "OBP", "SLG", "ISO", "wRC+", "OFF", "BSR", "POS", "RAA", "DEF", "WAR"], function (f) { return [["<a href='player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]],
                         [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r]],
                         [f.player.position, [al_l, br]],
@@ -114,7 +114,9 @@ function main() {
                         [(f.obj.BB / f.obj.Pa * 100).toFixed(1), [al_r]], [(f.obj.K / f.obj.Pa * 100).toFixed(1), [al_r, br]],
                         [f.obj.SB.toFixed(1), [al_r]], [f.obj.CS.toFixed(1), [al_r, br]],
                         [f.obj.AVG.toFixed(3), [al_r]], [f.obj.OBP.toFixed(3), [al_r]], [f.obj.SLG.toFixed(3), [al_r]], [f.obj.ISO.toFixed(3), [al_r, br]],
-                        [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r]], [f.obj.crWAR.toFixed(1), [al_r]]]; });
+                        [f.obj.wRC.toFixed(0), [al_r]], [f.obj.crOFF.toFixed(1), [al_r]], [f.obj.crBSR.toFixed(1), [al_r, br]],
+                        [f.obj.crDPOS.toFixed(1), [al_r]], [f.obj.crDRAA.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r, br]],
+                        [f.obj.crWAR.toFixed(1), [al_r]]]; });
                     statsTables.appendChild(hitterStatsViewer.baseElement);
                     pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]],
@@ -375,6 +377,8 @@ var DB_Prediction_HitterStats = (function () {
         this.crOFF = data['crOFF'];
         this.crBSR = data['crBSR'];
         this.crDEF = data['crDEF'];
+        this.crDPOS = data['crDPOS'];
+        this.crDRAA = data['crDRAA'];
         this.crWAR = data['crWAR'];
     }
     return DB_Prediction_HitterStats;

@@ -26,15 +26,16 @@ namespace SitePrep
         public static List<int> ModelLevelToMlbLevel = [1, 11, 12, 13, 14, 15, 16, 17];
 
         // Positional adjustment
-        public const float POSITIONAL_ADJUSTMENT_C = 12.5f;
-        public const float POSITIONAL_ADJUSTMENT_1B = -12.5f;
-        public const float POSITIONAL_ADJUSTMENT_2B = 2.5f;
-        public const float POSITIONAL_ADJUSTMENT_3B = 2.5f;
-        public const float POSITIONAL_ADJUSTMENT_SS = 7.5f;
-        public const float POSITIONAL_ADJUSTMENT_LF = -7.5f;
-        public const float POSITIONAL_ADJUSTMENT_CF = 2.5f;
-        public const float POSITIONAL_ADJUSTMENT_RF = -7.5f;
-        public const float POSITIONAL_ADJUSTMENT_DH = -17.5f;
+        //https://tht.fangraphs.com/re-examining-wars-defensive-spectrum/
+        public const float POSITIONAL_ADJUSTMENT_C = 7.75f;
+        public const float POSITIONAL_ADJUSTMENT_1B = -9.25f;
+        public const float POSITIONAL_ADJUSTMENT_2B = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_3B = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_SS = 4.75f;
+        public const float POSITIONAL_ADJUSTMENT_LF = -4.25f;
+        public const float POSITIONAL_ADJUSTMENT_CF = 1.75f;
+        public const float POSITIONAL_ADJUSTMENT_RF = -4.25f;
+        public const float POSITIONAL_ADJUSTMENT_DH = -9.25f;
 
         // WAR Calculation Constants
         public const float REPLACEMENT_LEVEL_WIN_PERCENTAGE = 1000.0f / 2430;

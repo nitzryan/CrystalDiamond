@@ -221,6 +221,8 @@ class DB_Prediction_HitterStats
 	public crOFF : number
 	public crBSR : number
 	public crDEF : number
+	public crDPOS : number
+	public crDRAA : number
 	public crWAR : number
 
 	constructor(data : JsonObject)
@@ -258,6 +260,8 @@ class DB_Prediction_HitterStats
 		this.crOFF = data['crOFF'] as number
 		this.crBSR = data['crBSR'] as number
 		this.crDEF = data['crDEF'] as number
+		this.crDPOS = data['crDPOS'] as number
+		this.crDRAA = data['crDRAA'] as number
 		this.crWAR = data['crWAR'] as number
 	}
 }

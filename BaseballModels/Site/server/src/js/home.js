@@ -642,6 +642,8 @@ var DB_Prediction_HitterStats = (function () {
         this.crOFF = data['crOFF'];
         this.crBSR = data['crBSR'];
         this.crDEF = data['crDEF'];
+        this.crDPOS = data['crDPOS'];
+        this.crDRAA = data['crDRAA'];
         this.crWAR = data['crWAR'];
     }
     return DB_Prediction_HitterStats;

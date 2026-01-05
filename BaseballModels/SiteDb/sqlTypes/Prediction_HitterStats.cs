@@ -35,6 +35,8 @@ namespace SiteDb
 		public required float CrOFF {get; set;}
 		public required float CrBSR {get; set;}
 		public required float CrDEF {get; set;}
+		public required float CrDPOS {get; set;}
+		public required float CrDRAA {get; set;}
 		public required float CrWAR {get; set;}
 
 		public Prediction_HitterStats Clone()
@@ -74,6 +76,8 @@ namespace SiteDb
 				CrOFF = this.CrOFF,
 				CrBSR = this.CrBSR,
 				CrDEF = this.CrDEF,
+				CrDPOS = this.CrDPOS,
+				CrDRAA = this.CrDRAA,
 				CrWAR = this.CrWAR,
 				
 			};
