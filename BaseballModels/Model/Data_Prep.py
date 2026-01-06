@@ -103,8 +103,8 @@ class Data_Prep:
         # Restrict so new data doesn't change old conversions which would break model
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
         pitcher_stats = DB_Model_PitcherStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))
-        hitterlevel_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND PA>=?", (Data_Prep.__Cutoff_Year,30))
-        pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND (Outs_SP + Outs_RP)>=?", (Data_Prep.__Cutoff_Year,20))
+        hitterlevel_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND PA>=? AND LevelId=?", (Data_Prep.__Cutoff_Year,100,0))
+        pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND (Outs_SP + Outs_RP)>=? AND LevelId=?", (Data_Prep.__Cutoff_Year,60,0))
         
         # Normalize output stats
         #self.__Create_Standard_Norms(self.output_map.map_hitter_output, hitter_stats, "hitoutput")
@@ -345,7 +345,7 @@ class Data_Prep:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
                 stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
-                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 30) / 300, 1), 0)
+                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 50) / 600, 1), 0)
                 
             if len(stats) > 1:
                 mask_stats[0] = mask_stats[1]

@@ -12,8 +12,8 @@
             //years = [2025];
             //months = [9];
 
-            if (!await FangraphsData.Main(years))
-                return;
+            //if (!await FangraphsData.Main(years))
+            //    return;
 
             //Player could be drafted in 2004 and not play until 2005 or later
             //await DraftResults.Main(2004);
@@ -56,8 +56,8 @@
                     //if (!CalculateMonthStats.Main(year, month))
                     //    return;
 
-                    //if (!CalculateMonthRatios.Main(year, month))
-                    //    return;
+                    if (!CalculateMonthRatios.Main(year, month))
+                        return;
 
                     //if (!CalculateMonthBaserunning.Update(year, month))
                     //    return;
@@ -72,16 +72,16 @@
                 //if (!CalculateAnnualStats.Main(year))
                 //    return;
 
-                //if (!CalculateAnnualWRC.Main(year))
-                //    return;
+                if (!CalculateAnnualWRC.Main(year))
+                    return;
 
                 //if (!ScaleFieldingStats.Update(year))
                 //    return;
 
                 foreach (int month in months)
                 {
-                    //if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
-                    //    return;
+                    if (!CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month))
+                        return;
 
                     //if (!CalculateMonthWar.Update(year, month))
                     //    return;
@@ -107,14 +107,14 @@
             //if (!ModelPlayerWar.Main())
             //    return;
 
-            if (!await TransactionLog.Main())
-                return;
+            //if (!await TransactionLog.Main())
+            //    return;
 
             //if (!UpdatePlayerOrgMap.Main())
             //    return;
 
-            if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
-                return;
+            //if (!await ModelMonthStats.Main(END_YEAR, months.Last()))
+            //    return;
 
             //if (!Model_MonthValue.Main())
             //    return;
@@ -133,8 +133,8 @@
                     if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
                         break;
 
-                    if (!Model_RawStats.UpdateRawStats(year, month))
-                        return;
+                    //if (!Model_RawStats.UpdateRawStats(year, month))
+                    //    return;
                 }
             }
         }

@@ -78,7 +78,7 @@ class Output_Map:
         return stats.TrainMask & 1
     
 __map_hitter_stats : Callable[[DB_Model_HitterLevelStats], list[float]] = \
-    lambda h : [min(h.Hit1B, 2), min(h.Hit2B, 2.5), min(h.Hit3B, 8), min(h.HitHR, 6), min(h.BB, 3), min(h.HBP, 8), min(h.K, 2.5), min(h.SB, 10), min(h.CS, 7), max(min(h.BSR, 3.5), -3.5), max(min(h.DRAA, 4), -4), h.ParkRunFactor]
+    lambda h : [min(h.Hit1B, 2), min(h.Hit2B, 2.5), min(h.Hit3B, 8), min(h.HitHR, 3.5), min(h.BB, 3), min(h.HBP, 8), min(h.K, 2.5), min(h.SB, 10), min(h.CS, 7), max(min(h.BSR, 3.5), -3.5), max(min(h.DRAA, 4), -4), h.ParkRunFactor]
 __map_hitter_pt : Callable[[DB_Model_HitterLevelStats], list[float]] = \
     lambda h : [h.Pa]
 __map_hitter_positions : Callable[[DB_Model_HitterStats], list[float]] = \
@@ -88,7 +88,7 @@ __hitter_positions_size = 9
 __hitter_pt_size = 1
 
 __map_pitcher_stats : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
-    lambda p : [min(p.ERA, 5), min(p.FIP, 3.5), min(p.HR, 7), min(p.BB, 4), min(p.HBP, 8), min(p.K, 3), p.ParkRunFactor]
+    lambda p : [min(p.ERA, 3), min(p.FIP, 2.25), min(p.HR, 3), min(p.BB, 5), min(p.HBP, 8), min(p.K, 2), p.ParkRunFactor]
 __map_pitcher_pt : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
     lambda p : [p.Outs_SP, p.Outs_RP, p.GS, p.G - p.GS]
 __map_pitcher_positions : Callable[[DB_Model_PitcherStats], list[float]] = \

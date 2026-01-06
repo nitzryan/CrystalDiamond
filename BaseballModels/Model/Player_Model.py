@@ -22,8 +22,8 @@ class RNN_Model(nn.Module):
         self.pre2 = nn.Linear(input_size, input_size)
         self.pre3 = nn.Linear(input_size, input_size)
         
-        #self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
-        self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        #self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         self.linear_war1 = nn.Linear(hidden_size, hidden_size)
         self.linear_war2 = nn.Linear(hidden_size, hidden_size)
         self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
@@ -110,7 +110,7 @@ class RNN_Model(nn.Module):
         yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
-                                           {'params': war_class_params, 'lr': 0.0025},
+                                           {'params': war_class_params, 'lr': 0.00125},
                                            {'params': level_params, 'lr': 0.01},
                                            {'params': pa_params, 'lr': 0.01},
                                            {'params': yearStat_params, 'lr': 0.01},
@@ -205,9 +205,9 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    loss = nn.HuberLoss(reduction='none', delta=0.25)
+    #loss = nn.HuberLoss(reduction='none', delta=1)
     #loss = nn.L1Loss(reduction='none')
-    #loss = nn.MSELoss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)
     return (l * masks.unsqueeze(-1)).sum()
       
