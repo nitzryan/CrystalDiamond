@@ -345,7 +345,7 @@ class Data_Prep:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
                 pt_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_pt(stat), dtype=torch.float) - hitpt_means) / hitpt_devs
                 stat_year_output[date_index, stat.LevelId, :] = (torch.tensor(self.output_map.map_hitter_stats(stat), dtype=torch.float) - hitlvlstat_means) / hitlvlstat_devs
-                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 50) / 600, 1), 0)
+                mask_stats[date_index, stat.LevelId] = max(min((stat.Pa - 50) / 200, 1), 0)
                 
             if len(stats) > 1:
                 mask_stats[0] = mask_stats[1]

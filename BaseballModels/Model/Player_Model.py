@@ -60,7 +60,7 @@ class RNN_Model(nn.Module):
         self.mutators = mutators
         self.nonlin = F.relu
         self.nonlin = F.tanh
-        #self.nonlin = F.leaky_relu
+        self.nonlin = F.leaky_relu
         self.softplus = nn.Softplus()
         
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
@@ -205,7 +205,7 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    #loss = nn.HuberLoss(reduction='none', delta=1)
+    #loss = nn.HuberLoss(reduction='none', delta=0.25)
     #loss = nn.L1Loss(reduction='none')
     loss = nn.MSELoss(reduction='none')
     l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)

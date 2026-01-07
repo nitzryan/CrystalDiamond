@@ -23,40 +23,53 @@ if __name__ == "__main__":
     
     filename = sys.argv[1]
     
-    batch_size = 200
-    xs = np.linspace(0.0, 1.0, num=21)
+    batch_size = 600
+    xs = [x / 300 for x in range(100)]
     
-    data = []
+    data_class = []
+    data_stats = []
     
-    x_label = "Mutator Scale"
-    y_label = "Test Loss"
+    x_label = "Noise"
+    y_labelClass = "Class Test Loss"
+    y_labelStats = "Stats Test Loss"
     
     data_prep = Data_Prep(Prep_Map.base_prep_map, Output_Map.base_output_map)
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0)
     
-    hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
     num_layers = DEFAULT_NUM_LAYERS_HITTER
-    for mutator_size in tqdm(xs, desc=y_label):
-        data_prep.Update_Mutators(off_dev=mutator_size)
-        hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
-        
-        network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True)
+    hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
+    batch_size = 800
+    hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
+    for noise in tqdm(xs, desc=x_label):
+        network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True, noiseScale=noise)
         network = network.to(device)
 
-        optimizer = torch.optim.Adam(network.parameters(), lr=0.005)
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10, cooldown=10)
-
-        num_epochs = 1000
         training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         
-        best_loss = Model_Train.trainAndGraph(network, training_generator, testing_generator, len(train_dataset), len(test_dataset), optimizer, scheduler, num_epochs, logging_interval=25, early_stopping_cutoff=50, should_output=False, save_last=False)
-        data.append(best_loss)
         
+        best_loss = Model_Train.trainAndGraph(network, 
+                                                  train_dataset,
+                                                  test_dataset,
+                                                  batch_size=batch_size,
+                                                  num_epochs=41, 
+                                                  logging_interval=10000, 
+                                                  early_stopping_cutoff=40, 
+                                                  should_output=False, 
+                                                  model_name=f"Models/exp",
+                                                  save_last=True,
+                                                  elements_to_save=[0,3])
+        data_class.append(best_loss[0])
+        data_stats.append(best_loss[1])
         
     #heatmap = sns.heatmap(data, xticklabels=xs, yticklabels=ys, annot=True, fmt=".3f")
-    plt.plot(xs, data)
+    plt.plot(xs, data_class)
     plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.savefig(f'{filename}.png', dpi=400)
+    plt.ylabel(y_labelClass)
+    plt.savefig(f'{filename}_Class.png', dpi=400)
+    plt.close()
+    plt.plot(xs, data_stats)
+    plt.xlabel(x_label)
+    plt.ylabel(y_labelStats)
+    plt.savefig(f'{filename}_Stats.png', dpi=400)

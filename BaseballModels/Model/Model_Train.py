@@ -96,7 +96,7 @@ def logResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, sh
   if should_output and (epoch%print_interval == 0):  
     print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch+1, num_epochs, train_loss, test_loss))
 
-def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 0, graph_y_range=None, title=""):
+def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 2, graph_y_range=None, title=""):
   fig = plt.figure()
   plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
   plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')
