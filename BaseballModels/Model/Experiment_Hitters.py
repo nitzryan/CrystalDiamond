@@ -23,13 +23,13 @@ if __name__ == "__main__":
     
     filename = sys.argv[1]
     
-    batch_size = 600
-    xs = [x / 300 for x in range(100)]
+    batch_size = 400
+    ys = range(2, 6)
+    xs = range(50, 201, 10)
+    data = []
     
-    data_class = []
-    data_stats = []
-    
-    x_label = "Noise"
+    x_label = "Num Layers"
+    y_label = "Layer Size"
     y_labelClass = "Class Test Loss"
     y_labelStats = "Stats Test Loss"
     
@@ -39,37 +39,46 @@ if __name__ == "__main__":
     
     num_layers = DEFAULT_NUM_LAYERS_HITTER
     hidden_size = DEFAULT_HIDDEN_SIZE_HITTER
-    batch_size = 800
     hitting_mutators = data_prep.Generate_Hitting_Mutators(batch_size, Player_IO.GetMaxLength(hitter_io_list))
-    for noise in tqdm(xs, desc=x_label):
-        network = RNN_Model(train_dataset.get_input_size(), num_layers, hidden_size, hitting_mutators, data_prep=data_prep, is_hitter=True, noiseScale=noise)
-        network = network.to(device)
+    for stats_layers in tqdm(ys, desc=y_label):
+        z = []
+        for stats_layersize in tqdm(xs, desc=x_label, leave=False):
+            network = RNN_Model(train_dataset.get_input_size(), 
+                                num_layers, 
+                                hidden_size, 
+                                hitting_mutators, 
+                                data_prep=data_prep, 
+                                is_hitter=True, 
+                                stats_layers=stats_layers,
+                                stats_layersize=stats_layersize)
+            network = network.to(device)
 
-        training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            training_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            testing_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            
+            
+            best_loss = Model_Train.trainAndGraph(network, 
+                                                    train_dataset,
+                                                    test_dataset,
+                                                    batch_size=batch_size,
+                                                    num_epochs=41, 
+                                                    logging_interval=10000, 
+                                                    early_stopping_cutoff=40, 
+                                                    should_output=False, 
+                                                    model_name=f"Models/exp",
+                                                    save_last=True,
+                                                    elements_to_save=[0,3])
+            z.append(best_loss[1])
+        data.append(z)
         
-        
-        best_loss = Model_Train.trainAndGraph(network, 
-                                                  train_dataset,
-                                                  test_dataset,
-                                                  batch_size=batch_size,
-                                                  num_epochs=41, 
-                                                  logging_interval=10000, 
-                                                  early_stopping_cutoff=40, 
-                                                  should_output=False, 
-                                                  model_name=f"Models/exp",
-                                                  save_last=True,
-                                                  elements_to_save=[0,3])
-        data_class.append(best_loss[0])
-        data_stats.append(best_loss[1])
-        
-    #heatmap = sns.heatmap(data, xticklabels=xs, yticklabels=ys, annot=True, fmt=".3f")
-    plt.plot(xs, data_class)
-    plt.xlabel(x_label)
-    plt.ylabel(y_labelClass)
-    plt.savefig(f'{filename}_Class.png', dpi=400)
-    plt.close()
-    plt.plot(xs, data_stats)
-    plt.xlabel(x_label)
-    plt.ylabel(y_labelStats)
-    plt.savefig(f'{filename}_Stats.png', dpi=400)
+    heatmap = sns.heatmap(data, xticklabels=xs, yticklabels=ys, annot=True, fmt=".3f")
+    
+    # plt.plot(xs, data_class)
+    # plt.xlabel(x_label)
+    # plt.ylabel(y_labelClass)
+    # plt.savefig(f'{filename}_Class.png', dpi=400)
+    # plt.close()
+    # plt.plot(xs, data_stats)
+    # plt.xlabel(x_label)
+    # plt.ylabel(y_labelStats)
+    plt.savefig(f'Experiments/{filename}_Stats.png', dpi=400)

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Data_Prep import Data_Prep
+from itertools import chain
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
@@ -12,8 +13,20 @@ def GetParameters(layers):
         parameters.extend(l.parameters())
     return parameters
 
+class LayerArch:
+    def __init__(self, layer_size : int, num_layers : int):
+        self.layer_size = layer_size
+        self.num_layers = num_layers
+
 class RNN_Model(nn.Module):
-    def __init__(self, input_size : int, num_layers : int, hidden_size : int, mutators : torch.Tensor, data_prep : Data_Prep, is_hitter : bool):
+    def __init__(self, input_size : int, 
+                 num_layers : int, 
+                 hidden_size : int, 
+                 mutators : torch.Tensor, 
+                 data_prep : Data_Prep, 
+                 is_hitter : bool, 
+                 stats_arch : LayerArch,
+                 warclass_arch : LayerArch):
         super().__init__()
         
         output_map = data_prep.output_map
@@ -24,9 +37,9 @@ class RNN_Model(nn.Module):
         
         self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
         #self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
-        self.linear_war1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_war2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_war3 = nn.Linear(hidden_size, len(output_map.buckets_hitter_war))
+        self.linear_warFirst = nn.Linear(hidden_size, warclass_arch.layer_size)
+        self.linear_warArray = nn.ModuleList(nn.Linear(warclass_arch.layer_size, warclass_arch.layer_size) for _ in range(warclass_arch.num_layers - 2))
+        self.linear_warLast = nn.Linear(warclass_arch.layer_size, len(output_map.buckets_hitter_war))
         self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
         self.linear_level2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS))
         self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -34,10 +47,10 @@ class RNN_Model(nn.Module):
         
         # Predict next year stats
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
-        self.linear_yearStats1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearStats4 = nn.Linear(hidden_size, NUM_LEVELS * stats_size)
+        
+        self.linear_yearStatsFirst = nn.Linear(hidden_size, stats_arch.layer_size)
+        self.linear_yearStatsArray = nn.ModuleList(nn.Linear(stats_arch.layer_size, stats_arch.layer_size) for _ in range(stats_arch.num_layers - 2))
+        self.linear_yearStatsLast = nn.Linear(stats_arch.layer_size, NUM_LEVELS * stats_size)
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
         
@@ -76,7 +89,7 @@ class RNN_Model(nn.Module):
                     init.constant_(m.bias, 0)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.linear_war3, self.linear_pa2, self.linear_level2]:
+        for layer in [self.linear_warLast, self.linear_pa2, self.linear_level2]:
             init.xavier_uniform_(layer.weight, gain=1.0)
             if layer.bias is not None:
                 init.zeros_(layer.bias)
@@ -84,13 +97,13 @@ class RNN_Model(nn.Module):
         # Set softmax-regression layers
         stat_mean = -self.stat_offsets.mean()
         pt_mean = -self.pt_offset.mean()
-        for layer in [self.linear_yearStats4, self.linear_pt3]:
+        for layer in [self.linear_yearStatsLast, self.linear_pt3]:
             init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
             if layer.bias is not None:
                 #init.zeros_(layer.bias)
                 init.constant_(layer.bias, stat_mean)
                 
-        init.constant_(self.linear_yearStats4.bias, 0)
+        init.constant_(self.linear_yearStatsLast.bias, 0)
         init.constant_(self.linear_pt3.bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
@@ -101,10 +114,10 @@ class RNN_Model(nn.Module):
     
         # Create parameter groups for differentiating learning rates
         shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.recurrent])
-        war_class_params = GetParameters([self.linear_war1, self.linear_war2, self.linear_war3])
+        war_class_params = GetParameters(chain([self.linear_warFirst, self.linear_warLast], self.linear_warArray))
         level_params = GetParameters([self.linear_level1, self.linear_level2])
         pa_params = GetParameters([self.linear_pa1, self.linear_pa2])
-        yearStat_params = GetParameters([self.linear_yearStats1, self.linear_yearStats2, self.linear_yearStats3, self.linear_yearStats4])
+        yearStat_params = GetParameters(chain([self.linear_yearStatsFirst, self.linear_yearStatsLast], self.linear_yearStatsArray))
         yearPos_params = GetParameters([self.linear_yearPositions1, self.linear_yearPositions2, self.linear_yearPositions3])
         mlbValue_params = GetParameters([self.linear_mlb_value1, self.linear_mlb_value2, self.linear_mlb_value3, self.linear_mlb_value4])
         yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
@@ -140,9 +153,10 @@ class RNN_Model(nn.Module):
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         # Generate War predictions
-        output_war = self.nonlin(self.linear_war1(output))
-        output_war = self.nonlin(self.linear_war2(output_war))
-        output_war = self.linear_war3(output_war)
+        output_war = self.nonlin(self.linear_warFirst(output))
+        for ys in self.linear_warArray:
+            output_war = self.nonlin(ys(output_war))
+        output_war = self.linear_warLast(output_war)
         
         # Generate Level Predictions
         output_level = self.nonlin(self.linear_level1(output))
@@ -153,10 +167,10 @@ class RNN_Model(nn.Module):
         output_pa = self.linear_pa2(output_pa)
         
         # Generate Year Stats Predictions
-        output_yearStats = self.nonlin(self.linear_yearStats1(output))
-        output_yearStats = self.nonlin(self.linear_yearStats2(output_yearStats))
-        output_yearStats = self.nonlin(self.linear_yearStats3(output_yearStats))
-        output_yearStats = self.linear_yearStats4(output_yearStats)
+        output_yearStats = self.nonlin(self.linear_yearStatsFirst(output))
+        for ys in self.linear_yearStatsArray:
+            output_yearStats = self.nonlin(ys(output_yearStats))
+        output_yearStats = self.linear_yearStatsLast(output_yearStats)
         #output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
         
         
