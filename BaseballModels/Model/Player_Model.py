@@ -18,6 +18,14 @@ class LayerArch:
         self.layer_size = layer_size
         self.num_layers = num_layers
 
+DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=150, num_layers=2)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=2)
+DEFAULT_PT_ARCH = LayerArch(layer_size=100, num_layers=3)
+DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
+DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
+
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
                  num_layers : int, 
@@ -25,8 +33,13 @@ class RNN_Model(nn.Module):
                  mutators : torch.Tensor, 
                  data_prep : Data_Prep, 
                  is_hitter : bool, 
-                 stats_arch : LayerArch,
-                 warclass_arch : LayerArch):
+                 stats_arch : LayerArch = DEFAULT_STATS_ARCH,
+                 warclass_arch : LayerArch = DEFAULT_WARCLASS_ARCH,
+                 pt_arch : LayerArch = DEFAULT_PT_ARCH,
+                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
+                 lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
+                 pa_arch : LayerArch = DEFAULT_PA_ARCH,
+                 val_arch : LayerArch = DEFAULT_VALUE_ARCH):
         super().__init__()
         
         output_map = data_prep.output_map
@@ -40,10 +53,14 @@ class RNN_Model(nn.Module):
         self.linear_warFirst = nn.Linear(hidden_size, warclass_arch.layer_size)
         self.linear_warArray = nn.ModuleList(nn.Linear(warclass_arch.layer_size, warclass_arch.layer_size) for _ in range(warclass_arch.num_layers - 2))
         self.linear_warLast = nn.Linear(warclass_arch.layer_size, len(output_map.buckets_hitter_war))
-        self.linear_level1 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_level2 = nn.Linear(hidden_size // 2, len(HITTER_LEVEL_BUCKETS))
-        self.linear_pa1 = nn.Linear(hidden_size, hidden_size // 2)
-        self.linear_pa2 = nn.Linear(hidden_size // 2, len(HITTER_PA_BUCKETS))
+        
+        self.linear_lvlFirst = nn.Linear(hidden_size, lvl_arch.layer_size)
+        self.linear_lvlArray = nn.ModuleList(nn.Linear(lvl_arch.layer_size, lvl_arch.layer_size) for _ in range(lvl_arch.num_layers - 2))
+        self.linear_lvlLast = nn.Linear(lvl_arch.layer_size, len(HITTER_LEVEL_BUCKETS))
+        
+        self.linear_paFirst = nn.Linear(hidden_size, pa_arch.layer_size)
+        self.linear_paArray = nn.ModuleList(nn.Linear(pa_arch.layer_size, pa_arch.layer_size) for _ in range(pa_arch.num_layers - 2))
+        self.linear_paLast = nn.Linear(pa_arch.layer_size, len(HITTER_PA_BUCKETS))
         
         # Predict next year stats
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
@@ -54,21 +71,20 @@ class RNN_Model(nn.Module):
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
         
-        self.linear_yearPositions1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearPositions2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_yearPositions3 = nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+        self.linear_posFirst = nn.Linear(hidden_size, pos_arch.layer_size)
+        self.linear_posArray = nn.ModuleList(nn.Linear(pos_arch.layer_size, pos_arch.layer_size) for _ in range(pos_arch.num_layers - 2))
+        self.linear_posLast = nn.Linear(pos_arch.layer_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
         # Predict playing time
-        self.linear_pt1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_pt2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_pt3 = nn.Linear(hidden_size, NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
+        self.linear_ptFirst = nn.Linear(hidden_size, pt_arch.layer_size)
+        self.linear_ptArray = nn.ModuleList(nn.Linear(pt_arch.layer_size, pt_arch.layer_size) for _ in range(pt_arch.num_layers - 2))
+        self.linear_ptLast = nn.Linear(pt_arch.layer_size, NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
         self.register_buffer('pt_offset', data_prep.Get_HitPt_Offset() if is_hitter else data_prep.Get_PitPt_Offset())
         
         # Predict MLB Value
-        self.linear_mlb_value1 = nn.Linear(hidden_size, hidden_size)
-        self.linear_mlb_value2 = nn.Linear(hidden_size, hidden_size)
-        self.linear_mlb_value3 = nn.Linear(hidden_size, hidden_size)
-        self.linear_mlb_value4 = nn.Linear(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
+        self.linear_valueFirst = nn.Linear(hidden_size, val_arch.layer_size)
+        self.linear_valueArray = nn.ModuleList(nn.Linear(val_arch.layer_size, val_arch.layer_size) for _ in range(val_arch.num_layers - 2))
+        self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         self.mutators = mutators
         self.nonlin = F.relu
@@ -89,7 +105,7 @@ class RNN_Model(nn.Module):
                     init.constant_(m.bias, 0)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.linear_warLast, self.linear_pa2, self.linear_level2]:
+        for layer in [self.linear_warLast, self.linear_paLast, self.linear_lvlLast]:
             init.xavier_uniform_(layer.weight, gain=1.0)
             if layer.bias is not None:
                 init.zeros_(layer.bias)
@@ -97,30 +113,27 @@ class RNN_Model(nn.Module):
         # Set softmax-regression layers
         stat_mean = -self.stat_offsets.mean()
         pt_mean = -self.pt_offset.mean()
-        for layer in [self.linear_yearStatsLast, self.linear_pt3]:
+        for layer in [self.linear_ptLast]:
             init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
-            if layer.bias is not None:
-                #init.zeros_(layer.bias)
-                init.constant_(layer.bias, stat_mean)
                 
         init.constant_(self.linear_yearStatsLast.bias, 0)
-        init.constant_(self.linear_pt3.bias, pt_mean * 0.75)
+        init.constant_(self.linear_ptLast.bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
-        init.kaiming_uniform_(self.linear_mlb_value1.weight, mode='fan_in', nonlinearity='relu')
-        init.kaiming_uniform_(self.linear_mlb_value2.weight, mode='fan_in', nonlinearity='relu')
-        init.kaiming_uniform_(self.linear_mlb_value3.weight, mode='fan_in', nonlinearity='relu')
-        init.kaiming_uniform_(self.linear_mlb_value4.weight, mode='fan_in', nonlinearity='relu')
+        init.kaiming_uniform_(self.linear_valueFirst.weight, mode='fan_in', nonlinearity='relu')
+        for vf in self.linear_valueArray:
+            init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
+        init.kaiming_uniform_(self.linear_valueLast.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
         shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.recurrent])
         war_class_params = GetParameters(chain([self.linear_warFirst, self.linear_warLast], self.linear_warArray))
-        level_params = GetParameters([self.linear_level1, self.linear_level2])
-        pa_params = GetParameters([self.linear_pa1, self.linear_pa2])
+        level_params = GetParameters(chain([self.linear_lvlFirst, self.linear_lvlLast], self.linear_lvlArray))
+        pa_params = GetParameters(chain([self.linear_paFirst, self.linear_paLast], self.linear_paArray))
         yearStat_params = GetParameters(chain([self.linear_yearStatsFirst, self.linear_yearStatsLast], self.linear_yearStatsArray))
-        yearPos_params = GetParameters([self.linear_yearPositions1, self.linear_yearPositions2, self.linear_yearPositions3])
-        mlbValue_params = GetParameters([self.linear_mlb_value1, self.linear_mlb_value2, self.linear_mlb_value3, self.linear_mlb_value4])
-        yearPt_params = GetParameters([self.linear_pt1, self.linear_pt2, self.linear_pt3])
+        yearPos_params = GetParameters(chain([self.linear_posFirst, self.linear_posLast], self.linear_posArray))
+        mlbValue_params = GetParameters(chain([self.linear_valueFirst, self.linear_valueLast], self.linear_valueArray))
+        yearPt_params = GetParameters(chain([self.linear_ptFirst, self.linear_ptLast], self.linear_ptArray))
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
                                            {'params': war_class_params, 'lr': 0.00125},
@@ -129,7 +142,7 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.03},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': yearPt_params, 'lr': 0.01}])
+                                           {'params': yearPt_params, 'lr': 0.005}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -159,12 +172,16 @@ class RNN_Model(nn.Module):
         output_war = self.linear_warLast(output_war)
         
         # Generate Level Predictions
-        output_level = self.nonlin(self.linear_level1(output))
-        output_level = self.linear_level2(output_level)
+        output_level = self.nonlin(self.linear_lvlFirst(output))
+        for ys in self.linear_lvlArray:
+            output_level = self.nonlin(ys(output_level))
+        output_level = self.linear_lvlLast(output_level)
         
         # Generate PA Predictions
-        output_pa = self.nonlin(self.linear_pa1(output))
-        output_pa = self.linear_pa2(output_pa)
+        output_pa = self.nonlin(self.linear_paFirst(output))
+        for ys in self.linear_paArray:
+            output_pa = self.nonlin(ys(output_pa))
+        output_pa = self.linear_paLast(output_pa)
         
         # Generate Year Stats Predictions
         output_yearStats = self.nonlin(self.linear_yearStatsFirst(output))
@@ -174,20 +191,22 @@ class RNN_Model(nn.Module):
         #output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
         
         
-        output_yearPositions = self.nonlin(self.linear_yearPositions1(output))
-        output_yearPositions = self.nonlin(self.linear_yearPositions2(output_yearPositions))
-        output_yearPositions = self.linear_yearPositions3(output_yearPositions)
+        output_yearPositions = self.nonlin(self.linear_posFirst(output))
+        for ys in self.linear_posArray:
+            output_yearPositions = self.nonlin(ys(output_yearPositions))
+        output_yearPositions = self.linear_posLast(output_yearPositions)
         
         # Generate PT Predictions
-        output_pt = self.nonlin(self.linear_pt1(output))
-        output_pt = self.nonlin(self.linear_pt2(output_pt))
-        output_pt = self.softplus(self.linear_pt3(output_pt)) + self.pt_offset
+        output_pt = F.tanh(self.linear_ptFirst(output))
+        for ys in self.linear_ptArray:
+            output_pt = F.tanh(ys(output_pt))
+        output_pt = self.softplus(self.linear_ptLast(output_pt)) + self.pt_offset
         
         # Generate MLB Value Predictions
-        output_mlbValue = self.nonlin(self.linear_mlb_value1(output))
-        output_mlbValue = self.nonlin(self.linear_mlb_value2(output_mlbValue))
-        output_mlbValue = self.nonlin(self.linear_mlb_value3(output_mlbValue))
-        output_mlbValue = self.linear_mlb_value4(output_mlbValue)
+        output_mlbValue = self.nonlin(self.linear_valueFirst(output))
+        for ys in self.linear_valueArray:
+            output_mlbValue = self.nonlin(ys(output_mlbValue))
+        output_mlbValue = self.linear_valueLast(output_mlbValue)
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
             output_mlbValue = torch.cat([

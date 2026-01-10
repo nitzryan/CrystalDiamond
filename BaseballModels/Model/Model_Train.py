@@ -13,7 +13,7 @@ TWAR_LOSS_MULTIPLIER = 0.8
 MLB_VALUE_LOSS_MULTIPLIER = 0.2
 PT_LOSS_MULTIPLIER = 0.5
 
-ELEMENT_LIST = ["TotalClassification", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
+ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool) -> tuple:
