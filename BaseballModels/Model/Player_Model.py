@@ -26,6 +26,14 @@ DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
 
+DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
+DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
+DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
+DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
+DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
+DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
+DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
+
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
                  num_layers : int, 
@@ -39,8 +47,24 @@ class RNN_Model(nn.Module):
                  pos_arch : LayerArch = DEFAULT_POS_ARCH,
                  lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
                  pa_arch : LayerArch = DEFAULT_PA_ARCH,
-                 val_arch : LayerArch = DEFAULT_VALUE_ARCH):
+                 val_arch : LayerArch = DEFAULT_VALUE_ARCH,
+                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
+                 warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
+                 pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
+                 pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
+                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
+                 pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
+                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P):
         super().__init__()
+        
+        if not is_hitter:
+            stats_arch = stats_arch_p
+            warclass_arch_p = warclass_arch_p
+            pt_arch_p = pt_arch_p
+            pos_arch_p = pos_arch_p
+            lvl_arch_p = lvl_arch_p
+            pa_arch_p = pa_arch_p
+            val_arch_p = val_arch_p
         
         output_map = data_prep.output_map
         
@@ -137,12 +161,22 @@ class RNN_Model(nn.Module):
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
                                            {'params': war_class_params, 'lr': 0.00125},
+                                           {'params': level_params, 'lr': 0.013},
+                                           {'params': pa_params, 'lr': 0.003},
+                                           {'params': yearStat_params, 'lr': 0.015},
+                                           {'params': yearPos_params, 'lr': 0.01},
+                                           {'params': mlbValue_params, 'lr': 0.005},
+                                           {'params': yearPt_params, 'lr': 0.012}]) \
+                                        \
+                        if is_hitter else \
+                        torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
+                                           {'params': war_class_params, 'lr': 0.01},
                                            {'params': level_params, 'lr': 0.01},
-                                           {'params': pa_params, 'lr': 0.01},
+                                           {'params': pa_params, 'lr': 0.02},
                                            {'params': yearStat_params, 'lr': 0.01},
-                                           {'params': yearPos_params, 'lr': 0.03},
+                                           {'params': yearPos_params, 'lr': 0.025},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': yearPt_params, 'lr': 0.005}])
+                                           {'params': yearPt_params, 'lr': 0.018}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:

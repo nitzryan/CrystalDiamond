@@ -118,7 +118,8 @@ def trainAndGraph(network,
                   model_name="no_name", 
                   save_last=False, 
                   is_hitter=True,
-                  elements_to_save : list[int] = [0]):
+                  elements_to_save : list[int] = [0],
+                  get_end_loss : bool = False):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
@@ -177,4 +178,8 @@ def trainAndGraph(network,
   if save_last:
     for el in elements_to_save:
       torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
+  
+  if get_end_loss:
+    return test_loss
+  
   return best_losses
