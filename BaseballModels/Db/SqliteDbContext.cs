@@ -49,6 +49,8 @@ namespace Db
 		public DbSet<Player_Pitcher_YearAdvanced> Player_Pitcher_YearAdvanced {get; set;}
 		public DbSet<Player_ServiceLapse> Player_ServiceLapse {get; set;}
 		public DbSet<Player_ServiceTime> Player_ServiceTime {get; set;}
+		public DbSet<Player_YearlyWar> Player_YearlyWar {get; set;}
+		public DbSet<Player_MonthlyWar> Player_MonthlyWar {get; set;}
 		public DbSet<Pre05_Players> Pre05_Players {get; set;}
 		public DbSet<Team_League_Map> Team_League_Map {get; set;}
 		public DbSet<Team_OrganizationMap> Team_OrganizationMap {get; set;}
@@ -67,8 +69,6 @@ namespace Db
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
 		public DbSet<Output_PitcherValueAggregation> Output_PitcherValueAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
-		public DbSet<Player_YearlyWar> Player_YearlyWar {get; set;}
-		public DbSet<Player_MonthlyWar> Player_MonthlyWar {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -119,6 +119,8 @@ namespace Db
 			modelBuilder.Entity<Player_Pitcher_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Player_ServiceTime>().HasKey(f => new {f.MlbId,f.Year});
+			modelBuilder.Entity<Player_YearlyWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
+			modelBuilder.Entity<Player_MonthlyWar>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Pre05_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Team_League_Map>().HasKey(f => new {f.TeamId,f.LeagueId,f.Year});
 			modelBuilder.Entity<Team_OrganizationMap>().HasKey(f => new {f.TeamId,f.Year});
@@ -137,8 +139,6 @@ namespace Db
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
-			modelBuilder.Entity<Player_YearlyWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
-			modelBuilder.Entity<Player_MonthlyWar>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 		}
 	}
 }

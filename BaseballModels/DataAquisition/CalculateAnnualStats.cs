@@ -2,7 +2,6 @@
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using static System.Net.WebRequestMethods;
 
 namespace DataAquisition
 {
@@ -157,6 +156,7 @@ namespace DataAquisition
             foreach (var games in pitcherData)
             {
                 var s = games.Aggregate(Utilities.PitcherGameLogAggregation);
+                var (parkFactor, parkHRFactor) = Utilities.GetParkFactors(games, db);
                 int outsSP = games.Where(f => f.Started == 1).Sum(f => f.Outs);
 
                 int leagueId = games.First().LeagueId;
@@ -166,6 +166,9 @@ namespace DataAquisition
                 int singles = s.H - s.Hit2B - s.Hit3B - s.HR;
                 float woba = Utilities.CalculateWOBA(ls, s.HBP, s.BB, singles, s.Hit2B, s.Hit3B, s.HR, pa);
                 int outs = s.Outs > 0 ? s.Outs : 1;
+
+                float era = (float)s.ER * 27 / outs;
+                float fip = Utilities.CalculateFip(ls.CFIP, s.HR, s.K, s.BB + s.HBP, s.Outs);
                 output.Add(new Player_Pitcher_YearAdvanced
                 {
                     MlbId = games.Key.MlbId,
@@ -177,15 +180,17 @@ namespace DataAquisition
                     BF = s.BattersFaced,
                     Outs = s.Outs,
                     GBRatio = s.AO > 0 ? (float)s.GO / (s.GO + s.AO) : 1,
-                    ERA = (float)s.ER * 27 / outs,
-                    FIP = Utilities.CalculateFip(ls.CFIP, s.HR, s.K, s.BB + s.HBP, s.Outs),
+                    ERA = era,
+                    FIP = fip,
+                    ERAMinus = ((2 - parkFactor) * era) / ls.LeagueERA * 100,
+                    FIPMinus = ((2 - parkFactor) * fip) / ls.LeagueERA * 100,
                     WOBA = woba,
                     HR = s.HR,
                     BBPerc = pa > 0 ? (float)s.BB / pa : 0,
                     KPerc = pa > 0 ? (float)s.K / pa : 0,
                 });
             }
-            db.SaveChanges();
+            db.BulkInsert(output);
         }
 
         public static bool Main(int year)

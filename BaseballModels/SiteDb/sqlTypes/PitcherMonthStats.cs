@@ -11,6 +11,8 @@ namespace SiteDb
 		public required string IP {get; set;}
 		public required float ERA {get; set;}
 		public required float FIP {get; set;}
+		public required float ERAMinus {get; set;}
+		public required float FIPMinus {get; set;}
 		public required float HR9 {get; set;}
 		public required float BBPerc {get; set;}
 		public required float KPerc {get; set;}
@@ -29,6 +31,8 @@ namespace SiteDb
 				IP = this.IP,
 				ERA = this.ERA,
 				FIP = this.FIP,
+				ERAMinus = this.ERAMinus,
+				FIPMinus = this.FIPMinus,
 				HR9 = this.HR9,
 				BBPerc = this.BBPerc,
 				KPerc = this.KPerc,

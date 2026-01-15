@@ -95,6 +95,8 @@ function getPitcherStats(pitcherObject) {
             ip: getJsonString(fObj, "IP"),
             era: getJsonNumber(fObj, "ERA"),
             fip: getJsonNumber(fObj, "FIP"),
+            eraminus: getJsonNumber(fObj, "ERAMinus"),
+            fipminus: getJsonNumber(fObj, "FIPMinus"),
             hrrate: getJsonNumber(fObj, "HR9"),
             bbperc: getJsonNumber(fObj, "BBPerc"),
             kperc: getJsonNumber(fObj, "KPerc"),
@@ -293,7 +295,7 @@ function updatePitcherStats(pitcherStats) {
             if (f.league != 134 && f.league != 130)
                 throw e;
         }
-        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden-col'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
+        tr.innerHTML = "\n            <td></td>\n            <td>".concat(f.year, "</td>\n            <td class='table_month hidden-col'>").concat(f.month !== null ? MONTH_CODES[f.month] : "", "</td>\n            <td>").concat(level_map[f.level], "</td>\n            <td>").concat(teamAbbr, "</td>\n            <td>").concat(getLeagueAbbr(f.league), "</td>\n            <td class=\"align_right\">").concat(f.ip, "</td>\n            <td class=\"align_right\">").concat(f.era.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.fip.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.eraminus.toFixed(0), "</td>\n            <td class=\"align_right\">").concat(f.fipminus.toFixed(0), "</td>\n            <td class=\"align_right\">").concat(f.hrrate.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.bbperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.kperc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.gorate.toFixed(1), "</td>\n        ");
         tr.dataset.year = f.year.toString();
         tr.dataset.type = f.month === null ? "year" : "month";
         if (isFirst) {
@@ -328,7 +330,7 @@ function updatePitcherPredictions(pitcherPredictions) {
     var is_first = true;
     pitcherPredictions.forEach(function (f) {
         var tr = document.createElement('tr');
-        tr.innerHTML = "\n            <td></td>\n            <td>P</td>\n            <td class='table_month ".concat(month_class_hidden, "'></td>\n            <td>").concat(level_map2[f.levelId], "</td>\n            <td></td>\n            <td></td>\n            <td class=\"align_right\">").concat(formatOutsToIP(f.Outs_RP + f.Outs_SP), "</td>\n            <td class=\"align_right\">").concat(f.ERA.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.FIP.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.HR.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.BB.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.K.toFixed(1), "</td>\n            <td class=\"align_right\"></td>\n        ");
+        tr.innerHTML = "\n            <td></td>\n            <td>P</td>\n            <td class='table_month ".concat(month_class_hidden, "'></td>\n            <td>").concat(level_map2[f.levelId], "</td>\n            <td></td>\n            <td></td>\n            <td class=\"align_right\">").concat(formatOutsToIP(f.Outs_RP + f.Outs_SP), "</td>\n            <td class=\"align_right\">").concat(f.ERA.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.FIP.toFixed(2), "</td>\n            <td class=\"align_right\">").concat(f.ERAMinus.toFixed(0), "</td>\n            <td class=\"align_right\">").concat(f.FIPMinus.toFixed(0), "</td>\n            <td class=\"align_right\">").concat(f.HR9.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.BBPerc.toFixed(1), "</td>\n            <td class=\"align_right\">").concat(f.KPerc.toFixed(1), "</td>\n            <td class=\"align_right\"></td>\n        ");
         if (is_first) {
             tr.classList.add("row_first");
             is_first = false;
@@ -748,6 +750,8 @@ var DB_PitcherYearStats = (function () {
         this.IP = data['IP'];
         this.ERA = data['ERA'];
         this.FIP = data['FIP'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.HR9 = data['HR9'];
         this.BBPerc = data['BBPerc'];
         this.KPerc = data['KPerc'];
@@ -766,6 +770,8 @@ var DB_PitcherMonthStats = (function () {
         this.IP = data['IP'];
         this.ERA = data['ERA'];
         this.FIP = data['FIP'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.HR9 = data['HR9'];
         this.BBPerc = data['BBPerc'];
         this.KPerc = data['KPerc'];
@@ -831,6 +837,11 @@ var DB_Prediction_PitcherStats = (function () {
         this.BB = data['BB'];
         this.HBP = data['HBP'];
         this.K = data['K'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.ParkRunFactor = data['ParkRunFactor'];
         this.SP_Perc = data['SP_Perc'];
         this.RP_Perc = data['RP_Perc'];
@@ -1211,7 +1222,7 @@ var LineGraph = (function () {
             else {
                 go.yscale = {
                     min: 0,
-                    max: Math.max(16, f.points.map(function (g) { return g.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0) + 2),
+                    max: Math.max(23, f.points.map(function (g) { return g.y; }).reduce(function (a, b) { return Math.max(a, b); }, 0) + 2),
                     grid: {
                         color: css.background_low
                     },

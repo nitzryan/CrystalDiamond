@@ -1,11 +1,13 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
 namespace DataAquisition
 {
     internal class CalculateMonthStats
     {
-        private static Player_Hitter_MonthStats GetMonthStatsHitter(IEnumerable<Player_Hitter_GameLog> gameLogs, SqliteDbContext db, int month)
+        private static Player_Hitter_MonthStats GetMonthStatsHitter(IEnumerable<Player_Hitter_GameLog> gameLogs, Dictionary<int, Park_Factors> parkFactorDict, int month)
         {
             int totalAb = 0;
             int totalPA = 0;
@@ -41,7 +43,7 @@ namespace DataAquisition
                 else
                     totalPositions[8]++;
 
-                Park_Factors pf = db.Park_Factors.Where(f => f.Year == gl.Year && f.StadiumId == gl.StadiumId).Single();
+                Park_Factors pf = parkFactorDict[gl.StadiumId];
                 totalRunFactor += gl.PA * pf.RunFactor;
                 totalHRFactor += gl.PA * pf.HRFactor;
 
@@ -80,7 +82,7 @@ namespace DataAquisition
             };
         }
 
-        private static Player_Pitcher_MonthStats GetMonthStatsPitcher(IEnumerable<Player_Pitcher_GameLog> gameLogs, SqliteDbContext db, int month)
+        private static Player_Pitcher_MonthStats GetMonthStatsPitcher(IEnumerable<Player_Pitcher_GameLog> gameLogs, Dictionary<int, Park_Factors> parkFactorDict, int month)
         {
             int totalBF = 0;
             int totalOuts = 0;
@@ -117,7 +119,7 @@ namespace DataAquisition
                 if (gl.Started == 1)
                     outsSP += gl.Outs;
 
-                Park_Factors pf = db.Park_Factors.Where(f => f.Year == gl.Year && f.StadiumId == gl.StadiumId).Single();
+                Park_Factors pf = parkFactorDict[gl.StadiumId];
                 totalRunFactor += gl.BattersFaced * pf.RunFactor;
                 totalHRFactor += gl.BattersFaced * pf.HRFactor;
             }
@@ -152,9 +154,14 @@ namespace DataAquisition
         private static bool CalculateHitterMonthStats(SqliteDbContext db, int year, int month)
         {
             // Remove existing data
-            db.Player_Hitter_MonthStats.RemoveRange(db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month));
-            db.Player_Hitter_MonthAdvanced.RemoveRange(db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month));
-            db.SaveChanges();
+            db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+            db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            // Store all park factor values to reduce db queries
+            Dictionary<int, Park_Factors> ParkFactorDict = new();
+            var parkFactors = db.Park_Factors.Where(f => f.Year == year);
+            foreach (var pf in parkFactors)
+                ParkFactorDict[pf.StadiumId] = pf;
 
             // Iterate through player/level combinations
             var monthGames = month == 4 ? 
@@ -169,13 +176,13 @@ namespace DataAquisition
                 {
                     progressBar.Tick(); // Tick before so skips don't mess up count
 
-                    var playerGames = monthGames.Where(f => f.MlbId == mlbId);
+                    var playerGames = monthGames.Where(f => f.MlbId == mlbId).ToArray();
                     var leagues = playerGames.Select(f => f.LeagueId).Distinct();
                     foreach (int leagueId in leagues)
                     {
                         var gameLogs = playerGames.Where(f => f.LeagueId == leagueId);
 
-                        var stats = GetMonthStatsHitter(gameLogs, db, month);
+                        var stats = GetMonthStatsHitter(gameLogs, ParkFactorDict, month);
                         if (stats.AB + stats.BB + stats.HBP + stats.SB + stats.CS == 0)
                             continue;
 
@@ -185,7 +192,7 @@ namespace DataAquisition
                         var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
                         foreach (var a in teamLeagues)
                         {
-                            stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), db, month);
+                            stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), ParkFactorDict, month);
                             Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;
@@ -217,9 +224,14 @@ namespace DataAquisition
         private static bool CalculatePitcherMonthStats(SqliteDbContext db, int year, int month)
         {
             // Remove existing data
-            db.Player_Pitcher_MonthStats.RemoveRange(db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month));
-            db.Player_Pitcher_MonthAdvanced.RemoveRange(db.Player_Pitcher_MonthAdvanced.Where(f => f.Year == year && f.Month == month));
-            db.SaveChanges();
+            db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+            db.Player_Pitcher_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            // Store all park factor values to reduce db queries
+            Dictionary<int, Park_Factors> ParkFactorDict = new();
+            var parkFactors = db.Park_Factors.Where(f => f.Year == year);
+            foreach (var pf in parkFactors)
+                ParkFactorDict[pf.StadiumId] = pf;
 
             // Iterate through player/level combinations
             // Iterate through player/level combinations
@@ -228,6 +240,7 @@ namespace DataAquisition
                 month == 9 ?
                     db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month >= month) :
                     db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month == month);
+
             var ids = monthGames.Select(f => f.MlbId).Distinct();
             using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Calculating Pitcher Month Stats for Month={month} Year={year}"))
             {
@@ -235,13 +248,13 @@ namespace DataAquisition
                 {
                     progressBar.Tick(); // Tick before so skips don't mess up count
 
-                    var playerGames = monthGames.Where(f => f.MlbId == mlbId);
+                    var playerGames = monthGames.Where(f => f.MlbId == mlbId).ToArray();
                     var leagues = playerGames.Select(f => f.LeagueId).Distinct();
                     foreach (int leagueId in leagues)
                     {
                         var gameLogs = playerGames.Where(f => f.LeagueId == leagueId);
 
-                        var stats = GetMonthStatsPitcher(gameLogs, db, month);
+                        var stats = GetMonthStatsPitcher(gameLogs, ParkFactorDict, month);
                         if (stats.BattersFaced == 0)
                             continue;
 
@@ -252,7 +265,7 @@ namespace DataAquisition
                         foreach (var a in teamLeagues)
                         {
                             var games = gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId);
-                            stats = GetMonthStatsPitcher(games, db, month);
+                            stats = GetMonthStatsPitcher(games, ParkFactorDict, month);
                             Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single(), db);
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;

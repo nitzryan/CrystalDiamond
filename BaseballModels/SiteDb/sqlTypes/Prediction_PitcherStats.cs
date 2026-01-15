@@ -17,6 +17,11 @@ namespace SiteDb
 		public required float BB {get; set;}
 		public required float HBP {get; set;}
 		public required float K {get; set;}
+		public required float HR9 {get; set;}
+		public required float BBPerc {get; set;}
+		public required float KPerc {get; set;}
+		public required float ERAMinus {get; set;}
+		public required float FIPMinus {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float SP_Perc {get; set;}
 		public required float RP_Perc {get; set;}
@@ -42,6 +47,11 @@ namespace SiteDb
 				BB = this.BB,
 				HBP = this.HBP,
 				K = this.K,
+				HR9 = this.HR9,
+				BBPerc = this.BBPerc,
+				KPerc = this.KPerc,
+				ERAMinus = this.ERAMinus,
+				FIPMinus = this.FIPMinus,
 				ParkRunFactor = this.ParkRunFactor,
 				SP_Perc = this.SP_Perc,
 				RP_Perc = this.RP_Perc,

@@ -95,7 +95,7 @@ async function main()
         statsPitcher,
         DB_Prediction_PitcherStats,
         ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"],
-        f => [[`<a href='.player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]], 
+        f => [[`<a href='player?id=${f.player.mlbId}'>${f.player.firstName + ' ' + f.player.lastName}</a>`, [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]], 
             [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]], 
             [formatOutsToIP(f.obj.Outs_RP + f.obj.Outs_SP),  [al_r]], [(f.obj.GS + f.obj.GR).toFixed(1), [al_r]], [f.obj.GS.toFixed(1), [al_r, br]],
             [f.obj.ERA.toFixed(2), [al_r]], [f.obj.FIP.toFixed(2), [al_r, br]],

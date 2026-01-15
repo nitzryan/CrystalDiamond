@@ -13,6 +13,8 @@ namespace Db
 		public required float GBRatio {get; set;}
 		public required float ERA {get; set;}
 		public required float FIP {get; set;}
+		public required float ERAMinus {get; set;}
+		public required float FIPMinus {get; set;}
 		public required float KPerc {get; set;}
 		public required float BBPerc {get; set;}
 		public required int HR {get; set;}
@@ -33,6 +35,8 @@ namespace Db
 				GBRatio = this.GBRatio,
 				ERA = this.ERA,
 				FIP = this.FIP,
+				ERAMinus = this.ERAMinus,
+				FIPMinus = this.FIPMinus,
 				KPerc = this.KPerc,
 				BBPerc = this.BBPerc,
 				HR = this.HR,

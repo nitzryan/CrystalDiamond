@@ -57,7 +57,7 @@ if __name__ == "__main__":
         for m in tqdm(mth, desc="Evaluation Models", leave=False):
             model_idx = int(m.ModelIdx)
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                network.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_TotalClassification.pt"))
+                network.load_state_dict(torch.load(f"Models/{m.ModelName}_{model_idx}_WarClass.pt"))
             network.eval()
             network = network.to(device)
 

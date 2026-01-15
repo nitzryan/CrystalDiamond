@@ -640,6 +640,10 @@ CREATE INDEX "idx_HitterGameLog_DateLeaguePlayerTeam" ON "Player_Hitter_GameLog"
 	"Year", "Month", "LeagueId", "MlbId", "TeamId"
 );
 
+CREATE INDEX "idx_HitterGameLog_PlayerYearMonthTeam" ON "Player_Hitter_GameLog" (
+	"Year", "Month", "MlbId", "TeamId"
+);
+
 CREATE TABLE "Player_Fielder_GameLog" (
 	"gameLogId"	INTEGER NOT NULL,
 	"gameId"	INTEGER NOT NULL,
@@ -1011,6 +1015,10 @@ CREATE INDEX "idx_PitcherGameLog_YearLeague" ON "Player_Pitcher_GameLog" (
 	"Year", "LeagueId"
 );
 
+CREATE INDEX "idx_PitcherGameLog_PlayerYearMonthTeam" ON "Player_Pitcher_GameLog" (
+	"Year", "Month", "MlbId", "TeamId"
+);
+
 CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"mlbId"	INTEGER NOT NULL,
 	"levelId"	INTEGER NOT NULL,
@@ -1024,6 +1032,8 @@ CREATE TABLE "Player_Pitcher_MonthAdvanced" (
 	"GBRatio"	REAL NOT NULL,
 	"ERA"	REAL NOT NULL,
 	"FIP"	REAL NOT NULL,
+	"ERAMinus" REAL NOT NULL,
+	"FIPMinus" REAL NOT NULL,
 	"KPerc"	REAL NOT NULL,
 	"BBPerc"	REAL NOT NULL,
 	"HRPerc"	REAL NOT NULL,
@@ -1106,6 +1116,8 @@ CREATE TABLE "Player_Pitcher_YearAdvanced" (
 	"GBRatio"	REAL NOT NULL,
 	"ERA"	REAL NOT NULL,
 	"FIP"	REAL NOT NULL,
+	"ERAMinus" REAL NOT NULL,
+	"FIPMinus" REAL NOT NULL,
 	"KPerc"	REAL NOT NULL,
 	"BBPerc"	REAL NOT NULL,
 	"HR"	INTEGER NOT NULL,

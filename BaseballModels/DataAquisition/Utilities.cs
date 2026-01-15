@@ -169,6 +169,9 @@ namespace DataAquisition
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
 
+            float era = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f;
+            float fip = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs);
+
             Player_Pitcher_MonthAdvanced ma = new()
             {
                 MlbId = stats.MlbId,
@@ -184,8 +187,10 @@ namespace DataAquisition
                 HRPerc = stats.BattersFaced > 0 ? (float)stats.HR / stats.BattersFaced : 0,
                 BBPerc = stats.BattersFaced > 0 ? (float)stats.BB / stats.BattersFaced : 0,
                 KPerc = stats.BattersFaced > 0 ? (float)stats.K / stats.BattersFaced : 0,
-                ERA = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f,
-                FIP = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs),
+                ERA = era,
+                FIP = fip,
+                ERAMinus = ((2 - stats.ParkRunFactor) * era) / ls.LeagueERA * 100,
+                FIPMinus = ((2 - stats.ParkRunFactor) * fip) / ls.LeagueERA * 100,
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
                 HR = stats.HR,
                 CrWAR = -100000,
@@ -270,6 +275,37 @@ namespace DataAquisition
                     stadiumParkFactor = pf.RunFactor;
                     stadiumParkHRFactor = pf.HRFactor;
                 } catch (Exception) { } // Not enough data for park factor, use default
+
+                parkFactor = (thisGameFrac * stadiumParkFactor) + ((1 - thisGameFrac) * parkFactor);
+                parkHRFactor = (thisGameFrac * stadiumParkHRFactor) + ((1 - thisGameFrac) * parkHRFactor);
+            }
+
+            return (parkFactor, parkHRFactor);
+        }
+
+        public static (float, float) GetParkFactors(IEnumerable<Player_Pitcher_GameLog> games, SqliteDbContext db)
+        {
+            float parkFactor = 1.0f;
+            float parkHRFactor = 1.0f;
+            int totalOuts = 0;
+
+            foreach (var game in games)
+            {
+                if (game.Outs == 0)
+                    continue;
+
+                totalOuts += game.Outs;
+                float thisGameFrac = (float)game.Outs / totalOuts;
+
+                float stadiumParkFactor = 1.0f;
+                float stadiumParkHRFactor = 1.0f;
+                try
+                {
+                    Park_Factors pf = db.Park_Factors.Where(f => f.Year == game.Year && f.StadiumId == game.StadiumId).Single();
+                    stadiumParkFactor = pf.RunFactor;
+                    stadiumParkHRFactor = pf.HRFactor;
+                }
+                catch (Exception) { } // Not enough data for park factor, use default
 
                 parkFactor = (thisGameFrac * stadiumParkFactor) + ((1 - thisGameFrac) * parkFactor);
                 parkHRFactor = (thisGameFrac * stadiumParkHRFactor) + ((1 - thisGameFrac) * parkHRFactor);

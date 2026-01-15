@@ -118,7 +118,7 @@ function main() {
                         [f.obj.crDPOS.toFixed(1), [al_r]], [f.obj.crDRAA.toFixed(1), [al_r]], [f.obj.crDEF.toFixed(1), [al_r, br]],
                         [f.obj.crWAR.toFixed(1), [al_r]]]; });
                     statsTables.appendChild(hitterStatsViewer.baseElement);
-                    pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"], function (f) { return [["<a href='.player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
+                    pitcherStatsViewer = new SortableStatsViewer(statsPitcher, DB_Prediction_PitcherStats, ["Name", "Org", "Age", "IP", "G", "GS", "ERA", "FIP", "K/9", "BB/9", "HR/9", "RAA", "WAR"], function (f) { return [["<a href='player?id=".concat(f.player.mlbId, "'>").concat(f.player.firstName + ' ' + f.player.lastName, "</a>"), [al_l, lnk]], [getParentAbbr(f.player.orgId), [al_l, lnk]],
                         [getDateDelta(new Date(f.player.birthYear, f.player.birthMonth, f.player.birthDate), new Date())[0].toString(), [al_r, br]],
                         [formatOutsToIP(f.obj.Outs_RP + f.obj.Outs_SP), [al_r]], [(f.obj.GS + f.obj.GR).toFixed(1), [al_r]], [f.obj.GS.toFixed(1), [al_r, br]],
                         [f.obj.ERA.toFixed(2), [al_r]], [f.obj.FIP.toFixed(2), [al_r, br]],
@@ -317,6 +317,8 @@ var DB_PitcherYearStats = (function () {
         this.IP = data['IP'];
         this.ERA = data['ERA'];
         this.FIP = data['FIP'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.HR9 = data['HR9'];
         this.BBPerc = data['BBPerc'];
         this.KPerc = data['KPerc'];
@@ -335,6 +337,8 @@ var DB_PitcherMonthStats = (function () {
         this.IP = data['IP'];
         this.ERA = data['ERA'];
         this.FIP = data['FIP'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.HR9 = data['HR9'];
         this.BBPerc = data['BBPerc'];
         this.KPerc = data['KPerc'];
@@ -400,6 +404,11 @@ var DB_Prediction_PitcherStats = (function () {
         this.BB = data['BB'];
         this.HBP = data['HBP'];
         this.K = data['K'];
+        this.HR9 = data['HR9'];
+        this.BBPerc = data['BBPerc'];
+        this.KPerc = data['KPerc'];
+        this.ERAMinus = data['ERAMinus'];
+        this.FIPMinus = data['FIPMinus'];
         this.ParkRunFactor = data['ParkRunFactor'];
         this.SP_Perc = data['SP_Perc'];
         this.RP_Perc = data['RP_Perc'];

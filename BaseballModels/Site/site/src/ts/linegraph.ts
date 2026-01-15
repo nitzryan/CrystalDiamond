@@ -74,7 +74,7 @@ class LineGraph
             {
                 go.yscale = {
                     min: 0,
-                    max: Math.max(16, 
+                    max: Math.max(23, 
                         f.points.map(g => g.y).reduce((a,b) => Math.max(a,b), 0) + 2),
                     grid: {
                         color: css.background_low

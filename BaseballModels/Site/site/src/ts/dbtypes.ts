@@ -130,6 +130,8 @@ class DB_PitcherYearStats
 	public IP : string
 	public ERA : number
 	public FIP : number
+	public ERAMinus : number
+	public FIPMinus : number
 	public HR9 : number
 	public BBPerc : number
 	public KPerc : number
@@ -145,6 +147,8 @@ class DB_PitcherYearStats
 		this.IP = data['IP'] as string
 		this.ERA = data['ERA'] as number
 		this.FIP = data['FIP'] as number
+		this.ERAMinus = data['ERAMinus'] as number
+		this.FIPMinus = data['FIPMinus'] as number
 		this.HR9 = data['HR9'] as number
 		this.BBPerc = data['BBPerc'] as number
 		this.KPerc = data['KPerc'] as number
@@ -163,6 +167,8 @@ class DB_PitcherMonthStats
 	public IP : string
 	public ERA : number
 	public FIP : number
+	public ERAMinus : number
+	public FIPMinus : number
 	public HR9 : number
 	public BBPerc : number
 	public KPerc : number
@@ -179,6 +185,8 @@ class DB_PitcherMonthStats
 		this.IP = data['IP'] as string
 		this.ERA = data['ERA'] as number
 		this.FIP = data['FIP'] as number
+		this.ERAMinus = data['ERAMinus'] as number
+		this.FIPMinus = data['FIPMinus'] as number
 		this.HR9 = data['HR9'] as number
 		this.BBPerc = data['BBPerc'] as number
 		this.KPerc = data['KPerc'] as number
@@ -283,6 +291,11 @@ class DB_Prediction_PitcherStats
 	public BB : number
 	public HBP : number
 	public K : number
+	public HR9 : number
+	public BBPerc : number
+	public KPerc : number
+	public ERAMinus : number
+	public FIPMinus : number
 	public ParkRunFactor : number
 	public SP_Perc : number
 	public RP_Perc : number
@@ -306,6 +319,11 @@ class DB_Prediction_PitcherStats
 		this.BB = data['BB'] as number
 		this.HBP = data['HBP'] as number
 		this.K = data['K'] as number
+		this.HR9 = data['HR9'] as number
+		this.BBPerc = data['BBPerc'] as number
+		this.KPerc = data['KPerc'] as number
+		this.ERAMinus = data['ERAMinus'] as number
+		this.FIPMinus = data['FIPMinus'] as number
 		this.ParkRunFactor = data['ParkRunFactor'] as number
 		this.SP_Perc = data['SP_Perc'] as number
 		this.RP_Perc = data['RP_Perc'] as number

@@ -259,6 +259,7 @@ namespace SitePrep
                                 float HBP = player.HBP * leagueStatsAvg.BBPerc * pa * .125f; // Need to add HBP to leaguePitcherStats
                                 float K = player.K * leagueStatsAvg.KPerc * pa;
                                 float era = player.ERA * leagueStatsAvg.ERA;
+                                float hr9 = hitHR * 27.0f / (player.Outs_RP + player.Outs_SP);
 
                                 // Calculate value
                                 float fip = Utilities.CalculateFip(lbs.CFIP, hitHR, K, BB + HBP, player.Outs_SP + player.Outs_RP);
@@ -300,11 +301,16 @@ namespace SitePrep
                                     HR = hitHR,
                                     ERA = era,
                                     FIP = fip,
+                                    ERAMinus = ((2 - player.ParkRunFactor) * era) / lbs.LeagueERA * 100,
+                                    FIPMinus = ((2 - player.ParkRunFactor) * fip) / lbs.LeagueERA * 100,
                                     ParkRunFactor = player.ParkRunFactor,
                                     CrRAA = crRAA,
                                     CrWAR = war,
                                     SP_Perc = player.SP_Perc,
-                                    RP_Perc = player.RP_Perc
+                                    RP_Perc = player.RP_Perc,
+                                    BBPerc = (float)Math.Round(player.BB * leagueStatsAvg.BBPerc * 100, 1),
+                                    KPerc = (float)Math.Round(player.K * leagueStatsAvg.KPerc * 100, 1),
+                                    HR9 = hr9,
                                 });
                             }
 

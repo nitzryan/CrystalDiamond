@@ -102,6 +102,8 @@ namespace SitePrep
                             BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
                             KPerc = (float)Math.Round(stats.KPerc * 100, 1),
                             GOPerc = (float)Math.Round(stats.GBRatio * 100, 1),
+                            ERAMinus = (float)Math.Round(stats.ERAMinus, 0),
+                            FIPMinus = (float)Math.Round(stats.FIPMinus, 0),
                         });
                     }
 
@@ -127,6 +129,8 @@ namespace SitePrep
                             BBPerc = (float)Math.Round(stats.BBPerc * 100, 1),
                             KPerc = (float)Math.Round(stats.KPerc * 100, 1),
                             GOPerc = (float)Math.Round(stats.GBRatio * 100, 1),
+                            ERAMinus = (float)Math.Round(stats.ERAMinus, 0),
+                            FIPMinus = (float)Math.Round(stats.FIPMinus, 0),
                         });
                     }
 

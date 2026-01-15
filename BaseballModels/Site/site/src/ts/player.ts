@@ -54,6 +54,8 @@ type PitcherStats = {
     ip : string,
     era : number,
     fip : number,
+    eraminus : number,
+    fipminus : number,
     hrrate : number,
     bbperc : number,
     kperc : number,
@@ -130,6 +132,8 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
             ip : getJsonString(fObj, "IP"),
             era : getJsonNumber(fObj, "ERA"),
             fip : getJsonNumber(fObj, "FIP"),
+            eraminus : getJsonNumber(fObj, "ERAMinus"),
+            fipminus : getJsonNumber(fObj, "FIPMinus"),
             hrrate : getJsonNumber(fObj, "HR9"),
             bbperc : getJsonNumber(fObj, "BBPerc"),
             kperc : getJsonNumber(fObj, "KPerc"),
@@ -441,6 +445,8 @@ function updatePitcherStats(pitcherStats : PitcherStats[])
             <td class="align_right">${f.ip}</td>
             <td class="align_right">${f.era.toFixed(2)}</td>
             <td class="align_right">${f.fip.toFixed(2)}</td>
+            <td class="align_right">${f.eraminus.toFixed(0)}</td>
+            <td class="align_right">${f.fipminus.toFixed(0)}</td>
             <td class="align_right">${f.hrrate.toFixed(1)}</td>
             <td class="align_right">${f.bbperc.toFixed(1)}</td>
             <td class="align_right">${f.kperc.toFixed(1)}</td>
@@ -509,9 +515,11 @@ function updatePitcherPredictions(pitcherPredictions : DB_Prediction_PitcherStat
             <td class="align_right">${formatOutsToIP(f.Outs_RP + f.Outs_SP)}</td>
             <td class="align_right">${f.ERA.toFixed(2)}</td>
             <td class="align_right">${f.FIP.toFixed(2)}</td>
-            <td class="align_right">${f.HR.toFixed(1)}</td>
-            <td class="align_right">${f.BB.toFixed(1)}</td>
-            <td class="align_right">${f.K.toFixed(1)}</td>
+            <td class="align_right">${f.ERAMinus.toFixed(0)}</td>
+            <td class="align_right">${f.FIPMinus.toFixed(0)}</td>
+            <td class="align_right">${f.HR9.toFixed(1)}</td>
+            <td class="align_right">${f.BBPerc.toFixed(1)}</td>
+            <td class="align_right">${f.KPerc.toFixed(1)}</td>
             <td class="align_right"></td>
         `
 
