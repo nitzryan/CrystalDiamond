@@ -386,39 +386,6 @@ class DB_Model_Players:
 		items = cursor.execute("SELECT * FROM Model_Players " + conditional, values).fetchall()
 		return [DB_Model_Players(i) for i in items]
 
-class DB_Model_OrgLeagueStatus:
-	def __init__(self, values : tuple[any]):
-		self.OrgId = values[0]
-		self.Year = values[1]
-		self.Month = values[2]
-		self.MLB_PF = values[3]
-		self.AAA_PF = values[4]
-		self.AA_PF = values[5]
-		self.HA_PF = values[6]
-		self.A_PF = values[7]
-		self.LA_PF = values[8]
-		self.Rk_PF = values[9]
-		self.DSL_PF = values[10]
-		self.MLB_MonthsFrac = values[11]
-		self.AAA_MonthsFrac = values[12]
-		self.AA_MonthsFrac = values[13]
-		self.HA_MonthsFrac = values[14]
-		self.A_MonthsFrac = values[15]
-		self.LA_MonthsFrac = values[16]
-		self.Rk_MonthsFrac = values[17]
-		self.DSL_MonthsFrac = values[18]
-
-	NUM_ELEMENTS = 19
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.OrgId,self.Year,self.Month,self.MLB_PF,self.AAA_PF,self.AA_PF,self.HA_PF,self.A_PF,self.LA_PF,self.Rk_PF,self.DSL_PF,self.MLB_MonthsFrac,self.AAA_MonthsFrac,self.AA_MonthsFrac,self.HA_MonthsFrac,self.A_MonthsFrac,self.LA_MonthsFrac,self.Rk_MonthsFrac,self.DSL_MonthsFrac)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_OrgLeagueStatus']:
-		items = cursor.execute("SELECT * FROM Model_OrgLeagueStatus " + conditional, values).fetchall()
-		return [DB_Model_OrgLeagueStatus(i) for i in items]
-
 class DB_Model_HitterLevelStats:
 	def __init__(self, values : tuple[any]):
 		self.MlbId = values[0]
@@ -1904,6 +1871,30 @@ class DB_Output_PlayerWarAggregation:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PlayerWarAggregation']:
 		items = cursor.execute("SELECT * FROM Output_PlayerWarAggregation " + conditional, values).fetchall()
 		return [DB_Output_PlayerWarAggregation(i) for i in items]
+
+class DB_Model_LevelYearGames:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.Month = values[1]
+		self.MLB_Games = values[2]
+		self.AAA_Games = values[3]
+		self.AA_Games = values[4]
+		self.HA_Games = values[5]
+		self.A_Games = values[6]
+		self.LA_Games = values[7]
+		self.Rk_Games = values[8]
+		self.DSL_Games = values[9]
+
+	NUM_ELEMENTS = 10
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.Month,self.MLB_Games,self.AAA_Games,self.AA_Games,self.HA_Games,self.A_Games,self.LA_Games,self.Rk_Games,self.DSL_Games)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_LevelYearGames']:
+		items = cursor.execute("SELECT * FROM Model_LevelYearGames " + conditional, values).fetchall()
+		return [DB_Model_LevelYearGames(i) for i in items]
 
 
 ##############################################################################################

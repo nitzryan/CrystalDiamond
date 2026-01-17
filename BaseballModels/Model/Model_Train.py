@@ -16,11 +16,12 @@ PT_LOSS_MULTIPLIER = 0.5
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
-def GetLosses(network, data, length, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool) -> tuple:
+def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool) -> tuple:
   # Get Model Output
   data = data.to(device)
   length = length.to(device)
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length)
+  pt_levelYearGames = pt_levelYearGames.to(device)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames)
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt = targets
@@ -50,9 +51,9 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, sh
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
-  for batch, (data, length, targets, masks) in enumerate(data_generator):
+  for batch, (data, length, pt_levelYearGames, targets, masks) in enumerate(data_generator):
     optimizer.zero_grad()
-    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, True, is_hitter)
+    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter)
     torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
     optimizer.step()
     avg_loss[0] += loss_war.item()
@@ -73,8 +74,8 @@ def test(network, test_loader, num_elements, is_hitter : bool):
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   with torch.no_grad():
-    for data, length, targets, masks in test_loader:
-      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, targets, masks, False, is_hitter)
+    for data, length, pt_levelYearGames, targets, masks in test_loader:
+      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter)
       
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_level.item()

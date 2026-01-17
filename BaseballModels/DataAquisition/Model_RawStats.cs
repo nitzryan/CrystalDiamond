@@ -2,7 +2,6 @@
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using System.ComponentModel;
 
 namespace DataAquisition
 {
@@ -63,22 +62,36 @@ namespace DataAquisition
                                 (nextStadium.Select(f => f.parkFactor).Average() * nextYearFraction);
         }
 
-        private static float GetMonthsFrac(IEnumerable<TeamLevelStadium> thisYearPairs, IEnumerable<TeamLevelStadium> nextYearPairs, int levelIdx, float thisYearFraction, float nextYearFraction)
+        private static int[] GetMonthGames(IEnumerable<Team_OrganizationMap> thisYearOrgMap, IEnumerable<Team_OrganizationMap> nextYearOrgMap, IQueryable<Player_Hitter_GameLog> thisYearLogs, IQueryable<Player_Hitter_GameLog> nextYearLogs, int orgId)
         {
-            var thisStadium = thisYearPairs.Where(f => f.levelId == Constants.SPORT_IDS[levelIdx]);
-            var nextStadium = nextYearPairs.Where(f => f.levelId == Constants.SPORT_IDS[levelIdx]);
+            int[] games = { 0,0,0,0,0,0,0,0 };
 
-            if (!thisStadium.Any() && !nextStadium.Any()) // Short Season A got eliminated
-                return 0.0f;
+            foreach (var tm in thisYearOrgMap)
+            {
+                int teamLevel = thisYearLogs.Where(f => f.TeamId == tm.TeamId).Select(f => f.LevelId).FirstOrDefault();
+                if (teamLevel == 0)
+                    continue;
 
-            // Only 1 year of data in stadium, take only that year
-            if (!thisStadium.Any())
-                return nextYearFraction;
+                int numGames = thisYearLogs.Where(f => f.TeamId == tm.TeamId).Select(f => f.GameId).Distinct().Count();
 
-            if (!nextStadium.Any())
-                return thisYearFraction;
+                games[Utilities.MlbLevelToModelZeroIndexedLevel(teamLevel)] += numGames;
+            }
 
-            return 1.0f;
+            foreach (var tm in nextYearOrgMap)
+            {
+                int teamLevel = nextYearLogs.Where(f => f.TeamId == tm.TeamId).Select(f => f.LevelId).FirstOrDefault();
+                if (teamLevel == 0)
+                    continue;
+
+                int numGames = nextYearLogs.Where(f => f.TeamId == tm.TeamId).Select(f => f.GameId).Distinct().Count();
+
+                games[Utilities.MlbLevelToModelZeroIndexedLevel(teamLevel)] += numGames;
+            }
+
+            games[0] = thisYearLogs.Where(f => f.TeamId == orgId).Select(f => f.GameId).Distinct().Count() +
+                nextYearLogs.Where(f => f.TeamId == orgId).Select(f => f.GameId).Distinct().Count();
+
+            return games;
         }
 
         private static bool OrgLeagueStatus(int year, int month)
@@ -86,63 +99,35 @@ namespace DataAquisition
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-                db.Model_OrgLeagueStatus.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+                db.Model_LevelYearGames.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-                // Get fraction of games that are in this year vs next
-                float thisYearFraction = (9 - month) / 6.0f;
-                float nextYearFraction = 1.0f - thisYearFraction;
+                // Determine number of games played at each level
+                var thisYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month > month);
+                var nextYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == (year + 1) && f.Month <= month);
 
-                var yearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.IsHome == 1).AsEnumerable().DistinctBy(f => new { f.StadiumId, f.TeamId }).ToList();
-                var nextYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year + 1 && f.IsHome == 1).AsEnumerable().DistinctBy(f => new { f.StadiumId, f.TeamId }).ToList();
-                // Go through each org
-                var orgIds = db.Team_Parents.Select(f => f.Id);
-                foreach (var orgId in orgIds)
+                // Get parkFactors for each level
+                Model_LevelYearGames lyg = new Model_LevelYearGames
                 {
-                    // Get teams of parent
-                    var thisYearTeams = db.Team_OrganizationMap.Where(f => f.ParentOrgId == orgId && f.Year == year)
-                        .Select(f => f.TeamId).AsEnumerable().Append(orgId);
-
-                    var nextYearTeams = db.Team_OrganizationMap.Where(f => f.ParentOrgId == orgId && f.Year == year + 1)
-                        .Select(f => f.TeamId).AsEnumerable().Append(orgId);
-
-                    // Get Data for park factors, levels, leagues etc
-                    List<TeamLevelStadium> thisYearPairs = new();
-                    List<TeamLevelStadium> nextYearPairs = new();
-                        
-                    foreach (var teamId in thisYearTeams)
-                    {
-                        thisYearPairs.Add(GetTLS(teamId, year, db, yearGames));
-                    }
-                    foreach (var teamId in nextYearTeams)
-                    {
-                        nextYearPairs.Add(GetTLS(teamId, year + 1, db, nextYearGames));
-                    }
-
-                    // Get parkFactors for each level
-                    Model_OrgLeagueStatus ols = new Model_OrgLeagueStatus
-                    {
-                        OrgId = orgId,
-                        Year = year,
-                        Month = month,
-                        MLB_PF = GetParkFactor(thisYearPairs, nextYearPairs, 0, thisYearFraction, nextYearFraction),
-                        AAA_PF = GetParkFactor(thisYearPairs, nextYearPairs, 1, thisYearFraction, nextYearFraction),
-                        AA_PF = GetParkFactor(thisYearPairs, nextYearPairs, 2, thisYearFraction, nextYearFraction),
-                        HA_PF = GetParkFactor(thisYearPairs, nextYearPairs, 3, thisYearFraction, nextYearFraction),
-                        A_PF = GetParkFactor(thisYearPairs, nextYearPairs, 4, thisYearFraction, nextYearFraction),
-                        LA_PF = GetParkFactor(thisYearPairs, nextYearPairs, 5, thisYearFraction, nextYearFraction),
-                        Rk_PF = GetParkFactor(thisYearPairs, nextYearPairs, 6, thisYearFraction, nextYearFraction),
-                        DSL_PF = GetParkFactor(thisYearPairs, nextYearPairs, 7, thisYearFraction, nextYearFraction),
-                        MLB_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 0, thisYearFraction, nextYearFraction),
-                        AAA_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 1, thisYearFraction, nextYearFraction),
-                        AA_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 2, thisYearFraction, nextYearFraction),
-                        HA_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 3, thisYearFraction, nextYearFraction),
-                        A_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 4, thisYearFraction, nextYearFraction),
-                        LA_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 5, thisYearFraction, nextYearFraction),
-                        Rk_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 6, thisYearFraction, nextYearFraction),
-                        DSL_MonthsFrac = GetMonthsFrac(thisYearPairs, nextYearPairs, 7, thisYearFraction, nextYearFraction),
-                    };
-                    db.Model_OrgLeagueStatus.Add(ols);
-                }
+                    Year = year,
+                    Month = month,
+                    MLB_Games = thisYearGames.Where(f => f.LevelId == 1).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 1).Select(f => f.GameId).Distinct().Count(),
+                    AAA_Games = thisYearGames.Where(f => f.LevelId == 11).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 11).Select(f => f.GameId).Distinct().Count(),
+                    AA_Games = thisYearGames.Where(f => f.LevelId == 12).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 12).Select(f => f.GameId).Distinct().Count(),
+                    HA_Games = thisYearGames.Where(f => f.LevelId == 13).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 13).Select(f => f.GameId).Distinct().Count(),
+                    A_Games = thisYearGames.Where(f => f.LevelId == 14).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 14).Select(f => f.GameId).Distinct().Count(),
+                    LA_Games = thisYearGames.Where(f => f.LevelId == 15).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 15).Select(f => f.GameId).Distinct().Count(),
+                    Rk_Games = thisYearGames.Where(f => f.LevelId == 16).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 16).Select(f => f.GameId).Distinct().Count(),
+                    DSL_Games = thisYearGames.Where(f => f.LevelId == 17).Select(f => f.GameId).Distinct().Count() +
+                                nextYearGames.Where(f => f.LevelId == 17).Select(f => f.GameId).Distinct().Count(),
+                };
+                db.Model_LevelYearGames.Add(lyg);
 
                 db.SaveChanges();
                 return true;

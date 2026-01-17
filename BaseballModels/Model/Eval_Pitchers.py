@@ -35,8 +35,9 @@ if __name__ == "__main__":
 
         dates_padded = torch.nn.utils.rnn.pad_sequence([io.dates for io in pitcher_io_list])
         x_padded = torch.nn.utils.rnn.pad_sequence([io.input for io in pitcher_io_list])
+        pt_levelYearGames = torch.nn.utils.rnn.pad_sequence([io.pt_levelYearGames for io in pitcher_io_list])
         mask_prospect_padded = torch.nn.utils.rnn.pad_sequence([io.prospect_mask for io in pitcher_io_list])
-        eval_pitchers_dataset = Eval_Dataset(x_padded, lengths, dates_padded, mask_prospect_padded)
+        eval_pitchers_dataset = Eval_Dataset(x_padded, lengths, pt_levelYearGames, dates_padded, mask_prospect_padded)
         batch_size = 1000
         generator = torch.utils.data.DataLoader(eval_pitchers_dataset, batch_size=batch_size, shuffle=False)
         
@@ -61,11 +62,11 @@ if __name__ == "__main__":
             network.eval()
             network = network.to(device)
 
-            for batch, (data, length, dtes, mask) in tqdm(enumerate(generator), total=len(generator), desc="Evaluating Pitchers", leave=False):
-                data, length, dtes, mask = data.to(device), length.to(device), dtes.to(device), mask.to(device)
+            for batch, (data, length, pt_levelYearGames, dtes, mask) in tqdm(enumerate(generator), total=len(generator), desc="Evaluating Pitchers", leave=False):
+                data, length, pt_levelYearGames, dtes, mask = data.to(device), length.to(device), pt_levelYearGames.to(device), dtes.to(device), mask.to(device)
                 
                 # Use model optimized for prospect data
-                output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length)
+                output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames)
                 output_war = F.softmax(output_war, dim=2)
                 
                 war = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)

@@ -264,27 +264,18 @@ CREATE TABLE "Model_Players" (
 	PRIMARY KEY("mlbId")
 );
 
-CREATE TABLE Model_OrgLeagueStatus (
-	"OrgId" INTEGER NOT NULL,
+CREATE TABLE Model_LevelYearGames (
 	"Year" INTEGER NOT NULL,
 	"Month" INTEGER NOT NULL,
-	"MLB_PF" REAL NOT NULL,
-	"AAA_PF" REAL NOT NULL,
-	"AA_PF" REAL NOT NULL,
-	"HA_PF" REAL NOT NULL,
-	"A_PF" REAL NOT NULL,
-	"LA_PF" REAL NOT NULL,
-	"Rk_PF" REAL NOT NULL,
-	"DSL_PF" REAL NOT NULL,
-	"MLB_MonthsFrac" REAL NOT NULL,
-	"AAA_MonthsFrac" REAL NOT NULL,
-	"AA_MonthsFrac" REAL NOT NULL,
-	"HA_MonthsFrac" REAL NOT NULL,
-	"A_MonthsFrac" REAL NOT NULL,
-	"LA_MonthsFrac" REAL NOT NULL,
-	"Rk_MonthsFrac" REAL NOT NULL,
-	"DSL_MonthsFrac" REAL NOT NULL,
-	PRIMARY KEY("OrgId", "Year", "Month")
+	"MLB_Games" INTEGER NOT NULL,
+	"AAA_Games" INTEGER NOT NULL,
+	"AA_Games" INTEGER NOT NULL,
+	"HA_Games" INTEGER NOT NULL,
+	"A_Games" INTEGER NOT NULL,
+	"LA_Games" INTEGER NOT NULL,
+	"Rk_Games" INTEGER NOT NULL,
+	"DSL_Games" INTEGER NOT NULL,
+	PRIMARY KEY("Year", "Month")
 );
 
 CREATE TABLE Model_HitterLevelStats (

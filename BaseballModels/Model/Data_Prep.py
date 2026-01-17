@@ -32,7 +32,8 @@ class Player_IO:
                  year_pos_output : torch.Tensor,
                  mlb_value_mask : torch.Tensor,
                  mlb_value_stats : torch.Tensor,
-                 pt_year_output : torch.Tensor):
+                 pt_year_output : torch.Tensor,
+                 pt_levelYearGames : torch.Tensor):
         
         self.player = player
         self.input = input
@@ -50,6 +51,7 @@ class Player_IO:
         self.mlb_value_mask = mlb_value_mask
         self.mlb_value_stats = mlb_value_stats
         self.pt_year_output = pt_year_output
+        self.pt_levelYearGames = pt_levelYearGames
         
     @staticmethod
     def GetMaxLength(io_list : list['Player_IO']) -> int:
@@ -107,10 +109,14 @@ class Data_Prep:
         pitcherlevel_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE Year<=? AND (Outs_SP + Outs_RP)>=? AND LevelId=?", (Data_Prep.__Cutoff_Year,60,0))
         
         # Normalize output stats
-        #self.__Create_Standard_Norms(self.output_map.map_hitter_output, hitter_stats, "hitoutput")
-        #self.__Create_Standard_Norms(self.output_map.map_pitcher_output, pitcher_stats, "pitoutput")
         self.__Create_Standard_Norms(self.output_map.map_hitter_stats, hitterlevel_stats, "hitlvlstat")
         self.__Create_Standard_Norms(self.output_map.map_pitcher_stats, pitcherlevel_stats, "pitlvlstat")
+        pitlvlstat_devs : torch.Tensor = getattr(self, "__pitlvlstat_devs")
+        pitlvlstat_devs[:-1] = 0.2
+        setattr(self, "__pitlvlstat_devs", pitlvlstat_devs)
+        # hitlvlstat_devs : torch.Tensor = getattr(self, "__hitlvlstat_devs")
+        # hitlvlstat_devs[:-1] = 0.2
+        # setattr(self, "__hitlvlstat_devs", hitlvlstat_devs)
         self.__Create_Standard_Norms(self.output_map.map_hitter_pt, hitterlevel_stats, "hitlvlpt")
         self.__Create_Standard_Norms(self.output_map.map_pitcher_pt, pitcherlevel_stats, "pitlvlpt")
         
@@ -266,6 +272,9 @@ class Data_Prep:
         prospect_value_means : torch.Tensor = getattr(self, "__hit_prospect_value_means")
         prospect_value_devs : torch.Tensor = getattr(self, "__hit_prospect_value_devs")
         
+        # Amount of games played each year at each level for pt predictions
+        modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
+        
         np.random.seed(4980)
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             # Get Stats
@@ -380,6 +389,28 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
+            # Amount of games played at each level each year to make for better pt predictions
+            mlyg = torch.zeros(l, 8, dtype=torch.float)
+            # Initialize values so that any future values get a full season
+            mlyg[:,:] = torch.tensor([2430 / 500, 2232 / 500, 2056 / 500, 1958 / 500, 1948 / 500, 0, 878 / 500, 1436 / 500])
+            for i, date in enumerate(dates):
+                if i == 0:
+                    continue
+                
+                gameCounts = [m for m in modelLevelYearGames if m.Year == date[1].item() and m.Month == date[2].item()]
+                if len(gameCounts) == 1:
+                    gc = gameCounts[0]
+                    mlyg[i,:] = torch.tensor([gc.MLB_Games / 500, 
+                                              gc.AAA_Games / 500, 
+                                              gc.AA_Games / 500, 
+                                              gc.HA_Games / 500, 
+                                              gc.A_Games / 500, 
+                                              gc.LA_Games / 500, 
+                                              gc.Rk_Games / 500, 
+                                              gc.DSL_Games / 500])
+            if l > 1:
+                mlyg[0,:] = mlyg[1,:]
+            
             io.append(Player_IO(player=hitter, 
                                 input=input, 
                                 output=output, 
@@ -395,7 +426,8 @@ class Data_Prep:
                                 year_pos_output=pos_year_output, 
                                 pt_year_output=pt_year_output, 
                                 mlb_value_mask=mlb_value_mask, 
-                                mlb_value_stats=mlb_value_stats))
+                                mlb_value_stats=mlb_value_stats,
+                                pt_levelYearGames = mlyg))
         
         return io
        
@@ -417,6 +449,9 @@ class Data_Prep:
         
         prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
         prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
+        
+        # Amount of games played each year at each level for pt predictions
+        modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
         
         np.random.seed(4980)
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
@@ -528,7 +563,44 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
             
-            io.append(Player_IO(player=pitcher, input=input, output=output, prospect_value=prospect_value, output_war_class_variants=output_war_class_variants, output_war_regression_variants=output_war_regression_variants, length=l, dates=dates, prospect_mask=prospect_mask, stat_level_mask=lvl_mask, year_level_mask=lvl_year_mask, year_stat_output=stat_year_output, year_pos_output=pos_year_output, pt_year_output=pt_year_output, mlb_value_mask=mlb_value_mask, mlb_value_stats=mlb_value_stats))
+            # Amount of games played at each level each year to make for better pt predictions
+            mlyg = torch.zeros(l, 8, dtype=torch.float)
+            # Initialize values so that any future values get a full season
+            mlyg[:,:] = torch.tensor([2430 / 500, 2232 / 500, 2056 / 500, 1958 / 500, 1948 / 500, 0, 878 / 500, 1436 / 500])
+            for i, date in enumerate(dates):
+                if i == 0:
+                    continue
+                
+                gameCounts = [m for m in modelLevelYearGames if m.Year == date[1].item() and m.Month == date[2].item()]
+                if len(gameCounts) == 1:
+                    gc = gameCounts[0]
+                    mlyg[i,:] = torch.tensor([gc.MLB_Games / 500, 
+                                              gc.AAA_Games / 500, 
+                                              gc.AA_Games / 500, 
+                                              gc.HA_Games / 500, 
+                                              gc.A_Games / 500, 
+                                              gc.LA_Games / 500, 
+                                              gc.Rk_Games / 500, 
+                                              gc.DSL_Games / 500])
+            if l > 1:
+                mlyg[0,:] = mlyg[1,:]
+            
+            io.append(Player_IO(player=pitcher, 
+                                input=input, 
+                                output=output, 
+                                prospect_value=prospect_value, 
+                                output_war_class_variants=output_war_class_variants, 
+                                output_war_regression_variants=output_war_regression_variants, 
+                                length=l, dates=dates, 
+                                prospect_mask=prospect_mask, 
+                                stat_level_mask=lvl_mask, 
+                                year_level_mask=lvl_year_mask, 
+                                year_stat_output=stat_year_output, 
+                                year_pos_output=pos_year_output, 
+                                pt_year_output=pt_year_output, 
+                                mlb_value_mask=mlb_value_mask, 
+                                mlb_value_stats=mlb_value_stats,
+                                pt_levelYearGames=mlyg))
         
         return io
         

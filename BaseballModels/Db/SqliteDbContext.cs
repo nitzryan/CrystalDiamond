@@ -16,7 +16,6 @@ namespace Db
 		public DbSet<Model_PitcherValue> Model_PitcherValue {get; set;}
 		public DbSet<Model_PlayerWar> Model_PlayerWar {get; set;}
 		public DbSet<Model_Players> Model_Players {get; set;}
-		public DbSet<Model_OrgLeagueStatus> Model_OrgLeagueStatus {get; set;}
 		public DbSet<Model_HitterLevelStats> Model_HitterLevelStats {get; set;}
 		public DbSet<Model_LeagueHittingBaselines> Model_LeagueHittingBaselines {get; set;}
 		public DbSet<Model_PitcherLevelStats> Model_PitcherLevelStats {get; set;}
@@ -69,6 +68,7 @@ namespace Db
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
 		public DbSet<Output_PitcherValueAggregation> Output_PitcherValueAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
+		public DbSet<Model_LevelYearGames> Model_LevelYearGames {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -86,7 +86,6 @@ namespace Db
 			modelBuilder.Entity<Model_PitcherValue>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
-			modelBuilder.Entity<Model_OrgLeagueStatus>().HasKey(f => new {f.OrgId,f.Year,f.Month});
 			modelBuilder.Entity<Model_HitterLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Model_LeagueHittingBaselines>().HasKey(f => new {f.Year,f.Month,f.LeagueId});
 			modelBuilder.Entity<Model_PitcherLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
@@ -139,6 +138,7 @@ namespace Db
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
+			modelBuilder.Entity<Model_LevelYearGames>().HasKey(f => new {f.Year,f.Month});
 		}
 	}
 }

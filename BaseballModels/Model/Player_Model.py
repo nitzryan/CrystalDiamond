@@ -19,8 +19,8 @@ class LayerArch:
         self.num_layers = num_layers
 
 DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=150, num_layers=2)
-DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=2)
-DEFAULT_PT_ARCH = LayerArch(layer_size=100, num_layers=3)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=70, num_layers=2)
+DEFAULT_PT_ARCH = LayerArch(layer_size=130, num_layers=3)
 DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
@@ -100,7 +100,7 @@ class RNN_Model(nn.Module):
         self.linear_posLast = nn.Linear(pos_arch.layer_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         
         # Predict playing time
-        self.linear_ptFirst = nn.Linear(hidden_size, pt_arch.layer_size)
+        self.linear_ptFirst = nn.Linear(hidden_size + len(HITTER_LEVEL_BUCKETS), pt_arch.layer_size)
         self.linear_ptArray = nn.ModuleList(nn.Linear(pt_arch.layer_size, pt_arch.layer_size) for _ in range(pt_arch.num_layers - 2))
         self.linear_ptLast = nn.Linear(pt_arch.layer_size, NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
         self.register_buffer('pt_offset', data_prep.Get_HitPt_Offset() if is_hitter else data_prep.Get_PitPt_Offset())
@@ -183,9 +183,9 @@ class RNN_Model(nn.Module):
             self.mutators = self.mutators.to(*args, **kwargs)
         return super(RNN_Model, self).to(*args, **kwargs)
     
-    def forward(self, x, lengths):
-        if self.training and self.mutators is not None:
-            x += self.mutators[:x.size(0), :x.size(1), :]
+    def forward(self, x, lengths, pt_levelYearGames):
+        # if self.training and self.mutators is not None:
+        #     x += self.mutators[:x.size(0), :x.size(1), :]
         
         # Apply transformation to data before entering network
         # x = self.nonlin(self.pre1(x))
@@ -231,7 +231,11 @@ class RNN_Model(nn.Module):
         output_yearPositions = self.linear_posLast(output_yearPositions)
         
         # Generate PT Predictions
-        output_pt = F.tanh(self.linear_ptFirst(output))
+        pt_levelYearGames = pt_levelYearGames[:, :output.size(1), :]
+        # print(output.shape)
+        # print(pt_levelYearGames.shape)
+        output_pt = torch.cat((output, pt_levelYearGames), dim=-1)
+        output_pt = F.tanh(self.linear_ptFirst(output_pt))
         for ys in self.linear_ptArray:
             output_pt = F.tanh(ys(output_pt))
         output_pt = self.softplus(self.linear_ptLast(output_pt)) + self.pt_offset
@@ -272,7 +276,7 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    #loss = nn.HuberLoss(reduction='none', delta=0.25)
+    #loss = nn.HuberLoss(reduction='none', delta=1)
     #loss = nn.L1Loss(reduction='none')
     loss = nn.MSELoss(reduction='none')
     l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)
@@ -289,8 +293,9 @@ def Pt_Loss(pred_pt, actual_pt):
     pred_pt = pred_pt.reshape((batch_size * time_steps, num_levels, output_size))
     actual_pt = actual_pt.reshape((batch_size * time_steps, num_levels, output_size))
     
-    loss = nn.HuberLoss(reduction='none')
-    l = loss(pred_pt, actual_pt).sum()
+    #loss = nn.MSELoss(reduction='none')
+    loss = nn.HuberLoss(reduction='none', delta=0.5)
+    #loss = nn.L1Loss(reduction='none')
     return loss(pred_pt, actual_pt).sum()
       
 def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
