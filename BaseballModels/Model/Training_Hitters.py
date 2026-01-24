@@ -5,8 +5,7 @@ import Player_Model
 import Model_Train
 from tqdm import tqdm
 from Constants import device, db, DEFAULT_NUM_LAYERS_HITTER, DEFAULT_HIDDEN_SIZE_HITTER, DEFAULT_HITTER_BATCH_SIZE, DEFAULT_HITTER_NUM_EPOCHS
-import Prep_Map
-import Output_Map
+from Utilities import GetModelMaps
 
 if __name__ == "__main__":
     num_models = int(sys.argv[1])
@@ -21,12 +20,8 @@ if __name__ == "__main__":
         cursor.execute("DELETE FROM PlayersInTrainingData WHERE modelIdx=?", (model_id,))
         db.commit()
         
-        if model_id == 1:
-            prep_map = Prep_Map.base_prep_map
-        elif model_id == 2:
-            prep_map = Prep_Map.statsonly_prep_map
+        prep_map, output_map = GetModelMaps(model_id)
         
-        output_map = Output_Map.base_output_map
         
         data_prep = Data_Prep(prep_map, output_map)
         hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)

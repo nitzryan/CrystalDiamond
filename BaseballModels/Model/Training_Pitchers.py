@@ -23,8 +23,13 @@ if __name__ == "__main__":
             prep_map = Prep_Map.base_prep_map
         elif model_id == 2:
             prep_map = Prep_Map.statsonly_prep_map
+        elif model_id == 3:
+            prep_map = Prep_Map.meanrregression_prep_map
         
-        output_map = Output_Map.base_output_map
+        if model_id == 1 or model_id == 2:
+            output_map = Output_Map.base_output_map
+        else:
+            output_map = Output_Map.meanregression_output_map
         
         data_prep = Data_Prep(prep_map, output_map)
         pitcher_io_list = data_prep.Generate_IO_Pitchers("WHERE lastMLBSeason<? AND signingYear<? AND isPitcher=?", (2025,2015,1), use_cutoff=True)

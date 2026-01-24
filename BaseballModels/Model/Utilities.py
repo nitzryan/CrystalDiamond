@@ -20,3 +20,14 @@ def Normalize(item: _T, means: _T, devs: _T) -> _T:
             norm_value = (raw_value - getattr(means, name)) / getattr(devs, name)
             setattr(item, name, norm_value)
     return item
+
+import Output_Map
+import Prep_Map
+def GetModelMaps(model_id : int) -> tuple[Prep_Map.Prep_Map, Output_Map.Output_Map]:
+    if model_id == 1:
+        return Prep_Map.base_prep_map, Output_Map.base_output_map
+    if model_id == 2:
+        return Prep_Map.statsonly_prep_map, Output_Map.base_output_map
+    if model_id == 3:
+        return Prep_Map.meanrregression_prep_map, Output_Map.meanregression_output_map
+    raise Exception(f"No mapping found for model_id={model_id}")

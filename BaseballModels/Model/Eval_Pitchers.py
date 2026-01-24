@@ -7,9 +7,8 @@ from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS
 from DBTypes import DB_Model_TrainingHistory
 import torch.nn.functional as F
 import warnings
-import Prep_Map
-import Output_Map
 from EvalStats import getOutputPitcherStats
+from Utilities import GetModelMaps
 
 if __name__ == "__main__":
     cursor = db.cursor()
@@ -21,12 +20,7 @@ if __name__ == "__main__":
     model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Evaluating Architectures"):
-        if model_id == 1:
-            prep_map = Prep_Map.base_prep_map
-        elif model_id == 2:
-            prep_map = Prep_Map.statsonly_prep_map
-        
-        output_map = Output_Map.base_output_map
+        prep_map, output_map = GetModelMaps(model_id)
         
         data_prep = Data_Prep(prep_map, output_map)
         pitcher_io_list : list[Player_IO] = data_prep.Generate_IO_Pitchers("WHERE isPitcher=?", (1,), use_cutoff=False)

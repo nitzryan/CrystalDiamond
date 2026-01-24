@@ -148,3 +148,54 @@ base_output_map = Output_Map(
     hitter_pt_size=__hitter_pt_size,
     pitcher_pt_size=__pitcher_pt_size,
 )
+
+def _MeanRevert(factor : float, value : float):
+    return (factor * value) + (1 - factor)
+
+__map_hitter_stats_regression : Callable[[DB_Model_HitterLevelStats], list[float]] = \
+    lambda h : (f := min(h.Pa / 50, 1), 
+                [_MeanRevert(f, h.Hit1B), 
+                 _MeanRevert(f, h.Hit2B), 
+                 _MeanRevert(f, h.Hit3B), 
+                 _MeanRevert(f, h.HitHR), 
+                 _MeanRevert(f, h.BB), 
+                 _MeanRevert(f, h.HBP), 
+                 _MeanRevert(f, h.K), 
+                 _MeanRevert(f, h.SB), 
+                 _MeanRevert(f, h.CS), 
+                 max(min(h.BSR, 3.5), -3.5), 
+                 max(min(h.DRAA, 4), -4), 
+                 _MeanRevert(f, h.ParkRunFactor)])[-1]
+
+__map_pitcher_stats_regression : Callable[[DB_Model_PitcherLevelStats], list[float]] = \
+    lambda p : (f := min((p.Outs_SP + p.Outs_RP)/ 40, 1), 
+                [_MeanRevert(f, p.ERA), 
+                 _MeanRevert(f, p.FIP), 
+                 _MeanRevert(f, p.HR), 
+                 _MeanRevert(f, p.BB), 
+                 _MeanRevert(f, p.HBP), 
+                 _MeanRevert(f, p.K), 
+                 _MeanRevert(f, p.ParkRunFactor)])[-1]
+
+meanregression_output_map = Output_Map(
+    map_hitter_war=lambda p : p.warHitter,
+    map_pitcher_war=lambda p : p.warPitcher,
+    buckets_hitter_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
+    buckets_pitcher_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
+    map_hitter_stats=__map_hitter_stats_regression,
+    hitter_stats_size=__hitter_stats_size,
+    map_hitter_positions=__map_hitter_positions,
+    hitter_positions_size=__hitter_positions_size,
+    map_pitcher_stats=__map_pitcher_stats_regression,
+    pitcher_stats_size=__pitcher_stats_size,
+    map_pitcher_positions=__map_pitcher_positions,
+    pitcher_positions_size=__pitcher_positions_size,
+    map_mlb_hitter_values=__map_mlb_hitter_values,
+    mlb_hitter_values_size=__mlb_hitter_values_size,
+    map_mlb_pitcher_values=__map_mlb_pitcher_values,
+    mlb_pitcher_values_size=__mlb_pitcher_values_size,
+    map_hitter_pt=__map_hitter_pt,
+    map_pitcher_pt=__map_pitcher_pt,
+    hitter_pt_size=__hitter_pt_size,
+    pitcher_pt_size=__pitcher_pt_size,
+)
