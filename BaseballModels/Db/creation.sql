@@ -386,6 +386,35 @@ CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 	"month"
 );
 
+CREATE TABLE "Output_WarQuants" (
+	"mlbId"	INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"ModelIdx"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+	"month"	INTEGER NOT NULL,
+	"Perc10" REAL NOT NULL,
+	"Perc20" REAL NOT NULL,
+	"Perc30" REAL NOT NULL,
+	"Perc40" REAL NOT NULL,
+	"Perc50" REAL NOT NULL,
+	"Perc60" REAL NOT NULL,
+	"Perc70" REAL NOT NULL,
+	"Perc80" REAL NOT NULL,
+	"Perc90" REAL NOT NULL,
+	"Perc95" REAL NOT NULL,
+	"Perc99" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "model", "isHitter", "ModelIdx","year","month")
+);
+
+CREATE INDEX "idx_Output_WarQuants" ON "Output_WarQuants" (
+	"model",
+	"modelIdx",
+	"mlbId",
+	"year",
+	"month"
+);
+
 CREATE TABLE Output_HitterStats (
 	"MlbId" INTEGER NOT NULL,
 	"Model" INTEGER NOT NULL,

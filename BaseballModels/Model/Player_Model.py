@@ -6,6 +6,7 @@ from Data_Prep import Data_Prep
 from itertools import chain
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
+from Constants import WARQUANTILE_VALUES, WARQUANTILE_INVS
 
 def GetParameters(layers):
     parameters = []
@@ -25,6 +26,7 @@ DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
+DEFAULT_WARQUANT_ARCH = LayerArch(layer_size=50, num_layers=3)
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
@@ -33,6 +35,7 @@ DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
 DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
+DEFAULT_WARQUANT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -48,23 +51,26 @@ class RNN_Model(nn.Module):
                  lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
                  pa_arch : LayerArch = DEFAULT_PA_ARCH,
                  val_arch : LayerArch = DEFAULT_VALUE_ARCH,
+                 warquant_arch : LayerArch = DEFAULT_WARQUANT_ARCH,
                  stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
                  warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
                  pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
                  pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                  lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                  pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
-                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P):
+                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
+                 warquant_arch_p : LayerArch = DEFAULT_WARQUANT_ARCH_P,):
         super().__init__()
         
         if not is_hitter:
             stats_arch = stats_arch_p
-            warclass_arch_p = warclass_arch_p
-            pt_arch_p = pt_arch_p
-            pos_arch_p = pos_arch_p
-            lvl_arch_p = lvl_arch_p
-            pa_arch_p = pa_arch_p
-            val_arch_p = val_arch_p
+            warclass_arch = warclass_arch_p
+            pt_arch = pt_arch_p
+            pos_arch = pos_arch_p
+            lvl_arch = lvl_arch_p
+            pa_arch = pa_arch_p
+            val_arch = val_arch_p
+            warquant_arch = warquant_arch_p
         
         output_map = data_prep.output_map
         
@@ -109,6 +115,12 @@ class RNN_Model(nn.Module):
         self.linear_valueFirst = nn.Linear(hidden_size, val_arch.layer_size)
         self.linear_valueArray = nn.ModuleList(nn.Linear(val_arch.layer_size, val_arch.layer_size) for _ in range(val_arch.num_layers - 2))
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
+        
+        # WAR quantiles
+        #self.linear_warQuant = nn.Linear(warclass_arch.layer_size, len(WARQUANTILE_VALUES))
+        self.linear_warquantFirst = nn.Linear(hidden_size, warquant_arch.layer_size)
+        self.linear_warquantArray = nn.ModuleList(nn.Linear(warquant_arch.layer_size, warquant_arch.layer_size) for _ in range(warquant_arch.num_layers - 2))
+        self.linear_warquantLast = nn.Linear(warquant_arch.layer_size, len(WARQUANTILE_VALUES))
         
         self.mutators = mutators
         self.nonlin = F.relu
@@ -158,6 +170,8 @@ class RNN_Model(nn.Module):
         yearPos_params = GetParameters(chain([self.linear_posFirst, self.linear_posLast], self.linear_posArray))
         mlbValue_params = GetParameters(chain([self.linear_valueFirst, self.linear_valueLast], self.linear_valueArray))
         yearPt_params = GetParameters(chain([self.linear_ptFirst, self.linear_ptLast], self.linear_ptArray))
+        warquant_params = GetParameters(chain([self.linear_warquantFirst, self.linear_warquantLast], self.linear_warquantArray))
+        #warquant_params = GetParameters((self.linear_warQuant,))
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
                                            {'params': war_class_params, 'lr': 0.00125},
@@ -166,7 +180,8 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.015},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.005},
-                                           {'params': yearPt_params, 'lr': 0.012}]) \
+                                           {'params': yearPt_params, 'lr': 0.012},
+                                           {'params': warquant_params, 'lr': 0.012}]) \
                                         \
                         if is_hitter else \
                         torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
@@ -176,7 +191,8 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.025},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': yearPt_params, 'lr': 0.018}])
+                                           {'params': yearPt_params, 'lr': 0.018},
+                                           {'params': warquant_params, 'lr': 0.012}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -203,6 +219,7 @@ class RNN_Model(nn.Module):
         output_war = self.nonlin(self.linear_warFirst(output))
         for ys in self.linear_warArray:
             output_war = self.nonlin(ys(output_war))
+        #output_warquant = self.linear_warQuant(output_war)
         output_war = self.linear_warLast(output_war)
         
         # Generate Level Predictions
@@ -260,7 +277,13 @@ class RNN_Model(nn.Module):
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
         
-        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
+        # Warquant loss
+        output_warquant = self.nonlin(self.linear_warquantFirst(output))
+        for ys in self.linear_warquantArray:
+            output_warquant = self.nonlin(ys(output_warquant))
+        output_warquant = self.linear_warquantLast(output_warquant)
+        
+        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_warquant
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):
@@ -427,3 +450,23 @@ def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level,
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
     return loss_sums_war.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
+
+
+def War_Pinball_Loss(pred, target, masks):
+    batch_size = pred.size(0)
+    time_steps = pred.size(1)
+    
+    # Truncate target to longest length in batch
+    target = target[:,:time_steps]
+    masks = masks[:,:time_steps]
+    
+    pred = pred.reshape((batch_size * time_steps, len(WARQUANTILE_VALUES)))
+    target = target.reshape((batch_size * time_steps, 1))
+    masks = masks.reshape((batch_size * time_steps,))
+    
+    e = target - pred
+    loss = 0
+    for i in range(len(WARQUANTILE_VALUES)):
+        loss += torch.maximum(WARQUANTILE_INVS[i]*e[:,i]*masks, WARQUANTILE_VALUES[i]*e[:,i]*masks).mean()
+        
+    return loss

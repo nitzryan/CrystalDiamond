@@ -1896,5 +1896,36 @@ class DB_Model_LevelYearGames:
 		items = cursor.execute("SELECT * FROM Model_LevelYearGames " + conditional, values).fetchall()
 		return [DB_Model_LevelYearGames(i) for i in items]
 
+class DB_Output_WarQuants:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.model = values[1]
+		self.isHitter = values[2]
+		self.ModelIdx = values[3]
+		self.year = values[4]
+		self.month = values[5]
+		self.Perc10 = values[6]
+		self.Perc20 = values[7]
+		self.Perc30 = values[8]
+		self.Perc40 = values[9]
+		self.Perc50 = values[10]
+		self.Perc60 = values[11]
+		self.Perc70 = values[12]
+		self.Perc80 = values[13]
+		self.Perc90 = values[14]
+		self.Perc95 = values[15]
+		self.Perc99 = values[16]
+
+	NUM_ELEMENTS = 17
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.model,self.isHitter,self.ModelIdx,self.year,self.month,self.Perc10,self.Perc20,self.Perc30,self.Perc40,self.Perc50,self.Perc60,self.Perc70,self.Perc80,self.Perc90,self.Perc95,self.Perc99)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_WarQuants']:
+		items = cursor.execute("SELECT * FROM Output_WarQuants " + conditional, values).fetchall()
+		return [DB_Output_WarQuants(i) for i in items]
+
 
 ##############################################################################################

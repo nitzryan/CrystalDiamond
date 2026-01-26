@@ -15,6 +15,7 @@ if __name__ == "__main__":
     cursor.execute("DELETE FROM Output_PlayerWar WHERE isHitter=0")
     cursor.execute("DELETE FROM Output_PitcherStats")
     cursor.execute("DELETE FROM Output_PitcherValue")
+    cursor.execute("DELETE FROM Output_WarQuants WHERE isHitter=0")
     db.commit()
     cursor = db.cursor()
     model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
@@ -49,6 +50,9 @@ if __name__ == "__main__":
         lvlstat_mean : torch.Tensor = data_prep.__getattribute__('__pitlvlstat_means').to(device)
         lvlstat_devs : torch.Tensor = data_prep.__getattribute__('__pitlvlstat_devs').to(device)
         
+        war_means : torch.Tensor = getattr(data_prep, "__pit_prospect_value_means").to(device)
+        war_devs : torch.Tensor = getattr(data_prep, "__pit_prospect_value_devs").to(device)
+        
         for m in tqdm(mth, desc="Evaluation Models", leave=False):
             model_idx = int(m.ModelIdx)
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
@@ -60,7 +64,7 @@ if __name__ == "__main__":
                 data, length, pt_levelYearGames, dtes, mask = data.to(device), length.to(device), pt_levelYearGames.to(device), dtes.to(device), mask.to(device)
                 
                 # Use model optimized for prospect data
-                output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames)
+                output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_warquant = network(data, length, pt_levelYearGames)
                 output_war = F.softmax(output_war, dim=2)
                 
                 war = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
@@ -104,6 +108,20 @@ if __name__ == "__main__":
                 
                 stats_tensor = getOutputPitcherStats(length, mlbIds, dtes, pt_values, stats_values, pos_values, model_id, model_idx)
                 cursor.executemany(f"INSERT INTO Output_PitcherStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
+                    
+                # War Quantiles
+                output_warquant = (output_warquant * war_devs) + war_means
+                mask = mask.to('cpu')
+                modelIdxs = modelIdxs.to('cpu')
+                output_warquant = output_warquant.to('cpu')
+                opw = torch.cat((mask.unsqueeze(-1), mlbIds, modelIdxs, dtes, output_warquant), dim=2)
+                db_data = torch.nn.utils.rnn.unpad_sequence(opw, length, batch_first=True)
+                for dbd in db_data:
+                    # Only log where player is actually a prospect
+                    dbd = dbd[dbd[:,0] != 0]
+                    d = dbd[:,1:]
+                    vals = [tuple(x) for x in d.tolist()]
+                    cursor.executemany(f"INSERT INTO Output_WarQuants VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                 db.commit()
                 

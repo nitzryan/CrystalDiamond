@@ -69,6 +69,7 @@ namespace Db
 		public DbSet<Output_PitcherValueAggregation> Output_PitcherValueAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
 		public DbSet<Model_LevelYearGames> Model_LevelYearGames {get; set;}
+		public DbSet<Output_WarQuants> Output_WarQuants {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -139,6 +140,7 @@ namespace Db
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
 			modelBuilder.Entity<Model_LevelYearGames>().HasKey(f => new {f.Year,f.Month});
+			modelBuilder.Entity<Output_WarQuants>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
 		}
 	}
 }
