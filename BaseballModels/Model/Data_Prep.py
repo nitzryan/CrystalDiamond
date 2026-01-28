@@ -101,6 +101,18 @@ class Data_Prep:
         self.__Create_Standard_Norms(lambda h : [h.warHitter], hitters, "hit_prospect_value")
         self.__Create_Standard_Norms(lambda p : [p.warPitcher], pitchers, "pit_prospect_value")
         
+        # Get max/min WAR values to use to constrain war value predictions
+        prospect_value_means : torch.Tensor = getattr(self, "__hit_prospect_value_means")
+        prospect_value_devs : torch.Tensor = getattr(self, "__hit_prospect_value_devs")
+        # Set max to 2nd highest, otherwise creates scenario in quantile loss where there is a gap of 10 WAR, and all
+        # values in this range are equivalent
+        self.maxHitWar = (42 - prospect_value_means.item()) / prospect_value_devs.item()
+        self.minHitWar = min([(h.warHitter - prospect_value_means.item()) / prospect_value_devs.item() for h in hitters])
+        prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
+        prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
+        self.maxPitWar = max([(p.warPitcher - prospect_value_means.item()) / prospect_value_devs.item() for p in pitchers])
+        self.minPitWar = min([(p.warPitcher - prospect_value_means.item()) / prospect_value_devs.item() for p in pitchers])
+        
         # Get all stats <=2024 to get means/stds to normalize
         # Restrict so new data doesn't change old conversions which would break model
         hitter_stats = DB_Model_HitterStats.Select_From_DB(cursor, "WHERE Year<=?", (Data_Prep.__Cutoff_Year,))

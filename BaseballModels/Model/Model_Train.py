@@ -17,7 +17,7 @@ WAR_QUANTILE_MULTIPLER = 10
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "WarQuantile"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
-def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool) -> tuple:
+def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool, trainingFraction : float) -> tuple:
   # Get Model Output
   data = data.to(device)
   length = length.to(device)
@@ -36,7 +36,9 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
-  loss_warQuantile = War_Pinball_Loss(output_war_quantiles, target_warvalue, mask_labels)
+  
+  crossoverScale = 0 if trainingFraction < 0.25 else (trainingFraction - 0.25) * 0.003
+  loss_warQuantile = War_Pinball_Loss(output_war_quantiles, target_warvalue, mask_labels, crossoverScale)
   
   if shouldBackprop:
     (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
@@ -50,13 +52,13 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   
   return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warQuantile)
 
-def train(network, data_generator, num_elements, optimizer, is_hitter : bool, should_output=True):
+def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   for batch, (data, length, pt_levelYearGames, targets, masks) in enumerate(data_generator):
     optimizer.zero_grad()
-    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter)
+    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
     torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
     optimizer.step()
     avg_loss[0] += loss_war.item()
@@ -73,13 +75,13 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, sh
     avg_loss[n] /= num_elements
   return avg_loss
 
-def test(network, test_loader, num_elements, is_hitter : bool):
+def test(network, test_loader, num_elements, is_hitter : bool, trainingFraction):
   network.eval() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   with torch.no_grad():
     for data, length, pt_levelYearGames, targets, masks in test_loader:
-      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter)
+      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter, trainingFraction)
       
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_level.item()
@@ -144,8 +146,8 @@ def trainAndGraph(network,
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, should_output=should_output, is_hitter=is_hitter)
-    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter)
+    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
+    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
 
     training_dataset.increase_variant()
 

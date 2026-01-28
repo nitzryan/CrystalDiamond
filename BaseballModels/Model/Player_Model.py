@@ -122,6 +122,11 @@ class RNN_Model(nn.Module):
         self.linear_warquantArray = nn.ModuleList(nn.Linear(warquant_arch.layer_size, warquant_arch.layer_size) for _ in range(warquant_arch.num_layers - 2))
         self.linear_warquantLast = nn.Linear(warquant_arch.layer_size, len(WARQUANTILE_VALUES))
         
+        # Range of stats to restrict quantile predictions
+        self.war_min = data_prep.minHitWar if is_hitter else data_prep.minPitWar
+        self.war_max = data_prep.maxHitWar if is_hitter else data_prep.maxPitWar
+        
+        
         self.mutators = mutators
         self.nonlin = F.relu
         self.nonlin = F.tanh
@@ -282,6 +287,8 @@ class RNN_Model(nn.Module):
         for ys in self.linear_warquantArray:
             output_warquant = self.nonlin(ys(output_warquant))
         output_warquant = self.linear_warquantLast(output_warquant)
+        # Move into observed range
+        output_warquant = self.war_min + ((self.war_max - self.war_min) * torch.sigmoid(output_warquant))
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_warquant
     
@@ -452,7 +459,7 @@ def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level,
     return loss_sums_war.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
 
 
-def War_Pinball_Loss(pred, target, masks):
+def War_Pinball_Loss(pred, target, masks, crossoverScale):
     batch_size = pred.size(0)
     time_steps = pred.size(1)
     
@@ -468,5 +475,14 @@ def War_Pinball_Loss(pred, target, masks):
     loss = 0
     for i in range(len(WARQUANTILE_VALUES)):
         loss += torch.maximum(WARQUANTILE_INVS[i]*e[:,i]*masks, WARQUANTILE_VALUES[i]*e[:,i]*masks).mean()
+        
+    # Penalty for a higher quantile having a lower value than previous
+    if crossoverScale != 0:
+        crossover_penalty = 0
+        for q in range(len(WARQUANTILE_VALUES) - 1):
+            diff = pred[:, q + 1] - pred[:, q]
+            crossover_penalty += crossoverScale * torch.square(torch.maximum(-diff * masks, torch.zeros_like(diff))).mean()
+
+        loss += crossover_penalty
         
     return loss
