@@ -1,11 +1,10 @@
 namespace Db
 {
-	public class Output_WarQuants
+	public class Output_WarQuantsAggregation
 	{
 		public required int MlbId {get; set;}
 		public required int Model {get; set;}
 		public required int IsHitter {get; set;}
-		public required int ModelIdx {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Perc5 {get; set;}
@@ -19,14 +18,13 @@ namespace Db
 		public required float Perc95 {get; set;}
 		public required float War {get; set;}
 
-		public Output_WarQuants Clone()
+		public Output_WarQuantsAggregation Clone()
 		{
-			return new Output_WarQuants
+			return new Output_WarQuantsAggregation
 			{
 				MlbId = this.MlbId,
 				Model = this.Model,
 				IsHitter = this.IsHitter,
-				ModelIdx = this.ModelIdx,
 				Year = this.Year,
 				Month = this.Month,
 				Perc5 = this.Perc5,

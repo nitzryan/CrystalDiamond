@@ -16,12 +16,14 @@ namespace Db
 		public DbSet<Model_PitcherValue> Model_PitcherValue {get; set;}
 		public DbSet<Model_PlayerWar> Model_PlayerWar {get; set;}
 		public DbSet<Model_Players> Model_Players {get; set;}
+		public DbSet<Model_LevelYearGames> Model_LevelYearGames {get; set;}
 		public DbSet<Model_HitterLevelStats> Model_HitterLevelStats {get; set;}
 		public DbSet<Model_LeagueHittingBaselines> Model_LeagueHittingBaselines {get; set;}
 		public DbSet<Model_PitcherLevelStats> Model_PitcherLevelStats {get; set;}
 		public DbSet<Model_LeaguePitchingBaselines> Model_LeaguePitchingBaselines {get; set;}
 		public DbSet<Model_TrainingHistory> Model_TrainingHistory {get; set;}
 		public DbSet<Output_PlayerWar> Output_PlayerWar {get; set;}
+		public DbSet<Output_WarQuants> Output_WarQuants {get; set;}
 		public DbSet<Output_HitterStats> Output_HitterStats {get; set;}
 		public DbSet<Output_PitcherStats> Output_PitcherStats {get; set;}
 		public DbSet<Output_HitterValue> Output_HitterValue {get; set;}
@@ -68,8 +70,7 @@ namespace Db
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
 		public DbSet<Output_PitcherValueAggregation> Output_PitcherValueAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
-		public DbSet<Model_LevelYearGames> Model_LevelYearGames {get; set;}
-		public DbSet<Output_WarQuants> Output_WarQuants {get; set;}
+		public DbSet<Output_WarQuantsAggregation> Output_WarQuantsAggregation {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -87,12 +88,14 @@ namespace Db
 			modelBuilder.Entity<Model_PitcherValue>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Model_PlayerWar>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
+			modelBuilder.Entity<Model_LevelYearGames>().HasKey(f => new {f.Year,f.Month});
 			modelBuilder.Entity<Model_HitterLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Model_LeagueHittingBaselines>().HasKey(f => new {f.Year,f.Month,f.LeagueId});
 			modelBuilder.Entity<Model_PitcherLevelStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Model_LeaguePitchingBaselines>().HasKey(f => new {f.Year,f.Month,f.LeagueId});
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
 			modelBuilder.Entity<Output_PlayerWar>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Output_WarQuants>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
 			modelBuilder.Entity<Output_HitterStats>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStats>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_HitterValue>().HasKey(f => new {f.MlbId,f.Model,f.ModelIdx,f.Year,f.Month});
@@ -139,8 +142,7 @@ namespace Db
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PitcherValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
-			modelBuilder.Entity<Model_LevelYearGames>().HasKey(f => new {f.Year,f.Month});
-			modelBuilder.Entity<Output_WarQuants>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.ModelIdx,f.Year,f.Month});
+			modelBuilder.Entity<Output_WarQuantsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});
 		}
 	}
 }

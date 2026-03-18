@@ -11,18 +11,20 @@ namespace SitePrep
         {
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
-                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_PlayerWarAggregation;");
+                db_write.Output_PlayerWarAggregation.ExecuteDelete();
+                db_write.Output_WarQuantsAggregation.ExecuteDelete();
             }
 
-            List<Db.Output_PlayerWarAggregation> items = new();
+            List<Output_PlayerWarAggregation> items = new();
+            List<Output_WarQuantsAggregation> warQuantItems = new();
 
             using (SqliteDbContext db = new(Constants.DB_OPTIONS))
             {
                 var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
                 int count = opws.Count();
+                
                 items.Capacity = count;
-                //var opw = db.Output_PlayerWar.Where(f => f.ModelIdx == 0);
-                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Model Results"))
+                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating WarBucket Model Results"))
                 {
                     foreach (var o in opws)
                     {
@@ -30,7 +32,7 @@ namespace SitePrep
                         if (size == 0)
                             throw new Exception("No elements in model_results, should not happen");
 
-                        Db.Output_PlayerWarAggregation owa = new()
+                        Output_PlayerWarAggregation owa = new()
                         {
                             MlbId = o.Key.MlbId,
                             Model = o.Key.Model,
@@ -63,12 +65,63 @@ namespace SitePrep
                         progressBar.Tick();
                     }
                 }
+
+                var wqOpws = db.Output_WarQuants.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
+                count = wqOpws.Count();
+                warQuantItems.Capacity = count;
+
+                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating WarQuant Model Results"))
+                {
+                    foreach (var o in wqOpws)
+                    {
+                        int size = o.Count();
+                        if (size == 0)
+                            throw new Exception("No elements in model_results, should not happen");
+
+                        Output_WarQuantsAggregation owqa = new()
+                        {
+                            MlbId = o.Key.MlbId,
+                            Model = o.Key.Model,
+                            IsHitter = o.Key.IsHitter,
+                            Year = o.Key.Year,
+                            Month = o.Key.Month,
+                            Perc5 = 0,
+                            Perc15 = 0,
+                            Perc25 = 0,
+                            Perc35 = 0,
+                            Perc50 = 0,
+                            Perc65 = 0,
+                            Perc75 = 0,
+                            Perc85 = 0,
+                            Perc95 = 0,
+                            War = 0,
+                        };
+
+                        foreach (var result in o)
+                        {
+                            owqa.Perc5  += result.Perc5  / size;
+                            owqa.Perc15 += result.Perc15 / size;
+                            owqa.Perc25 += result.Perc25 / size;
+                            owqa.Perc35 += result.Perc35 / size;
+                            owqa.Perc50 += result.Perc50 / size;
+                            owqa.Perc65 += result.Perc65 / size;
+                            owqa.Perc75 += result.Perc75 / size;
+                            owqa.Perc85 += result.Perc85 / size;
+                            owqa.Perc95 += result.Perc95 / size;
+                            owqa.War    += result.War    / size;
+                        }
+
+                        warQuantItems.Add(owqa);
+                        progressBar.Tick();
+                    }
+                }
             }
 
 
             using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
             {
                 db_write.BulkInsert(items);
+                db_write.BulkInsert(warQuantItems);
             }
 
             return true;

@@ -25,7 +25,7 @@ namespace SitePrep
                     var player = playerTuple.mp;
                     var bio = playerTuple.sbi;
 
-                    // Model Output
+                    // Model Output Buckets
                     var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 0).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     foreach (var opw in opws)
                     {
@@ -45,6 +45,31 @@ namespace SitePrep
                                     $"{opw.War4.ToString("0.000")}," +
                                     $"{opw.War5.ToString("0.000")}," +
                                     $"{opw.War6.ToString("0.000")}",
+                            RankWar = ranks.Any() ? ranks.First().RankWar : null,
+                        });
+                    }
+
+                    // Model Output Quantiles
+                    var owqs = db.Output_WarQuantsAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 0).OrderBy(f => f.Year).ThenBy(f => f.Month);
+                    foreach (var owq in owqs)
+                    {
+                        var ranks = siteDb.PlayerRank.Where(f => f.Year == owq.Year && f.Month == owq.Month && f.MlbId == owq.MlbId && f.ModelId == (owq.Model + 100));
+                        siteDb.Add(new PlayerModel
+                        {
+                            MlbId = player.MlbId,
+                            Year = owq.Year,
+                            Month = owq.Month,
+                            ModelId = owq.Model + 100,
+                            IsHitter = owq.IsHitter,
+                            ProbsWar = $"{owq.Perc5.ToString("0.000")}," +
+                                    $"{owq.Perc15.ToString("0.000")}," +
+                                    $"{owq.Perc25.ToString("0.000")}," +
+                                    $"{owq.Perc35.ToString("0.000")}," +
+                                    $"{owq.Perc50.ToString("0.000")}," +
+                                    $"{owq.Perc65.ToString("0.000")}," +
+                                    $"{owq.Perc75.ToString("0.000")}," +
+                                    $"{owq.Perc85.ToString("0.000")}," +
+                                    $"{owq.Perc95.ToString("0.000")}",
                             RankWar = ranks.Any() ? ranks.First().RankWar : null,
                         });
                     }

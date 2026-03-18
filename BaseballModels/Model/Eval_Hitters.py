@@ -3,7 +3,7 @@ import torch
 from Eval_Dataset import Eval_Dataset
 from Player_Model import RNN_Model
 from tqdm import tqdm
-from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS
+from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS, WARQUANTILE_VALUES
 from DBTypes import *
 import torch.nn.functional as F
 import warnings
@@ -66,10 +66,10 @@ if __name__ == "__main__":
             for batch, (data, length, pt_levelYearGames, dtes, mask) in tqdm(enumerate(generator), total=len(generator), desc="Evaluating Hitters", leave=False):
                 data, length, pt_levelYearGames, dtes, mask = data.to(device), length.to(device), pt_levelYearGames.to(device), dtes.to(device), mask.to(device)
                 
-                # Use model optimized for prospect data
                 output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_warquant = network(data, length, pt_levelYearGames)
                 output_war = F.softmax(output_war, dim=2)
                 
+                # Calculate mean war
                 war = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
                 for i in range(1, len(WAR_BUCKET_AVG)):
                     war[:,:] += output_war[:,:,i] * WAR_BUCKET_AVG[i]
@@ -114,18 +114,26 @@ if __name__ == "__main__":
                 cursor.executemany("INSERT INTO Output_HitterStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                     
                 # War Quantiles
+                # Calculate mean war
                 output_warquant = (output_warquant * war_devs) + war_means
+                war = torch.zeros(size=(output_warquant.size(0), output_warquant.size(1))).to(device)
+                war[:,:] += output_warquant[:,:,0] * WARQUANTILE_VALUES[0]
+                for i in range(1, len(WARQUANTILE_VALUES) - 1):
+                    war[:,:] += (output_warquant[:,:,i+1] + output_warquant[:,:,i]) / 2 * (WARQUANTILE_VALUES[i + 1] - WARQUANTILE_VALUES[i])
+                war[:,:] += output_warquant[:,:,-1] * (1 - WARQUANTILE_VALUES[-1])
+                
                 mask = mask.to('cpu')
                 modelIdxs = modelIdxs.to('cpu')
                 output_warquant = output_warquant.to('cpu')
-                opw = torch.cat((mask.unsqueeze(-1), mlbIds, modelIdxs, dtes, output_warquant), dim=2)
+                war = war.to('cpu')
+                opw = torch.cat((mask.unsqueeze(-1), mlbIds, modelIdxs, dtes, output_warquant, war.unsqueeze(-1)), dim=2)
                 db_data = torch.nn.utils.rnn.unpad_sequence(opw, length, batch_first=True)
                 for dbd in db_data:
                     # Only log where player is actually a prospect
                     dbd = dbd[dbd[:,0] != 0]
                     d = dbd[:,1:]
                     vals = [tuple(x) for x in d.tolist()]
-                    cursor.executemany(f"INSERT INTO Output_WarQuants VALUES(?,{model_id},1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    cursor.executemany(f"INSERT INTO Output_WarQuants VALUES(?,{model_id},1,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                 db.commit()
                 

@@ -15,6 +15,7 @@ python aggregatedTableCreator.py Output_PitcherStats ModelIdx model,year,month,l
 python aggregatedTableCreator.py Output_HitterValue ModelIdx model,year,month,mlbId
 python aggregatedTableCreator.py Output_PitcherValue ModelIdx model,year,month,mlbId
 python aggregatedTableCreator.py Output_PlayerWar ModelIdx model,year,month,mlbId
+python aggregatedTableCreator.py Output_WarQuants ModelIdx model,isHitter,year,month,mlbId
 
 setlocal EnableDelayedExpansion
 IF EXIST %DB_BACKUP% (
