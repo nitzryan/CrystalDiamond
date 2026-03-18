@@ -121,9 +121,6 @@ class RNN_Model(nn.Module):
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         # WAR quantiles
-        # self.linear_warquantFirst = nn.Linear(hidden_size, warquant_arch.layer_size)
-        # self.linear_warquantArray = nn.ModuleList(nn.Linear(warquant_arch.layer_size, warquant_arch.layer_size) for _ in range(warquant_arch.num_layers - 2))
-        # self.linear_warquantLast = nn.Linear(warquant_arch.layer_size, len(WARQUANTILE_VALUES))
         self.MQRCNN_warquant = MCQRNN(hidden_size, [12, 6], F.tanh)
         self.taus = torch.tensor(WARQUANTILE_VALUES)
         
