@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Data_Prep import Data_Prep
+import MCQRNN
+import importlib
+importlib.reload(MCQRNN)
+from MCQRNN import MCQRNN
 from itertools import chain
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
@@ -117,10 +121,11 @@ class RNN_Model(nn.Module):
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         # WAR quantiles
-        #self.linear_warQuant = nn.Linear(warclass_arch.layer_size, len(WARQUANTILE_VALUES))
-        self.linear_warquantFirst = nn.Linear(hidden_size, warquant_arch.layer_size)
-        self.linear_warquantArray = nn.ModuleList(nn.Linear(warquant_arch.layer_size, warquant_arch.layer_size) for _ in range(warquant_arch.num_layers - 2))
-        self.linear_warquantLast = nn.Linear(warquant_arch.layer_size, len(WARQUANTILE_VALUES))
+        # self.linear_warquantFirst = nn.Linear(hidden_size, warquant_arch.layer_size)
+        # self.linear_warquantArray = nn.ModuleList(nn.Linear(warquant_arch.layer_size, warquant_arch.layer_size) for _ in range(warquant_arch.num_layers - 2))
+        # self.linear_warquantLast = nn.Linear(warquant_arch.layer_size, len(WARQUANTILE_VALUES))
+        self.MQRCNN_warquant = MCQRNN(hidden_size, [12, 6], F.tanh)
+        self.taus = torch.tensor(WARQUANTILE_VALUES)
         
         # Range of stats to restrict quantile predictions
         self.war_min = data_prep.minHitWar if is_hitter else data_prep.minPitWar
@@ -175,7 +180,7 @@ class RNN_Model(nn.Module):
         yearPos_params = GetParameters(chain([self.linear_posFirst, self.linear_posLast], self.linear_posArray))
         mlbValue_params = GetParameters(chain([self.linear_valueFirst, self.linear_valueLast], self.linear_valueArray))
         yearPt_params = GetParameters(chain([self.linear_ptFirst, self.linear_ptLast], self.linear_ptArray))
-        warquant_params = GetParameters(chain([self.linear_warquantFirst, self.linear_warquantLast], self.linear_warquantArray))
+        warquant_params = GetParameters(chain([self.MQRCNN_warquant]))
         #warquant_params = GetParameters((self.linear_warQuant,))
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
@@ -202,6 +207,7 @@ class RNN_Model(nn.Module):
     def to(self, *args, **kwargs):
         if self.mutators is not None:
             self.mutators = self.mutators.to(*args, **kwargs)
+        self.taus = self.taus.to(*args, **kwargs)
         return super(RNN_Model, self).to(*args, **kwargs)
     
     def forward(self, x, lengths, pt_levelYearGames):
@@ -254,8 +260,6 @@ class RNN_Model(nn.Module):
         
         # Generate PT Predictions
         pt_levelYearGames = pt_levelYearGames[:, :output.size(1), :]
-        # print(output.shape)
-        # print(pt_levelYearGames.shape)
         output_pt = torch.cat((output, pt_levelYearGames), dim=-1)
         output_pt = F.tanh(self.linear_ptFirst(output_pt))
         for ys in self.linear_ptArray:
@@ -283,10 +287,10 @@ class RNN_Model(nn.Module):
             ], dim=-1)
         
         # Warquant loss
-        output_warquant = self.nonlin(self.linear_warquantFirst(output))
-        for ys in self.linear_warquantArray:
-            output_warquant = self.nonlin(ys(output_warquant))
-        output_warquant = self.linear_warquantLast(output_warquant)
+        output_stacked = output.unsqueeze(2).expand(-1, -1, len(WARQUANTILE_VALUES), -1)
+        tau_stacked = self.taus.repeat(output.shape[0] * output.shape[1])
+        output_warquant = self.MQRCNN_warquant(output_stacked, tau_stacked)
+        
         # Move into observed range
         output_warquant = self.war_min + ((self.war_max - self.war_min) * torch.sigmoid(output_warquant))
         
@@ -475,14 +479,5 @@ def War_Pinball_Loss(pred, target, masks, crossoverScale):
     loss = 0
     for i in range(len(WARQUANTILE_VALUES)):
         loss += torch.maximum(WARQUANTILE_INVS[i]*e[:,i]*masks, WARQUANTILE_VALUES[i]*e[:,i]*masks).mean()
-        
-    # Penalty for a higher quantile having a lower value than previous
-    if crossoverScale != 0:
-        crossover_penalty = 0
-        for q in range(len(WARQUANTILE_VALUES) - 1):
-            diff = pred[:, q + 1] - pred[:, q]
-            crossover_penalty += crossoverScale * torch.square(torch.maximum(-diff * masks, torch.zeros_like(diff))).mean()
-
-        loss += crossover_penalty
         
     return loss
