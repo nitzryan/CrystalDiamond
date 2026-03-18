@@ -23,7 +23,7 @@ PITCHER_PEAK_WAR_BUCKETS = torch.tensor([0, 0.5, 1, 2, 3, 4, 5, 7, np.inf], dtyp
 PITCHER_LEVEL_BUCKETS = torch.tensor([1,2,3,4,5,6,7,8], dtype=DTYPE)
 PITCHER_BF_BUCKETS = torch.tensor([0, 50, 200, 1000, 2000, np.inf], dtype=DTYPE)
 
-WARQUANTILE_VALUES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
+WARQUANTILE_VALUES = [0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95]
 WARQUANTILE_INVS = [x-1 for x in WARQUANTILE_VALUES]
 
 NUM_LEVELS = 8
