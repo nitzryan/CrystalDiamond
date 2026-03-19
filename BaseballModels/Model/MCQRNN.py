@@ -24,19 +24,31 @@ class MCQRNN(nn.Module):
         self.feature_dim = feature_dim
         self.activation = activation
         
-        # First layer: separate handling for regular features + monotone tau
+        # Layers that will transform tau into a vector, multiple layers for nonlinearity
+        # Techinically this could break monotonicity, but practically it shouldn't, and
+        # if it does, it would break it for all outputs so easily noticeable
+        self.tau_net = nn.ModuleList()
+        tau_dim = 1
+        for h in [16, 8]:
+            layer = MonotoneLinear(tau_dim, h)
+            nn.init.uniform_(layer.weight, 0.0, 0.1)
+            nn.init.zeros_(layer.bias)
+            self.tau_net.append(layer)
+            tau_dim = h
+    
+        self.tau_net.append(MonotoneLinear(tau_dim, 1))
+        
+        # First layer: separate handling for regular features
         self.fc_x = nn.Linear(feature_dim, hidden_dims[0])
-        self.tau_weight_raw = nn.Parameter(torch.ones(1, hidden_dims[0]))
         
         self.bias1 = nn.Parameter(torch.zeros(hidden_dims[0]))
         
         # Remaining layers: All monotone
         self.monotone_layers = nn.ModuleList()
-        prev_dim = hidden_dims[0]
+        prev_dim = hidden_dims[0] + 1 # 1 from tau
         for h_dim in hidden_dims[1:]:
-            layer = MonotoneLinear(prev_dim, h_dim)
-            # Set to small positive
-            nn.init.uniform_(layer.weight, a=0.0, b=0.01)
+            layer = nn.Linear(prev_dim, h_dim)
+            nn.init.uniform_(layer.weight, a=0, b=0.1)
             if layer.bias is not None:
                 nn.init.zeros_(layer.bias)
             self.monotone_layers.append(layer)
@@ -44,7 +56,7 @@ class MCQRNN(nn.Module):
         
         # Get final output
         self.output_layer = MonotoneLinear(prev_dim, 1)
-        nn.init.uniform_(self.output_layer.weight, a=0.0, b=0.005)
+        nn.init.uniform_(self.output_layer.weight, a=0.0, b=0.1)
         self.output_layer.bias.data.fill_(0.0)
         
     def forward(self, x: torch.Tensor, tau: torch.Tensor) -> torch.Tensor:
@@ -54,12 +66,14 @@ class MCQRNN(nn.Module):
         
         tau = tau.reshape((batchSize * timeSteps * numQuantiles, 1))
         # Monotone contribution from tau (guaranteed non-decreasing)
-        tau_contrib = tau * F.softplus(self.tau_weight_raw)
+        # for layer in self.tau_net:
+        #     tau = self.activation(layer(tau))
         
         # First layer has monotone portion from tau, non-monotone from rest of data
         fcx = self.fc_x(x)
-        h = fcx + tau_contrib + self.bias1
+        h = fcx + self.bias1
         h = self.activation(h)
+        h = torch.concat((h, tau), dim=1)
         
         # Propagate through monotone layers
         for layer in self.monotone_layers:

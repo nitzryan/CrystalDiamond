@@ -121,7 +121,7 @@ class RNN_Model(nn.Module):
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         # WAR quantiles
-        self.MQRCNN_warquant = MCQRNN(hidden_size, warquant_arch, F.tanh)
+        self.MQRCNN_warquant = MCQRNN(hidden_size, warquant_arch, F.softplus)
         self.taus = torch.tensor(WARQUANTILE_VALUES)
         
         # Range of stats to restrict quantile predictions
@@ -289,7 +289,11 @@ class RNN_Model(nn.Module):
         output_warquant = self.MQRCNN_warquant(output_stacked, tau_stacked)
         
         # Move into observed range
-        output_warquant = self.war_min + ((self.war_max - self.war_min) * torch.sigmoid(output_warquant))
+        # output_warquant = self.war_min + ((self.war_max - self.war_min) * torch.sigmoid(output_warquant))
+        # print(self.war_max)
+        # print(self.war_min)
+        output_warquant = self.war_min + F.softplus(output_warquant)
+        # exit(1)
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_warquant
     
