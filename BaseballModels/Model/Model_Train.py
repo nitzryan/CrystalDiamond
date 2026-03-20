@@ -14,7 +14,7 @@ MLB_VALUE_LOSS_MULTIPLIER = 0.2
 PT_LOSS_MULTIPLIER = 0.5
 WAR_QUANTILE_MULTIPLER = 10
 
-ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "WarQuantile"]
+ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool, trainingFraction : float) -> tuple:
@@ -22,7 +22,7 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   data = data.to(device)
   length = length.to(device)
   pt_levelYearGames = pt_levelYearGames.to(device)
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_war_quantiles = network(data, length, pt_levelYearGames)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames)
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_warvalue = targets
@@ -37,8 +37,7 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   
-  crossoverScale = 0 if trainingFraction < 0.25 else (trainingFraction - 0.25) * 0.003
-  loss_warQuantile = War_Pinball_Loss(output_war_quantiles, target_warvalue, mask_labels, crossoverScale)
+  # Disabled war quantiles because they don't produce good results
   
   if shouldBackprop:
     (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
@@ -48,9 +47,8 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
     (loss_yearPos * POSITION_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_yearPt * PT_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_mlbValue * MLB_VALUE_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_warQuantile * WAR_QUANTILE_MULTIPLER).backward()
   
-  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warQuantile)
+  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
 
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
@@ -58,7 +56,7 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
   num_batches = 0
   for batch, (data, length, pt_levelYearGames, targets, masks) in enumerate(data_generator):
     optimizer.zero_grad()
-    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
+    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
     torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
     optimizer.step()
     avg_loss[0] += loss_war.item()
@@ -68,7 +66,6 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
     avg_loss[4] += loss_yearPos.item()
     avg_loss[5] += loss_mlbValue.item()
     avg_loss[6] += loss_yearPt.item()
-    avg_loss[7] += loss_warquantile.item()
     num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -81,7 +78,7 @@ def test(network, test_loader, num_elements, is_hitter : bool, trainingFraction)
   num_batches = 0
   with torch.no_grad():
     for data, length, pt_levelYearGames, targets, masks in test_loader:
-      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_warquantile = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter, trainingFraction)
+      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter, trainingFraction)
       
       avg_loss[0] += loss_war.item()
       avg_loss[1] += loss_level.item()
@@ -90,7 +87,6 @@ def test(network, test_loader, num_elements, is_hitter : bool, trainingFraction)
       avg_loss[4] += loss_yearPos.item()
       avg_loss[5] += loss_mlbValue.item()
       avg_loss[6] += loss_yearPt.item()
-      avg_loss[7] += loss_warquantile.item()
       num_batches += 1
   
   for n in range(NUM_ELEMENTS):
@@ -139,7 +135,7 @@ def trainAndGraph(network,
   train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
   
-  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7], [8]], verbose=False,
+  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)
   
   iterable = range(num_epochs)

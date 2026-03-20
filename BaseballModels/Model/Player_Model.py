@@ -192,8 +192,7 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.015},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.005},
-                                           {'params': yearPt_params, 'lr': 0.012},
-                                           {'params': warquant_params, 'lr': 0.012}]) \
+                                           {'params': yearPt_params, 'lr': 0.012}]) \
                                         \
                         if is_hitter else \
                         torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
@@ -203,8 +202,7 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.025},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': yearPt_params, 'lr': 0.018},
-                                           {'params': warquant_params, 'lr': 0.012}])
+                                           {'params': yearPt_params, 'lr': 0.018}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -289,18 +287,13 @@ class RNN_Model(nn.Module):
             ], dim=-1)
         
         # Warquant loss
-        output_stacked = output.unsqueeze(2).expand(-1, -1, len(WARQUANTILE_VALUES), -1)
-        tau_stacked = self.taus.repeat(output.shape[0] * output.shape[1])
-        output_warquant = self.MQRCNN_warquant(output_stacked, tau_stacked)
+        # This didn't produce results that were decent
+        # output_stacked = output.unsqueeze(2).expand(-1, -1, len(WARQUANTILE_VALUES), -1)
+        # tau_stacked = self.taus.repeat(output.shape[0] * output.shape[1])
+        # output_warquant = self.MQRCNN_warquant(output_stacked, tau_stacked)
+        # output_warquant = self.war_min + F.softplus(output_warquant)
         
-        # Move into observed range
-        # output_warquant = self.war_min + ((self.war_max - self.war_min) * torch.sigmoid(output_warquant))
-        # print(self.war_max)
-        # print(self.war_min)
-        output_warquant = self.war_min + F.softplus(output_warquant)
-        # exit(1)
-        
-        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_warquant
+        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):
