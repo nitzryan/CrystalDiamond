@@ -30,7 +30,8 @@ DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
-DEFAULT_WARQUANT_ARCH = [6,6]
+DEFAULT_WARQUANT_ARCH = [12, 8]
+DEFAULT_WARQUANT_TAU_ARCH = [4,4]
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
@@ -40,6 +41,7 @@ DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_WARQUANT_ARCH_P = [14]
+DEFAULT_WARQUANT_TAU_ARCH_P = [12,6,4]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -63,7 +65,9 @@ class RNN_Model(nn.Module):
                  lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                  pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
                  val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
-                 warquant_arch_p : list[int] = DEFAULT_WARQUANT_ARCH_P,):
+                 warquant_arch_p : list[int] = DEFAULT_WARQUANT_ARCH_P,
+                 warquant_tau_arch : list[int] = DEFAULT_WARQUANT_TAU_ARCH,
+                 warquant_tau_arch_p : list[int] = DEFAULT_WARQUANT_TAU_ARCH_P):
         super().__init__()
         
         if not is_hitter:
@@ -75,6 +79,7 @@ class RNN_Model(nn.Module):
             pa_arch = pa_arch_p
             val_arch = val_arch_p
             warquant_arch = warquant_arch_p
+            warquant_tau_arch = warquant_tau_arch_p
         
         output_map = data_prep.output_map
         
@@ -121,7 +126,7 @@ class RNN_Model(nn.Module):
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         # WAR quantiles
-        self.MQRCNN_warquant = MCQRNN(hidden_size, warquant_arch, F.softplus)
+        self.MQRCNN_warquant = MCQRNN(hidden_size, warquant_arch, warquant_tau_arch, F.softplus)
         self.taus = torch.tensor(WARQUANTILE_VALUES)
         
         # Range of stats to restrict quantile predictions
@@ -478,7 +483,13 @@ def War_Pinball_Loss(pred, target, masks, crossoverScale):
     
     e = target - pred
     loss = 0
+    delta = 0.5
     for i in range(len(WARQUANTILE_VALUES)):
-        loss += torch.maximum(WARQUANTILE_INVS[i]*e[:,i]*masks, WARQUANTILE_VALUES[i]*e[:,i]*masks).mean()
+        u = e[:, i] * masks
+        abs_u = torch.abs(u)
+        huber = torch.where(abs_u <= delta, 0.5 * u**2 / delta, abs_u - 0.5 * delta)
+        
+        loss += torch.maximum(WARQUANTILE_INVS[i] * huber, 
+                            WARQUANTILE_VALUES[i] * huber).mean()
         
     return loss
