@@ -1,8 +1,12 @@
 import sys
-from Data_Prep import Data_Prep, Player_IO
-from Player_Dataset import Create_Test_Train_Datasets
-import Player_Model
-import Model_Train
+sys.path.append('..')
+sys.path.append('../DataPrep/')
+sys.path.append('../Model/')
+
+from DataPrep.Data_Prep import Data_Prep, Player_IO
+from DataPrep.Player_Dataset import Create_Test_Train_Datasets
+import Model.Player_Model as Player_Model
+import Model.Model_Train as Model_Train
 from tqdm import tqdm
 from Constants import device, db, DEFAULT_HIDDEN_SIZE_PITCHER, DEFAULT_NUM_LAYERS_PITCHER, DEFAULT_PITCHER_BATCH_SIZE, DEFAULT_PITCHER_NUM_EPOCHS
 from Utilities import GetModelMaps

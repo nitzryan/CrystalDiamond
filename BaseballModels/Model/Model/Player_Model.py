@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from Data_Prep import Data_Prep
-import MCQRNN
+from DataPrep.Data_Prep import Data_Prep
+import Model.MCQRNN
 import importlib
-importlib.reload(MCQRNN)
-from MCQRNN import MCQRNN
+importlib.reload(Model.MCQRNN)
+from Model.MCQRNN import MCQRNN
 from itertools import chain
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS

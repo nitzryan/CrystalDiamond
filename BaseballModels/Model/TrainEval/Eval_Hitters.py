@@ -1,7 +1,12 @@
-from Data_Prep import Data_Prep, Player_IO
+import sys
+sys.path.append('..')
+sys.path.append('../DataPrep/')
+sys.path.append('../Model/')
+
+from DataPrep.Data_Prep import Data_Prep, Player_IO
 import torch
-from Eval_Dataset import Eval_Dataset
-from Player_Model import RNN_Model
+from DataPrep.Eval_Dataset import Eval_Dataset
+from Model.Player_Model import RNN_Model
 from tqdm import tqdm
 from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS, WARQUANTILE_VALUES
 from DBTypes import *

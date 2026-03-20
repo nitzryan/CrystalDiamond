@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss, War_Pinball_Loss
-from Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
+from Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss, War_Pinball_Loss
+from Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 LEVEL_LOSS_MULTIPLIER = 0.6
 PA_LOSS_MULTIPLIER = 0.8

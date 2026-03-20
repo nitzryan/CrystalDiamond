@@ -1,3 +1,8 @@
+import sys
+sys.path.append('..')
+sys.path.append('../DataPrep/')
+sys.path.append('../Model/')
+
 from Constants import db
 
 cursor = db.cursor()
