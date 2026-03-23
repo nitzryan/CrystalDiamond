@@ -8,6 +8,7 @@ class Generator(nn.Module):
         
         super().__init__()
         self.max_len = max_len
+        self.latent_dim = latent_dim
         
         # Model Architecturre
         self.recurrent = nn.LSTM(feature_size + output_size, hidden_size, num_layers, batch_first=True, bidirectional=True)

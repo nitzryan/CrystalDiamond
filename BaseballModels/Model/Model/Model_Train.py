@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
+from typing import Optional
+from GAN.Generator import Generator
 from Constants import device
 from Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss, War_Pinball_Loss
 from Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
@@ -37,8 +39,6 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   
-  # Disabled war quantiles because they don't produce good results
-  
   if shouldBackprop:
     (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
     (loss_level * LEVEL_LOSS_MULTIPLIER).backward(retain_graph=True)
@@ -50,11 +50,12 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   
   return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
 
-def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
+def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float, fake_data_generator : Optional[Generator]):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   for batch, (data, length, pt_levelYearGames, targets, masks) in enumerate(data_generator):
+    # Train on real data
     optimizer.zero_grad()
     loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
     torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
@@ -68,6 +69,36 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
     avg_loss[6] += loss_yearPt.item()
     num_batches += 1
   
+    # Train on fake data
+    if fake_data_generator is not None:
+      optimizer.zero_grad()
+      z = torch.randn(data.shape[0], fake_data_generator.latent_dim, device=device)
+      batch_size = data.shape[0]
+      time_steps = data.shape[1]
+      
+      gen_targets = (targets[0], targets[1], targets[-1].squeeze(-1).long())
+      gen_targets = torch.cat(gen_targets, dim=-1).to(device)
+      gen_targets = gen_targets.reshape(batch_size, time_steps, gen_targets.shape[1] // time_steps)
+      
+      gen_masks = (masks[0].long(),)
+      gen_masks = torch.cat(gen_masks, dim=-1)
+      gen_masks = gen_masks.reshape(batch_size, time_steps, gen_masks.shape[1] // time_steps)
+      
+      gen_targets = gen_targets.to(device)
+      gen_masks = gen_masks.to(device)
+      length = length.to(device)
+      
+      fake_data = fake_data_generator(z, gen_targets, gen_masks, data.shape[1], length)
+      
+      # All masks besides prospect mask should be 0
+      pt_levelYearGames *= 0
+      for i, mask in enumerate(masks):
+        if i != 0:
+          mask *= 0
+      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, fake_data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
+      torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
+      optimizer.step()
+    
   for n in range(NUM_ELEMENTS):
     avg_loss[n] /= num_elements
   return avg_loss
@@ -123,7 +154,8 @@ def trainAndGraph(network,
                   save_last=False, 
                   is_hitter=True,
                   elements_to_save : list[int] = [0],
-                  get_end_loss : bool = False):
+                  get_end_loss : bool = False,
+                  fake_data_generator : Optional[Generator] = None):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
@@ -142,7 +174,7 @@ def trainAndGraph(network,
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
+    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs, fake_data_generator=fake_data_generator)
     test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
 
     training_dataset.increase_variant()

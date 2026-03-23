@@ -7,7 +7,6 @@ from DataPrep.Player_Dataset import Create_Test_Train_Datasets
 
 from torch.utils.data.dataloader import DataLoader
 from Constants import device
-from tqdm import tqdm
 
 import torch
 import torch.nn as nn
@@ -73,13 +72,8 @@ def TrainGAN(
             fake_validity = descriminator(fake_data, lengths, targets, masks)
             fake_loss = loss_fun(fake_validity, torch.zeros(fake_validity.shape, device=device))
             
-            if epoch == 90:
-                print(data[0])
-                print(fake_data[0])
-                exit(1)
-            
             # Update Descriminator Weights
-            desc_loss = real_loss + fake_loss
+            desc_loss = (real_loss + fake_loss) / 2
             desc_loss.backward()
             d_optimizer.step()
             
@@ -100,10 +94,14 @@ def TrainGAN(
             
         print(f"Epoch {epoch} | D_loss: {total_desc_loss:.4f} | G_loss: {total_gen_loss:.4f}")
 
+    return generator
 
 if __name__ == "__main__":
-    prep_map, output_map = GetModelMaps(1)
+    model_idx = 1
+    prep_map, output_map = GetModelMaps(model_idx)
     data_prep = Data_Prep(prep_map, output_map)
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
-    TrainGAN(train_dataset)
+    
+    generator = TrainGAN(train_dataset)
+    torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")
