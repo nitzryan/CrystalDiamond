@@ -1,5 +1,6 @@
 from GAN.Discriminator import Discriminator
 from GAN.Generator import Generator
+from GAN.KS_Test import KS_Test_TimeSeries
 from DataPrep.Player_Dataset import Player_Dataset
 from Utilities import GetModelMaps
 from DataPrep.Data_Prep import Data_Prep
@@ -12,7 +13,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+from tqdm import tqdm
 
+_EPOCH_PRINT_INTERVAL = 25
 
 def TrainGAN(
         dataset : Player_Dataset,
@@ -41,10 +44,13 @@ def TrainGAN(
     d_optimizer = optim.Adam(descriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
     loss_fun = nn.BCELoss()
     
-    #for epoch in tqdm(range(num_epochs), desc="GAN Training Epochs"):
-    for epoch in range(num_epochs):
+    real_ks_data = torch.zeros((len(dataset), dataset.get_max_length(), dataset.get_input_size())).cpu()
+    fake_ks_data = torch.zeros_like(real_ks_data).cpu()
+    for epoch in tqdm(range(num_epochs)):
         total_gen_loss = 0
         total_desc_loss = 0
+        
+        ks_data_idx = 0
         for data, lengths, _, targets, masks in data_loader:
             batch_size = data.size(0)
             time_steps = data.size(1)
@@ -89,10 +95,20 @@ def TrainGAN(
             total_gen_loss += gen_loss.item()
             total_desc_loss += desc_loss.item()
             
+            # Update KS_Test
+            if epoch % _EPOCH_PRINT_INTERVAL == 0:
+                real_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = data
+                fake_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = fake_data
+                ks_data_idx += batch_size
+                
+            
         total_gen_loss /= len(data_loader)
         total_desc_loss /= len(data_loader)
-            
-        print(f"Epoch {epoch} | D_loss: {total_desc_loss:.4f} | G_loss: {total_gen_loss:.4f}")
+        
+        if epoch % _EPOCH_PRINT_INTERVAL == 0:
+            with torch.no_grad():
+                ks_mean = KS_Test_TimeSeries(real_ks_data, fake_ks_data) 
+            tqdm.write(f"Epoch {epoch} | KS_Mean: {ks_mean:.4f} | D_loss: {total_desc_loss:.4f} | G_loss: {total_gen_loss:.4f}")
 
     return generator
 
@@ -103,5 +119,5 @@ if __name__ == "__main__":
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
     
-    generator = TrainGAN(train_dataset)
+    generator = TrainGAN(train_dataset, num_epochs=1000)
     torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")

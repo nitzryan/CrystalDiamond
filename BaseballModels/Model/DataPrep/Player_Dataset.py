@@ -47,6 +47,9 @@ class Player_Dataset(torch.utils.data.Dataset):
     def __len__(self):
         return self.data.size(dim=1)
     
+    def get_max_length(self) -> int:
+        return self.data.shape[0]
+    
     def get_input_size(self) -> int:
         return self.data.shape[-1]
     
