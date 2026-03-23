@@ -69,10 +69,14 @@ def TrainGAN(
             
             # Fake Data
             z = torch.randn(batch_size, latent_dim, device=device)
-            fake_data = generator(z, generator_targets, generator_masks, time_steps).detach()
-            fake_lengths = torch.full((batch_size,), data.size(1), dtype=torch.long, device=device)
-            fake_validity = descriminator(fake_data, fake_lengths, targets, masks)
-            fake_loss = loss_fun(fake_validity, torch.zeros((batch_size, time_steps, 1), device=device))
+            fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths).detach()
+            fake_validity = descriminator(fake_data, lengths, targets, masks)
+            fake_loss = loss_fun(fake_validity, torch.zeros(fake_validity.shape, device=device))
+            
+            if epoch == 90:
+                print(data[0])
+                print(fake_data[0])
+                exit(1)
             
             # Update Descriminator Weights
             desc_loss = real_loss + fake_loss
@@ -82,10 +86,9 @@ def TrainGAN(
             #### Generator ####
             g_optimizer.zero_grad()
             z = torch.randn(batch_size, latent_dim, device=device)
-            fake_data = generator(z, generator_targets, generator_masks, time_steps)
-            fake_validity = descriminator(fake_data, fake_lengths, targets, masks)
-            fake_validity = fake_validity.reshape((fake_validity.shape[0] * fake_validity.shape[1],))
-            gen_loss = loss_fun(fake_validity, torch.ones(fake_validity.shape[0], device=device))
+            fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths)
+            fake_validity = descriminator(fake_data, lengths, targets, masks)
+            gen_loss = loss_fun(fake_validity, torch.ones(fake_validity.shape, device=device))
             gen_loss.backward()
             g_optimizer.step()
             
