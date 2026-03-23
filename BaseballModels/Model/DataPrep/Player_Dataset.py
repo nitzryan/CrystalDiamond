@@ -48,7 +48,13 @@ class Player_Dataset(torch.utils.data.Dataset):
         return self.data.size(dim=1)
     
     def get_input_size(self) -> int:
-        return self.data.shape[2]
+        return self.data.shape[-1]
+    
+    def get_output_size(self) -> int:
+        return 3
+    
+    def get_mask_size(self) -> int:
+        return 1
     
     def should_augment_data(self, should_augment):
         self.should_augment = should_augment
