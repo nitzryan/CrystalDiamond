@@ -43,6 +43,8 @@ class Player_Dataset(torch.utils.data.Dataset):
         self.v_war_regression = variants_war_regression
         self.v_idx = 0
         self.use_variants = False
+        
+        self.fake_data = None
     
     def __len__(self):
         return self.data.size(dim=1)
@@ -59,6 +61,12 @@ class Player_Dataset(torch.utils.data.Dataset):
     def get_mask_size(self) -> int:
         return 1
     
+    def get_GAN_targets(self) -> torch.Tensor:
+        return torch.cat((self.o_war_buckets.unsqueeze(-1), self.o_level_buckets.unsqueeze(-1), self.o_pa_buckets.unsqueeze(-1)), dim=-1)
+    
+    def get_GAN_masks(self) -> torch.Tensor:
+        return self.m_labels.unsqueeze(-1)
+    
     def should_augment_data(self, should_augment):
         self.should_augment = should_augment
         
@@ -74,11 +82,13 @@ class Player_Dataset(torch.utils.data.Dataset):
         if self.should_use_variants:
             return self.data[:,idx], self.lengths[idx], self.pt_levelYearGames[:,idx], \
                 (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx], self.o_war_values[:,idx]), \
-                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
+                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx]),\
+                self.fake_data[:,idx] if self.fake_data is not None else -1
         else:
             return self.data[:,idx], self.lengths[idx], self.pt_levelYearGames[idx], \
                 (self.o_war_buckets[:,idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_year_stats[:,idx], self.o_year_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx], self.o_war_values[:,idx]), \
-                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx])
+                (self.m_labels[:,idx], self.m_stats[:,idx], self.m_year[:,idx], self.m_mlb_value[:,idx]),\
+                self.fake_data[:,idx] if self.fake_data is not None else -1
     
 def Create_Test_Train_Datasets(player_list : list[Player_IO], test_size : float, random_state : int) -> tuple[Player_Dataset, Player_Dataset]:
     io_train : list[Player_IO]

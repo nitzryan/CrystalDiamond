@@ -3,6 +3,7 @@ import torch
 from tqdm import tqdm
 from typing import Optional
 from GAN.Generator import Generator
+from DataPrep.Player_Dataset import Player_Dataset
 from Constants import device
 from Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss, War_Pinball_Loss
 from Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
@@ -50,11 +51,11 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
   
   return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
 
-def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float, fake_data_generator : Optional[Generator]):
+def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
-  for batch, (data, length, pt_levelYearGames, targets, masks) in enumerate(data_generator):
+  for batch, (data, length, pt_levelYearGames, targets, masks, fake_data) in enumerate(data_generator):
     # Train on real data
     optimizer.zero_grad()
     loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
@@ -70,31 +71,14 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
     num_batches += 1
   
     # Train on fake data
-    if fake_data_generator is not None:
+    if len(fake_data.shape) == 3:
       optimizer.zero_grad()
-      z = torch.randn(data.shape[0], fake_data_generator.latent_dim, device=device)
-      batch_size = data.shape[0]
-      time_steps = data.shape[1]
-      
-      gen_targets = (targets[0], targets[1], targets[-1].squeeze(-1).long())
-      gen_targets = torch.cat(gen_targets, dim=-1).to(device)
-      gen_targets = gen_targets.reshape(batch_size, time_steps, gen_targets.shape[1] // time_steps)
-      
-      gen_masks = (masks[0].long(),)
-      gen_masks = torch.cat(gen_masks, dim=-1)
-      gen_masks = gen_masks.reshape(batch_size, time_steps, gen_masks.shape[1] // time_steps)
-      
-      gen_targets = gen_targets.to(device)
-      gen_masks = gen_masks.to(device)
-      length = length.to(device)
-      
-      fake_data = fake_data_generator(z, gen_targets, gen_masks, data.shape[1], length)
-      
       # All masks besides prospect mask should be 0
       pt_levelYearGames *= 0
       for i, mask in enumerate(masks):
         if i != 0:
           mask *= 0
+          
       loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, fake_data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
       torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
       optimizer.step()
@@ -108,7 +92,7 @@ def test(network, test_loader, num_elements, is_hitter : bool, trainingFraction)
   avg_loss = [0] * NUM_ELEMENTS
   num_batches = 0
   with torch.no_grad():
-    for data, length, pt_levelYearGames, targets, masks in test_loader:
+    for data, length, pt_levelYearGames, targets, masks, fake_data in test_loader:
       loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter, trainingFraction)
       
       avg_loss[0] += loss_war.item()
@@ -142,6 +126,36 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
+def InsertFakeData(g : Generator, realData : Player_Dataset, batch_size : int):
+  time_steps = realData.get_max_length()
+  targets = realData.get_GAN_targets()
+  masks = realData.get_GAN_masks()
+  targets = targets.permute(1, 0, 2)
+  masks = masks.permute(1, 0, 2)
+  z = torch.randn(len(realData), g.latent_dim, device=device)
+  lengths = realData.lengths
+  
+  # Batch through data to limit amount on GPU
+  start_idx = 0
+  end_idx = start_idx + batch_size
+  fd = torch.zeros((len(realData), time_steps, realData.get_input_size())).cpu()
+  with torch.no_grad():
+    while start_idx < z.shape[0]:
+      t = targets[start_idx:end_idx].to(device)
+      m = masks[start_idx:end_idx].to(device)
+      zz = z[start_idx:end_idx].to(device)
+      l = lengths[start_idx:end_idx].to(device)
+      fake_data = g(zz, t, m, time_steps, l).cpu()
+      fd[start_idx:end_idx] = fake_data
+      start_idx += batch_size
+      end_idx += batch_size
+      if end_idx >= targets.shape[0]:
+        end_idx = targets.shape[0] - 1
+        
+      del t, m, zz, l, fake_data
+      
+  realData.fake_data = fd.permute(1, 0, 2)
+
 def trainAndGraph(network, 
                   training_dataset, 
                   testing_dataset,
@@ -167,6 +181,8 @@ def trainAndGraph(network,
   train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
   
+  InsertFakeData(fake_data_generator, training_dataset, batch_size) if fake_data_generator is not None else None
+  
   scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)
   
@@ -174,7 +190,7 @@ def trainAndGraph(network,
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs, fake_data_generator=fake_data_generator)
+    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
     test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
 
     training_dataset.increase_variant()
