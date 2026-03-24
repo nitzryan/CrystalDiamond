@@ -24,6 +24,8 @@ def TrainGAN(
         latent_dim : int = 100,
         generator_hidden_size : int = 100,
         discriminator_hidden_size : int = 100,
+        g_trains_per_epoch : int = 1,
+        d_trains_per_epoch : int = 1
     ) -> tuple[Discriminator, Generator]:
     
     data_loader = DataLoader(dataset, batch_size=batch_size // 2, shuffle=True)
@@ -38,10 +40,10 @@ def TrainGAN(
                           num_layers=2, max_len=200).to(device)
     descriminator = Discriminator(feature_size=feature_size,
                                   output_size=output_size,
-                                  hidden_size=128).to(device)
+                                  hidden_size=discriminator_hidden_size).to(device)
     
     g_optimizer = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-    d_optimizer = optim.Adam(descriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+    d_optimizer = optim.Adam(descriminator.parameters(), lr=0.0001, betas=(0.5, 0.999))
     loss_fun = nn.BCELoss()
     
     real_ks_data = torch.zeros((len(dataset), dataset.get_max_length(), dataset.get_input_size())).cpu()
@@ -66,31 +68,33 @@ def TrainGAN(
             data, lengths = data.to(device), lengths.to(device)
             
             #### DESCRIMINATOR ####
-            # Real Data
-            d_optimizer.zero_grad()
-            real_validity = descriminator(data, lengths, targets, masks)
-            real_validity = real_validity.reshape((real_validity.shape[0] * real_validity.shape[1],))
-            real_loss = loss_fun(real_validity, torch.ones(real_validity.shape[0], device=device))
-            
-            # Fake Data
-            z = torch.randn(batch_size, latent_dim, device=device)
-            fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths).detach()
-            fake_validity = descriminator(fake_data, lengths, targets, masks)
-            fake_loss = loss_fun(fake_validity, torch.zeros(fake_validity.shape, device=device))
-            
-            # Update Descriminator Weights
-            desc_loss = (real_loss + fake_loss) / 2
-            desc_loss.backward()
-            d_optimizer.step()
+            for _ in range(d_trains_per_epoch):
+                # Real Data
+                d_optimizer.zero_grad()
+                real_validity = descriminator(data, lengths, targets, masks)
+                real_validity = real_validity.reshape((real_validity.shape[0] * real_validity.shape[1],))
+                real_loss = loss_fun(real_validity, torch.ones(real_validity.shape[0], device=device))
+                
+                # Fake Data
+                z = torch.randn(batch_size, latent_dim, device=device)
+                fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths).detach()
+                fake_validity = descriminator(fake_data, lengths, targets, masks)
+                fake_loss = loss_fun(fake_validity, torch.zeros(fake_validity.shape, device=device))
+                
+                # Update Descriminator Weights
+                desc_loss = (real_loss + fake_loss) / 2
+                desc_loss.backward()
+                d_optimizer.step()
             
             #### Generator ####
-            g_optimizer.zero_grad()
-            z = torch.randn(batch_size, latent_dim, device=device)
-            fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths)
-            fake_validity = descriminator(fake_data, lengths, targets, masks)
-            gen_loss = loss_fun(fake_validity, torch.ones(fake_validity.shape, device=device))
-            gen_loss.backward()
-            g_optimizer.step()
+            for _ in range(g_trains_per_epoch):
+                g_optimizer.zero_grad()
+                z = torch.randn(batch_size, latent_dim, device=device)
+                fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths)
+                fake_validity = descriminator(fake_data, lengths, targets, masks)
+                gen_loss = loss_fun(fake_validity, torch.ones(fake_validity.shape, device=device))
+                gen_loss.backward()
+                g_optimizer.step()
             
             total_gen_loss += gen_loss.item()
             total_desc_loss += desc_loss.item()
@@ -119,5 +123,5 @@ if __name__ == "__main__":
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
     
-    generator = TrainGAN(train_dataset, num_epochs=1000)
+    generator = TrainGAN(train_dataset, num_epochs=1001, g_trains_per_epoch=3)
     torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")
