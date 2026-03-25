@@ -24,6 +24,7 @@ def TrainGAN(
         latent_dim : int = 100,
         generator_hidden_size : int = 100,
         discriminator_hidden_size : int = 100,
+        bio_size : int = 0,
     ) -> tuple[Discriminator, Generator]:
     
     data_loader = DataLoader(dataset, batch_size=batch_size // 2, shuffle=True)
@@ -80,7 +81,7 @@ def TrainGAN(
                     
                     # Fake Data
                     z = torch.randn(batch_size, latent_dim, device=device)
-                    fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths).detach()
+                    fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths, bio_size).detach()
                     fake_validity = descriminator(fake_data, lengths, targets, masks)
                     fake_loss = loss_fun(fake_validity, torch.zeros(fake_validity.shape, device=device))
                     
@@ -93,7 +94,7 @@ def TrainGAN(
                 for _ in range(scheduler.g_trains_per_epoch):
                     scheduler.g_optimizer.zero_grad()
                     z = torch.randn(batch_size, latent_dim, device=device)
-                    fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths)
+                    fake_data = generator(z, generator_targets, generator_masks, time_steps, lengths, bio_size)
                     fake_validity = descriminator(fake_data, lengths, targets, masks)
                     gen_loss = loss_fun(fake_validity, torch.ones(fake_validity.shape, device=device))
                     gen_loss.backward()
@@ -134,5 +135,8 @@ if __name__ == "__main__":
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
     
-    generator = TrainGAN(train_dataset, num_epochs=1001)
+    generator = TrainGAN(train_dataset, num_epochs=1001, 
+                         discriminator_hidden_size=100,
+                         generator_hidden_size=100,
+                         bio_size = prep_map.bio_size)
     torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")

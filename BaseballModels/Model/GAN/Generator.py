@@ -18,7 +18,7 @@ class Generator(nn.Module):
         self.init_hidden = nn.Linear(latent_dim + output_size, hidden_size * num_layers * 4)
         self.init_token = nn.Linear(latent_dim + output_size, feature_size)
         
-    def forward(self, rand_noise : torch.Tensor, targets : torch.Tensor, masks : torch.Tensor, time_steps : int, lengths : torch.Tensor):
+    def forward(self, rand_noise : torch.Tensor, targets : torch.Tensor, masks : torch.Tensor, time_steps : int, lengths : torch.Tensor, bio_size : int):
         batch_size = rand_noise.size(0)
         
         y = torch.cat((targets[:,0,:], masks[:,0,:]), dim=-1)
@@ -38,8 +38,19 @@ class Generator(nn.Module):
         y = y.reshape(y.shape[0], 1, y.shape[1])
         for i in range(time_steps):
             x = torch.cat((x, y), dim=-1)
-            x, hidden = self.recurrent(x, hidden)
+            x, hidden = self.recurrent(x, hidden)   
             x = self.recurrent_project(x)
+            
+            # First instance has 1 for x0, valid bio, and 0 for all other
+            if i == 0:
+                x[:,0,0] = 1
+                x[:,0,bio_size + 1:] = 0
+            
+            # Otherwise, 0 for x0, bio should match previous
+            else:
+                x[:,0,0] = 0
+                x[:,0, 1:bio_size+1] = outputs[-1][:,0,1:bio_size+1].detach()
+            
             outputs.append(x)
             
         outputs = torch.cat(outputs, dim=1)

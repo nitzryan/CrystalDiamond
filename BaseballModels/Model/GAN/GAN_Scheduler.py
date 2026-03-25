@@ -34,7 +34,11 @@ class GAN_Scheduler:
         
         # Descriminator
         self.d_trains_per_epoch = 1
-        if d_loss < 0.59:
+        if d_loss < 0.55:
+            d_lr = 0.00001
+        elif d_loss < 0.57:
+            d_lr = 0.00002
+        elif d_loss < 0.59:
             d_lr = 0.00005
         elif d_loss < 0.63:
             d_lr = 0.0001
