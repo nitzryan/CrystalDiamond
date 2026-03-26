@@ -115,5 +115,23 @@
             RF = 9,
             DH = 10,
         }
+
+        [Flags]
+        public enum CollegePosition
+        { 
+            None = 0,
+            C = 1 << 0,
+            B1 = 1 << 1,
+            B2 = 1 << 2,
+            B3 = 1 << 3,
+            SS = 1 << 4,
+            LF = 1 << 5,
+            CF = 1 << 6,
+            RF = 1 << 7,
+            DH = 1 << 8,
+            IF = 1 << 9,
+            OF = 1 << 10,
+            P = 1 << 11,
+        }
     }
 }

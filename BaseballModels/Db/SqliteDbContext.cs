@@ -65,6 +65,17 @@ namespace Db
 		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
 		public DbSet<GamePlayByPlay> GamePlayByPlay {get; set;}
 		public DbSet<GamePlayByPlay_GameFielders> GamePlayByPlay_GameFielders {get; set;}
+		public DbSet<College_Player> College_Player {get; set;}
+		public DbSet<College_TeamMap> College_TeamMap {get; set;}
+		public DbSet<College_ParkFactors> College_ParkFactors {get; set;}
+		public DbSet<College_ConfMap> College_ConfMap {get; set;}
+		public DbSet<College_ConferenceRank> College_ConferenceRank {get; set;}
+		public DbSet<College_HitterStats> College_HitterStats {get; set;}
+		public DbSet<College_ConfHitterAvg> College_ConfHitterAvg {get; set;}
+		public DbSet<Model_College_HitterYear> Model_College_HitterYear {get; set;}
+		public DbSet<College_PitcherStats> College_PitcherStats {get; set;}
+		public DbSet<College_ConfPitcherAvg> College_ConfPitcherAvg {get; set;}
+		public DbSet<Model_College_PitcherYear> Model_College_PitcherYear {get; set;}
 		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
 		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Output_HitterValueAggregation> Output_HitterValueAggregation {get; set;}
@@ -137,6 +148,17 @@ namespace Db
 			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<GamePlayByPlay>().HasKey(f => new {f.EventId});
 			modelBuilder.Entity<GamePlayByPlay_GameFielders>().HasKey(f => new {f.GameId,f.IsHome});
+			modelBuilder.Entity<College_Player>().HasKey(f => new {f.TBCId});
+			modelBuilder.Entity<College_TeamMap>().HasKey(f => new {f.Id});
+			modelBuilder.Entity<College_ParkFactors>().HasKey(f => new {f.TeamId,f.Year});
+			modelBuilder.Entity<College_ConfMap>().HasKey(f => new {f.Id});
+			modelBuilder.Entity<College_ConferenceRank>().HasKey(f => new {f.ConfId,f.Year});
+			modelBuilder.Entity<College_HitterStats>().HasKey(f => new {f.TBCId,f.Year});
+			modelBuilder.Entity<College_ConfHitterAvg>().HasKey(f => new {f.ConfId,f.Year});
+			modelBuilder.Entity<Model_College_HitterYear>().HasKey(f => new {f.TBCId,f.ExpYears});
+			modelBuilder.Entity<College_PitcherStats>().HasKey(f => new {f.TBCId,f.Year});
+			modelBuilder.Entity<College_ConfPitcherAvg>().HasKey(f => new {f.ConfId,f.Year});
+			modelBuilder.Entity<Model_College_PitcherYear>().HasKey(f => new {f.TBCId,f.ExpYears});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_HitterValueAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month});

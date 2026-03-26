@@ -25,10 +25,13 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
                   ("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
                   ("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
-                  ("Player_Fielder_YearStats", "Position", "DbEnums.Position")]
+                  ("Player_Fielder_YearStats", "Position", "DbEnums.Position"),
+                  ("College_HitterStats", "Pos", "DbEnums.CollegePosition"),
+                  ("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),]
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
-                 ("GamePlayByPlay_GameFielders", ["IsHome"])]
+                 ("GamePlayByPlay_GameFielders", ["IsHome"]),
+                 ("College_Player", ["IsHitter", "IsPitcher"])]
 
 for table, in tables:
     # Get table data
