@@ -7,7 +7,7 @@ class Discriminator(nn.Module):
         super().__init__()
         
         self.recurrent = nn.LSTM(feature_size + output_size, hidden_size, num_layers, 
-                            batch_first=True, bidirectional=True)
+                            batch_first=True, bidirectional=True, dropout=0.25)
         
         self.prediction_layer = nn.Linear(hidden_size * 2, 1)
         

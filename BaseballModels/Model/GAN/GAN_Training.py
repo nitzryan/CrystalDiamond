@@ -13,6 +13,11 @@ from Constants import device
 import torch
 import torch.nn as nn
 
+from sklearn.decomposition import PCA
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 
 _EPOCH_PRINT_INTERVAL = 25
@@ -27,7 +32,7 @@ def TrainGAN(
         bio_size : int = 0,
     ) -> tuple[Discriminator, Generator]:
     
-    data_loader = DataLoader(dataset, batch_size=batch_size // 2, shuffle=True)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
     feature_size = dataset.get_input_size()
     output_size = dataset.get_output_size() + dataset.get_mask_size()
@@ -108,7 +113,6 @@ def TrainGAN(
                     real_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = data
                     fake_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = fake_data
                     ks_data_idx += batch_size
-                    
                 
             total_gen_loss /= len(data_loader)
             total_desc_loss /= len(data_loader)
@@ -135,8 +139,9 @@ if __name__ == "__main__":
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
     
-    generator = TrainGAN(train_dataset, num_epochs=1001, 
-                         discriminator_hidden_size=100,
-                         generator_hidden_size=100,
+    generator = TrainGAN(train_dataset, num_epochs=2001, 
+                         discriminator_hidden_size=50,
+                         generator_hidden_size=150,
+                         batch_size=1600,
                          bio_size = prep_map.bio_size)
     torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")
