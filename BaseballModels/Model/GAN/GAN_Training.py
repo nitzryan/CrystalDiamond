@@ -17,10 +17,44 @@ from sklearn.decomposition import PCA
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 from tqdm import tqdm
 
 _EPOCH_PRINT_INTERVAL = 25
+
+def PlotPCA(pca_data, title : str, filename : str):
+    NUM_BINS = 20
+    MAX_SPACING = 10
+    
+    fig, axs = plt.subplots(3, 3, figsize=(16, 16))
+    for x_plot in range(3):
+        for y_plot in range(3):
+            plot_idx = x_plot * 3 + y_plot
+            ax = axs[y_plot, x_plot]
+    
+            hist, xedges, yedges = np.histogram2d(
+            pca_data[:, plot_idx * 2],
+            pca_data[:, plot_idx * 2 + 1],
+            bins=[np.linspace(-MAX_SPACING, MAX_SPACING, NUM_BINS + 1),
+                  np.linspace(-MAX_SPACING, MAX_SPACING, NUM_BINS + 1)])
+            
+            sns.heatmap(hist.T,
+                ax=ax,
+                cmap='viridis',
+                norm=LogNorm(),
+                xticklabels=False,
+                yticklabels=False)
+            
+            ax.set_xticks([0, len(xedges)-2])
+            ax.set_xticklabels([f'{xedges[0]:.1f}', f'{xedges[-1]:.1f}'])
+            ax.set_yticks([0, len(yedges)-2])
+            ax.set_yticklabels([f'{yedges[0]:.1f}', f'{yedges[-1]:.1f}'])
+            ax.set_xlabel(f"PCA {2 * plot_idx}")
+            ax.set_ylabel(f"PCA {2 * plot_idx + 1}")
+    
+    fig.suptitle(title)
+    plt.savefig(filename)
 
 def TrainGAN(
         dataset : Player_Dataset,
@@ -32,7 +66,14 @@ def TrainGAN(
         bio_size : int = 0,
     ) -> tuple[Discriminator, Generator]:
     
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    data_loader = DataLoader(dataset, batch_size=batch_size // 2, shuffle=True)
+    
+    pca = PCA(n_components=20)
+    real_pca = pca.fit_transform(dataset.data.reshape((dataset.data.shape[0] * dataset.data.shape[1], dataset.data.shape[2])))
+    torch.set_printoptions(precision=2, sci_mode=False)
+    np.set_printoptions(precision=2, suppress=True, floatmode='fixed')
+    PlotPCA(real_pca,
+            'Real Data', 'GAN/PCA_Plots/real_pca.png')
     
     feature_size = dataset.get_input_size()
     output_size = dataset.get_output_size() + dataset.get_mask_size()
@@ -113,6 +154,11 @@ def TrainGAN(
                     real_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = data
                     fake_ks_data[ks_data_idx:ks_data_idx+batch_size,:,:] = fake_data
                     ks_data_idx += batch_size
+                    
+                    # Generate PCA plot
+                    fake_pca = pca.transform(fake_data.reshape((fake_data.shape[0] * fake_data.shape[1], fake_data.shape[2])).cpu().detach())
+                    PlotPCA(fake_pca,
+                        f'Fake Data Epoch={epoch}', f'GAN/PCA_Plots/fake_pca_{epoch}.png')
                 
             total_gen_loss /= len(data_loader)
             total_desc_loss /= len(data_loader)
@@ -129,6 +175,9 @@ def TrainGAN(
     except KeyboardInterrupt:
         print("Keyboard Interrupt, Exiting Training")
 
+    except Exception as e:
+        print(e)
+
     finally:
         return generator
 
@@ -139,9 +188,9 @@ if __name__ == "__main__":
     hitter_io_list = data_prep.Generate_IO_Hitters("WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", (2025,2015,1), use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.10, 0)
     
-    generator = TrainGAN(train_dataset, num_epochs=2001, 
+    generator = TrainGAN(train_dataset, num_epochs=1001, 
                          discriminator_hidden_size=50,
                          generator_hidden_size=150,
-                         batch_size=1600,
+                         batch_size=800,
                          bio_size = prep_map.bio_size)
     torch.save(generator.state_dict(), f"Models/Generators/Generator_{model_idx}.pt")

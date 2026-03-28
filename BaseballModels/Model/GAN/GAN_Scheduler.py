@@ -14,9 +14,9 @@ class GAN_Scheduler:
         # Generator
         self.g_trains_per_epoch = 1
         if g_loss < 0.6:
-            g_lr = 0.00005
-        elif g_loss < 0.8:
             g_lr = 0.0001
+        elif g_loss < 0.8:
+            g_lr = 0.0002
         elif g_loss < 1:
             g_lr = 0.0002
             self.g_trains_per_epoch = 2
@@ -27,7 +27,7 @@ class GAN_Scheduler:
             g_lr = 0.0004
             self.g_trains_per_epoch = 4
         else:
-            g_lr = 0.0006
+            g_lr = 0.0004
             self.g_trains_per_epoch = 6
             
         self.g_optimizer.param_groups[0]['lr'] = g_lr
