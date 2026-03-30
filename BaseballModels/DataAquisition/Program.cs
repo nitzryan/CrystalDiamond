@@ -161,6 +161,8 @@
                 return;
             if (!College.CreatePitcherModelStats())
                 return;
+            if (!College.CreatePlayerGaps())
+                return;
         }
     }
 }

@@ -637,6 +637,10 @@ namespace DataAquisition
                     // Stats
                     foreach (var p in player)
                     {
+                        // Don't log empty stats
+                        if (p.G == 0)
+                            continue;
+
                         // For duplicates, take column with more stats
                         if (player.Count(f => f.year == p.year) > 1)
                         {
@@ -846,6 +850,10 @@ namespace DataAquisition
                     // Stats
                     foreach (var p in player)
                     {
+                        // Don't log empty stats
+                        if (p.G == 0)
+                            continue;
+
                         // For duplicates, take column with more stats
                         if (player.Count(f => f.year == p.year) > 1)
                         {
@@ -1074,6 +1082,7 @@ namespace DataAquisition
             }
 
             db.Model_College_HitterYear.AddRange(modelStats);
+            db.SaveChanges();
 
             return true;
         }
@@ -1290,6 +1299,126 @@ namespace DataAquisition
             }
 
             db.College_ParkFactors.AddRange(parkFactors);
+            db.SaveChanges();
+
+            return true;
+        }
+
+        public static bool CreatePlayerGaps()
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            // Hitter
+            var hitters = db.Model_College_HitterYear.GroupBy(f => f.TBCId);
+            foreach (var hitter in hitters)
+            {
+                var orderedStats = hitter.OrderBy(f => f.Year);
+                int year = orderedStats.First().Year;
+                int expYear = orderedStats.First().ExpYears;
+                float age = orderedStats.First().Age;
+
+                foreach (var stat in orderedStats)
+                {
+                    while ((stat.Year - 1) > year)
+                    {
+                        year++;
+                        expYear++;
+                        age += 1;
+
+                        // No COVID stats
+                        if (year == 2020)
+                        {
+                            expYear--;
+                            continue;
+                        }
+
+                        db.Model_College_HitterYear.Add(new Model_College_HitterYear
+                        {
+                            TBCId = stat.TBCId,
+                            Level = stat.Level,
+                            Year = year,
+                            ExpYears = expYear,
+                            ParkRunFactor = 1,
+                            ConfScore = 1,
+                            PA = 0,
+                            H = 1,
+                            H2B = 1,
+                            H3B = 1,
+                            HR = 1,
+                            SB = 1,
+                            CS = 1,
+                            BB = 1,
+                            K = 1,
+                            HBP = 1,
+                            AVG = 1,
+                            OBP = 1,
+                            SLG = 1,
+                            OPS = 1,
+                            Age = age,
+                            Pos = stat.Pos,
+                            Height = stat.Height,
+                            Weight = stat.Weight,
+                        });
+                    }
+
+                    year = stat.Year;
+                    expYear = stat.ExpYears;
+                    age = stat.Age;
+                }
+            }
+
+            // Pitcher
+            var pitchers = db.Model_College_PitcherYear.GroupBy(f => f.TBCId);
+            foreach (var pitcher in pitchers)
+            {
+                var orderedStats = pitcher.OrderBy(f => f.Year);
+                int year = orderedStats.First().Year;
+                int expYear = orderedStats.First().ExpYears;
+                float age = orderedStats.First().Age;
+
+                foreach (var stat in orderedStats)
+                {
+                    while ((stat.Year - 1) > year)
+                    {
+                        year++;
+                        expYear++;
+                        age += 1;
+
+                        // No COVID stats
+                        if (year == 2020)
+                        {
+                            expYear--;
+                            continue;
+                        }
+
+                        db.Model_College_PitcherYear.Add(new Model_College_PitcherYear
+                        {
+                            TBCId = stat.TBCId,
+                            Level = stat.Level,
+                            Year = year,
+                            ExpYears = expYear,
+                            ParkRunFactor = 1,
+                            ConfScore = 1,
+                            G = 0,
+                            GS = 0,
+                            Outs = 0,
+                            ERA = 1,
+                            H9 = 1,
+                            HR9 = 1,
+                            BB9 = 1,
+                            K9 = 1,
+                            WHIP = 1,
+                            Age = age,
+                            Height = stat.Height,
+                            Weight = stat.Weight,
+                        });
+                    }
+
+                    year = stat.Year;
+                    expYear = stat.ExpYears;
+                    age = stat.Age;
+                }
+            }
+
             db.SaveChanges();
 
             return true;
