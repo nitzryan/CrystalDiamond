@@ -1395,9 +1395,9 @@ CREATE TABLE College_Player
 
 CREATE TABLE College_TeamMap
 (
-	"Id" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
 	"Name" TEXT NOT NULL,
-	PRIMARY KEY("Id")
+	PRIMARY KEY("TeamId")
 );
 
 CREATE TABLE College_ParkFactors
@@ -1410,16 +1410,16 @@ CREATE TABLE College_ParkFactors
 
 CREATE TABLE College_ConfMap
 (
-	"Id" INTEGER NOT NULL,
+	"ConfId" INTEGER NOT NULL,
 	"Name" TEXT NOT NULL,
-	PRIMARY KEY("Id")
+	PRIMARY KEY("ConfId")
 );
 
 CREATE TABLE College_ConferenceRank
 (
 	"ConfId" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
-	"ISR" REAL NOT NULL,
+	"AvgRPI" REAL NOT NULL,
 	PRIMARY KEY("ConfId", "Year")
 );
 
@@ -1489,6 +1489,7 @@ CREATE TABLE Model_College_HitterYear
 	"TBCId" INTEGER NOT NULL,
 
 	"Level" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
 	"ExpYears" INTEGER NOT NULL,
 
 	"ParkRunFactor" REAL NOT NULL,
@@ -1515,7 +1516,7 @@ CREATE TABLE Model_College_HitterYear
 	"Height" INTEGER NOT NULL,
 	"Weight" INTEGER NOT NULL,
 
-	PRIMARY KEY("TBCId", "ExpYears")
+	PRIMARY KEY("TBCId", "Year")
 );
 
 CREATE TABLE College_PitcherStats
@@ -1574,6 +1575,7 @@ CREATE TABLE Model_College_PitcherYear
 	"TBCId" INTEGER NOT NULL,
 
 	"Level" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
 	"ExpYears" INTEGER NOT NULL,
 
 	"ParkRunFactor" REAL NOT NULL,
@@ -1594,5 +1596,5 @@ CREATE TABLE Model_College_PitcherYear
 	"Height" INTEGER NOT NULL,
 	"Weight" INTEGER NOT NULL,
 
-	PRIMARY KEY("TBCId", "ExpYears")
+	PRIMARY KEY("TBCId", "Year")
 );

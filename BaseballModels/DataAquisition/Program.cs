@@ -8,6 +8,7 @@
         static async Task Main(string[] args)
         {
             List<int> years = [.. Enumerable.Range(START_YEAR, END_YEAR - START_YEAR + 1)];
+            List<int> collegeYears = [.. Enumerable.Range(2002, END_YEAR - 2002 + 1)];
             List<int> months = [4, 5, 6, 7, 8, 9];
             //years = [2025];
             //months = [9];
@@ -139,7 +140,27 @@
             }
 
             ////////// College Model //////////
-            if 
+            //if (!College.InsertCollegeHitterStats())
+            //    return;
+            //if (!College.InsertCollegePitcherStats())
+            //    return;
+            foreach (var year in collegeYears)
+            {
+                // Covid-Year interrupted, don't use data that exists
+                if (year == 2020)
+                    continue;
+
+                //if (!College.UpdateConfStrength(year))
+                //    return;
+                //if (!await College.GetParkFactors(year))
+                //    return;
+                //if (!College.CreateConfAverages(year))
+                //    return;
+            }
+            if (!College.CreateHitterModelStats())
+                return;
+            if (!College.CreatePitcherModelStats())
+                return;
         }
     }
 }

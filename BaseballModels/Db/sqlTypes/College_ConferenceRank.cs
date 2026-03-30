@@ -4,7 +4,7 @@ namespace Db
 	{
 		public required int ConfId {get; set;}
 		public required int Year {get; set;}
-		public required float ISR {get; set;}
+		public required float AvgRPI {get; set;}
 
 		public College_ConferenceRank Clone()
 		{
@@ -12,7 +12,7 @@ namespace Db
 			{
 				ConfId = this.ConfId,
 				Year = this.Year,
-				ISR = this.ISR,
+				AvgRPI = this.AvgRPI,
 			};
 		}
 	}

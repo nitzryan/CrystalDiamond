@@ -1,2 +1,6 @@
 Content used from TheBaseballCube, to run include in this folder, not in repo due to legal rights
 https://thebaseballcube.com/content/store/college-baseball-statistics/
+Rename to hitterStats.csv, pitcherStats.csv
+
+Also, take RPI values from each year (https://www.thebaseballcube.com/content/college_rpi/2025/) and take the csv, save as RPI/confRpi_<year>.csv
+	Removed Chestnull Hill from 2023

@@ -62,7 +62,7 @@ namespace DataAquisition
 
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
                 .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
-                //.EnableSensitiveDataLogging()
+                .EnableSensitiveDataLogging()
                 //.LogTo(m => Console.WriteLine(m))
                 .Options;
     }

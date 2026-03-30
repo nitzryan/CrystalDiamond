@@ -4,6 +4,7 @@ namespace Db
 	{
 		public required int TBCId {get; set;}
 		public required int Level {get; set;}
+		public required int Year {get; set;}
 		public required int ExpYears {get; set;}
 		public required float ParkRunFactor {get; set;}
 		public required float ConfScore {get; set;}
@@ -32,6 +33,7 @@ namespace Db
 			{
 				TBCId = this.TBCId,
 				Level = this.Level,
+				Year = this.Year,
 				ExpYears = this.ExpYears,
 				ParkRunFactor = this.ParkRunFactor,
 				ConfScore = this.ConfScore,

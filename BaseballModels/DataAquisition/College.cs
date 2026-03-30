@@ -12,20 +12,211 @@ namespace DataAquisition
         {
             switch (boydName)
             {
-            default:
-                return boydName;
+                case "Arkansas-Little Rock":
+                    return "Little Rock";
+                case "Austin Peay State":
+                    return "Austin Peay";
+                case "Bethune-Cookman":
+                    return "Bethune Cookman";
+                case "Bowling Green State":
+                    return "Bowling Green";
+                case "Cal State Sacramento":
+                    return "Sacramento State";
+                case "CSU Bakersfield":
+                    return "Cal State Bakersfield";
+                case "Centenary":
+                    return "Centenary-LA";
+                case "Central Connecticut State":
+                    return "Central Connecticut";
+                case "College of Charleston":
+                    return "College Of Charleston";
+                case "East Tennessee state":
+                    return "East Tennessee State";
+                case "Florida International":
+                    return "Florida Intl";
+                case "Houston Baptist":
+                    return "Houston Christian";
+                case "Indiana-Purdue FW":
+                case "IPFW":
+                    return "Purdue Fort Wayne";
+                case "LaSalle":
+                    return "La Salle";
+                case "LeMoyne":
+                    return "Le Moyne";
+                case "LIU Brooklyn":
+                    return "Long Island";
+                case "Louisiana State":
+                    return "LSU";
+                case "Louisiana-Lafayette":
+                    return "Louisiana";
+                case "Maryland-Baltimore County":
+                    return "UMBC";
+                case "Massachusetts-Lowell":
+                    return "Mass-Lowell";
+                case "Miami, Florida":
+                    return "Miami";
+                case "Miami, Ohio":
+                    return "Miami-Ohio";
+                case "Middle Tennessee State":
+                    return "Middle Tennessee";
+                case "Mississippi":
+                    return "Ole Miss";
+                case "Mississippi Valley State":
+                    return "Mississippi Valley";
+                case "Monmouth":
+                    return "Monmouth NJ";
+                case "Nevada-Las Vegas":
+                    return "UNLV";
+                case "North Carolina-Asheville":
+                    return "UNC Asheville";
+                case "North Carolina-Charlotte":
+                    return "UNC Charlotte";
+                case "North Carolina-Greensboro":
+                case "UNC-Greensboro":
+                    return "UNC Greensboro";
+                case "North Carolina-Wilmington":
+                    return "UNC Wilmington";
+                case "Pennsylvania":
+                    return "Penn";
+                case "Southeast Missouri State":
+                    return "SE Missouri State";
+                case "Southeastern Louisiana":
+                    return "SE Louisiana";
+                case "Southern California":
+                    return "USC";
+                case "Southern Illinois-Edwardsville":
+                    return "SIU Edwardsville";
+                case "Southern Mississippi":
+                    return "Southern Miss";
+                case "Southwest Missouri State":
+                    return "Missouri State";
+                case "South Carolina-Upstate":
+                    return "USC Upstate";
+                case "St. Francis":
+                    return "St. Francis NY";
+                case "St. Joseph's":
+                    return "Saint Joseph's";
+                case "St. Louis":
+                    return "Saint Louis";
+                case "St. Mary's":
+                    return "St. Mary's CA";
+                case "St. Peter's":
+                    return "Saint Peter's";
+                case "Stephen F. Austin State":
+                    return "Stephen F. Austin";
+                case "Texas A&M-Corpus Christi":
+                    return "Texas A&M Corpus Christi";
+                case "Texas-Arlington":
+                    return "UT Arlington";
+                case "Texas-Pan American":
+                case "Texas-Rio Grande Valley":
+                    return "UTRGV";
+                case "Texas-San Antonio":
+                    return "UT San Antonio";
+                case "The Citadel":
+                    return "Citadel";
+                case "Troy State":
+                    return "Troy";
+                case "Utah Valley State":
+                    return "Utah Valley";
+                case "Virginia Commonwealth":
+                    return "VCU";
+                case "VMI":
+                    return "Virginia Military";
+                case "William and Mary":
+                    return "William And Mary";
+                case "Wisconsin-Milwaukee":
+                    return "Milwaukee";
+                case "Southwest Texas State":
+                    return "Texas State";
+                default:
+                    return boydName;
             }
         }
 
-        public static bool GetConfStrength(int year)
+        // On team name changes, Boyd incorrectly includes the wrong one
+        private static bool BoydYearSkip(string boydTeamName, int year)
         {
+            if (boydTeamName == "Cal State Sacramento" && year >= 2016)
+                return true;
+            if (boydTeamName == "Texas-Pan American" && year >= 2016)
+                return true;
+            if (boydTeamName == "Houston Baptist" && year >= 2024)
+                return true;
+
             return false;
+        }
+
+        public static bool UpdateConfStrength(int year)
+        {
+            // Remove current data
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            db.College_ConferenceRank.Where(f => f.Year == year).ExecuteDelete();
+
+            // Read Stats File
+            List<(int rank, string conference)> teamRanks = new();
+
+            string filepath = Constants.DATA_AQ_DIRECTORY + $"/TBC/RPI/confRpi_{year}.csv";
+            using (StreamReader reader = new StreamReader(filepath))
+            {
+                string? line;
+                reader.ReadLine(); // Skip first line
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
+
+                    string[] columns = line.Split(',');
+
+                    teamRanks.Add(new()
+                    {
+                        rank = Int32.Parse(columns[1]),
+                        conference = columns[3]
+                    });
+                }
+            }
+
+            var conferenceRankings = teamRanks.GroupBy(f => f.conference);
+            foreach (var conf in conferenceRankings)
+            {
+                float avgRank = (float)(conf.Sum(f => f.rank)) / conf.Count();
+                College_ConfMap dbConf = db.College_ConfMap.Where(f => f.Name == conf.Key).Single();
+                db.College_ConferenceRank.Add(new College_ConferenceRank
+                {
+                    Year = year,
+                    ConfId = dbConf.ConfId,
+                    AvgRPI = avgRank
+                });
+            }
+
+            // Need to add 2018 Independents
+            if (year == 2018)
+            {
+                db.College_ConferenceRank.Add(new College_ConferenceRank
+                {
+                    Year = 2018,
+                    ConfId = 21,
+                    AvgRPI = 300
+                });
+            }
+            
+            // Need to set Oregon State (2025 Independent) to a higher RPI
+            if (year >= 2025)
+            {
+                db.SaveChanges();
+                db.College_ConferenceRank.Where(f => f.Year == year && f.ConfId == 21).Single().AvgRPI = 40;
+            }
+            db.SaveChanges();
+
+            return true;
         }
 
         private static int LevelStringToInt(string lvl)
         {
             switch(lvl)
             {
+                case "NCAA-1":
+                    return 1;
                 default:
                     throw new Exception($"Unexpected Level String: {lvl}");
             }
@@ -33,8 +224,115 @@ namespace DataAquisition
 
         private static int ExpStringToYears(string exp)
         {
-            switch (exp)
+            switch (exp.ToLower())
             {
+                // Regular
+                case "fr":
+                case "fr.":
+                case "fr ":
+                    return 1;
+
+                case "so":
+                case "so.":
+                case "so ":
+                    return 2;
+
+                case "jr":
+                case "jr.":
+                case "jr ":
+                    return 3;
+
+                case "senior":
+                case "sr":
+                case "sr.":
+                case "sr ":
+                    return 4;
+
+                case "5s":
+                case "5th yr":
+                case "sr+":
+                    return 5;
+
+                case "gr":
+                case "gr.":
+                case "6th":
+                    return 6;
+
+                // Redshirt
+                case "rs":
+                    return 1;
+
+                case "rf":
+                case "r-fr.":
+                case "rs-rf":
+                case "rsfr.":
+                case "fr-r":
+                case "rs fr":
+                case "rs-fr":
+                case "rsfr":
+                    return 2;
+
+                case "rs so":
+                case "rs-so":
+                case "rsso":
+                    return 3;
+
+                case "jr-r":
+                case "r-jr.":
+                case "rs jr":
+                case "rs-jr":
+                case "rsjr.":
+                case "rsjr":
+                    return 4;
+
+                case "rs sr":
+                case "r-sr.":
+                case "rs-sr":
+                case "rssr.":
+                case "rs-tr":
+                case "sr-r":
+                    return 5;
+
+                case "rs-5s":
+                case "rs-gr":
+                    return 6;
+
+                // Invalid Cases
+                case "0":
+                    return 1;
+                case "4.6":
+                    return 5;
+                case "15":
+                    return 2;
+                case "23":
+                    return 3;
+                case "33":
+                    return 4;
+                case "35":
+                    return 4;
+                case "45":
+                    return 5;
+                case "-":
+                    return 3;
+                case "b":
+                    return 1;
+                case "basket":
+                    return 1;
+                case "d":
+                    return 1;
+                case "f":
+                    return 1;
+                case "footbl":
+                    return 1;
+                case "fy":
+                    return 1;
+                case "null":
+                    return 1;
+                case "x":
+                    return 1;
+                case "":
+                    return 3;
+
                 default:
                     throw new Exception($"Unexpected Exp String: {exp}");
             }
@@ -47,6 +345,15 @@ namespace DataAquisition
 
         private static int GetHeightInInches(string height)
         {
+            if (height == "'" || height == "'-" || height == "")
+                return 0;
+            if (height == "'-59" || height == "5-91" || height == "5-96" || height == "5-99")
+                return (5 * 12) + 9;
+            if (height == ("'6-+0") || height == "'60-" || height == "'6")
+                return 6 * 12;
+            if (height == "'6-21")
+                return (6 * 12) + 2;
+        
             int[] heightParts = height.Split("'").Last().Split('-').Select(f => Int32.Parse(f)).ToArray();
 
             return (heightParts[0] * 12) + heightParts[1];
@@ -67,42 +374,70 @@ namespace DataAquisition
         {
             DbEnums.CollegePosition position = DbEnums.CollegePosition.None;
 
-            string[] positions = pos.Split('-');
+            string[] positions = pos.Split(['-', '/', '=', '0']).Select(f => f.Replace(" ", "")).ToArray();
             foreach (string p in positions)
             {
-                switch (p)
+                switch (p.ToUpper())
                 {
                     case "C":
+                    case "2":
                         position |= DbEnums.CollegePosition.C;
                         break;
                     case "1B":
+                    case "1B`":
+                    case "3:":
                         position |= DbEnums.CollegePosition.B1;
                         break;
                     case "2B":
+                    case "2b":
+                    case "4":
                         position |= DbEnums.CollegePosition.B2;
                         break;
                     case "3B":
+                    case "3b":
+                    case "5":
+                    case "CIF":
                         position |= DbEnums.CollegePosition.B3;
                         break;
                     case "SS":
                         position |= DbEnums.CollegePosition.SS;
                         break;
                     case "LF":
+                    case "L":
                         position |= DbEnums.CollegePosition.LF;
                         break;
                     case "CF":
                         position |= DbEnums.CollegePosition.CF;
                         break;
                     case "RF":
+                    case "R":
                         position |= DbEnums.CollegePosition.RF;
                         break;
                     case "DH":
+                    case "H":
+                    case "COACH":
+                    case "B":
+                    case "UMP":
+                    case "KF":
+                    case "":
                         position |= DbEnums.CollegePosition.DH;
                         break;
                     case "IF":
+                    case "IFF":
+                    case "IB":
+                    case "INF":
+                    case "PF":
+                    case "UF":
+                    case "UT":
+                    case "UTI":
+                    case "UTL":
+                    case "UTIL":
+                    case "F":
+                    case "I":
                         position |= DbEnums.CollegePosition.IF;
                         break;
                     case "OF":
+                    case "O":
                         position |= DbEnums.CollegePosition.OF;
                         break;
                     case "P":
@@ -122,9 +457,11 @@ namespace DataAquisition
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             db.College_HitterStats.ExecuteDelete();
             db.College_Player.ExecuteDelete();
+            db.College_TeamMap.ExecuteDelete();
+            db.College_ConfMap.ExecuteDelete();
 
             // Read Stats File
-            Dictionary<(int tbcId, int year), (int tbcId, 
+            List<(int tbcId, 
                 int year, 
                 string school, 
                 string confAbvr, 
@@ -155,28 +492,30 @@ namespace DataAquisition
                 string bats,
                 string throws,
                 string position,
-                string borndate)> statsFileEntries = new();
+                string borndate,
+                int mlbId,
+                int draftYear,
+                int draftOvr,
+                int teamId) > hitterData = new();
 
             string filepath = Constants.DATA_AQ_DIRECTORY + "/TBC/hitterStats.csv";
-            Console.WriteLine("Reading " + filepath);
             using (StreamReader reader = new StreamReader(filepath))
             {
                 string? line;
+                reader.ReadLine(); // Skip first line
                 while ((line = reader.ReadLine()) != null)
                 {
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
 
-                    string[] columns = line.Split(',');
+                    // Need to handle that some columns have commas in them, so split of "," and manually remove first and last "
+                    line = line.Substring(1, line.Length - 2);
+                    string[] columns = line.Split("\",\"");
 
                     int tbcId = Int32.Parse(columns[0]);
                     int year = Int32.Parse(columns[1]);
 
-                    statsFileEntries.Add(new() {
-                        tbcId = tbcId,
-                        year = year,
-                    }, new()
-                    {
+                    hitterData.Add(new() {
                         tbcId = tbcId,
                         year = year,
                         school = columns[2],
@@ -211,90 +550,72 @@ namespace DataAquisition
                         bats = columns[33],
                         throws = columns[34],
                         position = columns[35],
-                        borndate = columns[36]
-                    });
-                }
-            }
-
-            // Read player file
-            List<(int tbcId,
-                int year,
-                int mlbId,
-                string teamName,
-                int draftYear,
-                int draftOvr,
-                int teamId)> playerFileEntries = new();
-
-            filepath = Constants.DATA_AQ_DIRECTORY + "/TBC/hitterBios.csv";
-            Console.WriteLine("Reading " + filepath);
-            using (StreamReader reader = new StreamReader(filepath))
-            {
-                string? line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    string[] columns = line.Split(',');
-
-                    playerFileEntries.Add(new()
-                    {
-                        tbcId = Int32.Parse(columns[0]),
-                        year = Int32.Parse(columns[1]),
-                        teamName = columns[2],
-                        mlbId = Int32.Parse(columns[9]),
-                        draftYear = Int32.Parse(columns[10]),
-                        draftOvr = Int32.Parse(columns[12]),
-                        teamId = Int32.Parse(columns[14])
+                        borndate = columns[36],
+                        mlbId = Int32.Parse(columns[40]),
+                        draftYear = Int32.Parse(columns[41]),
+                        draftOvr = Int32.Parse(columns[43]),
+                        teamId = Int32.Parse(columns[45])
                     });
                 }
             }
 
             // Conf and Team Maps
-            string[] conferences = statsFileEntries.Values.Select(f => f.confAbvr).Distinct().ToArray();
+            string[] conferences = hitterData.Select(f => f.confAbvr).Distinct().ToArray();
             List<College_ConfMap> confMap = new();
             for (var i = 0; i < conferences.Length; i++)
             {
                 confMap.Add(new College_ConfMap
                 {
-                    Id = i,
+                    ConfId = i + 1,
                     Name = conferences[i]
                 });
             }
             db.College_ConfMap.AddRange(confMap);
 
-            var teams = playerFileEntries.DistinctBy(f => f.teamId);
+            var teams = hitterData.GroupBy(f => f.teamId).Select(f => f.MaxBy(g => g.year));
             foreach (var t in teams)
             {
+                // Make sure first letter is capitalized
+                var name = t.school.Split(' ');
+                for (int i = 0; i < name.Length; i++)
+                {
+                    if (!string.IsNullOrEmpty(name[i]))
+                    {
+                        char firstChar = char.ToUpper(name[i][0]);
+                        name[i] = firstChar + name[i].Substring(1);
+                    }
+                }
                 db.College_TeamMap.Add(new College_TeamMap
                 {
-                    Id = t.teamId,
-                    Name = t.teamName
+                    TeamId = t.teamId,
+                    Name = string.Join(" ", name)
                 });
             }
 
             // Iterate through players
-            var playerFileGroupings = playerFileEntries.GroupBy(f => f.tbcId);
+            var hitterGroupings = hitterData.GroupBy(f => f.tbcId);
             List<College_Player> players = new();
             List<College_HitterStats> hitterStats = new();
-            players.Capacity = playerFileGroupings.Count();
-            hitterStats.Capacity = players.Capacity * 4;
-            using (ProgressBar progressBar = new(playerFileGroupings.Count(), $"Parsing College Hitter Stats"))
+            players.Capacity = hitterGroupings.Count();
+            hitterStats.Capacity = hitterData.Count();
+            
+            using (ProgressBar progressBar = new(hitterGroupings.Count(), $"Parsing College Hitter Stats"))
             {
-                foreach (var player in playerFileGroupings)
+                foreach (var player in hitterGroupings)
                 {
                     progressBar.Tick();
                     // Check to make sure that player is not a pure-pitcher that had some ABs
-                    if (!player.Select(f => statsFileEntries[(f.tbcId, f.year)]).Any(f => f.position != "P"))
+                    if (!player.Any(f => f.position != "P"))
                         continue;
 
-                    var firstStats = statsFileEntries[(player.Key, player.First().year)];
-                    int[] birthDateValues = firstStats.borndate.Split('/').Select(f => Int32.Parse(f)).ToArray();
+                    var firstStats = player.First();
+                    int[] birthDateValues = firstStats.borndate == "" ? 
+                        [0, 0, 0] : firstStats.borndate.Split('/').Select(f => Int32.Parse(f)).ToArray();
 
                     int BirthYear = birthDateValues[2];
                     int BirthMonth = birthDateValues[0];
                     int BirthDay = birthDateValues[1];
-                    // Playe
+                    // Player
                     players.Add(new College_Player
                     {
                         TBCId = player.Key,
@@ -316,36 +637,46 @@ namespace DataAquisition
                     // Stats
                     foreach (var p in player)
                     {
-                        var stat = statsFileEntries[(p.tbcId, p.year)];
+                        // For duplicates, take column with more stats
+                        if (player.Count(f => f.year == p.year) > 1)
+                        {
+                            int maxGames = player.Where(f => f.year == p.year).Max(f => f.G);
+                            if (p.G < maxGames)
+                                continue;
+
+                            // Exact duplicate already entered
+                            if (hitterStats.Any(f => f.TBCId == p.tbcId && f.Year == p.year))
+                                continue;
+                        }
 
                         hitterStats.Add(new College_HitterStats
                         {
-                            TBCId = stat.tbcId,
-                            Year = stat.year,
-                            Level = LevelStringToInt(stat.level),
+                            TBCId = p.tbcId,
+                            Year = p.year,
+                            Level = LevelStringToInt(p.level),
                             TeamId = p.teamId,
-                            ConfId = confMap.Where(f => f.Name.Equals(p.teamName)).Single().Id,
-                            ExpYears = ExpStringToYears(stat.exp),
-                            AB = stat.AB,
-                            PA = stat.PA,
-                            H = stat.H,
-                            H2B = stat.H2B,
-                            H3B = stat.H3B,
-                            HR = stat.HR,
-                            SB = stat.SB,
-                            CS = stat.CS,
-                            BB = stat.BB,
-                            IBB = stat.IBB,
-                            K = stat.K,
-                            HBP = stat.HBP,
-                            AVG = stat.AVG,
-                            OBP = stat.OBP,
-                            SLG = stat.SLG,
-                            OPS = stat.OPS,
-                            Age = GetSeasonAge(stat.year, BirthDay, BirthMonth, BirthYear),
-                            Pos = ParsePosString(stat.position),
-                            Height = GetHeightInInches(stat.height),
-                            Weight = stat.weight,
+                            ConfId = confMap.Where(f => f.Name.Equals(p.confAbvr)).Single().ConfId,
+                            ExpYears = ExpStringToYears(p.exp),
+                            AB = p.AB,
+                            PA = p.PA,
+                            H = p.H,
+                            H2B = p.H2B,
+                            H3B = p.H3B,
+                            HR = p.HR,
+                            SB = p.SB,
+                            CS = p.CS,
+                            BB = p.BB,
+                            IBB = p.IBB,
+                            K = p.K,
+                            HBP = p.HBP,
+                            AVG = p.AVG,
+                            OBP = p.OBP,
+                            SLG = p.SLG,
+                            OPS = p.OPS,
+                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear),
+                            Pos = ParsePosString(p.position),
+                            Height = GetHeightInInches(p.height),
+                            Weight = p.weight,
                         });
                     }
                 }
@@ -353,6 +684,7 @@ namespace DataAquisition
 
             db.College_Player.AddRange(players);
             db.College_HitterStats.AddRange(hitterStats);
+            db.SaveChanges();
 
             return true;
         }
@@ -364,7 +696,7 @@ namespace DataAquisition
             db.College_PitcherStats.ExecuteDelete();
 
             // Read Stats File
-            Dictionary<(int tbcId, int year), (int tbcId,
+            List<(int tbcId,
                 int year,
                 string school,
                 string confAbvr,
@@ -394,138 +726,91 @@ namespace DataAquisition
                 string bats,
                 string throws,
                 string position,
-                string borndate)> statsFileEntries = new();
+                string borndate,
+                int mlbId,
+                int draftYear,
+                int draftOvr,
+                int teamId)> pitcherData = new();
 
             string filepath = Constants.DATA_AQ_DIRECTORY + "/TBC/pitcherStats.csv";
-            Console.WriteLine("Reading " + filepath);
             using (StreamReader reader = new StreamReader(filepath))
             {
                 string? line;
+                reader.ReadLine(); // Skip first line
                 while ((line = reader.ReadLine()) != null)
                 {
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
 
-                    string[] columns = line.Split(',');
+                    // Need to handle that some columns have commas in them, so split of "," and manually remove first and last "
+                    line = line.Substring(1, line.Length - 2);
+                    string[] columns = line.Split("\",\"");
 
                     int tbcId = Int32.Parse(columns[0]);
                     int year = Int32.Parse(columns[1]);
 
-                    statsFileEntries.Add(new()
-                    {
-                        tbcId = tbcId,
-                        year = year,
-                    }, new()
+                    pitcherData.Add(new()
                     {
                         tbcId = tbcId,
                         year = year,
                         school = columns[2],
                         confAbvr = columns[3],
                         level = columns[5],
-                        lastname = columns[6],
-                        firstname = columns[7],
-                        exp = columns[8],
-                        G = Int32.Parse(columns[9]),
-                        GS = Int32.Parse(columns[10]),
-                        IP = columns[15],
-                        H = Int32.Parse(columns[16]),
-                        HR = Int32.Parse(columns[17]),
-                        R = Int32.Parse(columns[18]),
-                        ER = Int32.Parse(columns[19]),
-                        BB = Int32.Parse(columns[20]),
-                        IBB = Int32.Parse(columns[21]),
-                        K = Int32.Parse(columns[22]),
-                        HBP = Int32.Parse(columns[25]),
-                        ERA = float.Parse(columns[26]),
-                        H9 = float.Parse(columns[27]),
-                        HR9 = float.Parse(columns[28]),
-                        BB9 = float.Parse(columns[29]),
-                        K9 = float.Parse(columns[30]),
-                        WHIP = float.Parse(columns[31]),
-                        height = columns[33],
-                        weight = int.Parse(columns[34]),
-                        bats = columns[35],
-                        throws = columns[36],
-                        position = columns[37],
-                        borndate = columns[38]
+                        lastname = columns[7],
+                        firstname = columns[8],
+                        exp = columns[6],
+                        G = Int32.Parse(columns[11]),
+                        GS = Int32.Parse(columns[12]),
+                        IP = columns[17],
+                        H = Int32.Parse(columns[18]),
+                        HR = Int32.Parse(columns[19]),
+                        R = Int32.Parse(columns[20]),
+                        ER = Int32.Parse(columns[21]),
+                        BB = Int32.Parse(columns[22]),
+                        IBB = Int32.Parse(columns[23]),
+                        K = Int32.Parse(columns[24]),
+                        HBP = Int32.Parse(columns[27]),
+                        ERA = float.Parse(columns[28]),
+                        H9 = float.Parse(columns[29]),
+                        HR9 = float.Parse(columns[30]),
+                        BB9 = float.Parse(columns[31]),
+                        K9 = float.Parse(columns[32]),
+                        WHIP = float.Parse(columns[33]),
+                        height = columns[35],
+                        weight = int.Parse(columns[36]),
+                        bats = columns[37],
+                        throws = columns[38],
+                        position = columns[39],
+                        borndate = columns[40],
+                        mlbId = Int32.Parse(columns[44]),
+                        draftYear = Int32.Parse(columns[45]),
+                        draftOvr = Int32.Parse(columns[47]),
+                        teamId = Int32.Parse(columns[49])
                     });
                 }
             }
 
-            // Read player file
-            List<(int tbcId,
-                int year,
-                int mlbId,
-                string teamName,
-                int draftYear,
-                int draftOvr,
-                int teamId)> playerFileEntries = new();
-
-            filepath = Constants.DATA_AQ_DIRECTORY + "/TBC/pitcherBios.csv";
-            Console.WriteLine("Reading " + filepath);
-            using (StreamReader reader = new StreamReader(filepath))
-            {
-                string? line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if (string.IsNullOrWhiteSpace(line))
-                        continue;
-
-                    string[] columns = line.Split(',');
-
-                    playerFileEntries.Add(new()
-                    {
-                        tbcId = Int32.Parse(columns[0]),
-                        year = Int32.Parse(columns[1]),
-                        teamName = columns[2],
-                        mlbId = Int32.Parse(columns[9]),
-                        draftYear = Int32.Parse(columns[10]),
-                        draftOvr = Int32.Parse(columns[12]),
-                        teamId = Int32.Parse(columns[14])
-                    });
-                }
-            }
-
-            // Conf and Team Maps
-            string[] conferences = statsFileEntries.Values.Select(f => f.confAbvr).Distinct().ToArray();
-            List<College_ConfMap> confMap = new();
-            for (var i = 0; i < conferences.Length; i++)
-            {
-                confMap.Add(new College_ConfMap
-                {
-                    Id = i,
-                    Name = conferences[i]
-                });
-            }
-            db.College_ConfMap.AddRange(confMap);
-
-            var teams = playerFileEntries.DistinctBy(f => f.teamId);
-            foreach (var t in teams)
-            {
-                db.College_TeamMap.Add(new College_TeamMap
-                {
-                    Id = t.teamId,
-                    Name = t.teamName
-                });
-            }
+            List<College_ConfMap> confMap = db.College_ConfMap.ToList();
 
             // Iterate through players
-            var playerFileGroupings = playerFileEntries.GroupBy(f => f.tbcId);
+            var pitcherGroupings = pitcherData.GroupBy(f => f.tbcId);
             List<College_Player> players = new();
             List<College_PitcherStats> pitcherStats = new();
-            players.Capacity = playerFileGroupings.Count();
-            pitcherStats.Capacity = players.Capacity * 4;
-            using (ProgressBar progressBar = new(playerFileGroupings.Count(), $"Parsing College Hitter Stats"))
+            players.Capacity = pitcherGroupings.Count();
+            pitcherStats.Capacity = pitcherData.Count();
+            
+            using (ProgressBar progressBar = new(pitcherGroupings.Count(), $"Parsing College Pitcher Stats"))
             {
-                foreach (var player in playerFileGroupings)
+                foreach (var player in pitcherGroupings)
                 {
                     progressBar.Tick();
                     // Check to make sure that player is not a pure-hitter that had some pitching
-                    if (!player.Select(f => statsFileEntries[(f.tbcId, f.year)]).Any(f => f.position.Contains('P')))
+                    if (player.Any(f => f.position.Contains('P')))
                         continue;
 
-                    var firstStats = statsFileEntries[(player.Key, player.First().year)];
-                    int[] birthDateValues = firstStats.borndate.Split('/').Select(f => Int32.Parse(f)).ToArray();
+                    var firstStats = player.First();
+                    int[] birthDateValues = firstStats.borndate == "" ?
+                        [0, 0, 0] : firstStats.borndate.Split('/').Select(f => Int32.Parse(f)).ToArray();
 
                     int BirthYear = birthDateValues[2];
                     int BirthMonth = birthDateValues[0];
@@ -561,35 +846,45 @@ namespace DataAquisition
                     // Stats
                     foreach (var p in player)
                     {
-                        var stat = statsFileEntries[(p.tbcId, p.year)];
+                        // For duplicates, take column with more stats
+                        if (player.Count(f => f.year == p.year) > 1)
+                        {
+                            int maxGames = player.Where(f => f.year == p.year).Max(f => f.G);
+                            if (p.G < maxGames)
+                                continue;
+
+                            // Exact duplicate already entered
+                            if (pitcherStats.Any(f => f.TBCId == p.tbcId && f.Year == p.year))
+                                continue;
+                        }
 
                         pitcherStats.Add(new College_PitcherStats
                         {
-                            TBCId = stat.tbcId,
-                            Year = stat.year,
-                            Level = LevelStringToInt(stat.level),
+                            TBCId = p.tbcId,
+                            Year = p.year,
+                            Level = LevelStringToInt(p.level),
                             TeamId = p.teamId,
-                            ConfId = confMap.Where(f => f.Name.Equals(p.teamName)).Single().Id,
-                            ExpYears = ExpStringToYears(stat.exp),
-                            G = stat.G,
-                            GS = stat.GS,
-                            R = stat.R,
-                            ER = stat.ER,
-                            Outs = IPStringToOuts(stat.IP),
-                            H = stat.H,
-                            HR = stat.HR,
-                            BB = stat.BB,
-                            K = stat.K,
-                            HBP = stat.HBP,
-                            ERA = stat.ERA,
-                            H9 = stat.H9,
-                            HR9 = stat.HR9,
-                            BB9 = stat.BB9,
-                            K9 = stat.K9,
-                            WHIP = stat.WHIP,
-                            Age = GetSeasonAge(stat.year, BirthDay, BirthMonth, BirthYear),
-                            Height = GetHeightInInches(stat.height),
-                            Weight = stat.weight,
+                            ConfId = confMap.Where(f => f.Name.Equals(p.confAbvr)).Single().ConfId,
+                            ExpYears = ExpStringToYears(p.exp),
+                            G = p.G,
+                            GS = p.GS,
+                            R = p.R,
+                            ER = p.ER,
+                            Outs = IPStringToOuts(p.IP),
+                            H = p.H,
+                            HR = p.HR,
+                            BB = p.BB,
+                            K = p.K,
+                            HBP = p.HBP,
+                            ERA = p.ERA,
+                            H9 = p.H9,
+                            HR9 = p.HR9,
+                            BB9 = p.BB9,
+                            K9 = p.K9,
+                            WHIP = p.WHIP,
+                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear),
+                            Height = GetHeightInInches(p.height),
+                            Weight = p.weight,
                         });
                     }
                 }
@@ -597,6 +892,7 @@ namespace DataAquisition
 
             db.College_Player.AddRange(players);
             db.College_PitcherStats.AddRange(pitcherStats);
+            db.SaveChanges();
 
             return true;
         }
@@ -679,12 +975,15 @@ namespace DataAquisition
                     progressBar.Tick();
                 }
             }
+            db.SaveChanges();
 
             return true;
         }
 
         private static float NormalizeStat(int stat, int opp, float confAvg)
         {
+            if (confAvg == 0 || opp == 0)
+                return 1;
             return (float)((stat) / opp) / confAvg;
         }
 
@@ -704,7 +1003,7 @@ namespace DataAquisition
             Dictionary<(int confId, int year), float> confRankLookup = new();
             foreach (var c in db.College_ConferenceRank)
             {
-                confRankLookup[(c.ConfId, c.Year)] = c.ISR;
+                confRankLookup[(c.ConfId, c.Year)] = c.AvgRPI;
             }
 
             // Construct dictionary to lookup park factors
@@ -721,15 +1020,37 @@ namespace DataAquisition
             {
                 foreach (var stat in db.College_HitterStats)
                 {
+                    progressBar.Tick();
+
+                    if (stat.PA == 0)
+                        continue;
+
+                    // Skip covid year
+                    if (stat.Year == 2020) 
+                        continue;
+                        
                     College_ConfHitterAvg confAvg = confLookup[(stat.ConfId, stat.Year)];
+
+
+                    float parkFactor = 1;
+                    try
+                    {
+                        parkFactor = parkLookup[(stat.TeamId, stat.Year)];
+                    }
+                    catch (Exception)
+                    {
+                        // Doesn't exist
+                    }
+                    float confRank = confRankLookup[(stat.ConfId, stat.Year)];
 
                     modelStats.Add(new Model_College_HitterYear
                     {
                         TBCId = stat.TBCId,
                         Level = stat.Level,
+                        Year = stat.Year,
                         ExpYears = stat.ExpYears,
-                        ParkRunFactor = parkLookup[(stat.TeamId, stat.Year)],
-                        ConfScore = confRankLookup[(stat.ConfId, stat.Year)],
+                        ParkRunFactor = parkFactor,
+                        ConfScore = confRank,
                         PA = stat.PA,
                         H = NormalizeStat(stat.H, stat.AB, confAvg.H),
                         H2B = NormalizeStat(stat.H2B, stat.AB, confAvg.H2B),
@@ -749,8 +1070,6 @@ namespace DataAquisition
                         Height = stat.Height,
                         Weight = stat.Weight,
                     });
-
-                    progressBar.Tick();
                 }
             }
 
@@ -775,7 +1094,7 @@ namespace DataAquisition
             Dictionary<(int confId, int year), float> confRankLookup = new();
             foreach (var c in db.College_ConferenceRank)
             {
-                confRankLookup[(c.ConfId, c.Year)] = c.ISR;
+                confRankLookup[(c.ConfId, c.Year)] = c.AvgRPI;
             }
 
             // Construct dictionary to lookup park factors
@@ -792,24 +1111,45 @@ namespace DataAquisition
             {
                 foreach (var stat in db.College_PitcherStats)
                 {
+                    progressBar.Tick();
+
+                    if (stat.G == 0)
+                        continue;
+
+                    // Skip covid year
+                    if (stat.Year == 2020)
+                        continue;
+
                     College_ConfPitcherAvg confAvg = confLookup[(stat.ConfId, stat.Year)];
+
+                    float parkFactor = 1;
+                    try
+                    {
+                        parkFactor = parkLookup[(stat.TeamId, stat.Year)];
+                    }
+                    catch (Exception)
+                    {
+                        // Doesn't exist
+                    }
+                    float confRank = confRankLookup[(stat.ConfId, stat.Year)];
 
                     modelStats.Add(new Model_College_PitcherYear
                     {
                         TBCId = stat.TBCId,
                         Level = stat.Level,
+                        Year = stat.Year,
                         ExpYears = stat.ExpYears,
-                        ParkRunFactor = parkLookup[(stat.TeamId, stat.Year)],
-                        ConfScore = confRankLookup[(stat.ConfId, stat.Year)],
+                        ParkRunFactor = parkFactor,
+                        ConfScore = confRank,
                         G = stat.G,
                         GS = stat.GS,
                         Outs = stat.Outs,
-                        ERA = stat.ERA / confAvg.ERA,
-                        H9 = stat.H9 / confAvg.H9,
-                        HR9 = stat.HR9 / confAvg.HR9,
-                        BB9 = stat.BB9 / confAvg.BB9,
-                        K9 = stat.K9 / confAvg.K9,
-                        WHIP = stat.WHIP / confAvg.WHIP,
+                        ERA = Utilities.SafeDivide(stat.ERA , confAvg.ERA),
+                        H9 = Utilities.SafeDivide(stat.H9 , confAvg.H9),
+                        HR9 = Utilities.SafeDivide(stat.HR9 , confAvg.HR9),
+                        BB9 = Utilities.SafeDivide(stat.BB9 , confAvg.BB9),
+                        K9 = Utilities.SafeDivide(stat.K9 , confAvg.K9),
+                        WHIP = Utilities.SafeDivide(stat.WHIP , confAvg.WHIP),
                         Age = stat.Age,
                         Height = stat.Height,
                         Weight = stat.Weight,
@@ -820,6 +1160,7 @@ namespace DataAquisition
             }
 
             db.Model_College_PitcherYear.AddRange(modelStats);
+            db.SaveChanges();
 
             return true;
         }
@@ -849,10 +1190,33 @@ namespace DataAquisition
                 return true;
             }
 
+            // Currently doesn't have a 2025 park factors, fallback to 2024
+            if (year >= 2025)
+            {
+                var data2024 = db.College_ParkFactors.Where(f => f.Year == 2024);
+                db.College_ParkFactors.Where(f => f.Year == 2019);
+                foreach (var d in data2024)
+                {
+                    parkFactors.Add(new College_ParkFactors
+                    {
+                        TeamId = d.TeamId,
+                        Year = year,
+                        RunFactor = d.RunFactor,
+                    });
+                }
+
+                db.College_ParkFactors.AddRange(parkFactors);
+                return true;
+            }
+
             // Make GET request
             HttpClient httpClient = new();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+    );
             int reqYear = year == 2002 ? 2003 : year; // Different req for 2002
-            HttpResponseMessage response = await httpClient.GetAsync($"http://www.boydsworld.com/data/pf{reqYear}.html");
+            string url = $"http://www.boydsworld.com/data/pf{reqYear}.html";
+            HttpResponseMessage response = await httpClient.GetAsync(url);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 throw new Exception($"Getting College Park Factors for Year={year}: {response.StatusCode}");
@@ -869,7 +1233,7 @@ namespace DataAquisition
             List<(int id, float pf)> teamParkFactors = new();
 
             var lines = contents.Split(new[] { '\r', '\n' });
-            for (int i = 2; i < lines.Length; i++)
+            for (int i = 3; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
@@ -880,10 +1244,23 @@ namespace DataAquisition
                     {
                         // Everything after the first two numbers is the team name
                         string boydTeamName = string.Join(" ", parts, 2, parts.Length - 2);
-                        string teamName = BoydToBaseballCubeTeamName(boydTeamName);
-                        int teamId = db.College_TeamMap.Where(f => f.Name.Equals(teamName)).Single().Id;
 
-                        teamParkFactors.Add((teamId, parkFactor));
+                        // Boyd has some duplicates (multiple names for same team)(
+                        if (BoydYearSkip(boydTeamName, year))
+                            continue;
+
+                        string teamName = BoydToBaseballCubeTeamName(boydTeamName);
+                        
+                        try
+                        {
+                            int teamId = db.College_TeamMap.Where(f => f.Name.Equals(teamName)).Single().TeamId;
+
+                            teamParkFactors.Add((teamId, parkFactor));
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine($"Skipped Park Factors for {teamName}");
+                        }
                     }
                 }
             }
@@ -913,6 +1290,8 @@ namespace DataAquisition
             }
 
             db.College_ParkFactors.AddRange(parkFactors);
+            db.SaveChanges();
+
             return true;
         }
     }
