@@ -140,22 +140,22 @@
             }
 
             ////////// College Model //////////
-            //if (!College.InsertCollegeHitterStats())
-            //    return;
-            //if (!College.InsertCollegePitcherStats())
-            //    return;
+            if (!College.InsertCollegeHitterStats())
+                return;
+            if (!College.InsertCollegePitcherStats())
+                return;
             foreach (var year in collegeYears)
             {
                 // Covid-Year interrupted, don't use data that exists
                 if (year == 2020)
                     continue;
 
-                //if (!College.UpdateConfStrength(year))
-                //    return;
-                //if (!await College.GetParkFactors(year))
-                //    return;
-                //if (!College.CreateConfAverages(year))
-                //    return;
+                if (!College.UpdateConfStrength(year))
+                    return;
+                if (!await College.GetParkFactors(year))
+                    return;
+                if (!College.CreateConfAverages(year))
+                    return;
             }
             if (!College.CreateHitterModelStats())
                 return;

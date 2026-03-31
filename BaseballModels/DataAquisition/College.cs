@@ -230,11 +230,13 @@ namespace DataAquisition
                 case "fr":
                 case "fr.":
                 case "fr ":
+                case "cr":
                     return 1;
 
                 case "so":
                 case "so.":
                 case "so ":
+                case "s":
                     return 2;
 
                 case "jr":
@@ -260,6 +262,7 @@ namespace DataAquisition
 
                 // Redshirt
                 case "rs":
+                case "redsh":
                     return 1;
 
                 case "rf":
@@ -275,6 +278,7 @@ namespace DataAquisition
                 case "rs so":
                 case "rs-so":
                 case "rsso":
+                case "r-so.":
                     return 3;
 
                 case "jr-r":
@@ -295,43 +299,41 @@ namespace DataAquisition
 
                 case "rs-5s":
                 case "rs-gr":
+                case "5s+":
+                case "6s":
+                case "gr+":
                     return 6;
 
                 // Invalid Cases
                 case "0":
-                    return 1;
-                case "4.6":
-                    return 5;
-                case "15":
-                    return 2;
-                case "23":
-                    return 3;
-                case "33":
-                    return 4;
-                case "35":
-                    return 4;
-                case "45":
-                    return 5;
-                case "-":
-                    return 3;
                 case "b":
-                    return 1;
                 case "basket":
-                    return 1;
                 case "d":
-                    return 1;
                 case "f":
-                    return 1;
                 case "footbl":
-                    return 1;
                 case "fy":
-                    return 1;
                 case "null":
-                    return 1;
                 case "x":
                     return 1;
+                
+                case "15":
+                case "25":
+                    return 2;
+
+                case "23":
+                case "-":
                 case "":
                     return 3;
+
+                case "33":
+                case "35":
+                case "srn47":
+                    return 4;
+
+                case "45":
+                case "fifth":
+                case "4.6":
+                    return 5;
 
                 default:
                     throw new Exception($"Unexpected Exp String: {exp}");
@@ -349,7 +351,7 @@ namespace DataAquisition
                 return 0;
             if (height == "'-59" || height == "5-91" || height == "5-96" || height == "5-99")
                 return (5 * 12) + 9;
-            if (height == ("'6-+0") || height == "'60-" || height == "'6")
+            if (height == ("'6-+0") || height == "'60-" || height == "'6" || height == "'6-")
                 return 6 * 12;
             if (height == "'6-21")
                 return (6 * 12) + 2;
@@ -605,7 +607,7 @@ namespace DataAquisition
                 {
                     progressBar.Tick();
                     // Check to make sure that player is not a pure-pitcher that had some ABs
-                    if (!player.Any(f => f.position != "P"))
+                    if (player.All(f => f.position == "P" && f.AB < 50))
                         continue;
 
                     var firstStats = player.First();
@@ -809,7 +811,7 @@ namespace DataAquisition
                 {
                     progressBar.Tick();
                     // Check to make sure that player is not a pure-hitter that had some pitching
-                    if (player.Any(f => f.position.Contains('P')))
+                    if (player.All(f => !f.position.Contains('P')))
                         continue;
 
                     var firstStats = player.First();
