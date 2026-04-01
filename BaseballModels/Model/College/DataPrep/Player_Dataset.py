@@ -1,13 +1,16 @@
 import torch
+from DBTypes import *
 from College.DataPrep.Data_Prep import College_IO
 from sklearn.model_selection import train_test_split # type: ignore
 
 class College_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self,
+                 bio : list[DB_College_Player],
                  data,
                  lengths,
                  output_draft):
         
+        self.bio = bio
         self.data = data
         self.lengths = lengths
         self.output_draft = output_draft
@@ -29,6 +32,9 @@ def Create_Test_Train_Datasets(player_list : list[College_IO], test_size : float
     io_test : list[College_IO]
     io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
     
+    bio_train = [io.player for io in io_train]
+    bio_test = [io.player for io in io_test]
+    
     lengths_train = torch.tensor([io.length for io in io_train])
     lengths_test = torch.tensor([io.length for io in io_test])
     
@@ -38,7 +44,7 @@ def Create_Test_Train_Datasets(player_list : list[College_IO], test_size : float
     output_draft_train = torch.nn.utils.rnn.pad_sequence([io.output_draft for io in io_train])
     output_draft_test = torch.nn.utils.rnn.pad_sequence([io.output_draft for io in io_test])
     
-    train_dataset = College_Player_Dataset(data_train, lengths_train, output_draft_train)
-    test_dataset = College_Player_Dataset(data_test, lengths_test, output_draft_test)
+    train_dataset = College_Player_Dataset(bio_train, data_train, lengths_train, output_draft_train)
+    test_dataset = College_Player_Dataset(bio_test, data_test, lengths_test, output_draft_test)
     
     return (train_dataset, test_dataset)
