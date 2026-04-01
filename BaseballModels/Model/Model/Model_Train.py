@@ -54,7 +54,6 @@ def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks :
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
   avg_loss = [0] * NUM_ELEMENTS
-  num_batches = 0
   for batch, (data, length, pt_levelYearGames, targets, masks, fake_data) in enumerate(data_generator):
     # Train on real data
     optimizer.zero_grad()
@@ -68,7 +67,6 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
     avg_loss[4] += loss_yearPos.item()
     avg_loss[5] += loss_mlbValue.item()
     avg_loss[6] += loss_yearPt.item()
-    num_batches += 1
   
     # Train on fake data
     if len(fake_data.shape) == 3:

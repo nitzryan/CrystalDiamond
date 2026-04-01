@@ -7,6 +7,9 @@ namespace DataAquisition
 {
     internal class College
     {
+        private static int DEFAULT_HEIGHT = 72;
+        private static float UKNOWN_START_AGE = 18.5f;
+
         // Maps team name to same as BaseballCube so lookup can occur
         private static string BoydToBaseballCubeTeamName(string boydName)
         {
@@ -1053,6 +1056,12 @@ namespace DataAquisition
                     }
                     float confRank = confRankLookup[(stat.ConfId, stat.Year)];
 
+                    // Cap invalid datapoints
+                    int height = stat.Height > 0 ? stat.Height : DEFAULT_HEIGHT;
+                    float age = stat.Age;
+                    if (stat.Age > 100 || stat.Age < 16 + stat.ExpYears)
+                        age = UKNOWN_START_AGE + stat.ExpYears;
+
                     modelStats.Add(new Model_College_HitterYear
                     {
                         TBCId = stat.TBCId,
@@ -1077,7 +1086,7 @@ namespace DataAquisition
                         OPS = stat.OPS / confAvg.OPS,
                         Age = stat.Age,
                         Pos = stat.Pos,
-                        Height = stat.Height,
+                        Height = height,
                         Weight = stat.Weight,
                     });
                 }
@@ -1144,6 +1153,12 @@ namespace DataAquisition
                     }
                     float confRank = confRankLookup[(stat.ConfId, stat.Year)];
 
+                    // Cap invalid datapoints
+                    int height = stat.Height > 0 ? stat.Height : DEFAULT_HEIGHT;
+                    float age = stat.Age;
+                    if (stat.Age > 100 || stat.Age < 16 + stat.ExpYears)
+                        age = UKNOWN_START_AGE + stat.ExpYears;
+
                     modelStats.Add(new Model_College_PitcherYear
                     {
                         TBCId = stat.TBCId,
@@ -1162,7 +1177,7 @@ namespace DataAquisition
                         K9 = Utilities.SafeDivide(stat.K9 , confAvg.K9),
                         WHIP = Utilities.SafeDivide(stat.WHIP , confAvg.WHIP),
                         Age = stat.Age,
-                        Height = stat.Height,
+                        Height = height,
                         Weight = stat.Weight,
                     });
 
@@ -1333,6 +1348,8 @@ namespace DataAquisition
                             continue;
                         }
 
+                        int height = stat.Height > 0 ? stat.Height : DEFAULT_HEIGHT;
+
                         db.Model_College_HitterYear.Add(new Model_College_HitterYear
                         {
                             TBCId = stat.TBCId,
@@ -1357,7 +1374,7 @@ namespace DataAquisition
                             OPS = 1,
                             Age = age,
                             Pos = stat.Pos,
-                            Height = stat.Height,
+                            Height = height,
                             Weight = stat.Weight,
                         });
                     }
@@ -1392,6 +1409,9 @@ namespace DataAquisition
                             continue;
                         }
 
+
+                        int height = stat.Height > 0 ? stat.Height : DEFAULT_HEIGHT;
+
                         db.Model_College_PitcherYear.Add(new Model_College_PitcherYear
                         {
                             TBCId = stat.TBCId,
@@ -1410,7 +1430,7 @@ namespace DataAquisition
                             K9 = 1,
                             WHIP = 1,
                             Age = age,
-                            Height = stat.Height,
+                            Height = height,
                             Weight = stat.Weight,
                         });
                     }
