@@ -14,20 +14,20 @@ data_prep = College_Data_Prep(Prep_Map.college_base_prep_map, Output_Map.college
 hitter_io_list = data_prep.Generate_IO_Hitters("WHERE LastYear<=? AND isHitter=?", (2019, 1), use_cutoff=True)
 train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0)
 
-num_layers = range(1, 8)
-hidden_sizes = range(5, 26, 5)
+noise_range = [0.025 * x for x in range(10)]
+dropout_range = [0.025 * x for x in range(10)]
 
 batch_size = 4000
-num_epochs = 30
+num_epochs = 50
         
 data = []
         
-for nl in tqdm(num_layers, desc="Num Layers"):
+for noise in tqdm(noise_range, desc="Noise"):
     z = []
-    for hs in tqdm(hidden_sizes, desc="Hidden Size", leave=False):
+    for dropout in tqdm(dropout_range, desc="Dropout", leave=False):
         network = RNN_Model(train_dataset.get_input_size(), 
-                        num_layers=nl, 
-                        hidden_size=hs, 
+                        noise=noise,
+                        dropout=dropout,
                         data_prep=data_prep, 
                         is_hitter=True)
         network = network.to(device)
@@ -52,6 +52,8 @@ for nl in tqdm(num_layers, desc="Num Layers"):
         z.append(best_losses[0])
     data.append(z)
     
-plt.figure(figsize=(1 * len(hidden_sizes), .75 * len(num_layers) + 2))
-heatmap = sns.heatmap(data, xticklabels=hidden_sizes, yticklabels=num_layers, annot=True, fmt=".3f")
-plt.savefig(f'College/Experiments/Results/Hitters_RecurrentStructureSmallHS.png', dpi=400)
+plt.figure(figsize=(1 * len(dropout_range), .75 * len(noise_range) + 2))
+heatmap = sns.heatmap(data, xticklabels=dropout_range, yticklabels=noise_range, annot=True, fmt=".3f")
+plt.xlabel('Dropout')
+plt.ylabel('Noise')
+plt.savefig(f'College/Experiments/Results/Hitters_NoiseDropout2.png', dpi=400)
