@@ -141,3 +141,38 @@ class College_Data_Prep:
             ))
         
         return io
+    
+    def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
+        cursor = db.cursor()
+        pitchers = DB_College_Player.Select_From_DB(cursor, player_condition, player_values)
+        
+        io : list[College_IO] = []
+        cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
+        
+        for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
+            stats = DB_Model_College_PitcherYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (pitcher.TBCId, cutoff_year))
+            l = len(stats)
+            if l == 0:
+                continue
+            
+            # Dates
+            dates = torch.tensor([(pitcher.TBCId, x.Year,) for x in stats], dtype=torch.long)
+            
+            # Input
+            input = torch.zeros(l, self.Get_Pitcher_Size())
+            input[:, :self.prep_map.bio_size] = self.__Transform_PitcherData(pitcher)
+            input[:, self.prep_map.bio_size:] = self.__TransformPitcherStats(stats)
+            
+            # Output
+            output = torch.zeros(l, 1, dtype=torch.long)
+            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft(pitcher)), DRAFT_BUCKETS)
+            
+            io.append(College_IO(
+                player=pitcher,
+                input=input,
+                output_draft=output,
+                length=l,
+                dates=dates
+            ))
+        
+        return io
