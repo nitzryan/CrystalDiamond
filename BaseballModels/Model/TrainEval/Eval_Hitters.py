@@ -8,8 +8,8 @@ import torch
 from DataPrep.Eval_Dataset import Eval_Dataset
 from Model.Player_Model import RNN_Model
 from tqdm import tqdm
-from Constants import device, model_db, WAR_BUCKET_AVG, NUM_LEVELS, WARQUANTILE_VALUES
-from DBTypes import *
+from Constants import device, model_db, WAR_BUCKET_AVG, NUM_LEVELS
+from ModelDBTypes import *
 import torch.nn.functional as F
 import warnings
 from EvalStats import getOutputHitterStats

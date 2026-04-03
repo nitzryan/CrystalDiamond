@@ -31,3 +31,10 @@ def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map]:
     if model_id == 3:
         return meanrregression_prep_map, meanregression_output_map
     raise Exception(f"No mapping found for model_id={model_id}")
+
+from College.DataPrep.Output_Map import College_Output_Map, college_output_map
+from College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map
+def GetCollegeModelMaps(model_id : int) -> tuple[College_Prep_Map, College_Output_Map]:
+    if model_id == 1:
+        return college_base_prep_map, college_output_map
+    raise Exception(f"No mapping found for model_id={model_id}")

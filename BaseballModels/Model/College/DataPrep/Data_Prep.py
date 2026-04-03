@@ -1,7 +1,7 @@
 from sklearn.decomposition import PCA # type: ignore
 import torch
 from DBTypes import *
-from Constants import db, DTYPE
+from Constants import db, DTYPE, DRAFT_BUCKETS
 from typing import TypeVar, Callable
 from tqdm import tqdm
 from College.DataPrep.Output_Map import College_Output_Map
@@ -121,7 +121,7 @@ class College_Data_Prep:
                 continue
             
             # Dates
-            dates = torch.tensor([(hitter.TBCId, hitter.MlbId, x.Year,) for x in stats], dtype=torch.long)
+            dates = torch.tensor([(hitter.TBCId, x.Year,) for x in stats], dtype=torch.long)
             
             # Input
             input = torch.zeros(l, self.Get_Hitter_Size())
@@ -130,7 +130,7 @@ class College_Data_Prep:
             
             # Output
             output = torch.zeros(l, 1, dtype=torch.long)
-            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft(hitter)), self.output_map.buckets_draft)
+            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft(hitter)), DRAFT_BUCKETS)
             
             io.append(College_IO(
                 player=hitter,

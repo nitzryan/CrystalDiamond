@@ -11,6 +11,9 @@ namespace ModelDb
 		public DbSet<Model_TrainingHistory> Model_TrainingHistory {get; set;}
 		public DbSet<PlayersInTrainingData> PlayersInTrainingData {get; set;}
 		public DbSet<ModelIdx> ModelIdx {get; set;}
+		public DbSet<Model_TrainingHistory_College> Model_TrainingHistory_College {get; set;}
+		public DbSet<PlayersInTrainingData_College> PlayersInTrainingData_College {get; set;}
+		public DbSet<ModelIdx_College> ModelIdx_College {get; set;}
 		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
 		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
@@ -27,6 +30,9 @@ namespace ModelDb
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
 			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.ModelIdx});
 			modelBuilder.Entity<ModelIdx>().HasKey(f => new {f.Id});
+			modelBuilder.Entity<Model_TrainingHistory_College>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
+			modelBuilder.Entity<PlayersInTrainingData_College>().HasKey(f => new {f.TbcId,f.ModelIdx});
+			modelBuilder.Entity<ModelIdx_College>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.Model,f.IsHitter,f.Year,f.Month});

@@ -14,4 +14,5 @@ python aggregatedTableCreator.py Output_College ModelIdx model,year,tbcId
 
 
 python linqCreation.py
+python pyCreation.py
 PAUSE

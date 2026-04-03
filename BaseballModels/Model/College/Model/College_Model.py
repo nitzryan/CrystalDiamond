@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
+from Constants import DRAFT_BUCKETS
 
 class LayerArch:
     def __init__(self, layer_size : int, num_layers : int):
@@ -29,9 +30,12 @@ class RNN_Model(nn.Module):
         
         if not is_hitter:
             stats_arch = stats_arch_p
-            
+        
+        # Solely so they can be extracted during training    
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+        
         self.noise = noise
-        output_map = data_prep.output_map
         
         self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, 
                                 dropout=dropout,
@@ -39,7 +43,7 @@ class RNN_Model(nn.Module):
         
         self.linear_draftFirst = nn.Linear(hidden_size, stats_arch.layer_size)
         self.linear_draftArray = nn.ModuleList(nn.Linear(stats_arch.layer_size, stats_arch.layer_size) for _ in range(stats_arch.num_layers - 2))
-        self.linear_draftLast = nn.Linear(stats_arch.layer_size, len(output_map.buckets_draft))
+        self.linear_draftLast = nn.Linear(stats_arch.layer_size, len(DRAFT_BUCKETS))
         
         self.nonlin = F.leaky_relu
         

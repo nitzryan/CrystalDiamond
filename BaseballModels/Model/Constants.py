@@ -33,6 +33,10 @@ PITCHER_BF_BUCKETS = torch.tensor([0, 50, 200, 1000, 2000, np.inf], dtype=DTYPE)
 WARQUANTILE_VALUES = [0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95]
 WARQUANTILE_INVS = [x-1 for x in WARQUANTILE_VALUES]
 
+# Draft buckets
+DRAFT_BUCKETS = torch.tensor([0, 5, 15, 30, 100, 500, np.inf], dtype=DTYPE)
+DRAFT_MEANS = torch.tensor([4000, 3, 10.5, 22.5, 65.5, 300.5, 1000])
+
 NUM_LEVELS = 8
 
 WAR_BUCKET_AVG = [0,0.5,3,7.5,15,25,35]
