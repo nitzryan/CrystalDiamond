@@ -12,7 +12,10 @@ else:
 __BASE_DIR = Path(__file__).parent.resolve()
 __DB_PATH = __BASE_DIR / '../Db/BaseballStats.db'
 __EXP_DB_PATH = __BASE_DIR / '../Db/Experiment.db'
+__MODEL_DB_PATH = __BASE_DIR / "../ModelDb/Model.db"
+
 db = sqlite3.connect(__DB_PATH)
+model_db = sqlite3.connect(__MODEL_DB_PATH)
 experimental_db = sqlite3.connect(__EXP_DB_PATH)
 
 DTYPE = torch.float32

@@ -8,7 +8,7 @@ import torch
 from DataPrep.Eval_Dataset import Eval_Dataset
 from Model.Player_Model import RNN_Model
 from tqdm import tqdm
-from Constants import device, db, WAR_BUCKET_AVG, NUM_LEVELS, WARQUANTILE_VALUES
+from Constants import device, model_db, WAR_BUCKET_AVG, NUM_LEVELS, WARQUANTILE_VALUES
 from DBTypes import *
 import torch.nn.functional as F
 import warnings
@@ -16,13 +16,11 @@ from EvalStats import getOutputHitterStats
 from Utilities import GetModelMaps
 
 if __name__ == "__main__":
-    cursor = db.cursor()
+    cursor = model_db.cursor()
     cursor.execute("DELETE FROM Output_PlayerWar WHERE isHitter=1")
     cursor.execute("DELETE FROM Output_HitterStats")
-    cursor.execute("DELETE FROM Output_HitterValue")
-    cursor.execute("DELETE FROM Output_WarQuants WHERE isHitter=1")
-    db.commit()
-    cursor = db.cursor()
+    model_db.commit()
+    cursor = model_db.cursor()
     model_idxs = cursor.execute("SELECT hitterModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Evaluating Architectures"):
@@ -42,7 +40,7 @@ if __name__ == "__main__":
         generator = torch.utils.data.DataLoader(eval_hitters_dataset, batch_size=batch_size, shuffle=False)
         
         # Setup Model
-        cursor = db.cursor()
+        cursor = model_db.cursor()
         mth = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=?", (model_name,))
         num_layers = mth[0].NumLayers
         hidden_size = mth[0].HiddenSize
@@ -90,7 +88,7 @@ if __name__ == "__main__":
                 
                 db_data = torch.nn.utils.rnn.unpad_sequence(opw, length, batch_first=True)
                 
-                cursor = db.cursor()
+                cursor = model_db.cursor()
                 for dbd in db_data:
                     # Only log where player is actually a prospect
                     dbd = dbd[dbd[:,0] != 0]
@@ -118,5 +116,5 @@ if __name__ == "__main__":
                 stats_tensor = getOutputHitterStats(length, mlbIds, dtes, pt_values, stats_values, pos_values, model_id, model_idx)
                 cursor.executemany("INSERT INTO Output_HitterStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                     
-                db.commit()
+                model_db.commit()
                 

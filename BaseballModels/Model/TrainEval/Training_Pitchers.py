@@ -8,7 +8,7 @@ from DataPrep.Player_Dataset import Create_Test_Train_Datasets
 import Model.Player_Model as Player_Model
 import Model.Model_Train as Model_Train
 from tqdm import tqdm
-from Constants import device, db, DEFAULT_HIDDEN_SIZE_PITCHER, DEFAULT_NUM_LAYERS_PITCHER, DEFAULT_PITCHER_BATCH_SIZE, DEFAULT_PITCHER_NUM_EPOCHS
+from Constants import device, model_db, DEFAULT_HIDDEN_SIZE_PITCHER, DEFAULT_NUM_LAYERS_PITCHER, DEFAULT_PITCHER_BATCH_SIZE, DEFAULT_PITCHER_NUM_EPOCHS
 from Utilities import GetModelMaps
 
 if __name__ == "__main__":
@@ -16,8 +16,8 @@ if __name__ == "__main__":
     if num_models < 0:
         exit(1)
     
-    cursor = db.cursor()
-    model_idxs = cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
+    model_cursor = model_db.cursor()
+    model_idxs = model_cursor.execute("SELECT pitcherModelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
         prep_map, output_map = GetModelMaps(model_id)
@@ -28,9 +28,9 @@ if __name__ == "__main__":
         batch_size = DEFAULT_PITCHER_BATCH_SIZE
         pitching_mutators = data_prep.Generate_Pitching_Mutators(batch_size, Player_IO.GetMaxLength(pitcher_io_list))
         
-        cursor = db.cursor()
-        cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
-        db.commit()
+        model_cursor = model_db.cursor()
+        model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
+        model_db.commit()
         
         for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
             train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, i + 1) # Seed +1 so that it doesn't match pretraining, which is 0
@@ -55,13 +55,13 @@ if __name__ == "__main__":
                                                   save_last=True,
                                                   elements_to_save=[0])
             
-            cursor = db.cursor()
-            cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 0, best_losses[0], i, num_layers, hidden_size))
-            db.commit()
+            model_cursor = model_db.cursor()
+            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?)", (model_name, 0, best_losses[0], i, num_layers, hidden_size))
+            model_db.commit()
         
         # Insert pitchers that were trained on so that they can be marked on the site
-        cursor = db.cursor()
+        model_cursor = model_db.cursor()
         for io in pitcher_io_list:
-            if cursor.execute("SELECT COUNT(*) FROM PlayersInTrainingData WHERE mlbId=? AND modelIdx=?", (io.player.mlbId, model_id)).fetchone()[0] == 0:
-                cursor.execute("INSERT INTO PlayersInTrainingData VALUES(?,?)", (io.player.mlbId,model_id))
-        db.commit()
+            if model_cursor.execute("SELECT COUNT(*) FROM PlayersInTrainingData WHERE mlbId=? AND modelIdx=?", (io.player.mlbId, model_id)).fetchone()[0] == 0:
+                model_cursor.execute("INSERT INTO PlayersInTrainingData VALUES(?,?)", (io.player.mlbId,model_id))
+        model_db.commit()

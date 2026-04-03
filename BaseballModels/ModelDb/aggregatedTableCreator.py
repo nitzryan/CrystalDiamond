@@ -9,7 +9,7 @@ if __name__ == "__main__":
     cols = remove_cols.split(',')
     new_table = table + "Aggregation"
 
-    db = sqlite3.connect('BaseballStats.db')
+    db = sqlite3.connect('Model.db')
     cursor = db.cursor()
     
     if cursor.execute("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name=?", (new_table,)).fetchone()[0] == 1:
