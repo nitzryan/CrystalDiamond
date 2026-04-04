@@ -1,6 +1,8 @@
 ﻿using Db;
 using ShellProgressBar;
 using SiteDb;
+using ModelDb;
+using Microsoft.EntityFrameworkCore;
 
 namespace SitePrep
 {
@@ -10,13 +12,13 @@ namespace SitePrep
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
+            using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
 
-            siteDb.PlayerModel.RemoveRange(siteDb.PlayerModel);
-            siteDb.Player.RemoveRange(siteDb.Player);
-            siteDb.HitterYearStats.RemoveRange(siteDb.HitterYearStats);
-            siteDb.HitterMonthStats.RemoveRange(siteDb.HitterMonthStats);
+            siteDb.PlayerModel.ExecuteDelete();
+            siteDb.Player.ExecuteDelete();
+            siteDb.HitterYearStats.ExecuteDelete();
+            siteDb.HitterMonthStats.ExecuteDelete();
             siteDb.SaveChanges();
-            siteDb.ChangeTracker.Clear();
 
             var players = db.Model_Players.Where(f => f.IsHitter == 1)
                 .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi });
@@ -28,7 +30,7 @@ namespace SitePrep
                     var bio = playerTuple.sbi;
 
                     // Model Output Buckets
-                    var opws = db.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 1).OrderBy(f => f.Year).ThenBy(f => f.Month);
+                    var opws = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 1).OrderBy(f => f.Year).ThenBy(f => f.Month);
                     foreach (var opw in opws)
                     {
                         var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model);
@@ -47,30 +49,6 @@ namespace SitePrep
                                     $"{opw.War4.ToString("0.000")}," +
                                     $"{opw.War5.ToString("0.000")}," +
                                     $"{opw.War6.ToString("0.000")}",
-                            RankWar = ranks.Any() ? ranks.First().RankWar : null,
-                        });
-                    }
-                    // Model Output Quantiles
-                    var owqs = db.Output_WarQuantsAggregation.Where(f => f.MlbId == player.MlbId && f.IsHitter == 1).OrderBy(f => f.Year).ThenBy(f => f.Month);
-                    foreach (var owq in owqs)
-                    {
-                        var ranks = siteDb.PlayerRank.Where(f => f.Year == owq.Year && f.Month == owq.Month && f.MlbId == owq.MlbId && f.ModelId == (owq.Model + 100));
-                        siteDb.Add(new PlayerModel
-                        {
-                            MlbId = player.MlbId,
-                            Year = owq.Year,
-                            Month = owq.Month,
-                            ModelId = owq.Model + 100,
-                            IsHitter = owq.IsHitter,
-                            ProbsWar = $"{owq.Perc5.ToString("0.000")}," +
-                                    $"{owq.Perc15.ToString("0.000")}," +
-                                    $"{owq.Perc25.ToString("0.000")}," +
-                                    $"{owq.Perc35.ToString("0.000")}," +
-                                    $"{owq.Perc50.ToString("0.000")}," +
-                                    $"{owq.Perc65.ToString("0.000")}," +
-                                    $"{owq.Perc75.ToString("0.000")}," +
-                                    $"{owq.Perc85.ToString("0.000")}," +
-                                    $"{owq.Perc95.ToString("0.000")}",
                             RankWar = ranks.Any() ? ranks.First().RankWar : null,
                         });
                     }
@@ -98,7 +76,7 @@ namespace SitePrep
                         DraftBonus = bio.DraftPick > 0 ? bio.DraftBonus : null,
                         IsPitcher = 0,
                         IsHitter = 1,
-                        InTraining = db.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
+                        InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
                     });
 
                     // Annual Stats

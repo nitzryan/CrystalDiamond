@@ -1,4 +1,5 @@
-﻿using Db;
+﻿using ModelDb;
+using Db;
 using ShellProgressBar;
 using SiteDb;
 using EFCore.BulkExtensions;
@@ -17,8 +18,9 @@ namespace SitePrep
 
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
-            var models = db.Output_HitterStatsAggregation.Select(f => f.Model).Distinct().OrderBy(f => f).ToList();
-            var dates = db.Output_HitterStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
+            using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
+            var models = modelDb.Output_HitterStatsAggregation.Select(f => f.Model).Distinct().OrderBy(f => f).ToList();
+            var dates = modelDb.Output_HitterStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
             List<int> levels = [0, 1, 2, 3, 4, 5, 6, 7];
 
             List<Prediction_HitterStats> results = new();
@@ -79,7 +81,7 @@ namespace SitePrep
                         // Get all predictions for this level
                         foreach (var model in models) // Allows for better indexing to include
                         {
-                            var players = db.Output_HitterStatsAggregation.Where(f => f.Model == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
+                            var players = modelDb.Output_HitterStatsAggregation.Where(f => f.Model == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
                             foreach (var player in players)
                             {
                                 
@@ -188,8 +190,9 @@ namespace SitePrep
 
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
-            var models = db.Output_PitcherStatsAggregation.Select(f => f.Model).Distinct().OrderBy(f => f).ToList();
-            var dates = db.Output_PitcherStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
+            using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
+            var models = modelDb.Output_PitcherStatsAggregation.Select(f => f.Model).Distinct().OrderBy(f => f).ToList();
+            var dates = modelDb.Output_PitcherStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
             List<int> levels = [0, 1, 2, 3, 4, 5, 6, 7];
             List<Prediction_PitcherStats> results = new();
 
@@ -249,7 +252,7 @@ namespace SitePrep
                         // Get all predictions for this level
                         foreach (var model in models) // Allows for better indexing to include
                         {
-                            var players = db.Output_PitcherStatsAggregation.Where(f => f.Model == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
+                            var players = modelDb.Output_PitcherStatsAggregation.Where(f => f.Model == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
                             foreach (var player in players)
                             {
                                 // Convert player rates and stat rates to raw numbers

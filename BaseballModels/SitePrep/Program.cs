@@ -12,14 +12,14 @@ namespace SitePrep
             int year = Convert.ToInt32(args[0]);
             int month = Convert.ToInt32(args[1]);
 
-            if (!ModelAggregation.Main())
-                return;
+            //if (!ModelAggregation.Main())
+            //    return;
 
-            if (!GeneratePlayerPositions.MainFunc())
-                return;
+            //if (!GeneratePlayerPositions.MainFunc())
+            //    return;
 
-            if (!GeneratePredictions.Update())
-                return;
+            //if (!GeneratePredictions.Update())
+            //    return;
 
             if (!GenerateRankings.Main(year, month))
                 return;

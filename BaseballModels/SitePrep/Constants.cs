@@ -1,5 +1,6 @@
 ﻿using Db;
 using SiteDb;
+using ModelDb;
 using Microsoft.EntityFrameworkCore;
 
 namespace SitePrep
@@ -20,6 +21,11 @@ namespace SitePrep
 
         public static readonly DbContextOptions<SiteDbContext> SITEDB_OPTIONS = new DbContextOptionsBuilder<SiteDbContext>()
         .UseSqlite("Data Source=../../../../SiteDb/Site.db;")
+        .EnableSensitiveDataLogging()
+        .Options;
+
+        public static readonly DbContextOptions<ModelDbContext> MODELDB_OPTIONS = new DbContextOptionsBuilder<ModelDbContext>()
+        .UseSqlite("Data Source=../../../../ModelDb/Model.db;")
         .EnableSensitiveDataLogging()
         .Options;
 

@@ -1,4 +1,4 @@
-﻿using Db;
+﻿using ModelDb;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
@@ -9,290 +9,258 @@ namespace SitePrep
     {
         private static bool PlayerWar()
         {
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Output_PlayerWarAggregation.ExecuteDelete();
-                db_write.Output_WarQuantsAggregation.ExecuteDelete();
-            }
+            using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
+            db.Output_PlayerWarAggregation.ExecuteDelete();
+            db.Output_CollegeAggregation.ExecuteDelete();
 
             List<Output_PlayerWarAggregation> items = new();
-            List<Output_WarQuantsAggregation> warQuantItems = new();
 
-            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
-            {
-                var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
-                int count = opws.Count();
+            var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
+            int count = opws.Count();
                 
-                items.Capacity = count;
-                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating WarBucket Model Results"))
-                {
-                    foreach (var o in opws)
-                    {
-                        int size = o.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
-
-                        Output_PlayerWarAggregation owa = new()
-                        {
-                            MlbId = o.Key.MlbId,
-                            Model = o.Key.Model,
-                            IsHitter = o.Key.IsHitter,
-                            Year = o.Key.Year,
-                            Month = o.Key.Month,
-                            War0 = 0,
-                            War1 = 0,
-                            War2 = 0,
-                            War3 = 0,
-                            War4 = 0,
-                            War5 = 0,
-                            War6 = 0,
-                            War = 0,
-                        };
-
-                        foreach (var result in o)
-                        {
-                            owa.War0 += result.War0 / size;
-                            owa.War1 += result.War1 / size;
-                            owa.War2 += result.War2 / size;
-                            owa.War3 += result.War3 / size;
-                            owa.War4 += result.War4 / size;
-                            owa.War5 += result.War5 / size;
-                            owa.War6 += result.War6 / size;
-                            owa.War += result.War / size;
-                        }
-
-                        items.Add(owa);
-                        progressBar.Tick();
-                    }
-                }
-
-                var wqOpws = db.Output_WarQuants.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
-                count = wqOpws.Count();
-                warQuantItems.Capacity = count;
-
-                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating WarQuant Model Results"))
-                {
-                    foreach (var o in wqOpws)
-                    {
-                        int size = o.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
-
-                        Output_WarQuantsAggregation owqa = new()
-                        {
-                            MlbId = o.Key.MlbId,
-                            Model = o.Key.Model,
-                            IsHitter = o.Key.IsHitter,
-                            Year = o.Key.Year,
-                            Month = o.Key.Month,
-                            Perc5 = 0,
-                            Perc15 = 0,
-                            Perc25 = 0,
-                            Perc35 = 0,
-                            Perc50 = 0,
-                            Perc65 = 0,
-                            Perc75 = 0,
-                            Perc85 = 0,
-                            Perc95 = 0,
-                            War = 0,
-                        };
-
-                        foreach (var result in o)
-                        {
-                            owqa.Perc5  += result.Perc5  / size;
-                            owqa.Perc15 += result.Perc15 / size;
-                            owqa.Perc25 += result.Perc25 / size;
-                            owqa.Perc35 += result.Perc35 / size;
-                            owqa.Perc50 += result.Perc50 / size;
-                            owqa.Perc65 += result.Perc65 / size;
-                            owqa.Perc75 += result.Perc75 / size;
-                            owqa.Perc85 += result.Perc85 / size;
-                            owqa.Perc95 += result.Perc95 / size;
-                            owqa.War    += result.War    / size;
-                        }
-
-                        warQuantItems.Add(owqa);
-                        progressBar.Tick();
-                    }
-                }
-            }
-
-
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
+            items.Capacity = count;
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating WarBucket Model Results"))
             {
-                db_write.BulkInsert(items);
-                db_write.BulkInsert(warQuantItems);
+                foreach (var o in opws)
+                {
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_PlayerWarAggregation owa = new()
+                    {
+                        MlbId = o.Key.MlbId,
+                        Model = o.Key.Model,
+                        IsHitter = o.Key.IsHitter,
+                        Year = o.Key.Year,
+                        Month = o.Key.Month,
+                        War0 = 0,
+                        War1 = 0,
+                        War2 = 0,
+                        War3 = 0,
+                        War4 = 0,
+                        War5 = 0,
+                        War6 = 0,
+                        War = 0,
+                    };
+
+                    foreach (var result in o)
+                    {
+                        owa.War0 += result.War0 / size;
+                        owa.War1 += result.War1 / size;
+                        owa.War2 += result.War2 / size;
+                        owa.War3 += result.War3 / size;
+                        owa.War4 += result.War4 / size;
+                        owa.War5 += result.War5 / size;
+                        owa.War6 += result.War6 / size;
+                        owa.War += result.War / size;
+                    }
+
+                    items.Add(owa);
+                    progressBar.Tick();
+                }
             }
+
+            List<Output_CollegeAggregation> collegeItems = new();
+            var opcd = db.Output_College.GroupBy(f => new { f.TbcId, f.Model, f.IsHitter, f.Year });
+            count = opcd.Count();
+            collegeItems.Capacity = count;
+
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating College Model Results"))
+            {
+                foreach (var o in opcd)
+                {
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_CollegeAggregation oca = new()
+                    {
+                        TbcId = o.Key.TbcId,
+                        Model = o.Key.Model,
+                        IsHitter = o.Key.IsHitter,
+                        Year = o.Key.Year,
+                        Draft0 = 0,
+                        Draft1 = 0,
+                        Draft2 = 0,
+                        Draft3 = 0,
+                        Draft4 = 0,
+                        Draft5 = 0,
+                        Draft6 = 0,
+                        Draft = 0
+                    };
+
+                    foreach (var result in o)
+                    {
+                        oca.Draft0 += result.Draft0 / size;
+                        oca.Draft1 += result.Draft1 / size;
+                        oca.Draft2 += result.Draft2 / size;
+                        oca.Draft3 += result.Draft3 / size;
+                        oca.Draft4 += result.Draft4 / size;
+                        oca.Draft5 += result.Draft5 / size;
+                        oca.Draft6 += result.Draft6 / size;
+                        oca.Draft += result.Draft / size;
+                    }
+
+                    collegeItems.Add(oca);
+                    progressBar.Tick();
+                }
+            }
+
+            db.BulkInsert(items);
+            db.BulkInsert(collegeItems);
 
             return true;
         }
 
         private static bool HitterStats()
         {
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_HitterStatsAggregation;");
-            }
+            using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
+            db.Output_HitterStatsAggregation.ExecuteDelete();
 
-            List<Db.Output_HitterStatsAggregation> items = new();
+            List<Output_HitterStatsAggregation> items = new();
 
-            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
+            var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+            int count = ohs.Count();
+            items.Capacity = count;
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Hitter Stats"))
             {
-                var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
-                int count = ohs.Count();
-                items.Capacity = count;
-                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Hitter Stats"))
+                foreach (var o in ohs)
                 {
-                    foreach (var o in ohs)
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_HitterStatsAggregation ohsa = new()
                     {
-                        int size = o.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
+                        MlbId = o.Key.MlbId,
+                        Model = o.Key.Model,
+                        Year = o.Key.Year,
+                        Month = o.Key.Month,
+                        LevelId = o.Key.LevelId,
+                        Pa = 0,
+                        Hit1B = 0,
+                        Hit2B = 0,
+                        Hit3B = 0,
+                        HitHR = 0,
+                        BB = 0,
+                        HBP = 0,
+                        K = 0,
+                        SB = 0,
+                        CS = 0,
+                        BSR = 0,
+                        DRAA = 0,
+                        ParkRunFactor = 0,
+                        PercC = 0,
+                        Perc1B = 0,
+                        Perc2B = 0,
+                        Perc3B = 0,
+                        PercSS = 0,
+                        PercLF = 0,
+                        PercCF = 0,
+                        PercRF = 0,
+                        PercDH = 0,
+                    };
 
-                        Db.Output_HitterStatsAggregation ohsa = new()
-                        {
-                            MlbId = o.Key.MlbId,
-                            Model = o.Key.Model,
-                            Year = o.Key.Year,
-                            Month = o.Key.Month,
-                            LevelId = o.Key.LevelId,
-                            Pa = 0,
-                            Hit1B = 0,
-                            Hit2B = 0,
-                            Hit3B = 0,
-                            HitHR = 0,
-                            BB = 0,
-                            HBP = 0,
-                            K = 0,
-                            SB = 0,
-                            CS = 0,
-                            BSR = 0,
-                            DRAA = 0,
-                            ParkRunFactor = 0,
-                            PercC = 0,
-                            Perc1B = 0,
-                            Perc2B = 0,
-                            Perc3B = 0,
-                            PercSS = 0,
-                            PercLF = 0,
-                            PercCF = 0,
-                            PercRF = 0,
-                            PercDH = 0,
-                        };
-
-                        foreach (var result in o)
-                        {
-                            ohsa.Pa += result.Pa / size;
-                            ohsa.Hit1B += result.Hit1B / size;
-                            ohsa.Hit2B += result.Hit2B / size;
-                            ohsa.Hit3B += result.Hit3B / size;
-                            ohsa.HitHR += result.HitHR / size;
-                            ohsa.BB += result.BB / size;
-                            ohsa.HBP += result.HBP / size;
-                            ohsa.K += result.K / size;
-                            ohsa.SB += result.SB / size;
-                            ohsa.CS += result.CS / size;
-                            ohsa.BSR += result.BSR / size;
-                            ohsa.DRAA += result.DRAA / size;
-                            ohsa.ParkRunFactor += result.ParkRunFactor / size;
-                            ohsa.PercC += result.PercC / size;
-                            ohsa.Perc1B += result.Perc1B / size;
-                            ohsa.Perc2B += result.Perc2B / size;
-                            ohsa.Perc3B += result.Perc3B / size;
-                            ohsa.PercSS += result.PercSS / size;
-                            ohsa.PercLF += result.PercLF / size;
-                            ohsa.PercCF += result.PercCF / size;
-                            ohsa.PercRF += result.PercRF / size;
-                            ohsa.PercDH += result.PercDH / size;
-                        }
-
-                        items.Add(ohsa);
-                        progressBar.Tick();
+                    foreach (var result in o)
+                    {
+                        ohsa.Pa += result.Pa / size;
+                        ohsa.Hit1B += result.Hit1B / size;
+                        ohsa.Hit2B += result.Hit2B / size;
+                        ohsa.Hit3B += result.Hit3B / size;
+                        ohsa.HitHR += result.HitHR / size;
+                        ohsa.BB += result.BB / size;
+                        ohsa.HBP += result.HBP / size;
+                        ohsa.K += result.K / size;
+                        ohsa.SB += result.SB / size;
+                        ohsa.CS += result.CS / size;
+                        ohsa.BSR += result.BSR / size;
+                        ohsa.DRAA += result.DRAA / size;
+                        ohsa.ParkRunFactor += result.ParkRunFactor / size;
+                        ohsa.PercC += result.PercC / size;
+                        ohsa.Perc1B += result.Perc1B / size;
+                        ohsa.Perc2B += result.Perc2B / size;
+                        ohsa.Perc3B += result.Perc3B / size;
+                        ohsa.PercSS += result.PercSS / size;
+                        ohsa.PercLF += result.PercLF / size;
+                        ohsa.PercCF += result.PercCF / size;
+                        ohsa.PercRF += result.PercRF / size;
+                        ohsa.PercDH += result.PercDH / size;
                     }
+
+                    items.Add(ohsa);
+                    progressBar.Tick();
                 }
             }
 
-
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.BulkInsert(items);
-            }
+            db.BulkInsert(items);
 
             return true;
         }
 
         private static bool PitcherStats()
         {
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.Database.ExecuteSqlRaw("DELETE FROM Output_PitcherStatsAggregation;");
-            }
+            using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
+            db.Output_PitcherStatsAggregation.ExecuteDelete();
 
-            List<Db.Output_PitcherStatsAggregation> items = new();
+            List<Output_PitcherStatsAggregation> items = new();
 
-            using (SqliteDbContext db = new(Constants.DB_OPTIONS))
+            var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+            int count = ops.Count();
+            items.Capacity = count;
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitcher Stats"))
             {
-                var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
-                int count = ops.Count();
-                items.Capacity = count;
-                using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitcher Stats"))
+                foreach (var o in ops)
                 {
-                    foreach (var o in ops)
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_PitcherStatsAggregation opsa = new()
                     {
-                        int size = o.Count();
-                        if (size == 0)
-                            throw new Exception("No elements in model_results, should not happen");
+                        MlbId = o.Key.MlbId,
+                        Model = o.Key.Model,
+                        Year = o.Key.Year,
+                        Month = o.Key.Month,
+                        LevelId = o.Key.LevelId,
+                        Outs_SP = 0,
+                        Outs_RP = 0,
+                        GS = 0,
+                        GR = 0,
+                        ERA = 0,
+                        FIP = 0,
+                        HR = 0,
+                        BB = 0,
+                        HBP = 0,
+                        K = 0,
+                        ParkRunFactor = 0,
+                        SP_Perc = 0,
+                        RP_Perc = 0,
+                    };
 
-                        Db.Output_PitcherStatsAggregation opsa = new()
-                        {
-                            MlbId = o.Key.MlbId,
-                            Model = o.Key.Model,
-                            Year = o.Key.Year,
-                            Month = o.Key.Month,
-                            LevelId = o.Key.LevelId,
-                            Outs_SP = 0,
-                            Outs_RP = 0,
-                            GS = 0,
-                            GR = 0,
-                            ERA = 0,
-                            FIP = 0,
-                            HR = 0,
-                            BB = 0,
-                            HBP = 0,
-                            K = 0,
-                            ParkRunFactor = 0,
-                            SP_Perc = 0,
-                            RP_Perc = 0,
-                        };
-
-                        foreach (var result in o)
-                        {
-                            opsa.Outs_SP += result.Outs_SP / size;
-                            opsa.Outs_RP += result.Outs_RP / size;
-                            opsa.GS += result.GS / size;
-                            opsa.GR += result.GR / size;
-                            opsa.ERA += result.ERA / size;
-                            opsa.FIP += result.FIP / size;
-                            opsa.HR += result.HR / size;
-                            opsa.BB += result.BB / size;
-                            opsa.HBP += result.HBP / size;
-                            opsa.K += result.K / size;
-                            opsa.ParkRunFactor += result.ParkRunFactor / size;
-                            opsa.SP_Perc += result.SP_Perc / size;
-                            opsa.RP_Perc += result.RP_Perc / size;
-                        }
-
-                        items.Add(opsa);
-                        progressBar.Tick();
+                    foreach (var result in o)
+                    {
+                        opsa.Outs_SP += result.Outs_SP / size;
+                        opsa.Outs_RP += result.Outs_RP / size;
+                        opsa.GS += result.GS / size;
+                        opsa.GR += result.GR / size;
+                        opsa.ERA += result.ERA / size;
+                        opsa.FIP += result.FIP / size;
+                        opsa.HR += result.HR / size;
+                        opsa.BB += result.BB / size;
+                        opsa.HBP += result.HBP / size;
+                        opsa.K += result.K / size;
+                        opsa.ParkRunFactor += result.ParkRunFactor / size;
+                        opsa.SP_Perc += result.SP_Perc / size;
+                        opsa.RP_Perc += result.RP_Perc / size;
                     }
+
+                    items.Add(opsa);
+                    progressBar.Tick();
                 }
             }
 
-
-            using (SqliteDbContext db_write = new(Constants.DB_WRITE_OPTIONS))
-            {
-                db_write.BulkInsert(items);
-            }
+            db.BulkInsert(items);
 
             return true;
         }

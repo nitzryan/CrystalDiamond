@@ -1,4 +1,5 @@
 ﻿using Db;
+using ModelDb;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
@@ -35,7 +36,7 @@ namespace SitePrep
             public required int HighestLevel;
         }
 
-        private static void GenFunc(SqliteDbContext db, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear, bool useBucketWar)
+        private static void GenFunc(SqliteDbContext db, ModelDbContext modelDb, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear)
         {
             // Get ordered list of values for players
             List<List<PlayerWar>> playersWarList = new(initial_pwa.Count());
@@ -52,7 +53,7 @@ namespace SitePrep
                     pwa.hitterStats = hitterStats;
                     pwa.pitcherStats = pitcherStats;
                     List<PlayerWar> pw = [];
-                    var opwas = useBucketWar ? (db.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
+                    var opwas = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
                             .OrderBy(f => f.Year).ThenBy(f => f.Month)
                             .Select(f => new PlayerWar
                             {
@@ -67,24 +68,7 @@ namespace SitePrep
                                 hitterStats = hitterStats,
                                 pitcherStats = pitcherStats,
                             }
-                            ).ToList()
-                        ) :
-                        (db.Output_WarQuantsAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
-                            .OrderBy(f => f.Year).ThenBy(f => f.Month)
-                            .Select(f => new PlayerWar
-                            {
-                                MlbId = f.MlbId,
-                                ModelId = pwa.ModelId,
-                                War = f.War,
-                                Month = f.Month,
-                                Year = f.Year,
-                                isHitter = pwa.isHitter,
-                                pyps = pyps,
-                                poms = orgMap,
-                                hitterStats = hitterStats,
-                                pitcherStats = pitcherStats,
-                            }
-                            ).ToList());
+                            ).ToList();
 
                     // Add initial if month is different than last
                     if (opwas.Any())
@@ -286,11 +270,12 @@ namespace SitePrep
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
                 using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
+                using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
                 siteDb.PlayerRank.ExecuteDelete();
                 siteDb.Models.ExecuteDelete();
 
                 // Move models from data DB to site DB
-                foreach (var model in db.ModelIdx)
+                foreach (var model in modelDb.ModelIdx)
                 {
                     siteDb.Models.Add(new Models
                     {
@@ -326,45 +311,34 @@ namespace SitePrep
                 using var writerDates = new Utf8JsonWriter(gzipStreamDates, new JsonWriterOptions { Indented = false });
                 JsonSerializer.Serialize(writerDates, datesJson);
 
-                using (ProgressBar progressBar = new ProgressBar(db.ModelIdx.Count(), "Generating Rankings for Models"))
+                using (ProgressBar progressBar = new ProgressBar(modelDb.ModelIdx.Count(), "Generating Rankings for Models"))
                 {
-                    foreach (var model in db.ModelIdx)
+                    foreach (var model in modelDb.ModelIdx)
                     {
                         // Get data for Buckets
-                        // Get intial value for every player
-                        var initial_pwa = db.Output_PlayerWarAggregation.Where(f => f.Year == 0 && f.Model == model.Id)
-                            .Join(db.Player, opwa => opwa.MlbId, p => p.MlbId, (opwa, p) => new PlayerWar
+
+                        var initial_opwa = modelDb.Output_PlayerWarAggregation.Where(f => f.Year == 0 && f.Model == model.Id);
+                        List<PlayerWar> initial_pwa = new();
+                        initial_pwa.Capacity = initial_opwa.Count();
+                        foreach (var o in initial_opwa)
+                        {
+                            Db.Player p = db.Player.Where(f => f.MlbId == o.MlbId).Single();
+                            initial_pwa.Add(new PlayerWar
                             {
-                                MlbId = opwa.MlbId,
-                                ModelId = opwa.Model,
-                                War = opwa.War,
+                                MlbId = o.MlbId,
+                                ModelId = o.Model,
+                                War = o.War,
                                 Month = p.SigningMonth.Value,
                                 Year = p.SigningYear.Value,
-                                isHitter = opwa.IsHitter == 1,
+                                isHitter = o.IsHitter == 1,
                                 pyps = new(),
                                 poms = new(),
                                 hitterStats = new(),
                                 pitcherStats = new()
-                            }).ToList();
+                            });
+                        }
 
-                        GenFunc(db, siteDb, progressBar, initial_pwa, dates, endMonth, endYear, true);
-
-                        // Get data for quantiles
-                        initial_pwa = db.Output_WarQuantsAggregation.Where(f => f.Year == 0 && f.Model == model.Id)
-                            .Join(db.Player, opwa => opwa.MlbId, p => p.MlbId, (owqa, p) => new PlayerWar
-                            {
-                                MlbId = owqa.MlbId,
-                                ModelId = owqa.Model + 100,
-                                War = owqa.War,
-                                Month = p.SigningMonth.Value,
-                                Year = p.SigningYear.Value,
-                                isHitter = owqa.IsHitter == 1,
-                                pyps = new(),
-                                poms = new(),
-                                hitterStats = new(),
-                                pitcherStats = new()
-                            }).ToList();
-                        GenFunc(db, siteDb, progressBar, initial_pwa, dates, endMonth, endYear, false);
+                        GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear);
 
                         progressBar.Tick();
                     }
