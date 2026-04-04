@@ -34,8 +34,11 @@ WARQUANTILE_VALUES = [0.05, 0.15, 0.25, 0.35, 0.5, 0.65, 0.75, 0.85, 0.95]
 WARQUANTILE_INVS = [x-1 for x in WARQUANTILE_VALUES]
 
 # Draft buckets
-DRAFT_BUCKETS = torch.tensor([0, 5, 15, 30, 100, 500, np.inf], dtype=DTYPE)
-DRAFT_MEANS = torch.tensor([4000, 3, 10.5, 22.5, 65.5, 300.5, 1000])
+_DRAFT_BUCKETS_LIST = [0, 5, 15, 50, 100, 615]
+_DRAFT_MEANS_LIST = [_DRAFT_BUCKETS_LIST[i] + _DRAFT_BUCKETS_LIST[i + 1] for i in range(len(_DRAFT_BUCKETS_LIST) - 1)]
+_DRAFT_MEANS_LIST = [4000] + _DRAFT_MEANS_LIST + [1000]
+DRAFT_BUCKETS = torch.tensor(_DRAFT_BUCKETS_LIST + [np.inf], dtype=DTYPE)
+DRAFT_MEANS = torch.tensor(_DRAFT_MEANS_LIST)
 
 NUM_LEVELS = 8
 
