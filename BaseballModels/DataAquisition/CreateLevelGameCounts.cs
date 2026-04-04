@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class CreateLevelGameCounts
     {
-        public static bool Main(int year, int month)
+        public static void Update(int year, int month)
         {
             try
             {
@@ -41,14 +41,12 @@ namespace DataAquisition
                 }
 
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in CreateLevelGameCounts");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

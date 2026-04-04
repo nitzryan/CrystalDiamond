@@ -27,7 +27,9 @@ namespace DataAquisition
                 }
 
                 // Ignore null warning, removed at beginning of function
+                #pragma warning disable CS8629 // Checked at beginning
                 positionMeans[i - 1] = hitsInZone.Sum(f => (float)f.HitCoordX) / hitsInZone.Count();
+                #pragma warning restore CS8629
             }
 
             int numExceeding = 0;
@@ -64,7 +66,7 @@ namespace DataAquisition
             return GameFlags.Valid;
         }
 
-        public static bool UpdateFlags(int year)
+        public static void UpdateFlags(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -97,13 +99,12 @@ namespace DataAquisition
                 }
 
                 db.SaveChanges();
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in GetPlayByPlayFlags");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

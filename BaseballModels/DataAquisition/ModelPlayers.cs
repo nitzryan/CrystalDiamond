@@ -6,7 +6,7 @@ namespace DataAquisition
 {
     internal class ModelPlayers
     {
-        public static bool Main()
+        public static void Update()
         {
             try
             {
@@ -179,14 +179,12 @@ namespace DataAquisition
                     }
                 }
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in ModelPlayers");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

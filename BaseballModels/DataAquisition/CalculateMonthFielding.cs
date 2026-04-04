@@ -99,7 +99,9 @@ namespace DataAquisition
                 return;
 
             GamePlayByPlay pbp = pbpEnumerable.Single();
+
             int outcomeBase = -1;
+            #pragma warning disable CS8629 // The run outcome will be valid for the specific case
             switch (startBase)
             {
                 case 1: outcomeBase = pbp.Run1stOutcome.Value; break;
@@ -107,6 +109,7 @@ namespace DataAquisition
                 case 3: outcomeBase = pbp.Run3rdOutcome.Value; break;
                 default: throw new Exception($"Unspecified outcome base encounterd in UpdateSpecificArmScenario: {startBase}");
             }
+            #pragma warning restore CS8629
 
 
             // Wrapped in try/catch because occasionally MLB messes up and a player has a one-off substitution and doesn't get included in gamestats
@@ -156,7 +159,9 @@ namespace DataAquisition
 
             if ((pbp.Result & PBP_HIT_EVENT) == 0)
             {
+                #pragma warning disable CS8629 // if pbp.HitZone is null, scenario is null
                 Position zonePos = (Position)pbp.HitZone.Value;
+                #pragma warning restore CS8629
                 PlayerPosition pp = lineup.ExtractPosition(zonePos);
                 try { playerDict[pp].R_PM -= expectedResult.RunsMake; } catch { }
                 return;
@@ -248,7 +253,7 @@ namespace DataAquisition
             return errorRate;
         }
 
-        public static bool Update(int year, int month)
+        public static void Update(int year, int month)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -386,14 +391,12 @@ namespace DataAquisition
                         progressBar.Tick();
                     }
                 }
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateMonthFielding");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

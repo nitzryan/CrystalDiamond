@@ -11,7 +11,7 @@ namespace DataAquisition
     {
         private const int NUM_THREADS = 24;
         private static int progress_bar_thread = 0;
-        private static List<int> thread_counts;
+        private static List<int> thread_counts = [];
 
         private static int endYear = 0;
         private static int endMonth = 0;
@@ -367,7 +367,10 @@ namespace DataAquisition
                 else // Player just signed, put in empty values for year(s) after signing
                 {
                     Player p = db.Player.Where(f => f.MlbId == hitter.MlbId).Single();
+
+                    #pragma warning disable CS8629 // Will be filled in by this point
                     int signingYear = p.SigningYear.Value;
+                    #pragma warning restore CS8629
 
                     int y = signingYear + 1;
                     int m = 4;
@@ -661,7 +664,9 @@ namespace DataAquisition
                 else // Player just signed, put in empty values for year(s) after signing
                 {
                     Player p = db.Player.Where(f => f.MlbId == pitcher.MlbId).Single();
+                    #pragma warning disable CS8629 // Will be filled in by this point
                     int signingYear = p.SigningYear.Value;
+                    #pragma warning restore CS8629
 
                     int y = signingYear + 1;
                     int m = 4;
@@ -714,7 +719,7 @@ namespace DataAquisition
             return output;
         }
 
-        public static async Task<bool> Main(int EndYear, int EndMonth)
+        public static async Task<bool> Update(int EndYear, int EndMonth)
         {
             try
             {

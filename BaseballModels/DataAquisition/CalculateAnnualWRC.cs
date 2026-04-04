@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class CalculateAnnualWRC
     {
-        public static bool Main(int year)
+        public static void Update(int year)
         {
             try
             {
@@ -51,18 +51,16 @@ namespace DataAquisition
                         progressBar.Tick();
                     }
                 }
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateAnnualWRC");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
 
-        public static bool UpdateMonthRatiosWRC(int year, int month)
+        public static void UpdateMonthRatiosWRC(int year, int month)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -91,14 +89,12 @@ namespace DataAquisition
                     }
                 }
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateMonthRatiosWRC");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

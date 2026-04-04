@@ -7,7 +7,7 @@ namespace DataAquisition
     {
         private const int ROLLING_PERIOD = 3; // Total years to use for park factor (smooths results)
 
-        public static bool Main(int year, bool forceOverride)
+        public static void Update(int year, bool forceOverride)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -22,7 +22,7 @@ namespace DataAquisition
                 }
 
                 if (db.Park_Factors.Any(f => f.Year == year))
-                    return true;
+                    return;
 
                 // Get all games from the current year (use pitcher data because there are less entries)
                 var gameLogs = db.Player_Pitcher_GameLog.Where(f => f.Year == year)
@@ -46,7 +46,7 @@ namespace DataAquisition
                         int awayHR = 0;
                         foreach (int teamId in stadiumTeamIds) // All results involving team not at stadium
                         {
-                            var awayGames = rollingGameLogs.Where(f => f.OppTeamId == teamId || f.TeamId == teamId && f.StadiumId != stadiumId);
+                            var awayGames = rollingGameLogs.Where(f => (f.OppTeamId == teamId || f.TeamId == teamId) && f.StadiumId != stadiumId);
                             awayOuts += awayGames.Select(f => f.Outs).Sum();
                             awayR += awayGames.Select(f => f.R).Sum();
                             awayHR += awayGames.Select(f => f.HR).Sum();
@@ -87,14 +87,12 @@ namespace DataAquisition
                 }
                     
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error Calculating Park Factors");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

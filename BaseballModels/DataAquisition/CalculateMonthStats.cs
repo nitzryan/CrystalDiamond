@@ -151,7 +151,7 @@ namespace DataAquisition
             };
         }
 
-        private static bool CalculateHitterMonthStats(SqliteDbContext db, int year, int month)
+        private static void CalculateHitterMonthStats(SqliteDbContext db, int year, int month)
         {
             // Remove existing data
             db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
@@ -217,11 +217,9 @@ namespace DataAquisition
             
             db.SaveChanges();
             db.ChangeTracker.Clear();
-
-            return true;
         }
 
-        private static bool CalculatePitcherMonthStats(SqliteDbContext db, int year, int month)
+        private static void CalculatePitcherMonthStats(SqliteDbContext db, int year, int month)
         {
             // Remove existing data
             db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
@@ -323,40 +321,20 @@ namespace DataAquisition
 
             db.SaveChanges();
             db.ChangeTracker.Clear();
-
-            return true;
         }
 
-        public static bool Main(int year, int month)
+        public static void Update(int year, int month)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             try {
-                if (!CalculateHitterMonthStats(db, year, month))
-                {
-                    Console.WriteLine("Error in CalculateHitterMonthStats");
-                    return false;
-                }
+                CalculateHitterMonthStats(db, year, month);
+                CalculatePitcherMonthStats(db, year, month);
             } catch (Exception e)
             {
-                Console.WriteLine("Error in CalculateHitterMonthStats");
+                Console.WriteLine("Error in CalculateMonthStats");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
-
-            try {
-                if (!CalculatePitcherMonthStats(db, year, month))
-                {
-                    Console.WriteLine("Error in CalculatePitcherMonthStats");
-                    return false;
-                }
-            } catch (Exception e)
-            {
-                Console.WriteLine("Error in CalculatePitcherMonthStats");
-                Utilities.LogException(e);
-                return false;
-            }
-
-            return true;
         }
     }
 }

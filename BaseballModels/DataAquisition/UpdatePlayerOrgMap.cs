@@ -14,7 +14,7 @@ namespace DataAquisition
             public required int Day;
         }
 
-        public static bool Main()
+        public static void Update()
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -110,14 +110,12 @@ namespace DataAquisition
                     }
                 }
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in UpdatePlayerOrgMap");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

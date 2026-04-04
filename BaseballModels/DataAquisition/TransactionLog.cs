@@ -8,7 +8,7 @@ namespace DataAquisition
     {
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
-        private static List<int> thread_counts;
+        private static List<int> thread_counts = [];
 
         private static async Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)> GetTransaction_Logs(IEnumerable<int> ids, int thread_idx, ProgressBar progressBar, int progressSum)
         {
@@ -135,7 +135,7 @@ namespace DataAquisition
             return (logs, errors, playerRetireLogs);
         }
 
-        public static async Task<bool> Main()
+        public static async Task<bool> Update()
         {
             try
             {

@@ -8,7 +8,7 @@ namespace DataAquisition
 {
     internal class DraftResults
     {
-        public static async Task<bool> Main(int year)
+        public static async Task<bool> Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);

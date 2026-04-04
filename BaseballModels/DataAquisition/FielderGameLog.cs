@@ -113,7 +113,9 @@ namespace DataAquisition
                 if (!statElement.TryGetProperty("innings", out var inningsElement))
                     throw new Exception("Did not find property innings");
 
+                #pragma warning disable CS8602 // Will exist or expect exception
                 int[] inningsValues = [.. inningsElement.GetString().Split('.').Select(f => Int32.Parse(f))];
+                #pragma warning restore CS8602
 
                 if (!statElement.TryGetProperty("position", out var positionElement))
                     throw new Exception("Did not find property position");
@@ -150,7 +152,9 @@ namespace DataAquisition
                 if (!split.TryGetProperty("date", out var dateElement))
                     throw new Exception("Did not find property date");
 
+                #pragma warning disable CS8602 // Will exist or expect exception
                 int[] date = [.. dateElement.GetString().Split('-').Select(f => Int32.Parse(f))];
+                #pragma warning restore CS6802
 
                 if (!split.TryGetProperty("isHome", out var isHomeElement))
                     throw new Exception("Did not find property isHome");
@@ -168,6 +172,7 @@ namespace DataAquisition
                 if (leagueId == 103 || leagueId == 104)
                     leagueId = 1; 
 
+                #pragma warning disable CS8604 // Will exist
                 logs.Add(new Player_Fielder_GameLog
                 {
                     MlbId = id,
@@ -188,6 +193,7 @@ namespace DataAquisition
                     CS = cs,
                     PassedBall = pb,
                 });
+                #pragma warning restore CS8604
             }
 
             return logs;

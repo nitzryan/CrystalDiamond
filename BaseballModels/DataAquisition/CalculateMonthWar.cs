@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class CalculateMonthWar
     {
-        public static bool Update(int year, int month)
+        public static void Update(int year, int month)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -36,14 +36,12 @@ namespace DataAquisition
                     }
                 }
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateMonthlyWar");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

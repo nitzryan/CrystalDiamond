@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class GetLeagues
     {
-        public static async Task<bool> Main()
+        public static async Task<bool> Update()
         {
             try {
                 HttpClient httpClient = new();

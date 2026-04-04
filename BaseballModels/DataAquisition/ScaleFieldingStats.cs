@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class ScaleFieldingStats
     {
-        public static bool Update(int year)
+        public static void Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -42,13 +42,12 @@ namespace DataAquisition
                 }
 
                 db.SaveChanges();
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in ScaleFieldingStats");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

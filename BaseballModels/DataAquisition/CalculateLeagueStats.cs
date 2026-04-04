@@ -153,7 +153,7 @@ namespace DataAquisition
             };
         }
 
-        public static bool Main(int year)
+        public static void Update(int year)
         {
             try
             {
@@ -340,7 +340,9 @@ namespace DataAquisition
                                 int[] madePlaysCount = [0, 0, 0, 0, 0, 0, 0, 0, 0];
                                 foreach (var play in madePlays)
                                 {
+                                    #pragma warning disable CS8629 // if play.HitZone is null, fg.Key will be null
                                     madePlaysCount[(int)play.HitZone - 1]++;
+                                    #pragma warning restore CS8629
                                 }
 
                                 int totalPlays = madePlays.Count() + missedPlays.Count();
@@ -468,13 +470,12 @@ namespace DataAquisition
                 }
 
                 db.SaveChanges();
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateLeagueStats");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

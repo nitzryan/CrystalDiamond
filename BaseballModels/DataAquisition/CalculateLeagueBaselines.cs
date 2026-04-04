@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class CalculateLeagueBaselines
     {
-        private static bool LeagueHitterStats(SqliteDbContext db, int year, int month)
+        private static void LeagueHitterStats(SqliteDbContext db, int year, int month)
         {
             db.League_HitterStats.RemoveRange(db.League_HitterStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
@@ -97,11 +97,9 @@ namespace DataAquisition
                 }
             }
             db.SaveChanges();
-
-            return true;
         }
 
-        private static bool LeagueHitterYearStats(SqliteDbContext db, int year, int month)
+        private static void LeagueHitterYearStats(SqliteDbContext db, int year, int month)
         {
             db.League_HitterYearStats.RemoveRange(db.League_HitterYearStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
@@ -208,11 +206,9 @@ namespace DataAquisition
                 }
             }
             db.SaveChanges();
-
-            return true;
         }
 
-        private static bool LeaguePitcherStats(SqliteDbContext db, int year, int month)
+        private static void LeaguePitcherStats(SqliteDbContext db, int year, int month)
         {
             db.League_PitcherStats.RemoveRange(db.League_PitcherStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
@@ -291,11 +287,9 @@ namespace DataAquisition
                 }
             }
             db.SaveChanges();
-
-            return true;
         }
 
-        private static bool LeaguePitcherYearStats(SqliteDbContext db, int year, int month)
+        private static void LeaguePitcherYearStats(SqliteDbContext db, int year, int month)
         {
             db.League_PitcherYearStats.RemoveRange(db.League_PitcherYearStats.Where(f => f.Year == year && f.Month == month));
             db.SaveChanges();
@@ -384,33 +378,22 @@ namespace DataAquisition
                 }
             }
             db.SaveChanges();
-
-            return true;
         }
 
-        public static bool Main(int year, int month)
+        public static void Update(int year, int month)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             try {
-                if (!LeagueHitterStats(db, year, month))
-                    return false;
-
-                if (!LeagueHitterYearStats(db, year, month))
-                    return false;
-
-                if (!LeaguePitcherStats(db, year, month))
-                    return false;
-
-                if (!LeaguePitcherYearStats(db, year, month))
-                    return false;
-
-                return true;
+                LeagueHitterStats(db, year, month);
+                LeagueHitterYearStats(db, year, month);
+                LeaguePitcherStats(db, year, month);
+                LeaguePitcherYearStats(db, year, month);
             }
             catch (Exception e)
             {
                 Console.WriteLine("failed CalculateLeagueBaselines");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

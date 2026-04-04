@@ -10,7 +10,7 @@ namespace DataAquisition
     {
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
-        private static List<int> thread_counts;
+        private static List<int> thread_counts = [];
 
         private static async Task<(Player?, string?)> Get_Player_Async(int id, HttpClient httpClient)
         {
@@ -316,7 +316,7 @@ namespace DataAquisition
         }
 
         // Calls all necessary subfuncttions
-        public static async Task<bool> Main(int year)
+        public static async Task<bool> Update(int year)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);

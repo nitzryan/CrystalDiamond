@@ -16,7 +16,7 @@ namespace DataAquisition
     // However, only needed for training model, not needed for application of it
     internal class UpdateServiceTime
     {
-        public static bool Main()
+        public static void Update()
         {
             try {
                 // Read CSV File to tmp type
@@ -41,13 +41,11 @@ namespace DataAquisition
                     });
                 }
                 db.SaveChanges();
-
-                return true;
             } catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateServiceTime");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

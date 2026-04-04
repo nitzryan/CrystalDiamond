@@ -193,7 +193,7 @@ namespace DataAquisition
             db.BulkInsert(output);
         }
 
-        public static bool Main(int year)
+        public static void Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -209,13 +209,11 @@ namespace DataAquisition
                     CreateFieldingYearStats(db, year);
                     progressBar.Tick();
                 }
-
-                return true;
             } catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateAnnualStats");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

@@ -10,7 +10,7 @@ namespace DataAquisition
     {
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
-        private static List<int> thread_counts;
+        private static List<int> thread_counts = [];
 
         private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int year, int thread_idx, ProgressBar progressBar, int progressSum)
         {
@@ -124,7 +124,9 @@ namespace DataAquisition
                         continue;
 
                     // Make sure game is in proper month
+                    #pragma warning disable CS8602 // Will exist or expect exception
                     string[] gamedate = game.GetProperty("date").GetString().Split("-");
+                    #pragma warning restore CS8602
                     int gameMonth = Convert.ToInt32(gamedate[1]);
 
                     var stats = game.GetProperty("stat");
@@ -210,7 +212,9 @@ namespace DataAquisition
                         continue;
 
                     // Make sure game is in proper month
+                    #pragma warning disable CS8602 // Will exist or expect exception
                     string[] gamedate = game.GetProperty("date").GetString().Split("-");
+                    #pragma warning restore CS8602
                     int gameMonth = Convert.ToInt32(gamedate[1]);
 
                     var stats = game.GetProperty("stat");
@@ -407,7 +411,7 @@ namespace DataAquisition
             return true;
         }
 
-        public static async Task<bool> Main(int year, bool rescan)
+        public static async Task<bool> Update(int year, bool rescan)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);

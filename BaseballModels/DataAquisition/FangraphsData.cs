@@ -24,7 +24,7 @@ namespace DataAquisition
             return innings;
         }
 
-        public static async Task<bool> Main(List<int> years)
+        public static async Task<bool> Update(List<int> years)
         {
             try
             {

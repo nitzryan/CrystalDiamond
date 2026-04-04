@@ -7,7 +7,7 @@ namespace DataAquisition
 {
     internal class UpdateCareers
     {
-        public static bool Main(List<int> years)
+        public static void Update(List<int> years)
         {
             try {
                 
@@ -316,10 +316,14 @@ namespace DataAquisition
                     playerYears = playerYears.Distinct().OrderDescending();
 
                     int lastYear = -1;
+
+                    #pragma warning disable CS8629 // Will be filled in by this point
                     if (!playerYears.Any())
                         lastYear = pcs.p.SigningYear.Value + 2;
                     else
                         lastYear = playerYears.First() + 2;
+
+                    #pragma warning restore CS8629
 
                     if (lastYear < years.Last())
                         pcs.pl.PlayingGap = lastYear;
@@ -333,13 +337,11 @@ namespace DataAquisition
                 //    player.SigningMonth = pcs.CareerStartMonth;
                 //}
                 //db.SaveChanges();
-
-                return true;
             } catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateCareers");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

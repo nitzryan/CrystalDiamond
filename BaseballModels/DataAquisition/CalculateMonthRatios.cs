@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class CalculateMonthRatios
     {
-        private static bool CalculateHitterMonthRatios(SqliteDbContext db, int year, int month)
+        private static void CalculateHitterMonthRatios(SqliteDbContext db, int year, int month)
         {
             db.Player_Hitter_MonthlyRatios.RemoveRange(
                 db.Player_Hitter_MonthlyRatios.Where(f => f.Year == year && f.Month == month)
@@ -50,10 +50,9 @@ namespace DataAquisition
             }
 
             db.SaveChanges();
-            return true;
         }
 
-        private static bool CalculatePitcherMonthRatios(SqliteDbContext db, int year, int month)
+        private static void CalculatePitcherMonthRatios(SqliteDbContext db, int year, int month)
         {
             db.Player_Pitcher_MonthlyRatios.RemoveRange(
                 db.Player_Pitcher_MonthlyRatios.Where(f => f.Year == year && f.Month == month)
@@ -86,45 +85,23 @@ namespace DataAquisition
             }
 
             db.SaveChanges();
-            return true;
         }
 
-        public static bool Main(int year, int month)
+        public static void Update(int year, int month)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             try
             {
-                if (!CalculateHitterMonthRatios(db, year, month))
-                {
-                    Console.WriteLine("Error in CalculateHitterMonthRatios");
-                    return false;
-                }
+                CalculateHitterMonthRatios(db, year, month);
+                CalculatePitcherMonthRatios(db, year, month);
             }
             catch (Exception e)
             {
-                Console.WriteLine("Error in CalculateHitterMonthRatios");
+                Console.WriteLine("Error in CalculateMonthRatios");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
-
-            try
-            {
-                if (!CalculatePitcherMonthRatios(db, year, month))
-                {
-                    Console.WriteLine("Error in CalculatePitcherMonthRatios");
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error in CalculatePitcherMonthRatios");
-                Utilities.LogException(e);
-                return false;
-            }
-
-            return true;
-
         }
     }
 }

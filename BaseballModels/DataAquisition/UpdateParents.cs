@@ -5,7 +5,7 @@ namespace DataAquisition
 {
     internal class UpdateParents
     {
-        public static async Task<bool> Main(int year)
+        public static async Task<bool> Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -60,7 +60,7 @@ namespace DataAquisition
                                 Year = year
                             });
                         }
-                        catch (Exception e) { } // Some VSL teams were multiple orgs, so no parentId
+                        catch (Exception) { } // Some VSL teams were multiple orgs, so no parentId
                     }
                 }
                 db.SaveChanges();

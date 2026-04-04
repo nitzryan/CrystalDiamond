@@ -6,7 +6,7 @@ namespace DataAquisition
 {
     internal class Model_MonthValue
     {
-        public static bool Main()
+        public static void Update()
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -109,14 +109,12 @@ namespace DataAquisition
                     }
                 }
                 db.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in Model_MonthValue");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

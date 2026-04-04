@@ -488,6 +488,7 @@ namespace DataAquisition
                     continue;
 
                 int actionIndex = pe.GetProperty("index").GetInt32();
+                #pragma warning disable CS8604 // Will exist
                 subList.Add(new FielderSub
                 {
                     Inning = -1, // Will get set elsewhere
@@ -496,6 +497,7 @@ namespace DataAquisition
                     Position = Int32.Parse(pe.GetProperty("position").GetProperty("code").GetString()),
                     HalfInningEventNum = playIdxs.Where(f => f < actionIndex).Count(), // Relative to play, will get adjusted for half inning
                 });
+                #pragma warning restore CS8604
             }
 
             return subList;
@@ -621,9 +623,11 @@ namespace DataAquisition
                     {
                         try
                         {
+                        #pragma warning disable EF1002 // No possible SQL injection, name is compile-time
                             db.Database.ExecuteSqlRaw($"DROP INDEX {name};");
+                        #pragma warning restore EF1002
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             // Index doesn't exist, so fine
                         }

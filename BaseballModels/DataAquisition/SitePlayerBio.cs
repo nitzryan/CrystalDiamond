@@ -6,7 +6,7 @@ namespace DataAquisition
 {
     internal class SitePlayerBio
     {
-        public static async Task<bool> Main(int year)
+        public static async Task<bool> Update(int year)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -173,6 +173,7 @@ namespace DataAquisition
                             draftBonus = dr.Bonus;
                         }
 
+                        #pragma warning disable CS8629 // Will be filled in by this point
                         db.Site_PlayerBio.Add(new Site_PlayerBio
                         {
                             Id = player.MlbId,
@@ -188,6 +189,7 @@ namespace DataAquisition
                             DraftBonus = draftBonus,
                             SigningYear = player.SigningYear.Value
                         });
+                        #pragma warning restore CS8629
 
                         progressBar.Tick();
                     }
