@@ -1520,19 +1520,20 @@ class DB_College_Player:
 		self.BirthYear = values[4]
 		self.BirthMonth = values[5]
 		self.BirthDay = values[6]
-		self.DraftOvr = values[7]
-		self.FirstYear = values[8]
-		self.LastYear = values[9]
-		self.Bats = values[10]
-		self.Throws = values[11]
-		self.IsPitcher = values[12]
-		self.IsHitter = values[13]
+		self.DraftOvrPitcher = values[7]
+		self.DraftOvrHitter = values[8]
+		self.FirstYear = values[9]
+		self.LastYear = values[10]
+		self.Bats = values[11]
+		self.Throws = values[12]
+		self.IsPitcher = values[13]
+		self.IsHitter = values[14]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 15
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.TBCId,self.MlbId,self.FirstName,self.LastName,self.BirthYear,self.BirthMonth,self.BirthDay,self.DraftOvr,self.FirstYear,self.LastYear,self.Bats,self.Throws,self.IsPitcher,self.IsHitter)
+		return (self.TBCId,self.MlbId,self.FirstName,self.LastName,self.BirthYear,self.BirthMonth,self.BirthDay,self.DraftOvrPitcher,self.DraftOvrHitter,self.FirstYear,self.LastYear,self.Bats,self.Throws,self.IsPitcher,self.IsHitter)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_College_Player']:

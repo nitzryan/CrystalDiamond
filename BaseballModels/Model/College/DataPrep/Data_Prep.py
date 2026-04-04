@@ -130,7 +130,7 @@ class College_Data_Prep:
             
             # Output
             output = torch.zeros(l, 1, dtype=torch.long)
-            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft(hitter)), DRAFT_BUCKETS)
+            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
             
             io.append(College_IO(
                 player=hitter,
@@ -165,7 +165,7 @@ class College_Data_Prep:
             
             # Output
             output = torch.zeros(l, 1, dtype=torch.long)
-            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft(pitcher)), DRAFT_BUCKETS)
+            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
             
             io.append(College_IO(
                 player=pitcher,

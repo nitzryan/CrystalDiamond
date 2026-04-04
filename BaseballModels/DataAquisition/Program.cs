@@ -140,29 +140,24 @@
             }
 
             ////////// College Model //////////
-            //if (!College.InsertCollegeHitterStats())
-            //    return;
-            //if (!College.InsertCollegePitcherStats())
-            //    return;
+            College.InsertCollegeHitterStats();
+            College.InsertCollegePitcherStats();
+            College.DataCleanup();
+            College.FixDraftedMissingMLBIds();
+            College.HandleTwoWayDraftedPlayers();
             foreach (var year in collegeYears)
             {
                 // Covid-Year interrupted, don't use data that exists
                 if (year == 2020)
                     continue;
 
-                //if (!College.UpdateConfStrength(year))
-                //    return;
-                //if (!await College.GetParkFactors(year))
-                //    return;
-                //if (!College.CreateConfAverages(year))
-                //    return;
+                College.UpdateConfStrength(year);
+                await College.GetParkFactors(year);
+                College.CreateConfAverages(year);
             }
-            if (!College.CreateHitterModelStats())
-                return;
-            if (!College.CreatePitcherModelStats())
-                return;
-            if (!College.CreatePlayerGaps())
-                return;
+            College.CreateHitterModelStats();
+            College.CreatePitcherModelStats();
+            College.CreatePlayerGaps();
         }
     }
 }

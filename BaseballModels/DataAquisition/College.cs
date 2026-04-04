@@ -620,6 +620,13 @@ namespace DataAquisition
                     int BirthYear = birthDateValues[2];
                     int BirthMonth = birthDateValues[0];
                     int BirthDay = birthDateValues[1];
+
+                    // Zero-out draft data if they played after drafted (means they did not sign)
+                    int draftPick = player.First().draftOvr;
+                    int lastYear = player.Max(f => f.year);
+                    if (lastYear != player.First().draftYear)
+                        draftPick = 0;
+
                     // Player
                     players.Add(new College_Player
                     {
@@ -630,9 +637,10 @@ namespace DataAquisition
                         BirthYear = BirthYear,
                         BirthMonth = BirthMonth,
                         BirthDay = BirthDay,
-                        DraftOvr = player.First().draftOvr,
+                        DraftOvrHitter = draftPick,
+                        DraftOvrPitcher = 0,
                         FirstYear = player.Min(f => f.year),
-                        LastYear = player.Max(f => f.year),
+                        LastYear = lastYear,
                         Bats = firstStats.bats,
                         Throws = firstStats.throws,
                         IsPitcher = false,
@@ -824,11 +832,20 @@ namespace DataAquisition
                     int BirthYear = birthDateValues[2];
                     int BirthMonth = birthDateValues[0];
                     int BirthDay = birthDateValues[1];
+
+                    // Zero-out draft data if they played after drafted (means they did not sign)
+                    int draftPick = player.First().draftOvr;
+                    int lastYear = player.Max(f => f.year);
+                    if (lastYear != player.First().draftYear)
+                        draftPick = 0;
+
                     // Player
                     // Check if they already exist
                     if (db.College_Player.Any(f => f.TBCId == player.Key))
                     {
-                        db.College_Player.Where(f => f.TBCId == player.Key).Single().IsPitcher = true;
+                        var dbPlayer = db.College_Player.Where(f => f.TBCId == player.Key).Single();
+                        dbPlayer.IsPitcher = true;
+                        dbPlayer.DraftOvrPitcher = dbPlayer.DraftOvrHitter;
                     }
                     else // Add
                     {
@@ -841,9 +858,10 @@ namespace DataAquisition
                             BirthYear = BirthYear,
                             BirthMonth = BirthMonth,
                             BirthDay = BirthDay,
-                            DraftOvr = player.First().draftOvr,
+                            DraftOvrHitter = 0,
+                            DraftOvrPitcher = draftPick,
                             FirstYear = player.Min(f => f.year),
-                            LastYear = player.Max(f => f.year),
+                            LastYear = lastYear,
                             Bats = firstStats.bats,
                             Throws = firstStats.throws,
                             IsPitcher = true,
@@ -907,6 +925,66 @@ namespace DataAquisition
             db.College_PitcherStats.AddRange(pitcherStats);
             db.SaveChanges();
 
+            return true;
+        }
+
+        // Look up drafted player  to get the MLBId for some players
+        public static bool FixDraftedMissingMLBIds()
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            var missingPlayers = db.College_Player.Where(f => f.MlbId == 0 && f.DraftOvrHitter > 0);
+
+            foreach (var p in missingPlayers)
+            {
+                var dbPlayer = db.Player.Where(f => f.DraftPick == p.DraftOvrHitter && f.SigningYear == p.LastYear);
+
+                if (dbPlayer.Any())
+                {
+                    Player player = dbPlayer.Single();
+
+
+                    // Make sure that last names match (a player might have been drafted but not signed
+                    if (p.LastName.ToLower() != player.UseLastName.ToLower() &&
+                        ((p.LastName + " Jr.").ToLower() != player.UseLastName.ToLower()))
+                    {
+                        throw new Exception($"Last Names did not match: TBC {p.LastName} vs MLB {player.UseLastName}");
+                    }
+
+                    p.MlbId = player.MlbId;
+                }
+            }
+
+            db.SaveChanges();
+            return true;
+        }
+
+        // Assign drafted players to either only be drafted as a hitter or pitcher, except in case of TWP
+        // This way, the model can handle that a bad hitter could be drafted high as a pitcher and visa versa
+        public static bool HandleTwoWayDraftedPlayers()
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            var twoWayDraftedPlayers = db.College_Player.Where(f => f.IsHitter && f.IsPitcher && f.DraftOvrHitter > 0)
+                .Join(db.Player, cp => cp.MlbId, p => p.MlbId, (cp, p) => new { cp, p });
+
+            using (ProgressBar progressBar = new(twoWayDraftedPlayers.Count(), $"Assigning Two-Way drafted players to hitter or pitcher"))
+            {
+                foreach (var p in twoWayDraftedPlayers)
+                {
+                    Player player = p.p;
+                    College_Player collegePlayer = p.cp;
+
+                    if (player.Position == "H")
+                        collegePlayer.DraftOvrPitcher = 0;
+                    else if (player.Position == "P")
+                        collegePlayer.DraftOvrHitter = 0;
+
+                    progressBar.Tick();
+                }
+            }
+
+            db.SaveChanges();
             return true;
         }
 
@@ -1444,6 +1522,16 @@ namespace DataAquisition
             db.SaveChanges();
 
             return true;
+        }
+
+        public static void DataCleanup()
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            // Josh Morgan has wrong draft data
+            db.College_Player.Where(f => f.TBCId == 38027).Single().DraftOvrHitter = 605;
+
+            db.SaveChanges();
         }
     }
 }

@@ -9,7 +9,8 @@ namespace Db
 		public required int BirthYear {get; set;}
 		public required int BirthMonth {get; set;}
 		public required int BirthDay {get; set;}
-		public int? DraftOvr {get; set;}
+		public required int DraftOvrPitcher {get; set;}
+		public required int DraftOvrHitter {get; set;}
 		public required int FirstYear {get; set;}
 		public required int LastYear {get; set;}
 		public required string Bats {get; set;}
@@ -28,7 +29,8 @@ namespace Db
 				BirthYear = this.BirthYear,
 				BirthMonth = this.BirthMonth,
 				BirthDay = this.BirthDay,
-				DraftOvr = this.DraftOvr,
+				DraftOvrPitcher = this.DraftOvrPitcher,
+				DraftOvrHitter = this.DraftOvrHitter,
 				FirstYear = this.FirstYear,
 				LastYear = this.LastYear,
 				Bats = this.Bats,
