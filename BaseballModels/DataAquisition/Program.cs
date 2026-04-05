@@ -148,6 +148,10 @@
                 College.CreateHitterModelStats();
                 College.CreatePitcherModelStats();
                 College.CreatePlayerGaps();
+
+                // Create pro playing-time data
+                College.CreateCollegeHittersProData(END_YEAR);
+                College.CreateCollegePitchersProData(END_YEAR);
             }
 
             #pragma warning disable CS0162

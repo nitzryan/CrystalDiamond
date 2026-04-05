@@ -1807,5 +1807,55 @@ class DB_Model_College_PitcherYear:
 		items = cursor.execute("SELECT * FROM Model_College_PitcherYear " + conditional, values).fetchall()
 		return [DB_Model_College_PitcherYear(i) for i in items]
 
+class DB_Model_College_HitterProStats:
+	def __init__(self, values : tuple[any]):
+		self.TBCId = values[0]
+		self.PercC = values[1]
+		self.Perc1B = values[2]
+		self.Perc2B = values[3]
+		self.Perc3B = values[4]
+		self.PercSS = values[5]
+		self.PercLF = values[6]
+		self.PercCF = values[7]
+		self.PercRF = values[8]
+		self.PercDH = values[9]
+		self.DEF = values[10]
+		self.MLB_WAR = values[11]
+		self.DefOuts = values[12]
+		self.MLB_PA = values[13]
+		self.YearsSinceDraft = values[14]
+
+	NUM_ELEMENTS = 15
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.TBCId,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH,self.DEF,self.MLB_WAR,self.DefOuts,self.MLB_PA,self.YearsSinceDraft)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_College_HitterProStats']:
+		items = cursor.execute("SELECT * FROM Model_College_HitterProStats " + conditional, values).fetchall()
+		return [DB_Model_College_HitterProStats(i) for i in items]
+
+class DB_Model_College_PitcherProStats:
+	def __init__(self, values : tuple[any]):
+		self.TBCId = values[0]
+		self.PercSP = values[1]
+		self.PercRP = values[2]
+		self.MLB_WAR = values[3]
+		self.Outs = values[4]
+		self.MLB_Outs = values[5]
+		self.YearsSinceDraft = values[6]
+
+	NUM_ELEMENTS = 7
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.TBCId,self.PercSP,self.PercRP,self.MLB_WAR,self.Outs,self.MLB_Outs,self.YearsSinceDraft)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_College_PitcherProStats']:
+		items = cursor.execute("SELECT * FROM Model_College_PitcherProStats " + conditional, values).fetchall()
+		return [DB_Model_College_PitcherProStats(i) for i in items]
+
 
 ##############################################################################################

@@ -67,6 +67,8 @@ namespace Db
 		public DbSet<College_PitcherStats> College_PitcherStats {get; set;}
 		public DbSet<College_ConfPitcherAvg> College_ConfPitcherAvg {get; set;}
 		public DbSet<Model_College_PitcherYear> Model_College_PitcherYear {get; set;}
+		public DbSet<Model_College_HitterProStats> Model_College_HitterProStats {get; set;}
+		public DbSet<Model_College_PitcherProStats> Model_College_PitcherProStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -135,6 +137,8 @@ namespace Db
 			modelBuilder.Entity<College_PitcherStats>().HasKey(f => new {f.TBCId,f.Year});
 			modelBuilder.Entity<College_ConfPitcherAvg>().HasKey(f => new {f.ConfId,f.Year});
 			modelBuilder.Entity<Model_College_PitcherYear>().HasKey(f => new {f.TBCId,f.Year});
+			modelBuilder.Entity<Model_College_HitterProStats>().HasKey(f => new {f.TBCId});
+			modelBuilder.Entity<Model_College_PitcherProStats>().HasKey(f => new {f.TBCId});
 		}
 	}
 }

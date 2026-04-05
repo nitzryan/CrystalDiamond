@@ -1387,3 +1387,43 @@ CREATE TABLE Model_College_PitcherYear
 
 	PRIMARY KEY("TBCId", "Year")
 );
+
+-- Fielding stats for first N years after being drafted
+-- Weight higher-level stats more
+CREATE TABLE Model_College_HitterProStats
+(
+	"TBCId" INTEGER NOT NULL,
+
+	"PercC" REAL NOT NULL,
+	"Perc1B" REAL NOT NULL,
+	"Perc2B" REAL NOT NULL,
+	"Perc3B" REAL NOT NULL,
+	"PercSS" REAL NOT NULL,
+	"PercLF" REAL NOT NULL,
+	"PercCF" REAL NOT NULL,
+	"PercRF" REAL NOT NULL,
+	"PercDH" REAL NOT NULL,
+
+	"DEF" REAL NOT NULL,
+	"MLB_WAR" REAL NOT NULL,
+	"DefOuts" INTEGER NOT NULL,
+	"MLB_PA" INTEGER NOT NULL,
+	"YearsSinceDraft" INTEGER NOT NULL,
+
+	PRIMARY KEY("TBCId")
+);
+
+CREATE TABLE Model_College_PitcherProStats
+(
+	"TBCId" INTEGER NOT NULL,
+
+	"PercSP" REAL NOT NULL,
+	"PercRP" REAL NOT NULL,
+
+	"MLB_WAR" REAL NOT NULL,
+	"Outs" INTEGER NOT NULL,
+	"MLB_Outs" INTEGER NOT NULL,
+	"YearsSinceDraft" INTEGER NOT NULL,
+
+	PRIMARY KEY("TBCId")
+);
