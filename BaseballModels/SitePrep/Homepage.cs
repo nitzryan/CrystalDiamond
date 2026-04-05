@@ -96,7 +96,7 @@ namespace SitePrep
             }
         }
 
-        public static bool Main()
+        public static void Update()
         {
             try {
                 using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
@@ -201,14 +201,12 @@ namespace SitePrep
                     }
                 }
                 siteDb.SaveChanges();
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in Homepage");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

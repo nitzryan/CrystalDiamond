@@ -6,7 +6,7 @@ namespace SitePrep
 {
     internal class GeneratePlayerPositions
     {
-        public static bool MainFunc()
+        public static void Update()
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -58,13 +58,12 @@ namespace SitePrep
                     }
                 }
                 siteDb.SaveChanges();
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in GeneratePlayerPositions");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

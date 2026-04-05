@@ -265,7 +265,7 @@ namespace SitePrep
             }
         }
 
-        public static bool Main(int endYear, int endMonth)
+        public static void Update(int endYear, int endMonth)
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -343,14 +343,12 @@ namespace SitePrep
                         progressBar.Tick();
                     }
                 }
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in GenerateRankings");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 if __name__ == "__main__":
     cursor = model_db.cursor()
-    cursor.execute("DELETE FROM Output_College WHERE isHitter=1")
+    cursor.execute("DELETE FROM Output_College_Hitter")
     model_db.commit()
     cursor = model_db.cursor()
     model_idxs = cursor.execute("SELECT hitterModelName, id FROM ModelIdx_College ORDER BY id ASC").fetchall()
@@ -47,7 +47,10 @@ if __name__ == "__main__":
             for (data, lengths, dates) in tqdm(generator, total=len(generator), desc="Evaluating Hitters", leave=False):
                 data, lengths, dates = data.to(device), lengths.to(device), dates.to(device)
                 output_draft, output_pos = network(data, lengths)
+                
+                # Predictions
                 output_draft = F.softmax(output_draft, dim=-1)
+                output_pos = F.softmax(output_pos, dim=-1)
                 
                 draftMean = torch.zeros(size=(output_draft.size(0), output_draft.size(1))).to(device)
                 for i in range(len(DRAFT_MEANS)):
@@ -59,10 +62,10 @@ if __name__ == "__main__":
                 model_idxs = torch.zeros_like(years)
                 model_idxs[:,:,0] = model_idx
                     
-                db_input = torch.cat((ids, model_idxs, years, output_draft, draftMean.unsqueeze(-1)), dim=2)
+                db_input = torch.cat((ids, model_idxs, years, output_draft, draftMean.unsqueeze(-1), output_pos), dim=2)
                 db_input = torch.nn.utils.rnn.unpad_sequence(db_input, lengths, batch_first=True)
                 for d in db_input:
                     vals = [tuple(x) for x in d.tolist()]
-                    cursor.executemany(f"INSERT INTO Output_College VALUES(?,{model_id},1,?,?,?,?,?,?,?,?,?,?)", vals)
+                    cursor.executemany(f"INSERT INTO Output_College_Hitter VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                 model_db.commit()

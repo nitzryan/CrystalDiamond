@@ -1,6 +1,4 @@
-﻿using SiteDb;
-
-namespace SitePrep
+﻿namespace SitePrep
 {
     internal class Program
     {
@@ -12,38 +10,17 @@ namespace SitePrep
             int year = Convert.ToInt32(args[0]);
             int month = Convert.ToInt32(args[1]);
 
-            //if (!ModelAggregation.Main())
-            //    return;
-
-            //if (!GeneratePlayerPositions.MainFunc())
-            //    return;
-
-            //if (!GeneratePredictions.Update())
-            //    return;
-
-            if (!GenerateRankings.Main(year, month))
-                return;
-
-            if (!GenerateTeamRank.Main())
-                return;
-
-            if (!HitterPage.Main())
-                return;
-
-            if (!PitcherPage.Main())
-                return;
-
-            if (!OrgMap.Main())
-                return;
-
-            if (!SearchIndex.Main())
-                return;
-
-            if (!Homepage.Main())
-                return;
-
-            if (!MoveDbToServer.Main())
-                return;
+            ModelAggregation.Update();
+            GeneratePlayerPositions.Update();
+            GeneratePredictions.Update();
+            GenerateRankings.Update(year, month);
+            GenerateTeamRank.Update();
+            HitterPage.Update();
+            PitcherPage.Update();
+            OrgMap.Update();
+            SearchIndex.Update();
+            Homepage.Update();
+            MoveDbToServer.Update();
         }
     }
 }

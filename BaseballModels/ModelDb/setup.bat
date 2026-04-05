@@ -10,8 +10,8 @@ sqlite3 %DB_FILE% < creation.sql
 python aggregatedTableCreator.py Output_HitterStats ModelIdx model,year,month,levelId,mlbId
 python aggregatedTableCreator.py Output_PitcherStats ModelIdx model,year,month,levelId,mlbId
 python aggregatedTableCreator.py Output_PlayerWar ModelIdx model,year,month,mlbId
-python aggregatedTableCreator.py Output_College ModelIdx model,year,tbcId
-
+python aggregatedTableCreator.py Output_College_Hitter ModelIdx model,year,tbcId
+python aggregatedTableCreator.py Output_College_Pitcher ModelIdx model,year,tbcId
 
 python linqCreation.py
 python pyCreation.py

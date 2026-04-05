@@ -103,32 +103,68 @@ class DB_Output_PitcherStats:
 		items = cursor.execute("SELECT * FROM Output_PitcherStats " + conditional, values).fetchall()
 		return [DB_Output_PitcherStats(i) for i in items]
 
-class DB_Output_College:
+class DB_Output_College_Hitter:
 	def __init__(self, values : tuple[any]):
 		self.tbcId = values[0]
 		self.model = values[1]
-		self.isHitter = values[2]
-		self.ModelIdx = values[3]
-		self.year = values[4]
-		self.draft0 = values[5]
-		self.draft1 = values[6]
-		self.draft2 = values[7]
-		self.draft3 = values[8]
-		self.draft4 = values[9]
-		self.draft5 = values[10]
-		self.draft6 = values[11]
-		self.draft = values[12]
+		self.ModelIdx = values[2]
+		self.year = values[3]
+		self.draft0 = values[4]
+		self.draft1 = values[5]
+		self.draft2 = values[6]
+		self.draft3 = values[7]
+		self.draft4 = values[8]
+		self.draft5 = values[9]
+		self.draft6 = values[10]
+		self.draft = values[11]
+		self.ProbC = values[12]
+		self.Prob1B = values[13]
+		self.Prob2B = values[14]
+		self.Prob3B = values[15]
+		self.ProbSS = values[16]
+		self.ProbLF = values[17]
+		self.ProbCF = values[18]
+		self.ProbRF = values[19]
+		self.ProbDH = values[20]
 
-	NUM_ELEMENTS = 13
+	NUM_ELEMENTS = 21
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.isHitter,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft)
+		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
                         
 	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College']:
-		items = cursor.execute("SELECT * FROM Output_College " + conditional, values).fetchall()
-		return [DB_Output_College(i) for i in items]
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_Hitter']:
+		items = cursor.execute("SELECT * FROM Output_College_Hitter " + conditional, values).fetchall()
+		return [DB_Output_College_Hitter(i) for i in items]
+
+class DB_Output_College_Pitcher:
+	def __init__(self, values : tuple[any]):
+		self.tbcId = values[0]
+		self.model = values[1]
+		self.ModelIdx = values[2]
+		self.year = values[3]
+		self.draft0 = values[4]
+		self.draft1 = values[5]
+		self.draft2 = values[6]
+		self.draft3 = values[7]
+		self.draft4 = values[8]
+		self.draft5 = values[9]
+		self.draft6 = values[10]
+		self.draft = values[11]
+		self.ProbSP = values[12]
+		self.ProbRP = values[13]
+
+	NUM_ELEMENTS = 14
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbSP,self.ProbRP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_Pitcher']:
+		items = cursor.execute("SELECT * FROM Output_College_Pitcher " + conditional, values).fetchall()
+		return [DB_Output_College_Pitcher(i) for i in items]
 
 class DB_Model_TrainingHistory:
 	def __init__(self, values : tuple[any]):
@@ -338,31 +374,66 @@ class DB_Output_PlayerWarAggregation:
 		items = cursor.execute("SELECT * FROM Output_PlayerWarAggregation " + conditional, values).fetchall()
 		return [DB_Output_PlayerWarAggregation(i) for i in items]
 
-class DB_Output_CollegeAggregation:
+class DB_Output_College_HitterAggregation:
 	def __init__(self, values : tuple[any]):
 		self.tbcId = values[0]
 		self.model = values[1]
-		self.isHitter = values[2]
-		self.year = values[3]
-		self.draft0 = values[4]
-		self.draft1 = values[5]
-		self.draft2 = values[6]
-		self.draft3 = values[7]
-		self.draft4 = values[8]
-		self.draft5 = values[9]
-		self.draft6 = values[10]
-		self.draft = values[11]
+		self.year = values[2]
+		self.draft0 = values[3]
+		self.draft1 = values[4]
+		self.draft2 = values[5]
+		self.draft3 = values[6]
+		self.draft4 = values[7]
+		self.draft5 = values[8]
+		self.draft6 = values[9]
+		self.draft = values[10]
+		self.ProbC = values[11]
+		self.Prob1B = values[12]
+		self.Prob2B = values[13]
+		self.Prob3B = values[14]
+		self.ProbSS = values[15]
+		self.ProbLF = values[16]
+		self.ProbCF = values[17]
+		self.ProbRF = values[18]
+		self.ProbDH = values[19]
 
-	NUM_ELEMENTS = 12
+	NUM_ELEMENTS = 20
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.isHitter,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft)
+		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
                         
 	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_CollegeAggregation']:
-		items = cursor.execute("SELECT * FROM Output_CollegeAggregation " + conditional, values).fetchall()
-		return [DB_Output_CollegeAggregation(i) for i in items]
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_HitterAggregation']:
+		items = cursor.execute("SELECT * FROM Output_College_HitterAggregation " + conditional, values).fetchall()
+		return [DB_Output_College_HitterAggregation(i) for i in items]
+
+class DB_Output_College_PitcherAggregation:
+	def __init__(self, values : tuple[any]):
+		self.tbcId = values[0]
+		self.model = values[1]
+		self.year = values[2]
+		self.draft0 = values[3]
+		self.draft1 = values[4]
+		self.draft2 = values[5]
+		self.draft3 = values[6]
+		self.draft4 = values[7]
+		self.draft5 = values[8]
+		self.draft6 = values[9]
+		self.draft = values[10]
+		self.ProbSP = values[11]
+		self.ProbRP = values[12]
+
+	NUM_ELEMENTS = 13
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbSP,self.ProbRP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_PitcherAggregation']:
+		items = cursor.execute("SELECT * FROM Output_College_PitcherAggregation " + conditional, values).fetchall()
+		return [DB_Output_College_PitcherAggregation(i) for i in items]
 
 
 ##############################################################################################

@@ -1,11 +1,9 @@
 namespace ModelDb
 {
-	public class Output_College
+	public class Output_College_PitcherAggregation
 	{
 		public required int TbcId {get; set;}
 		public required int Model {get; set;}
-		public required int IsHitter {get; set;}
-		public required int ModelIdx {get; set;}
 		public required int Year {get; set;}
 		public required float Draft0 {get; set;}
 		public required float Draft1 {get; set;}
@@ -15,15 +13,15 @@ namespace ModelDb
 		public required float Draft5 {get; set;}
 		public required float Draft6 {get; set;}
 		public required float Draft {get; set;}
+		public required float ProbSP {get; set;}
+		public required float ProbRP {get; set;}
 
-		public Output_College Clone()
+		public Output_College_PitcherAggregation Clone()
 		{
-			return new Output_College
+			return new Output_College_PitcherAggregation
 			{
 				TbcId = this.TbcId,
 				Model = this.Model,
-				IsHitter = this.IsHitter,
-				ModelIdx = this.ModelIdx,
 				Year = this.Year,
 				Draft0 = this.Draft0,
 				Draft1 = this.Draft1,
@@ -33,6 +31,8 @@ namespace ModelDb
 				Draft5 = this.Draft5,
 				Draft6 = this.Draft6,
 				Draft = this.Draft,
+				ProbSP = this.ProbSP,
+				ProbRP = this.ProbRP,
 				
 			};
 		}

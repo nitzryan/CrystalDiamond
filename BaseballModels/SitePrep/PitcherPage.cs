@@ -8,7 +8,7 @@ namespace SitePrep
 {
     internal class PitcherPage
     {
-        private static bool WritePlayerJson()
+        private static void WritePlayerJson()
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
@@ -140,21 +140,19 @@ namespace SitePrep
                 }
             }
             siteDb.SaveChanges();
-
-            return true;
         }
 
-        public static bool Main()
+        public static void Update()
         {
             try
             {
-                return WritePlayerJson();
+                WritePlayerJson();
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in PitcherPage");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

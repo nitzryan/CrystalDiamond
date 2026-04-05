@@ -8,7 +8,7 @@ namespace SitePrep
 {
     internal class HitterPage
     {
-        private static bool WritePlayerJson()
+        private static void WritePlayerJson()
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
@@ -59,6 +59,7 @@ namespace SitePrep
                     // Get most recent org
                     var poms = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).ThenByDescending(f => f.Day);
 
+                    #pragma warning disable CS8629 // SigningValue will be not null at this point, otherwise won't have model data
                     siteDb.Add(new SiteDb.Player
                     {
                         MlbId = p.MlbId,
@@ -78,6 +79,7 @@ namespace SitePrep
                         IsHitter = 1,
                         InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
                     });
+                    #pragma warning restore CS8629
 
                     // Annual Stats
                     var annualStats = db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == player.MlbId).OrderBy(f => f.Year).ThenByDescending(f => f.LevelId).ThenBy(f => f.TeamId);
@@ -136,21 +138,19 @@ namespace SitePrep
             }
 
             siteDb.SaveChanges();
-
-            return true;
         }
 
-        public static bool Main()
+        public static void Update()
         {
             try 
             {
-                return WritePlayerJson();
+                WritePlayerJson();
             } 
             catch (Exception e)
             {
                 Console.WriteLine("Error in HitterPage");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

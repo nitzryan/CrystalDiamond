@@ -7,7 +7,7 @@ namespace SitePrep
 {
     internal class SearchIndex
     {
-        public static bool Main()
+        public static void Update()
         {
             try
             {
@@ -55,14 +55,12 @@ namespace SitePrep
                 using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
                 using var writer = new Utf8JsonWriter(gzipStream, new JsonWriterOptions { Indented = false });
                 JsonSerializer.Serialize(writer, json);
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in HitterPage");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

@@ -7,11 +7,12 @@ namespace SitePrep
 {
     internal class ModelAggregation
     {
-        private static bool PlayerWar()
+        private static void PlayerWar()
         {
             using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
             db.Output_PlayerWarAggregation.ExecuteDelete();
-            db.Output_CollegeAggregation.ExecuteDelete();
+            db.Output_College_HitterAggregation.ExecuteDelete();
+            db.Output_College_PitcherAggregation.ExecuteDelete();
 
             List<Output_PlayerWarAggregation> items = new();
 
@@ -61,24 +62,24 @@ namespace SitePrep
                 }
             }
 
-            List<Output_CollegeAggregation> collegeItems = new();
-            var opcd = db.Output_College.GroupBy(f => new { f.TbcId, f.Model, f.IsHitter, f.Year });
-            count = opcd.Count();
-            collegeItems.Capacity = count;
+            // College Hitters
+            List<Output_College_HitterAggregation> collegeHitterItems = new();
+            var ohcd = db.Output_College_Hitter.GroupBy(f => new { f.TbcId, f.Model, f.Year });
+            count = ohcd.Count();
+            collegeHitterItems.Capacity = count;
 
-            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating College Model Results"))
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating College Hitter Model Results"))
             {
-                foreach (var o in opcd)
+                foreach (var o in ohcd)
                 {
                     int size = o.Count();
                     if (size == 0)
                         throw new Exception("No elements in model_results, should not happen");
 
-                    Output_CollegeAggregation oca = new()
+                    Output_College_HitterAggregation oca = new()
                     {
                         TbcId = o.Key.TbcId,
                         Model = o.Key.Model,
-                        IsHitter = o.Key.IsHitter,
                         Year = o.Key.Year,
                         Draft0 = 0,
                         Draft1 = 0,
@@ -87,7 +88,17 @@ namespace SitePrep
                         Draft4 = 0,
                         Draft5 = 0,
                         Draft6 = 0,
-                        Draft = 0
+                        Draft = 0,
+
+                        ProbC = 0,
+                        Prob1B = 0,
+                        Prob2B = 0,
+                        Prob3B = 0,
+                        ProbSS = 0,
+                        ProbLF = 0,
+                        ProbCF = 0,
+                        ProbRF = 0,
+                        ProbDH = 0,
                     };
 
                     foreach (var result in o)
@@ -100,20 +111,81 @@ namespace SitePrep
                         oca.Draft5 += result.Draft5 / size;
                         oca.Draft6 += result.Draft6 / size;
                         oca.Draft += result.Draft / size;
+
+                        oca.ProbC += result.ProbC / size;
+                        oca.Prob1B += result.Prob1B / size;
+                        oca.Prob2B += result.Prob2B / size;
+                        oca.Prob3B += result.Prob3B / size;
+                        oca.ProbSS += result.ProbSS / size;
+                        oca.ProbLF += result.ProbLF / size;
+                        oca.ProbCF += result.ProbCF / size;
+                        oca.ProbRF += result.ProbRF / size;
+                        oca.ProbDH += result.ProbDH / size;
                     }
 
-                    collegeItems.Add(oca);
+                    collegeHitterItems.Add(oca);
+                    progressBar.Tick();
+                }
+            }
+
+            // College Pitchers
+            List<Output_College_PitcherAggregation> collegePitcherItems = new();
+            var opcd = db.Output_College_Pitcher.GroupBy(f => new { f.TbcId, f.Model, f.Year });
+            count = opcd.Count();
+            collegePitcherItems.Capacity = count;
+
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating College Pitcher Model Results"))
+            {
+                foreach (var o in opcd)
+                {
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_College_PitcherAggregation oca = new()
+                    {
+                        TbcId = o.Key.TbcId,
+                        Model = o.Key.Model,
+                        Year = o.Key.Year,
+                        Draft0 = 0,
+                        Draft1 = 0,
+                        Draft2 = 0,
+                        Draft3 = 0,
+                        Draft4 = 0,
+                        Draft5 = 0,
+                        Draft6 = 0,
+                        Draft = 0,
+
+                        ProbSP = 0,
+                        ProbRP = 0,
+                    };
+
+                    foreach (var result in o)
+                    {
+                        oca.Draft0 += result.Draft0 / size;
+                        oca.Draft1 += result.Draft1 / size;
+                        oca.Draft2 += result.Draft2 / size;
+                        oca.Draft3 += result.Draft3 / size;
+                        oca.Draft4 += result.Draft4 / size;
+                        oca.Draft5 += result.Draft5 / size;
+                        oca.Draft6 += result.Draft6 / size;
+                        oca.Draft += result.Draft / size;
+
+                        oca.ProbSP += result.ProbSP / size;
+                        oca.ProbRP += result.ProbRP / size;
+                    }
+
+                    collegePitcherItems.Add(oca);
                     progressBar.Tick();
                 }
             }
 
             db.BulkInsert(items);
-            db.BulkInsert(collegeItems);
-
-            return true;
+            db.BulkInsert(collegeHitterItems);
+            db.BulkInsert(collegePitcherItems);
         }
 
-        private static bool HitterStats()
+        private static void HitterStats()
         {
             using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
             db.Output_HitterStatsAggregation.ExecuteDelete();
@@ -194,11 +266,9 @@ namespace SitePrep
             }
 
             db.BulkInsert(items);
-
-            return true;
         }
 
-        private static bool PitcherStats()
+        private static void PitcherStats()
         {
             using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
             db.Output_PitcherStatsAggregation.ExecuteDelete();
@@ -261,30 +331,21 @@ namespace SitePrep
             }
 
             db.BulkInsert(items);
-
-            return true;
         }
 
-        public static bool Main()
+        public static void Update()
         {
             try
             {
-                if (!ModelAggregation.PlayerWar())
-                    return false;
-
-                if (!ModelAggregation.HitterStats())
-                    return false;
-
-                if (!ModelAggregation.PitcherStats())
-                    return false;
-
-                return true;
+                ModelAggregation.PlayerWar();
+                ModelAggregation.HitterStats();
+                ModelAggregation.PitcherStats();
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in ModelAggregation");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

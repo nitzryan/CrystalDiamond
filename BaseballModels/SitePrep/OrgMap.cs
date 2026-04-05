@@ -7,7 +7,7 @@ namespace SitePrep
 {
     internal class OrgMap
     {
-        public static bool Main()
+        public static void Update()
         {
             try{
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
@@ -63,14 +63,12 @@ namespace SitePrep
                 using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
                 using var writer = new Utf8JsonWriter(gzipStream, new JsonWriterOptions { Indented = false });
                 JsonSerializer.Serialize(writer, json);
-
-                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in TeamMap");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }

@@ -97,12 +97,13 @@ CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
 	"levelId"
 );
 
-CREATE TABLE "Output_College" (
+CREATE TABLE "Output_College_Hitter" (
 	"tbcId" INTEGER NOT NULL,
 	"model" INTEGER NOT NULL,
-	"isHitter" INTEGER NOT NULL,
 	"ModelIdx"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
+
+	-- Draft
 	"draft0"	REAL NOT NULL,
 	"draft1"	REAL NOT NULL,
 	"draft2"	REAL NOT NULL,
@@ -111,10 +112,52 @@ CREATE TABLE "Output_College" (
 	"draft5"	REAL NOT NULL,
 	"draft6"	REAL NOT NULL,
 	"draft" REAL NOT NULL,
-	PRIMARY KEY("tbcId", "model", "isHitter", "ModelIdx","year")
+
+	-- Pro Position
+	"ProbC" REAL NOT NULL,
+	"Prob1B" REAL NOT NULL,
+	"Prob2B" REAL NOT NULL,
+	"Prob3B" REAL NOT NULL,
+	"ProbSS" REAL NOT NULL,
+	"ProbLF" REAL NOT NULL,
+	"ProbCF" REAL NOT NULL,
+	"ProbRF" REAL NOT NULL,
+	"ProbDH" REAL NOT NULL,
+
+	PRIMARY KEY("tbcId", "model", "ModelIdx","year")
 );
 
-CREATE INDEX "idx_Output_College" ON "Output_College" (
+CREATE INDEX "idx_Output_College_Hitter" ON "Output_College_Hitter" (
+	"model",
+	"modelIdx",
+	"tbcId",
+	"year"
+);
+
+CREATE TABLE "Output_College_Pitcher" (
+	"tbcId" INTEGER NOT NULL,
+	"model" INTEGER NOT NULL,
+	"ModelIdx"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+
+	-- Draft
+	"draft0"	REAL NOT NULL,
+	"draft1"	REAL NOT NULL,
+	"draft2"	REAL NOT NULL,
+	"draft3"	REAL NOT NULL,
+	"draft4"	REAL NOT NULL,
+	"draft5"	REAL NOT NULL,
+	"draft6"	REAL NOT NULL,
+	"draft" REAL NOT NULL,
+
+	-- Pro Position
+	"ProbSP" REAL NOT NULL,
+	"ProbRP" REAL NOT NULL,
+
+	PRIMARY KEY("tbcId", "model", "ModelIdx","year")
+);
+
+CREATE INDEX "idx_Output_College_Pitcher" ON "Output_College_Pitcher" (
 	"model",
 	"modelIdx",
 	"tbcId",

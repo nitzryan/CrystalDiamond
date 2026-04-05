@@ -9,7 +9,7 @@ namespace SitePrep
 {
     internal class GeneratePredictions
     {
-        private static bool GenerateHitterPredictions()
+        private static void GenerateHitterPredictions()
         {
             using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
             {
@@ -178,10 +178,9 @@ namespace SitePrep
             }
 
             siteDb.BulkInsert(results);
-            return true;
         }
 
-        private static bool GeneratePitcherPredictions()
+        private static void GeneratePitcherPredictions()
         {
             using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
             {
@@ -324,25 +323,19 @@ namespace SitePrep
             }
 
             siteDb.BulkInsert(results);
-            return true;
         }
 
-        public static bool Update()
+        public static void Update()
         {
             try {
-                if (!GenerateHitterPredictions())
-                    return false;
-
-                if (!GeneratePitcherPredictions())
-                    return false;
-
-                return true;
+                GenerateHitterPredictions();
+                GeneratePitcherPredictions();
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in GeneratePredictions");
                 Utilities.LogException(e);
-                return false;
+                throw;
             }
         }
     }
