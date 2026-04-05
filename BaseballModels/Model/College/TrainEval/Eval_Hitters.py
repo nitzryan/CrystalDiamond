@@ -46,7 +46,7 @@ if __name__ == "__main__":
             
             for (data, lengths, dates) in tqdm(generator, total=len(generator), desc="Evaluating Hitters", leave=False):
                 data, lengths, dates = data.to(device), lengths.to(device), dates.to(device)
-                output_draft = network(data, lengths)
+                output_draft, output_pos = network(data, lengths)
                 output_draft = F.softmax(output_draft, dim=-1)
                 
                 draftMean = torch.zeros(size=(output_draft.size(0), output_draft.size(1))).to(device)

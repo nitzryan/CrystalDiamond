@@ -11,8 +11,10 @@ class LayerArch:
         self.num_layers = num_layers
 
 DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=3)
+DEFAULT_POS_ARCH = LayerArch(layer_size=50, num_layers=2)
 
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_POS_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
 class RNN_Model(nn.Module):
     def __init__(self,
@@ -24,12 +26,18 @@ class RNN_Model(nn.Module):
                  noise : float = 0.125,
                  dropout : float = 0.075,
                  stats_arch : LayerArch = DEFAULT_STATS_ARCH,
-                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P):
+                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
+                 stats_arch_pos : LayerArch = DEFAULT_POS_ARCH,
+                 stats_arch_pos_p : LayerArch = DEFAULT_POS_ARCH_P,):
         
         super().__init__()
         
-        if not is_hitter:
+        if is_hitter:
+            pos_output_len = data_prep.output_map.len_pos_h
+        else:
             stats_arch = stats_arch_p
+            stats_arch_pos = stats_arch_pos_p
+            pos_output_len = data_prep.output_map.len_pos_p
         
         # Solely so they can be extracted during training    
         self.num_layers = num_layers
@@ -44,6 +52,10 @@ class RNN_Model(nn.Module):
         self.linear_draftFirst = nn.Linear(hidden_size, stats_arch.layer_size)
         self.linear_draftArray = nn.ModuleList(nn.Linear(stats_arch.layer_size, stats_arch.layer_size) for _ in range(stats_arch.num_layers - 2))
         self.linear_draftLast = nn.Linear(stats_arch.layer_size, len(DRAFT_BUCKETS))
+        
+        self.linear_posFirst = nn.Linear(hidden_size, stats_arch_pos.layer_size)
+        self.linear_posArray = nn.ModuleList(nn.Linear(stats_arch_pos.layer_size, stats_arch_pos.layer_size) for _ in range(stats_arch_pos.num_layers - 2))
+        self.linear_posLast = nn.Linear(stats_arch_pos.layer_size, pos_output_len)
         
         self.nonlin = F.leaky_relu
         
@@ -71,21 +83,52 @@ class RNN_Model(nn.Module):
             output_draft = self.nonlin(ys(output_draft))
         output_draft = self.linear_draftLast(output_draft)
         
-        return output_draft
+        # Generate Pro pos prediction
+        output_pos = self.nonlin(self.linear_posFirst(output))
+        for ys in self.linear_posArray:
+            output_pos = self.nonlin(ys(output_pos))
+        output_pos = self.linear_posLast(output_pos)
+        
+        return output_draft, output_pos
     
-def Classification_Loss(pred, actual, masks):
-    actual = actual[:,:pred.size(1)]
-    
-    batch_size = actual.size(0)
-    time_steps = actual.size(1)
+def Classification_Loss(pred : torch.Tensor, 
+                        actual : torch.Tensor, 
+                        mask : torch.Tensor) -> torch.Tensor:
+    # Pred is <Batch, Timestep, Classes>
+    # Actual is <Batch, Classes>
+    # Mask is <Batch>
+    batch_size = pred.size(0)
+    time_steps = pred.size(1)
     
     num_classes = pred.size(2)
-    
-    actual = actual.reshape((batch_size * time_steps,))
-    
     pred = pred.reshape((batch_size * time_steps, num_classes))
+    actual = actual.repeat_interleave(time_steps)
+    mask = mask.reshape((batch_size * time_steps,))
     
     l = nn.CrossEntropyLoss(reduction='none')
-    loss = l(pred, actual).sum()
+    loss = l(pred, actual)
+    loss = loss * mask
+    loss = loss.sum()
+    
+    return loss
+
+def Position_Loss(pred : torch.Tensor, 
+                        actual : torch.Tensor, 
+                        mask : torch.Tensor) -> torch.Tensor:
+    # Pred is <Batch, Timestep, Classes>
+    # Actual is <Batch, Classes>
+    # Mask is <Batch, Timestep>
+    batch_size = pred.size(0)
+    time_steps = pred.size(1)
+    
+    num_classes = pred.size(2)
+    pred = pred.reshape((batch_size * time_steps, num_classes))
+    actual = actual.repeat_interleave(time_steps, dim=0).reshape((batch_size * time_steps, num_classes))
+    mask = mask.reshape((batch_size * time_steps,))
+    
+    l = nn.CrossEntropyLoss(reduction='none')
+    loss = l(pred, actual)
+    loss = loss * mask
+    loss = loss.sum()
     
     return loss

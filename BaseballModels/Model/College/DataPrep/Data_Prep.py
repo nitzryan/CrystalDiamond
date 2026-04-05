@@ -13,13 +13,21 @@ class College_IO:
             player : DB_College_Player,
             input : torch.Tensor,
             output_draft : torch.Tensor,
+            output_pos : torch.Tensor,
+            mask_pos : float,
             length : int,
             dates : torch.Tensor, 
     ):
         
         self.player = player
+        
         self.input = input
+        
         self.output_draft = output_draft
+        self.output_pos = output_pos
+        
+        self.mask_pos = mask_pos
+        
         self.length = length
         self.dates = dates
         
@@ -109,6 +117,8 @@ class College_Data_Prep:
     
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
         cursor = db.cursor()
+        
+        
         hitters = DB_College_Player.Select_From_DB(cursor, player_condition, player_values)
         
         io : list[College_IO] = []
@@ -116,6 +126,7 @@ class College_Data_Prep:
         
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
             stats = DB_Model_College_HitterYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (hitter.TBCId, cutoff_year))
+            proStats = DB_Model_College_HitterProStats.Select_From_DB(cursor, "WHERE tbcId=?", (hitter.TBCId,))[0]
             l = len(stats)
             if l == 0:
                 continue
@@ -128,14 +139,21 @@ class College_Data_Prep:
             input[:, :self.prep_map.bio_size] = self.__Transform_HitterData(hitter)
             input[:, self.prep_map.bio_size:] = self.__TransformHitterStats(stats)
             
-            # Output
-            output = torch.zeros(l, 1, dtype=torch.long)
-            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
+            # Draft
+            output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
+            
+            # Pos
+            output_pos = torch.tensor(self.output_map.map_pos_h(proStats))
+            mask_pos = self.output_map.mask_pos_h(proStats)
             
             io.append(College_IO(
                 player=hitter,
                 input=input,
-                output_draft=output,
+                output_draft=output_draft,
+                
+                output_pos=output_pos,
+                mask_pos=mask_pos,
+                
                 length=l,
                 dates=dates
             ))
@@ -151,6 +169,7 @@ class College_Data_Prep:
         
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
             stats = DB_Model_College_PitcherYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (pitcher.TBCId, cutoff_year))
+            proStats = DB_Model_College_PitcherProStats.Select_From_DB(cursor, "WHERE tbcId=?", (pitcher.TBCId,))[0]
             l = len(stats)
             if l == 0:
                 continue
@@ -163,14 +182,21 @@ class College_Data_Prep:
             input[:, :self.prep_map.bio_size] = self.__Transform_PitcherData(pitcher)
             input[:, self.prep_map.bio_size:] = self.__TransformPitcherStats(stats)
             
-            # Output
-            output = torch.zeros(l, 1, dtype=torch.long)
-            output[:] = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
+            # Draft
+            output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
+            
+            # Pos
+            output_pos = torch.tensor(self.output_map.map_pos_p(proStats))
+            mask_pos = self.output_map.mask_pos_p(proStats)
             
             io.append(College_IO(
                 player=pitcher,
                 input=input,
-                output_draft=output,
+                output_draft=output_draft,
+                
+                output_pos = output_pos,
+                mask_pos=mask_pos,
+                
                 length=l,
                 dates=dates
             ))
