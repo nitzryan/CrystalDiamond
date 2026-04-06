@@ -6,6 +6,8 @@ class College_Output_Map:
             self,
             map_draft_h : Callable[[DB_College_Player], float],
             map_draft_p : Callable[[DB_College_Player], float],
+            map_war_h : Callable[[DB_Model_College_HitterProStats], float],
+            map_war_p : Callable[[DB_Model_College_PitcherProStats], float],
             map_pos_h : Callable[[DB_Model_College_HitterProStats], list[float]],
             map_pos_p : Callable[[DB_Model_College_PitcherProStats], list[float]],
             len_pos_h : int,
@@ -16,6 +18,8 @@ class College_Output_Map:
         
         self.map_draft_h = map_draft_h
         self.map_draft_p = map_draft_p
+        self.map_war_h = map_war_h
+        self.map_war_p = map_war_p
         
         self.map_pos_h = map_pos_h
         self.len_pos_h = len_pos_h
@@ -27,6 +31,8 @@ class College_Output_Map:
 college_output_map = College_Output_Map(
     map_draft_h=lambda p : p.DraftOvrHitter,
     map_draft_p=lambda p : p.DraftOvrPitcher,
+    map_war_h=lambda p : p.MLB_WAR,
+    map_war_p=lambda p : p.MLB_WAR,
     
     map_pos_h=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
     len_pos_h=9,

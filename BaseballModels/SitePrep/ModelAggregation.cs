@@ -90,6 +90,15 @@ namespace SitePrep
                         Draft6 = 0,
                         Draft = 0,
 
+                        War0 = 0,
+                        War1 = 0,
+                        War2 = 0,
+                        War3 = 0,
+                        War4 = 0,
+                        War5 = 0,
+                        War6 = 0,
+                        War = 0,
+
                         ProbC = 0,
                         Prob1B = 0,
                         Prob2B = 0,
@@ -111,6 +120,15 @@ namespace SitePrep
                         oca.Draft5 += result.Draft5 / size;
                         oca.Draft6 += result.Draft6 / size;
                         oca.Draft += result.Draft / size;
+
+                        oca.War0 += result.War0 / size;
+                        oca.War1 += result.War1 / size;
+                        oca.War2 += result.War2 / size;
+                        oca.War3 += result.War3 / size;
+                        oca.War4 += result.War4 / size;
+                        oca.War5 += result.War5 / size;
+                        oca.War6 += result.War6 / size;
+                        oca.War += result.War / size;
 
                         oca.ProbC += result.ProbC / size;
                         oca.Prob1B += result.Prob1B / size;
@@ -156,6 +174,15 @@ namespace SitePrep
                         Draft6 = 0,
                         Draft = 0,
 
+                        War0 = 0,
+                        War1 = 0,
+                        War2 = 0,
+                        War3 = 0,
+                        War4 = 0,
+                        War5 = 0,
+                        War6 = 0,
+                        War = 0,
+
                         ProbSP = 0,
                         ProbRP = 0,
                     };
@@ -170,6 +197,15 @@ namespace SitePrep
                         oca.Draft5 += result.Draft5 / size;
                         oca.Draft6 += result.Draft6 / size;
                         oca.Draft += result.Draft / size;
+
+                        oca.War0 += result.War0 / size;
+                        oca.War1 += result.War1 / size;
+                        oca.War2 += result.War2 / size;
+                        oca.War3 += result.War3 / size;
+                        oca.War4 += result.War4 / size;
+                        oca.War5 += result.War5 / size;
+                        oca.War6 += result.War6 / size;
+                        oca.War += result.War / size;
 
                         oca.ProbSP += result.ProbSP / size;
                         oca.ProbRP += result.ProbRP / size;

@@ -4,25 +4,28 @@ import torch
 from tqdm import tqdm
 from College.Model.College_Model import Classification_Loss, Position_Loss
 
-ELEMENT_LIST = ["DraftPos", "ProPosition"]
+ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 def GetLosses(network, data, length, targets, masks, shouldBackprop : bool):
     # Get Output
     data = data.to(device)
     length = length.to(device)
-    output_draft, output_pos = network(data, length)
+    output_draft, output_war, output_pos = network(data, length)
     
     max_len = output_draft.size(1)
     mask_length = (torch.arange(max_len, device=length.device)
                    .unsqueeze(0) < length.unsqueeze(1))
     
     # Get losses
-    target_draft, target_pos = targets
+    target_draft, target_war, target_pos = targets
     mask_pos = masks
     
     target_draft = target_draft.to(device)
     loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
+    
+    target_war = target_war.to(device)
+    loss_war = Classification_Loss(output_war, target_war, mask_length)
     
     target_pos = target_pos.to(device)
     mask_pos = mask_pos.to(device)
@@ -30,9 +33,10 @@ def GetLosses(network, data, length, targets, masks, shouldBackprop : bool):
     
     if shouldBackprop:
       loss_draft.backward(retain_graph=True)
+      loss_war.backward(retain_graph=True)
       loss_pos.backward()
     
-    return loss_draft, loss_pos
+    return loss_draft, loss_war, loss_pos
 
 def train(network, data_generator, num_elements, optimizer):
     network.train()
@@ -40,12 +44,13 @@ def train(network, data_generator, num_elements, optimizer):
     
     for data, length, targets, masks in data_generator:
         optimizer.zero_grad()
-        loss_draft, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=True)
+        loss_draft, loss_war, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=True)
         torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
         optimizer.step()
         
         avg_loss[0] += loss_draft.item()
-        avg_loss[1] += loss_pos.item()
+        avg_loss[1] += loss_war.item()
+        avg_loss[2] += loss_pos.item()
         
     for n in range(NUM_ELEMENTS):
         avg_loss[n] /= num_elements
@@ -57,9 +62,10 @@ def test(network, test_loader, num_elements):
     
     with torch.no_grad():
         for data, length, targets, masks in test_loader:
-            loss_draft, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=False)
-            avg_loss[0] += loss_draft.item()
-            avg_loss[1] += loss_pos.item()
+          loss_draft, loss_war, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=False)
+          avg_loss[0] += loss_draft.item()
+          avg_loss[1] += loss_war.item()
+          avg_loss[2] += loss_pos.item()
         
     for n in range(NUM_ELEMENTS):
         avg_loss[n] /= num_elements

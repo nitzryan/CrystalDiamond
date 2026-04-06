@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
-from Constants import DRAFT_BUCKETS
+from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS
 
 class LayerArch:
     def __init__(self, layer_size : int, num_layers : int):
@@ -12,6 +12,9 @@ class LayerArch:
 
 DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=3)
 DEFAULT_POS_ARCH = LayerArch(layer_size=50, num_layers=2)
+
+DEFAULT_WAR_ARCH = LayerArch(layer_size=50, num_layers=2)
+DEFAULT_WAR_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=50, num_layers=2)
@@ -28,7 +31,9 @@ class RNN_Model(nn.Module):
                  stats_arch : LayerArch = DEFAULT_STATS_ARCH,
                  stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
                  stats_arch_pos : LayerArch = DEFAULT_POS_ARCH,
-                 stats_arch_pos_p : LayerArch = DEFAULT_POS_ARCH_P,):
+                 stats_arch_pos_p : LayerArch = DEFAULT_POS_ARCH_P,
+                 war_arch : LayerArch = DEFAULT_WAR_ARCH,
+                 war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,):
         
         super().__init__()
         
@@ -37,6 +42,7 @@ class RNN_Model(nn.Module):
         else:
             stats_arch = stats_arch_p
             stats_arch_pos = stats_arch_pos_p
+            war_arch = war_arch_p
             pos_output_len = data_prep.output_map.len_pos_p
         
         # Solely so they can be extracted during training    
@@ -56,6 +62,10 @@ class RNN_Model(nn.Module):
         self.linear_posFirst = nn.Linear(hidden_size, stats_arch_pos.layer_size)
         self.linear_posArray = nn.ModuleList(nn.Linear(stats_arch_pos.layer_size, stats_arch_pos.layer_size) for _ in range(stats_arch_pos.num_layers - 2))
         self.linear_posLast = nn.Linear(stats_arch_pos.layer_size, pos_output_len)
+        
+        self.linear_warFirst = nn.Linear(hidden_size, war_arch.layer_size)
+        self.linear_warArray = nn.ModuleList(nn.Linear(war_arch.layer_size, war_arch.layer_size) for _ in range(war_arch.num_layers - 2))
+        self.linear_warLast = nn.Linear(war_arch.layer_size, len(TOTAL_WAR_BUCKETS))
         
         self.nonlin = F.leaky_relu
         
@@ -83,13 +93,19 @@ class RNN_Model(nn.Module):
             output_draft = self.nonlin(ys(output_draft))
         output_draft = self.linear_draftLast(output_draft)
         
+        # Evaluate WAR prediction
+        output_war = self.nonlin(self.linear_warFirst(output))
+        for ys in self.linear_warArray:
+            output_war = self.nonlin(ys(output_war))
+        output_war = self.linear_warLast(output_war)
+        
         # Generate Pro pos prediction
         output_pos = self.nonlin(self.linear_posFirst(output))
         for ys in self.linear_posArray:
             output_pos = self.nonlin(ys(output_pos))
         output_pos = self.linear_posLast(output_pos)
         
-        return output_draft, output_pos
+        return output_draft, output_war, output_pos
     
 def Classification_Loss(pred : torch.Tensor, 
                         actual : torch.Tensor, 

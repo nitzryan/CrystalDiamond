@@ -117,21 +117,29 @@ class DB_Output_College_Hitter:
 		self.draft5 = values[9]
 		self.draft6 = values[10]
 		self.draft = values[11]
-		self.ProbC = values[12]
-		self.Prob1B = values[13]
-		self.Prob2B = values[14]
-		self.Prob3B = values[15]
-		self.ProbSS = values[16]
-		self.ProbLF = values[17]
-		self.ProbCF = values[18]
-		self.ProbRF = values[19]
-		self.ProbDH = values[20]
+		self.war0 = values[12]
+		self.war1 = values[13]
+		self.war2 = values[14]
+		self.war3 = values[15]
+		self.war4 = values[16]
+		self.war5 = values[17]
+		self.war6 = values[18]
+		self.war = values[19]
+		self.ProbC = values[20]
+		self.Prob1B = values[21]
+		self.Prob2B = values[22]
+		self.Prob3B = values[23]
+		self.ProbSS = values[24]
+		self.ProbLF = values[25]
+		self.ProbCF = values[26]
+		self.ProbRF = values[27]
+		self.ProbDH = values[28]
 
-	NUM_ELEMENTS = 21
+	NUM_ELEMENTS = 29
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
+		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_Hitter']:
@@ -152,14 +160,22 @@ class DB_Output_College_Pitcher:
 		self.draft5 = values[9]
 		self.draft6 = values[10]
 		self.draft = values[11]
-		self.ProbSP = values[12]
-		self.ProbRP = values[13]
+		self.war0 = values[12]
+		self.war1 = values[13]
+		self.war2 = values[14]
+		self.war3 = values[15]
+		self.war4 = values[16]
+		self.war5 = values[17]
+		self.war6 = values[18]
+		self.war = values[19]
+		self.ProbSP = values[20]
+		self.ProbRP = values[21]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 22
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbSP,self.ProbRP)
+		return (self.tbcId,self.model,self.ModelIdx,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.ProbSP,self.ProbRP)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_Pitcher']:
@@ -387,21 +403,29 @@ class DB_Output_College_HitterAggregation:
 		self.draft5 = values[8]
 		self.draft6 = values[9]
 		self.draft = values[10]
-		self.ProbC = values[11]
-		self.Prob1B = values[12]
-		self.Prob2B = values[13]
-		self.Prob3B = values[14]
-		self.ProbSS = values[15]
-		self.ProbLF = values[16]
-		self.ProbCF = values[17]
-		self.ProbRF = values[18]
-		self.ProbDH = values[19]
+		self.war0 = values[11]
+		self.war1 = values[12]
+		self.war2 = values[13]
+		self.war3 = values[14]
+		self.war4 = values[15]
+		self.war5 = values[16]
+		self.war6 = values[17]
+		self.war = values[18]
+		self.ProbC = values[19]
+		self.Prob1B = values[20]
+		self.Prob2B = values[21]
+		self.Prob3B = values[22]
+		self.ProbSS = values[23]
+		self.ProbLF = values[24]
+		self.ProbCF = values[25]
+		self.ProbRF = values[26]
+		self.ProbDH = values[27]
 
-	NUM_ELEMENTS = 20
+	NUM_ELEMENTS = 28
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
+		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.ProbC,self.Prob1B,self.Prob2B,self.Prob3B,self.ProbSS,self.ProbLF,self.ProbCF,self.ProbRF,self.ProbDH)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_HitterAggregation']:
@@ -421,14 +445,22 @@ class DB_Output_College_PitcherAggregation:
 		self.draft5 = values[8]
 		self.draft6 = values[9]
 		self.draft = values[10]
-		self.ProbSP = values[11]
-		self.ProbRP = values[12]
+		self.war0 = values[11]
+		self.war1 = values[12]
+		self.war2 = values[13]
+		self.war3 = values[14]
+		self.war4 = values[15]
+		self.war5 = values[16]
+		self.war6 = values[17]
+		self.war = values[18]
+		self.ProbSP = values[19]
+		self.ProbRP = values[20]
 
-	NUM_ELEMENTS = 13
+	NUM_ELEMENTS = 21
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.ProbSP,self.ProbRP)
+		return (self.tbcId,self.model,self.year,self.draft0,self.draft1,self.draft2,self.draft3,self.draft4,self.draft5,self.draft6,self.draft,self.war0,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6,self.war,self.ProbSP,self.ProbRP)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_PitcherAggregation']:

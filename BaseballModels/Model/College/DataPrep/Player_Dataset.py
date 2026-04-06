@@ -9,6 +9,7 @@ class College_Player_Dataset(torch.utils.data.Dataset):
                  data,
                  lengths,
                  output_draft,
+                 output_war,
                  output_pos,
                  mask_pos,):
         
@@ -16,6 +17,7 @@ class College_Player_Dataset(torch.utils.data.Dataset):
         self.data = data
         self.lengths = lengths
         self.output_draft = output_draft
+        self.output_war = output_war
         self.output_pos = output_pos
         self.mask_pos = mask_pos
         
@@ -31,7 +33,7 @@ class College_Player_Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return self.data[:, idx], \
             self.lengths[idx], \
-            (self.output_draft[idx], self.output_pos[idx]), \
+            (self.output_draft[idx], self.output_war[idx], self.output_pos[idx]), \
             self.mask_pos[idx]
     
 def Create_Test_Train_Datasets(player_list : list[College_IO], test_size : float, random_state : int) -> tuple[College_Player_Dataset, College_Player_Dataset]:
@@ -51,6 +53,9 @@ def Create_Test_Train_Datasets(player_list : list[College_IO], test_size : float
     output_draft_train = torch.tensor([io.output_draft for io in io_train])
     output_draft_test = torch.tensor([io.output_draft for io in io_test])
     
+    output_war_train = torch.tensor([io.output_war for io in io_train])
+    output_war_test = torch.tensor([io.output_war for io in io_test])
+    
     output_pos_train = torch.stack([io.output_pos for io in io_train])
     output_pos_test = torch.stack([io.output_pos for io in io_test])
     mask_pos_train = torch.tensor([io.mask_pos for io in io_train])
@@ -60,12 +65,14 @@ def Create_Test_Train_Datasets(player_list : list[College_IO], test_size : float
         data=data_train, 
         lengths=lengths_train, 
         output_draft=output_draft_train,
+        output_war=output_war_train,
         output_pos=output_pos_train,
         mask_pos=mask_pos_train)
     test_dataset = College_Player_Dataset(bio=bio_test, 
         data=data_test, 
         lengths=lengths_test, 
         output_draft=output_draft_test,
+        output_war=output_war_test,
         output_pos=output_pos_test,
         mask_pos=mask_pos_test)
     

@@ -150,7 +150,7 @@ namespace SitePrep
                         playerValues.Add(new DraftValue
                         {
                             tbcId = hs.TbcId,
-                            value = hs.Draft,
+                            value = hs.War,
                             isHitter = true,
                             isEligible = IsPlayerEligible(cp, hs.Year, hitStats.ExpYears),
                         });
@@ -163,7 +163,7 @@ namespace SitePrep
                         playerValues.Add(new DraftValue
                         {
                             tbcId = ps.TbcId,
-                            value = ps.Draft,
+                            value = ps.War,
                             isHitter = false,
                             isEligible = IsPlayerEligible(cp, ps.Year, pitStats.ExpYears),
                         });
@@ -174,7 +174,7 @@ namespace SitePrep
                     draftRanks.Capacity = playerValues.Count;
                     var draftRankings = playerValues
                         .Where(f => f.isEligible)
-                        .OrderByDescending(f => -f.value);
+                        .OrderByDescending(f => f.value);
 
                     int rank = 1;
                     foreach (var dr in draftRankings)

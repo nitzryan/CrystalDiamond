@@ -14,6 +14,14 @@ namespace ModelDb
 		public required float Draft5 {get; set;}
 		public required float Draft6 {get; set;}
 		public required float Draft {get; set;}
+		public required float War0 {get; set;}
+		public required float War1 {get; set;}
+		public required float War2 {get; set;}
+		public required float War3 {get; set;}
+		public required float War4 {get; set;}
+		public required float War5 {get; set;}
+		public required float War6 {get; set;}
+		public required float War {get; set;}
 		public required float ProbC {get; set;}
 		public required float Prob1B {get; set;}
 		public required float Prob2B {get; set;}
@@ -40,6 +48,14 @@ namespace ModelDb
 				Draft5 = this.Draft5,
 				Draft6 = this.Draft6,
 				Draft = this.Draft,
+				War0 = this.War0,
+				War1 = this.War1,
+				War2 = this.War2,
+				War3 = this.War3,
+				War4 = this.War4,
+				War5 = this.War5,
+				War6 = this.War6,
+				War = this.War,
 				ProbC = this.ProbC,
 				Prob1B = this.Prob1B,
 				Prob2B = this.Prob2B,

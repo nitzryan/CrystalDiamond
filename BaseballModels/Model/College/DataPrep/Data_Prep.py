@@ -1,7 +1,7 @@
 from sklearn.decomposition import PCA # type: ignore
 import torch
 from DBTypes import *
-from Constants import db, DTYPE, DRAFT_BUCKETS
+from Constants import db, DTYPE, DRAFT_BUCKETS, TOTAL_WAR_BUCKETS
 from typing import TypeVar, Callable
 from tqdm import tqdm
 from College.DataPrep.Output_Map import College_Output_Map
@@ -13,8 +13,11 @@ class College_IO:
             player : DB_College_Player,
             input : torch.Tensor,
             output_draft : torch.Tensor,
+            output_war : torch.Tensor,
+            
             output_pos : torch.Tensor,
             mask_pos : float,
+            
             length : int,
             dates : torch.Tensor, 
     ):
@@ -24,6 +27,7 @@ class College_IO:
         self.input = input
         
         self.output_draft = output_draft
+        self.output_war = output_war
         self.output_pos = output_pos
         
         self.mask_pos = mask_pos
@@ -141,6 +145,7 @@ class College_Data_Prep:
             
             # Draft
             output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
+            output_war = torch.bucketize(torch.tensor(self.output_map.map_war_h(proStats)), TOTAL_WAR_BUCKETS)
             
             # Pos
             output_pos = torch.tensor(self.output_map.map_pos_h(proStats))
@@ -150,6 +155,7 @@ class College_Data_Prep:
                 player=hitter,
                 input=input,
                 output_draft=output_draft,
+                output_war=output_war,
                 
                 output_pos=output_pos,
                 mask_pos=mask_pos,
@@ -184,6 +190,7 @@ class College_Data_Prep:
             
             # Draft
             output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
+            output_war = torch.bucketize(torch.tensor(self.output_map.map_war_p(proStats)), TOTAL_WAR_BUCKETS)
             
             # Pos
             output_pos = torch.tensor(self.output_map.map_pos_p(proStats))
@@ -193,6 +200,7 @@ class College_Data_Prep:
                 player=pitcher,
                 input=input,
                 output_draft=output_draft,
+                output_war=output_war,
                 
                 output_pos = output_pos,
                 mask_pos=mask_pos,

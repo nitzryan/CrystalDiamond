@@ -1,5 +1,5 @@
 
-from Constants import device, model_db, DRAFT_MEANS
+from Constants import device, model_db, DRAFT_MEANS, WAR_BUCKET_AVG
 from tqdm import tqdm
 from Utilities import GetCollegeModelMaps
 from College.DataPrep.Data_Prep import College_Data_Prep
@@ -46,15 +46,20 @@ if __name__ == "__main__":
             
             for (data, lengths, dates) in tqdm(generator, total=len(generator), desc="Evaluating Hitters", leave=False):
                 data, lengths, dates = data.to(device), lengths.to(device), dates.to(device)
-                output_draft, output_pos = network(data, lengths)
+                output_draft, output_war, output_pos = network(data, lengths)
                 
                 # Predictions
                 output_draft = F.softmax(output_draft, dim=-1)
+                output_war = F.softmax(output_war, dim=-1)
                 output_pos = F.softmax(output_pos, dim=-1)
                 
                 draftMean = torch.zeros(size=(output_draft.size(0), output_draft.size(1))).to(device)
                 for i in range(len(DRAFT_MEANS)):
                     draftMean[:,:] += output_draft[:,:,i] * DRAFT_MEANS[i]
+                    
+                warMean = torch.zeros(size=(output_war.size(0), output_war.size(1))).to(device)
+                for i in range(1, len(WAR_BUCKET_AVG)):
+                    warMean[:,:] += output_war[:,:,i] * WAR_BUCKET_AVG[i]
                     
                 dates = dates[:,:output_draft.shape[1], :]
                 ids = dates[:,:,0].unsqueeze(2)
@@ -62,10 +67,10 @@ if __name__ == "__main__":
                 model_idxs = torch.zeros_like(years)
                 model_idxs[:,:,0] = model_idx
                     
-                db_input = torch.cat((ids, model_idxs, years, output_draft, draftMean.unsqueeze(-1), output_pos), dim=2)
+                db_input = torch.cat((ids, model_idxs, years, output_draft, draftMean.unsqueeze(-1), output_war, warMean.unsqueeze(-1), output_pos), dim=2)
                 db_input = torch.nn.utils.rnn.unpad_sequence(db_input, lengths, batch_first=True)
                 for d in db_input:
                     vals = [tuple(x) for x in d.tolist()]
-                    cursor.executemany(f"INSERT INTO Output_College_Hitter VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                    cursor.executemany(f"INSERT INTO Output_College_Hitter VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                 model_db.commit()

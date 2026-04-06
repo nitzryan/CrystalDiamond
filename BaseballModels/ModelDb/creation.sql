@@ -113,6 +113,16 @@ CREATE TABLE "Output_College_Hitter" (
 	"draft6"	REAL NOT NULL,
 	"draft" REAL NOT NULL,
 
+	-- WAR
+	"war0"	REAL NOT NULL,
+	"war1"	REAL NOT NULL,
+	"war2"	REAL NOT NULL,
+	"war3"	REAL NOT NULL,
+	"war4"	REAL NOT NULL,
+	"war5"	REAL NOT NULL,
+	"war6"	REAL NOT NULL,
+	"war" REAL NOT NULL,
+
 	-- Pro Position
 	"ProbC" REAL NOT NULL,
 	"Prob1B" REAL NOT NULL,
@@ -149,6 +159,16 @@ CREATE TABLE "Output_College_Pitcher" (
 	"draft5"	REAL NOT NULL,
 	"draft6"	REAL NOT NULL,
 	"draft" REAL NOT NULL,
+
+	-- WAR
+	"war0"	REAL NOT NULL,
+	"war1"	REAL NOT NULL,
+	"war2"	REAL NOT NULL,
+	"war3"	REAL NOT NULL,
+	"war4"	REAL NOT NULL,
+	"war5"	REAL NOT NULL,
+	"war6"	REAL NOT NULL,
+	"war" REAL NOT NULL,
 
 	-- Pro Position
 	"ProbSP" REAL NOT NULL,

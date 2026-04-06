@@ -2,7 +2,7 @@ from DBTypes import *
 from typing import Callable, Union
 import torch
 import numpy as np
-from Constants import DTYPE
+from Constants import DTYPE, TOTAL_WAR_BUCKETS
 import math
 
 class Output_Map:
@@ -129,8 +129,8 @@ __mlb_pitcher_values_size = 12
 base_output_map = Output_Map(
     map_hitter_war=lambda p : p.warHitter,
     map_pitcher_war=lambda p : p.warPitcher,
-    buckets_hitter_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
-    buckets_pitcher_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
+    buckets_hitter_war=TOTAL_WAR_BUCKETS,
+    buckets_pitcher_war=TOTAL_WAR_BUCKETS,
     map_hitter_stats=__map_hitter_stats,
     hitter_stats_size=__hitter_stats_size,
     map_hitter_positions=__map_hitter_positions,
@@ -180,8 +180,8 @@ __map_pitcher_stats_regression : Callable[[DB_Model_PitcherLevelStats], list[flo
 meanregression_output_map = Output_Map(
     map_hitter_war=lambda p : p.warHitter,
     map_pitcher_war=lambda p : p.warPitcher,
-    buckets_hitter_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
-    buckets_pitcher_war=torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE),
+    buckets_hitter_war=TOTAL_WAR_BUCKETS,
+    buckets_pitcher_war=TOTAL_WAR_BUCKETS,
     map_hitter_stats=__map_hitter_stats_regression,
     hitter_stats_size=__hitter_stats_size,
     map_hitter_positions=__map_hitter_positions,
