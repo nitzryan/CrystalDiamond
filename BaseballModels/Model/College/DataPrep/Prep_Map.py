@@ -1,6 +1,5 @@
 from DBTypes import *
 from typing import Callable
-import math
 
 class College_Prep_Map:
     def __init__(self,
@@ -69,10 +68,53 @@ college_base_prep_map = College_Prep_Map(
     map_bio=lambda p : [MapBats(p.Bats), MapThrows(p.Throws)],
     map_hitstats=lambda h : [h.ExpYears, h.Age, h.ParkRunFactor, h.ConfScore, h.PA, h.HR, h.SB, h.CS, h.BB, h.K, h.AVG, h.OBP, h.SLG, h.Height],
     map_def=lambda h : MapPos(h.Pos),
-    map_pitstats=lambda p : [p.ExpYears, p.Age, p.ParkRunFactor, p.ConfScore, p.G, p.GS, p.Outs, p.ERA, p.H9, p.HR9, p.BB9, p.K9, p.WHIP, p.Age, p.Height],
+    map_pitstats=lambda p : [p.ExpYears, p.Age, p.ParkRunFactor, p.ConfScore, p.G, p.GS, p.Outs, p.ERA, p.H9, p.HR9, p.BB9, p.K9, p.WHIP, p.Height],
     
     bio_size=2,
     hitstats_size=14,
     def_size=10,
-    pitstats_size=15
+    pitstats_size=14
+)
+
+def _MeanRevert(factor : float, value : float):
+    return (factor * value) + (1 - factor)
+
+college_meanrevert_prep_map = College_Prep_Map(
+    map_bio=lambda p : [MapBats(p.Bats), MapThrows(p.Throws)],
+    map_def=lambda h : MapPos(h.Pos),
+    map_hitstats=lambda h : (f := min(h.PA / 50, 1),
+        [h.ExpYears, 
+         h.Age, 
+         h.ParkRunFactor, 
+         h.ConfScore, 
+         h.PA, 
+         _MeanRevert(f, h.HR), 
+         _MeanRevert(f, h.SB), 
+         _MeanRevert(f, h.CS), 
+         _MeanRevert(f, h.BB), 
+         _MeanRevert(f, h.K), 
+         _MeanRevert(f, h.AVG), 
+         _MeanRevert(f, h.OBP), 
+         _MeanRevert(f, h.SLG), 
+         h.Height])[-1],
+    map_pitstats=lambda p : (f := min((p.Outs + 1) / 45, 1),
+        [p.ExpYears, 
+         p.Age, 
+         p.ParkRunFactor, 
+         p.ConfScore, 
+         p.G, 
+         p.GS, 
+         p.Outs, 
+         _MeanRevert(f, p.ERA), 
+         _MeanRevert(f, p.H9), 
+         _MeanRevert(f, p.HR9), 
+         _MeanRevert(f, p.BB9), 
+         _MeanRevert(f, p.K9), 
+         _MeanRevert(f, p.WHIP), 
+         p.Height])[-1],
+    
+    bio_size=2,
+    hitstats_size=14,
+    def_size=10,
+    pitstats_size=14
 )

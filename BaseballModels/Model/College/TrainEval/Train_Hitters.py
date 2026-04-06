@@ -51,7 +51,7 @@ if __name__ == "__main__":
                                         should_output=False,
                                         model_name=f"Models/College_{model_name_pt}",
                                         save_last=False,
-                                        elements_to_save=[0])
+                                        elements_to_save=[1])
             
             model_cursor = model_db.cursor()
             model_cursor.execute("INSERT INTO Model_TrainingHistory_College VALUES (?,?,?,?,?,?)", (model_name, 1, best_losses[0], i, network.num_layers, network.hidden_size))

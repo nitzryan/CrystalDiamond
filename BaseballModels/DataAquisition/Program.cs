@@ -6,7 +6,7 @@
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
 
-        const bool UPDATE_COLLEGE_DATA = false;
+        const bool UPDATE_COLLEGE_DATA = true;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
 

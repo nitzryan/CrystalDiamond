@@ -40,7 +40,7 @@ if __name__ == "__main__":
         for m in tqdm(mth, desc="Evaluating Model Copies", leave=False):
             model_idx = int(m.ModelIdx)
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                network.load_state_dict(torch.load(f"Models/College_{m.ModelName}_{model_idx}_DraftPos.pt"))
+                network.load_state_dict(torch.load(f"Models/College_{m.ModelName}_{model_idx}_ProWAR.pt"))
             network.eval()
             network = network.to(device)
             

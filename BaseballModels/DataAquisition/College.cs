@@ -351,8 +351,8 @@ namespace DataAquisition
         {
             float age = Utilities.GetAge1MinusAge0(year, 5, 1, birthYear, birthMonth, birthDay);
             
-            // Check that age is valid, and not missing data
-            if (age < 100)
+            // Check that age is valid, and not missing/incorrect data
+            if (age < 100 && age >= 16)
                 return age;
 
             // Estimate age for missing players
