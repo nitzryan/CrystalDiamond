@@ -384,6 +384,28 @@ class DB_PlayerRank
 	}
 }
 
+class DB_DraftRank
+{
+	public tbcId : number
+	public modelId : number
+	public isHitter : number
+	public year : number
+	public isEligible : number
+	public rankEligible : number
+	public value : number
+
+	constructor(data : JsonObject)
+	{
+		this.tbcId = data['tbcId'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as number
+		this.year = data['year'] as number
+		this.isEligible = data['isEligible'] as number
+		this.rankEligible = data['rankEligible'] as number
+		this.value = data['value'] as number
+	}
+}
+
 class DB_TeamRank
 {
 	public teamId : number

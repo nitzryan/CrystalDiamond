@@ -191,6 +191,17 @@ CREATE TABLE "PlayerRank" (
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
 
+CREATE TABLE "DraftRank" (
+	"tbcId" INTEGER NOT NULL,
+	"modelId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"isEligible" INTEGER NOT NULL,
+	"rankEligible" INTEGER NOT NULL,
+	"value" REAL NOT NULL,
+	PRIMARY KEY("tbcId", "modelId", "year", "isHitter")
+);
+
 CREATE TABLE "TeamRank" (
 	"teamId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,

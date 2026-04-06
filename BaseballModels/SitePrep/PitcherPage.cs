@@ -39,7 +39,7 @@ namespace SitePrep
                             Year = opw.Year,
                             Month = opw.Month,
                             ModelId = opw.Model,
-                            IsHitter = opw.IsHitter,
+                            IsHitter = opw.IsHitter == 1,
                             ProbsWar = $"{opw.War0.ToString("0.000")}," +
                                     $"{opw.War1.ToString("0.000")}," +
                                     $"{opw.War2.ToString("0.000")}," +
@@ -57,12 +57,13 @@ namespace SitePrep
                     var prevPlayer = siteDb.Player.Where(f => f.MlbId == player.MlbId);
                     if (prevPlayer.Any())
                     {
-                        prevPlayer.First().IsPitcher = 1;
+                        prevPlayer.First().IsPitcher = true;
                         goto annualStats;
                     }
 
                     // Get most recent org
                     var poms = db.Player_OrgMap.Where(f => f.MlbId == player.MlbId).OrderByDescending(f => f.Year).ThenByDescending(f => f.Month).ThenByDescending(f => f.Day);
+                    #pragma warning disable CS8629 // Signing data is not null for players went through model
                     siteDb.Add(new SiteDb.Player
                     {
                         MlbId = p.MlbId,
@@ -78,10 +79,11 @@ namespace SitePrep
                         DraftPick = bio.DraftPick > 0 ? bio.DraftPick : null,
                         DraftRound = bio.DraftPick > 0 ? bio.DraftRound : null,
                         DraftBonus = bio.DraftPick > 0 ? bio.DraftBonus : null,
-                        IsPitcher = 1,
-                        IsHitter = 0,
-                        InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
+                        IsPitcher = true,
+                        IsHitter = false,
+                        InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any(),
                     });
+                    #pragma warning restore CS8629
 
                     // Annual Stats
                     annualStats:

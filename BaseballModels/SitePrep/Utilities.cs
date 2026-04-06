@@ -270,7 +270,7 @@ namespace SitePrep
         {
             if (outs == 0)
                 return 20.0f; // Don't want too high otherwise will mess up normalization
-            return ((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3) + cFIP;
+            return (((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3)) + cFIP;
         }
 
         public static float CalculateDef(float pa, float percC, float perc1B, float perc2B, float perc3B, float percSS, float percLF, float percCF, float percRF, float percDH)
@@ -289,6 +289,15 @@ namespace SitePrep
             def += seasons * percDH * Constants.POSITIONAL_ADJUSTMENT_DH;
 
             return def;
+        }
+
+        public static float GetAge1MinusAge0(int y1, int m1, int d1, int y0, int m0, int d0)
+        {
+            int deltaYears = y1 - y0;
+            int deltaMonths = m1 - m0;
+            int deltaDays = d1 - d0;
+
+            return deltaYears + (deltaMonths / 12.0f) + (deltaDays / 365.0f);
         }
     }
 }

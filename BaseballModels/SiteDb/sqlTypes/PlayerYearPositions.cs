@@ -4,7 +4,7 @@ namespace SiteDb
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsHitter {get; set;}
 		public required string Position {get; set;}
 
 		public PlayerYearPositions Clone()

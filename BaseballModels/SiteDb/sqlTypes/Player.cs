@@ -15,9 +15,9 @@ namespace SiteDb
 		public int? DraftPick {get; set;}
 		public string? DraftRound {get; set;}
 		public int? DraftBonus {get; set;}
-		public required int IsHitter {get; set;}
-		public required int IsPitcher {get; set;}
-		public required int InTraining {get; set;}
+		public required bool IsHitter {get; set;}
+		public required bool IsPitcher {get; set;}
+		public required bool InTraining {get; set;}
 
 		public Player Clone()
 		{

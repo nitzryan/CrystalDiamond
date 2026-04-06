@@ -41,7 +41,7 @@ namespace SitePrep
                             Year = opw.Year,
                             Month = opw.Month,
                             ModelId = opw.Model,
-                            IsHitter = opw.IsHitter,
+                            IsHitter = opw.IsHitter == 1,
                             ProbsWar = $"{opw.War0.ToString("0.000")}," +
                                     $"{opw.War1.ToString("0.000")}," +
                                     $"{opw.War2.ToString("0.000")}," +
@@ -75,9 +75,9 @@ namespace SitePrep
                         DraftPick = bio.DraftPick > 0 ? bio.DraftPick : null,
                         DraftRound = bio.DraftPick > 0 ? bio.DraftRound : null,
                         DraftBonus = bio.DraftPick > 0 ? bio.DraftBonus : null,
-                        IsPitcher = 0,
-                        IsHitter = 1,
-                        InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any() ? 1 : 0,
+                        IsPitcher = false,
+                        IsHitter = true,
+                        InTraining = modelDb.PlayersInTrainingData.Where(f => f.MlbId == p.MlbId).Any(),
                     });
                     #pragma warning restore CS8629
 

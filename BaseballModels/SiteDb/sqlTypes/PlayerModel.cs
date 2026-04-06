@@ -6,7 +6,7 @@ namespace SiteDb
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int ModelId {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsHitter {get; set;}
 		public required string ProbsWar {get; set;}
 		public int? RankWar {get; set;}
 

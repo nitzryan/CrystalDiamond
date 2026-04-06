@@ -15,6 +15,7 @@
             GeneratePredictions.Update();
             GenerateRankings.Update(year, month);
             GenerateTeamRank.Update();
+            DraftRankings.Update();
             HitterPage.Update();
             PitcherPage.Update();
             OrgMap.Update();

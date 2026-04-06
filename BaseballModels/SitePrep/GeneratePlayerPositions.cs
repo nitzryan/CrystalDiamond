@@ -33,7 +33,7 @@ namespace SitePrep
                                 {
                                     Year = y,
                                     Position = "P",
-                                    IsHitter = 0,
+                                    IsHitter = false,
                                     MlbId = mp.MlbId
                                 });
                             }
@@ -46,7 +46,7 @@ namespace SitePrep
                                 {
                                     Year = y,
                                     Position = Utilities.GetPosition(db, mp.MlbId, y),
-                                    IsHitter = 1,
+                                    IsHitter = true,
                                     MlbId = mp.MlbId
                                 });
                             }

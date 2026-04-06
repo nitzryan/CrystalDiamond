@@ -44,7 +44,7 @@ namespace SitePrep
             {
                 foreach (var pwa in initial_pwa)
                 {
-                    var pyps = siteDb.PlayerYearPositions.Where(f => f.MlbId == pwa.MlbId && f.IsHitter == (pwa.isHitter ? 1 : 0)).ToList();
+                    var pyps = siteDb.PlayerYearPositions.Where(f => f.MlbId == pwa.MlbId && f.IsHitter == pwa.isHitter).ToList();
                     var orgMap = db.Player_OrgMap.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ThenBy(f => f.Day).ToList();
                     var hitterStats = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
                     var pitcherStats = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pwa.MlbId).OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
@@ -322,6 +322,7 @@ namespace SitePrep
                         initial_pwa.Capacity = initial_opwa.Count();
                         foreach (var o in initial_opwa)
                         {
+                            #pragma warning disable CS8629 // Signing data is not null for players went through model
                             Db.Player p = db.Player.Where(f => f.MlbId == o.MlbId).Single();
                             initial_pwa.Add(new PlayerWar
                             {
@@ -336,6 +337,7 @@ namespace SitePrep
                                 hitterStats = new(),
                                 pitcherStats = new()
                             });
+                            #pragma warning restore CS8629
                         }
 
                         GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear);
