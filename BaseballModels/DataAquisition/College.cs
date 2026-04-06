@@ -347,9 +347,16 @@ namespace DataAquisition
             }
         }
 
-        private static float GetSeasonAge(int year, int birthDay, int birthMonth, int birthYear)
+        private static float GetSeasonAge(int year, int birthDay, int birthMonth, int birthYear, int expYears)
         {
-            return Utilities.GetAge1MinusAge0(year, 5, 1, birthYear, birthMonth, birthDay);
+            float age = Utilities.GetAge1MinusAge0(year, 5, 1, birthYear, birthMonth, birthDay);
+            
+            // Check that age is valid, and not missing data
+            if (age < 100)
+                return age;
+
+            // Estimate age for missing players
+            return 18.5f + expYears;
         }
 
         private static int GetHeightInInches(string height)
@@ -524,6 +531,16 @@ namespace DataAquisition
                     int tbcId = Int32.Parse(columns[0]);
                     int year = Int32.Parse(columns[1]);
 
+                    // Need to filter out a couple of players with bad data
+                    int h = Int32.Parse(columns[12]);
+                    int hit2B = Int32.Parse(columns[13]);
+                    int hit3B = Int32.Parse(columns[14]);
+                    int hr = Int32.Parse(columns[15]);
+                    if (hr > h || hit2B > h || hit3B > h)
+                    {
+                        continue;
+                    }
+
                     hitterData.Add(new() {
                         tbcId = tbcId,
                         year = year,
@@ -536,10 +553,10 @@ namespace DataAquisition
                         G = Int32.Parse(columns[9]),
                         AB = Int32.Parse(columns[10]),
                         R = Int32.Parse(columns[11]),
-                        H = Int32.Parse(columns[12]),
-                        H2B = Int32.Parse(columns[13]),
-                        H3B = Int32.Parse(columns[14]),
-                        HR = Int32.Parse(columns[15]),
+                        H = h,
+                        H2B = hit2B,
+                        H3B = hit3B,
+                        HR = hr,
                         SB = Int32.Parse(columns[17]),
                         CS = Int32.Parse(columns[18]),
                         BB = Int32.Parse(columns[19]),
@@ -670,6 +687,7 @@ namespace DataAquisition
                                 continue;
                         }
 
+                        int expYears = ExpStringToYears(p.exp);
                         hitterStats.Add(new College_HitterStats
                         {
                             TBCId = p.tbcId,
@@ -677,7 +695,7 @@ namespace DataAquisition
                             Level = LevelStringToInt(p.level),
                             TeamId = p.teamId,
                             ConfId = confMap.Where(f => f.Name.Equals(p.confAbvr)).Single().ConfId,
-                            ExpYears = ExpStringToYears(p.exp),
+                            ExpYears = expYears,
                             AB = p.AB,
                             PA = p.PA,
                             H = p.H,
@@ -694,7 +712,7 @@ namespace DataAquisition
                             OBP = p.OBP,
                             SLG = p.SLG,
                             OPS = p.OPS,
-                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear),
+                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear, expYears),
                             Pos = ParsePosString(p.position),
                             Height = GetHeightInInches(p.height),
                             Weight = p.weight,
@@ -769,6 +787,10 @@ namespace DataAquisition
 
                     int tbcId = Int32.Parse(columns[0]);
                     int year = Int32.Parse(columns[1]);
+
+                    // John Luke Marlin only has 1 IP listed, but stats are for more than 1IP so skip
+                    if (tbcId == 262940 && year == 2024)
+                        continue;
 
                     pitcherData.Add(new()
                     {
@@ -893,6 +915,7 @@ namespace DataAquisition
                                 continue;
                         }
 
+                        int expYears = ExpStringToYears(p.exp);
                         pitcherStats.Add(new College_PitcherStats
                         {
                             TBCId = p.tbcId,
@@ -900,7 +923,7 @@ namespace DataAquisition
                             Level = LevelStringToInt(p.level),
                             TeamId = p.teamId,
                             ConfId = confMap.Where(f => f.Name.Equals(p.confAbvr)).Single().ConfId,
-                            ExpYears = ExpStringToYears(p.exp),
+                            ExpYears = expYears,
                             G = p.G,
                             GS = p.GS,
                             R = p.R,
@@ -917,7 +940,7 @@ namespace DataAquisition
                             BB9 = p.BB9,
                             K9 = p.K9,
                             WHIP = p.WHIP,
-                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear),
+                            Age = GetSeasonAge(p.year, BirthDay, BirthMonth, BirthYear, expYears),
                             Height = GetHeightInInches(p.height),
                             Weight = p.weight,
                         });
@@ -1079,7 +1102,7 @@ namespace DataAquisition
         {
             if (confAvg == 0 || opp == 0)
                 return 1;
-            return (float)((stat) / opp) / confAvg;
+            return ((float)(stat) / opp) / confAvg;
         }
 
         public static bool CreateHitterModelStats()
