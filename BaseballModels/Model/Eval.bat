@@ -1,2 +1,2 @@
-python -m TrainEval.Eval_Hitters
-python -m TrainEval.Eval_Pitchers
+python -m Pro.TrainEval.Eval_Hitters
+python -m Pro.TrainEval.Eval_Pitchers

@@ -1,5 +1,5 @@
 import torch
-from DataPrep.Data_Prep import Player_IO
+from Pro.DataPrep.Data_Prep import Player_IO
 from sklearn.model_selection import train_test_split # type: ignore
 
 class Player_Dataset(torch.utils.data.Dataset):

@@ -2,15 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from DataPrep.Data_Prep import Data_Prep
-import Model.MCQRNN
-import importlib
-importlib.reload(Model.MCQRNN)
-from Model.MCQRNN import MCQRNN
+from Pro.DataPrep.Data_Prep import Data_Prep
 from itertools import chain
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
-from Constants import WARQUANTILE_VALUES, WARQUANTILE_INVS
 
 def GetParameters(layers):
     parameters = []
@@ -30,8 +25,6 @@ DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
-DEFAULT_WARQUANT_ARCH = [12, 8]
-DEFAULT_WARQUANT_TAU_ARCH = [4,4]
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
@@ -40,8 +33,6 @@ DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
 DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
-DEFAULT_WARQUANT_ARCH_P = [14]
-DEFAULT_WARQUANT_TAU_ARCH_P = [12,6,4]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -57,17 +48,13 @@ class RNN_Model(nn.Module):
                  lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
                  pa_arch : LayerArch = DEFAULT_PA_ARCH,
                  val_arch : LayerArch = DEFAULT_VALUE_ARCH,
-                 warquant_arch : list[int] = DEFAULT_WARQUANT_ARCH,
                  stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
                  warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
                  pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
                  pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                  lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                  pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
-                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
-                 warquant_arch_p : list[int] = DEFAULT_WARQUANT_ARCH_P,
-                 warquant_tau_arch : list[int] = DEFAULT_WARQUANT_TAU_ARCH,
-                 warquant_tau_arch_p : list[int] = DEFAULT_WARQUANT_TAU_ARCH_P):
+                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,):
         super().__init__()
         
         if not is_hitter:
@@ -78,8 +65,6 @@ class RNN_Model(nn.Module):
             lvl_arch = lvl_arch_p
             pa_arch = pa_arch_p
             val_arch = val_arch_p
-            warquant_arch = warquant_arch_p
-            warquant_tau_arch = warquant_tau_arch_p
         
         output_map = data_prep.output_map
         
@@ -124,10 +109,6 @@ class RNN_Model(nn.Module):
         self.linear_valueFirst = nn.Linear(hidden_size, val_arch.layer_size)
         self.linear_valueArray = nn.ModuleList(nn.Linear(val_arch.layer_size, val_arch.layer_size) for _ in range(val_arch.num_layers - 2))
         self.linear_valueLast = nn.Linear(val_arch.layer_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
-        
-        # WAR quantiles
-        self.MQRCNN_warquant = MCQRNN(hidden_size, warquant_arch, warquant_tau_arch, F.softplus)
-        self.taus = torch.tensor(WARQUANTILE_VALUES)
         
         # Range of stats to restrict quantile predictions
         self.war_min = data_prep.minHitWar if is_hitter else data_prep.minPitWar
@@ -182,8 +163,6 @@ class RNN_Model(nn.Module):
         yearPos_params = GetParameters(chain([self.linear_posFirst, self.linear_posLast], self.linear_posArray))
         mlbValue_params = GetParameters(chain([self.linear_valueFirst, self.linear_valueLast], self.linear_valueArray))
         yearPt_params = GetParameters(chain([self.linear_ptFirst, self.linear_ptLast], self.linear_ptArray))
-        warquant_params = GetParameters(chain([self.MQRCNN_warquant]))
-        #warquant_params = GetParameters((self.linear_warQuant,))
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
                                            {'params': war_class_params, 'lr': 0.00125},
@@ -207,7 +186,6 @@ class RNN_Model(nn.Module):
     def to(self, *args, **kwargs):
         if self.mutators is not None:
             self.mutators = self.mutators.to(*args, **kwargs)
-        self.taus = self.taus.to(*args, **kwargs)
         return super(RNN_Model, self).to(*args, **kwargs)
     
     def forward(self, x, lengths, pt_levelYearGames):
@@ -285,13 +263,6 @@ class RNN_Model(nn.Module):
                 output_mlbValue[:,:,:-6],
                 self.softplus(output_mlbValue[:,:,-6:]) + self.ip_offsets
             ], dim=-1)
-        
-        # Warquant loss
-        # This didn't produce results that were decent
-        # output_stacked = output.unsqueeze(2).expand(-1, -1, len(WARQUANTILE_VALUES), -1)
-        # tau_stacked = self.taus.repeat(output.shape[0] * output.shape[1])
-        # output_warquant = self.MQRCNN_warquant(output_stacked, tau_stacked)
-        # output_warquant = self.war_min + F.softplus(output_warquant)
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
     
@@ -460,29 +431,3 @@ def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level,
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
     return loss_sums_war.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
-
-
-def War_Pinball_Loss(pred, target, masks, crossoverScale):
-    batch_size = pred.size(0)
-    time_steps = pred.size(1)
-    
-    # Truncate target to longest length in batch
-    target = target[:,:time_steps]
-    masks = masks[:,:time_steps]
-    
-    pred = pred.reshape((batch_size * time_steps, len(WARQUANTILE_VALUES)))
-    target = target.reshape((batch_size * time_steps, 1))
-    masks = masks.reshape((batch_size * time_steps,))
-    
-    e = target - pred
-    loss = 0
-    delta = 0.5
-    for i in range(len(WARQUANTILE_VALUES)):
-        u = e[:, i] * masks
-        abs_u = torch.abs(u)
-        huber = torch.where(abs_u <= delta, 0.5 * u**2 / delta, abs_u - 0.5 * delta)
-        
-        loss += torch.maximum(WARQUANTILE_INVS[i] * huber, 
-                            WARQUANTILE_VALUES[i] * huber).mean()
-        
-    return loss

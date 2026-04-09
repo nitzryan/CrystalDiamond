@@ -1,12 +1,8 @@
 import sys
-sys.path.append('..')
-sys.path.append('../DataPrep/')
-sys.path.append('../Model/')
-
-from DataPrep.Data_Prep import Data_Prep, Player_IO
-from DataPrep.Player_Dataset import Create_Test_Train_Datasets
-import Model.Player_Model as Player_Model
-import Model.Model_Train as Model_Train
+from Pro.DataPrep.Data_Prep import Data_Prep, Player_IO
+from Pro.DataPrep.Player_Dataset import Create_Test_Train_Datasets
+import Pro.Model.Player_Model as Player_Model
+import Pro.Model.Model_Train as Model_Train
 from tqdm import tqdm
 from Constants import device, model_db, DEFAULT_NUM_LAYERS_HITTER, DEFAULT_HIDDEN_SIZE_HITTER, DEFAULT_HITTER_BATCH_SIZE, DEFAULT_HITTER_NUM_EPOCHS
 from Utilities import GetModelMaps

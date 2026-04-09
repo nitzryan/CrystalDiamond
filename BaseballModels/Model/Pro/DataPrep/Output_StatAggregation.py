@@ -1,6 +1,6 @@
 from DBTypes import DB_Model_HitterStats, DB_Model_PitcherStats
 import torch
-from DataPrep.Output_Map import Output_Map
+from Pro.DataPrep.Output_Map import Output_Map
 from typing import Callable
 from Constants import HITTER_LEVEL_BUCKETS
 

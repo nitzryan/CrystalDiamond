@@ -21,8 +21,8 @@ def Normalize(item: _T, means: _T, devs: _T) -> _T:
             setattr(item, name, norm_value)
     return item
 
-from DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
-from DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
+from Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
+from Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
 def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map]:
     if model_id == 1:
         return base_prep_map, base_output_map

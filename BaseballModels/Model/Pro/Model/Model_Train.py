@@ -1,12 +1,9 @@
 import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
-from typing import Optional
-from GAN.Generator import Generator
-from DataPrep.Player_Dataset import Player_Dataset
 from Constants import device
-from Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss, War_Pinball_Loss
-from Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
+from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss
+from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 LEVEL_LOSS_MULTIPLIER = 0.6
 PA_LOSS_MULTIPLIER = 0.8
@@ -67,19 +64,6 @@ def train(network, data_generator, num_elements, optimizer, is_hitter : bool, tr
     avg_loss[4] += loss_yearPos.item()
     avg_loss[5] += loss_mlbValue.item()
     avg_loss[6] += loss_yearPt.item()
-  
-    # Train on fake data
-    if len(fake_data.shape) == 3:
-      optimizer.zero_grad()
-      # All masks besides prospect mask should be 0
-      pt_levelYearGames *= 0
-      for i, mask in enumerate(masks):
-        if i != 0:
-          mask *= 0
-          
-      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, fake_data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
-      torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
-      optimizer.step()
     
   for n in range(NUM_ELEMENTS):
     avg_loss[n] /= num_elements
@@ -124,36 +108,6 @@ def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
   plt.xlabel('#Epochs')
   plt.ylabel(loss_name)
 
-def InsertFakeData(g : Generator, realData : Player_Dataset, batch_size : int):
-  time_steps = realData.get_max_length()
-  targets = realData.get_GAN_targets()
-  masks = realData.get_GAN_masks()
-  targets = targets.permute(1, 0, 2)
-  masks = masks.permute(1, 0, 2)
-  z = torch.randn(len(realData), g.latent_dim, device=device)
-  lengths = realData.lengths
-  
-  # Batch through data to limit amount on GPU
-  start_idx = 0
-  end_idx = start_idx + batch_size
-  fd = torch.zeros((len(realData), time_steps, realData.get_input_size())).cpu()
-  with torch.no_grad():
-    while start_idx < z.shape[0]:
-      t = targets[start_idx:end_idx].to(device)
-      m = masks[start_idx:end_idx].to(device)
-      zz = z[start_idx:end_idx].to(device)
-      l = lengths[start_idx:end_idx].to(device)
-      fake_data = g(zz, t, m, time_steps, l).cpu()
-      fd[start_idx:end_idx] = fake_data
-      start_idx += batch_size
-      end_idx += batch_size
-      if end_idx >= targets.shape[0]:
-        end_idx = targets.shape[0] - 1
-        
-      del t, m, zz, l, fake_data
-      
-  realData.fake_data = fd.permute(1, 0, 2)
-
 def trainAndGraph(network, 
                   training_dataset, 
                   testing_dataset,
@@ -166,8 +120,7 @@ def trainAndGraph(network,
                   save_last=False, 
                   is_hitter=True,
                   elements_to_save : list[int] = [0],
-                  get_end_loss : bool = False,
-                  fake_data_generator : Optional[Generator] = None):
+                  get_end_loss : bool = False):
   #Arrays to store training history
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
@@ -178,8 +131,6 @@ def trainAndGraph(network,
   
   train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
   test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
-  
-  InsertFakeData(fake_data_generator, training_dataset, batch_size) if fake_data_generator is not None else None
   
   scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)

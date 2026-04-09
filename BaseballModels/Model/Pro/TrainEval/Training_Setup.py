@@ -1,8 +1,3 @@
-import sys
-sys.path.append('..')
-sys.path.append('../DataPrep/')
-sys.path.append('../Model/')
-
 from Constants import model_db
 
 cursor = model_db.cursor()
@@ -19,6 +14,6 @@ day_str = f"{day}{months[month]}{year}"
 
 cursor = model_db.cursor()
 cursor.execute(f"INSERT INTO ModelIdx VALUES(1,'Base_{day_str}_P','Base_{day_str}_H','Base_{day_str}')")
-cursor.execute(f"INSERT INTO ModelIdx VALUES(2,'StatsOnly_{day_str}_P','StatsOnly_{day_str}_H','StatsOnly_{day_str}')")
-cursor.execute(f"INSERT INTO ModelIdx VALUES(3,'MeanReg_{day_str}_P','MeanReg_{day_str}_H','MeanReg_{day_str}')")
+#cursor.execute(f"INSERT INTO ModelIdx VALUES(2,'StatsOnly_{day_str}_P','StatsOnly_{day_str}_H','StatsOnly_{day_str}')")
+#cursor.execute(f"INSERT INTO ModelIdx VALUES(3,'MeanReg_{day_str}_P','MeanReg_{day_str}_H','MeanReg_{day_str}')")
 model_db.commit()
