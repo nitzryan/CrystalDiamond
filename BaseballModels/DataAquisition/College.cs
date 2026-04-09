@@ -1605,6 +1605,9 @@ namespace DataAquisition
                     int defOuts = 0;
                     float defRuns = 0;
 
+                    float mlbRuns = 0;
+                    int mlbOuts = 0;
+
                     foreach (var fs in fieldingStats)
                     {
                         int scale = GetLevelScale(fs.LevelId);
@@ -1646,6 +1649,12 @@ namespace DataAquisition
 
                         defOuts += fs.Outs;
                         defRuns += scale * fs.ScaledDRAA;
+
+                        if (fs.LevelId == 1)
+                        {
+                            mlbRuns += fs.ScaledDRAA;
+                            mlbOuts += fs.Outs;
+                        }
                     }
 
                     int totalOuts = outsC + outs1B + outs2B + outs3B + outsSS + outsLF + outsCF + outsRF + outsDH;
@@ -1655,12 +1664,16 @@ namespace DataAquisition
                     int mlbPA = 0;
                     float mlbWar = 0;
                     int signingYear = currentYear + 1;
+                    float mlbOff = 0;
                     if (mp != null)
                     {
                         mlbPA = mp.TotalPA;
                         mlbWar = mp.WarHitter;
                         signingYear = mp.SigningYear;
+                        mlbOff = mp.RateOff * mp.TotalPA;
                     }
+
+                    
 
                     const float DEFAULT_OUTS = 1.0f / 9.0f;
                     proStats.Add(new Model_College_HitterProStats
@@ -1679,6 +1692,9 @@ namespace DataAquisition
                         MLB_WAR = mlbWar,
                         DefOuts = defOuts,
                         MLB_PA = mlbPA,
+                        MLB_DefPer1000IN = Utilities.SafeDivide(mlbRuns * 3000, mlbOuts, 0),
+                        MLB_OFFPer600PA = Utilities.SafeDivide(mlbOff * 600, mlbPA, 0),
+                        MLB_DefOuts = mlbOuts,
                         YearsSinceDraft = currentYear - signingYear,
                     });
 

@@ -32,7 +32,7 @@ if __name__ == "__main__":
         
         
         for i in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
-            train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1)
+            train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1, is_hitter=True)
             network = RNN_Model(train_dataset.get_input_size(), data_prep, True)
             network = network.to(device)
             
@@ -49,6 +49,7 @@ if __name__ == "__main__":
                                         batch_size=batch_size,
                                         logging_interval=10000,
                                         should_output=False,
+                                        is_hitter=True,
                                         model_name=f"Models/College_{model_name_pt}",
                                         save_last=False,
                                         elements_to_save=[1])

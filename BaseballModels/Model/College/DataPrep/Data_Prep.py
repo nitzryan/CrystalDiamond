@@ -1,7 +1,7 @@
 from sklearn.decomposition import PCA # type: ignore
 import torch
 from DBTypes import *
-from Constants import db, DTYPE, DRAFT_BUCKETS, TOTAL_WAR_BUCKETS
+from Constants import db, DTYPE, DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
 from typing import TypeVar, Callable
 from tqdm import tqdm
 from College.DataPrep.Output_Map import College_Output_Map
@@ -18,6 +18,10 @@ class College_IO:
             output_pos : torch.Tensor,
             mask_pos : float,
             
+            output_pa : torch.Tensor | None,
+            output_off : torch.Tensor | None,
+            output_def : torch.Tensor | None,
+            
             length : int,
             dates : torch.Tensor, 
     ):
@@ -29,6 +33,10 @@ class College_IO:
         self.output_draft = output_draft
         self.output_war = output_war
         self.output_pos = output_pos
+        
+        self.output_pa = output_pa
+        self.output_off = output_off
+        self.output_def = output_def
         
         self.mask_pos = mask_pos
         
@@ -121,8 +129,6 @@ class College_Data_Prep:
     
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
         cursor = db.cursor()
-        
-        
         hitters = DB_College_Player.Select_From_DB(cursor, player_condition, player_values)
         
         io : list[College_IO] = []
@@ -143,9 +149,17 @@ class College_Data_Prep:
             input[:, :self.prep_map.bio_size] = self.__Transform_HitterData(hitter)
             input[:, self.prep_map.bio_size:] = self.__TransformHitterStats(stats)
             
-            # Draft
+            # Buckets
             output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
             output_war = torch.bucketize(torch.tensor(self.output_map.map_war_h(proStats)), TOTAL_WAR_BUCKETS)
+            output_pa = torch.bucketize(torch.tensor(self.output_map.map_pa(proStats)), HITTER_PA_BUCKETS)
+            
+            if proStats.MLB_PA > 100:
+                output_def = torch.bucketize(torch.tensor(self.output_map.map_def_rate(proStats)), DEF_RATE_BUCKETS)
+                output_off = torch.bucketize(torch.tensor(self.output_map.map_off_rate(proStats)), OFF_RATE_BUCKETS)
+            else:
+                output_def = torch.tensor([7])
+                output_off = torch.tensor([7])
             
             # Pos
             output_pos = torch.tensor(self.output_map.map_pos_h(proStats))
@@ -159,6 +173,10 @@ class College_Data_Prep:
                 
                 output_pos=output_pos,
                 mask_pos=mask_pos,
+                
+                output_def=output_def,
+                output_off=output_off,
+                output_pa=output_pa,
                 
                 length=l,
                 dates=dates
@@ -201,6 +219,10 @@ class College_Data_Prep:
                 input=input,
                 output_draft=output_draft,
                 output_war=output_war,
+                
+                output_def=None,
+                output_off=None,
+                output_pa=None,
                 
                 output_pos = output_pos,
                 mask_pos=mask_pos,

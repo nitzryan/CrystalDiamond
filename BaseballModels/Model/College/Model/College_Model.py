@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
-from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS
+from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
 
 class LayerArch:
     def __init__(self, layer_size : int, num_layers : int):
@@ -19,6 +19,10 @@ DEFAULT_WAR_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
+DEFAULT_OFF_ARCH = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_DEF_ARCH = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
+
 class RNN_Model(nn.Module):
     def __init__(self,
                  input_size : int,
@@ -33,7 +37,10 @@ class RNN_Model(nn.Module):
                  stats_arch_pos : LayerArch = DEFAULT_POS_ARCH,
                  stats_arch_pos_p : LayerArch = DEFAULT_POS_ARCH_P,
                  war_arch : LayerArch = DEFAULT_WAR_ARCH,
-                 war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,):
+                 war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,
+                 off_arch : LayerArch = DEFAULT_OFF_ARCH,
+                 def_arch : LayerArch = DEFAULT_DEF_ARCH,
+                 pa_arch : LayerArch = DEFAULT_PA_ARCH,):
         
         super().__init__()
         
@@ -45,6 +52,7 @@ class RNN_Model(nn.Module):
             war_arch = war_arch_p
             pos_output_len = data_prep.output_map.len_pos_p
         
+        self.is_hitter = is_hitter
         # Solely so they can be extracted during training    
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -66,6 +74,19 @@ class RNN_Model(nn.Module):
         self.linear_warFirst = nn.Linear(hidden_size, war_arch.layer_size)
         self.linear_warArray = nn.ModuleList(nn.Linear(war_arch.layer_size, war_arch.layer_size) for _ in range(war_arch.num_layers - 2))
         self.linear_warLast = nn.Linear(war_arch.layer_size, len(TOTAL_WAR_BUCKETS))
+        
+        if self.is_hitter:
+            self.linear_offFirst = nn.Linear(hidden_size, off_arch.layer_size)
+            self.linear_offArray = nn.ModuleList(nn.Linear(off_arch.layer_size, off_arch.layer_size) for _ in range(off_arch.num_layers - 2))
+            self.linear_offLast = nn.Linear(off_arch.layer_size, len(OFF_RATE_BUCKETS) + 1)
+            
+            self.linear_defFirst = nn.Linear(hidden_size, def_arch.layer_size)
+            self.linear_defArray = nn.ModuleList(nn.Linear(def_arch.layer_size, def_arch.layer_size) for _ in range(def_arch.num_layers - 2))
+            self.linear_defLast = nn.Linear(def_arch.layer_size, len(DEF_RATE_BUCKETS) + 1)
+            
+            self.linear_paFirst = nn.Linear(hidden_size, pa_arch.layer_size)
+            self.linear_paArray = nn.ModuleList(nn.Linear(pa_arch.layer_size, pa_arch.layer_size) for _ in range(pa_arch.num_layers - 2))
+            self.linear_paLast = nn.Linear(pa_arch.layer_size, len(HITTER_PA_BUCKETS))
         
         self.nonlin = F.leaky_relu
         
@@ -105,7 +126,29 @@ class RNN_Model(nn.Module):
             output_pos = self.nonlin(ys(output_pos))
         output_pos = self.linear_posLast(output_pos)
         
-        return output_draft, output_war, output_pos
+        if self.is_hitter:
+            # Evaluate OFF prediction
+            output_off = self.nonlin(self.linear_offFirst(output))
+            for ys in self.linear_offArray:
+                output_off = self.nonlin(ys(output_off))
+            output_off = self.linear_offLast(output_off)
+            
+            # Evaluate DEF prediction
+            output_def = self.nonlin(self.linear_defFirst(output))
+            for ys in self.linear_defArray:
+                output_def = self.nonlin(ys(output_def))
+            output_def = self.linear_defLast(output_def)
+            
+            # Evaluate OFF prediction
+            output_pa = self.nonlin(self.linear_paFirst(output))
+            for ys in self.linear_paArray:
+                output_pa = self.nonlin(ys(output_pa))
+            output_pa = self.linear_paLast(output_pa)
+            
+            return output_draft, output_war, output_off, output_def, output_pa, output_pos
+        
+        else:
+            return output_draft, output_war, output_pos
     
 def Classification_Loss(pred : torch.Tensor, 
                         actual : torch.Tensor, 

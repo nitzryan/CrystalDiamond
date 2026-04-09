@@ -4,10 +4,56 @@ import torch
 from tqdm import tqdm
 from College.Model.College_Model import Classification_Loss, Position_Loss
 
-ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
-NUM_ELEMENTS = len(ELEMENT_LIST)
+HITTER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProOff", "ProDef", "ProPA", "ProPosition"]
+NUM_ELEMENTS_HITTER = len(HITTER_ELEMENT_LIST)
 
-def GetLosses(network, data, length, targets, masks, shouldBackprop : bool):
+PITCHER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
+NUM_ELEMENTS_PITCHER = len(PITCHER_ELEMENT_LIST)
+
+def GetLossesHitter(network, data, length, targets, masks, shouldBackprop : bool):
+    # Get Output
+    data = data.to(device)
+    length = length.to(device)
+    output_draft, output_war, output_off, output_def, output_pa, output_pos = network(data, length)
+    
+    max_len = output_draft.size(1)
+    mask_length = (torch.arange(max_len, device=length.device)
+                   .unsqueeze(0) < length.unsqueeze(1))
+    
+    # Get losses
+    target_draft, target_war, target_off, target_def, target_pa, target_pos = targets
+    mask_pos = masks
+    
+    target_draft = target_draft.to(device)
+    loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
+    
+    target_war = target_war.to(device)
+    loss_war = Classification_Loss(output_war, target_war, mask_length)
+    
+    target_off = target_off.to(device)
+    loss_off = Classification_Loss(output_off, target_off, mask_length)
+    
+    target_def = target_def.to(device)
+    loss_def = Classification_Loss(output_def, target_def, mask_length)
+    
+    target_pa = target_pa.to(device)
+    loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
+    
+    target_pos = target_pos.to(device)
+    mask_pos = mask_pos.to(device)
+    loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
+    
+    if shouldBackprop:
+      loss_draft.backward(retain_graph=True)
+      loss_war.backward(retain_graph=True)
+      loss_off.backward(retain_graph=True)
+      loss_def.backward(retain_graph=True)
+      loss_pa.backward(retain_graph=True)
+      loss_pos.backward()
+    
+    return loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos
+
+def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : bool):
     # Get Output
     data = data.to(device)
     length = length.to(device)
@@ -38,37 +84,48 @@ def GetLosses(network, data, length, targets, masks, shouldBackprop : bool):
     
     return loss_draft, loss_war, loss_pos
 
-def train(network, data_generator, num_elements, optimizer):
+def train(network, data_generator, num_elements, optimizer, is_hitter):
     network.train()
-    avg_loss = [0] * NUM_ELEMENTS
+    if is_hitter:
+      avg_loss = [0] * NUM_ELEMENTS_HITTER
+    else:
+      avg_loss = [0] * NUM_ELEMENTS_PITCHER
     
     for data, length, targets, masks in data_generator:
         optimizer.zero_grad()
-        loss_draft, loss_war, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=True)
+        if is_hitter:
+          losses = GetLossesHitter(network, data, length, targets, masks, shouldBackprop=True)
+        else:
+          losses = GetLossesPitcher(network, data, length, targets, masks, shouldBackprop=True)
         torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
         optimizer.step()
         
-        avg_loss[0] += loss_draft.item()
-        avg_loss[1] += loss_war.item()
-        avg_loss[2] += loss_pos.item()
+        for i, loss in enumerate(losses):
+          avg_loss[i] += loss.item()
         
-    for n in range(NUM_ELEMENTS):
-        avg_loss[n] /= num_elements
+    for n in range(len(avg_loss)):
+      avg_loss[n] /= num_elements
     return avg_loss
 
-def test(network, test_loader, num_elements):
+def test(network, test_loader, num_elements, is_hitter):
     network.eval()
-    avg_loss = [0] * NUM_ELEMENTS
+    if is_hitter:
+      avg_loss = [0] * NUM_ELEMENTS_HITTER
+    else:
+      avg_loss = [0] * NUM_ELEMENTS_PITCHER
     
     with torch.no_grad():
-        for data, length, targets, masks in test_loader:
-          loss_draft, loss_war, loss_pos = GetLosses(network, data, length, targets, masks, shouldBackprop=False)
-          avg_loss[0] += loss_draft.item()
-          avg_loss[1] += loss_war.item()
-          avg_loss[2] += loss_pos.item()
+      for data, length, targets, masks in test_loader:
+        if is_hitter:
+          losses = GetLossesHitter(network, data, length, targets, masks, shouldBackprop=False)
+        else:
+          losses = GetLossesPitcher(network, data, length, targets, masks, shouldBackprop=False)
         
-    for n in range(NUM_ELEMENTS):
-        avg_loss[n] /= num_elements
+        for i, loss in enumerate(losses):
+          avg_loss[i] += loss.item()
+        
+    for n in range(len(avg_loss)):
+      avg_loss[n] /= num_elements
     return avg_loss
 
 def logResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, should_output=True):
@@ -102,6 +159,12 @@ def trainAndGraph(network,
                   elements_to_save : list[int] = [0],
                   get_end_loss : bool = False):
   #Arrays to store training history
+  if is_hitter:
+    NUM_ELEMENTS = NUM_ELEMENTS_HITTER
+    ELEMENT_LIST = HITTER_ELEMENT_LIST
+  else:
+    NUM_ELEMENTS = NUM_ELEMENTS_PITCHER
+    ELEMENT_LIST = PITCHER_ELEMENT_LIST
   test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
   epoch_counter = []
   train_loss_history = [[] for _ in range(NUM_ELEMENTS)]
@@ -116,8 +179,8 @@ def trainAndGraph(network,
   if not should_output:
     iterable = tqdm(iterable, leave=False, desc="Training")
   for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), optimizer)
-    test_loss = test(network, test_generator, len(testing_dataset))
+    avg_loss = train(network, train_generator, len(training_dataset), optimizer, is_hitter=is_hitter)
+    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter)
 
     scheduler.step(test_loss[0])
     logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)

@@ -99,6 +99,32 @@ namespace SitePrep
                         War6 = 0,
                         War = 0,
 
+                        Off0 = 0,
+                        Off1 = 0,
+                        Off2 = 0,
+                        Off3 = 0,
+                        Off4 = 0,
+                        Off5 = 0,
+                        Off6 = 0,
+                        OffNone = 0,
+
+                        Def0 = 0,
+                        Def1 = 0,
+                        Def2 = 0,
+                        Def3 = 0,
+                        Def4 = 0,
+                        Def5 = 0,
+                        Def6 = 0,
+                        DefNone = 0,
+
+                        Pa0 = 0,
+                        Pa1 = 0,
+                        Pa2 = 0,
+                        Pa3 = 0,
+                        Pa4 = 0,
+                        Pa5 = 0,
+                        Pa6 = 0,
+
                         ProbC = 0,
                         Prob1B = 0,
                         Prob2B = 0,
@@ -120,6 +146,32 @@ namespace SitePrep
                         oca.Draft5 += result.Draft5 / size;
                         oca.Draft6 += result.Draft6 / size;
                         oca.Draft += result.Draft / size;
+
+                        oca.Off0 += result.Off0 / size;
+                        oca.Off1 += result.Off1 / size;
+                        oca.Off2 += result.Off2 / size;
+                        oca.Off3 += result.Off3 / size;
+                        oca.Off4 += result.Off4 / size;
+                        oca.Off5 += result.Off5 / size;
+                        oca.Off6 += result.Off6 / size;
+                        oca.OffNone += result.OffNone / size;
+
+                        oca.Def0 += result.Def0 / size;
+                        oca.Def1 += result.Def1 / size;
+                        oca.Def2 += result.Def2 / size;
+                        oca.Def3 += result.Def3 / size;
+                        oca.Def4 += result.Def4 / size;
+                        oca.Def5 += result.Def5 / size;
+                        oca.Def6 += result.Def6 / size;
+                        oca.DefNone += result.DefNone / size;
+
+                        oca.Pa0 += result.Pa0 / size;
+                        oca.Pa1 += result.Pa1 / size;
+                        oca.Pa2 += result.Pa2 / size;
+                        oca.Pa3 += result.Pa3 / size;
+                        oca.Pa4 += result.Pa4 / size;
+                        oca.Pa5 += result.Pa5 / size;
+                        oca.Pa6 += result.Pa6 / size;
 
                         oca.War0 += result.War0 / size;
                         oca.War1 += result.War1 / size;

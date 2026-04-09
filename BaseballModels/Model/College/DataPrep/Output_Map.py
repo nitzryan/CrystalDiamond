@@ -14,6 +14,10 @@ class College_Output_Map:
             len_pos_p : int,
             mask_pos_h : Callable[[DB_Model_College_HitterProStats], float],
             mask_pos_p : Callable[[DB_Model_College_PitcherProStats], float],
+            
+            map_off_rate : Callable[[DB_Model_College_HitterProStats], float],
+            map_def_rate : Callable[[DB_Model_College_HitterProStats], float],
+            map_pa : Callable[[DB_Model_College_HitterProStats], int],
     ):
         
         self.map_draft_h = map_draft_h
@@ -28,6 +32,10 @@ class College_Output_Map:
         self.len_pos_p = len_pos_p
         self.mask_pos_p = mask_pos_p
         
+        self.map_off_rate = map_off_rate
+        self.map_def_rate = map_def_rate
+        self.map_pa = map_pa
+        
 college_output_map = College_Output_Map(
     map_draft_h=lambda p : p.DraftOvrHitter,
     map_draft_p=lambda p : p.DraftOvrPitcher,
@@ -40,4 +48,8 @@ college_output_map = College_Output_Map(
     map_pos_p=lambda p : [p.PercSP, p.PercRP],
     len_pos_p=2,
     mask_pos_p=lambda p : min(p.Outs / 500, 1),
+    
+    map_off_rate=lambda p : p.MLB_OFFPer600PA,
+    map_def_rate=lambda p : p.MLB_DefPer1000IN,
+    map_pa=lambda p : p.MLB_PA,
 )

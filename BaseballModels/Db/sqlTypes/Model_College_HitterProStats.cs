@@ -16,6 +16,9 @@ namespace Db
 		public required float MLB_WAR {get; set;}
 		public required int DefOuts {get; set;}
 		public required int MLB_PA {get; set;}
+		public required float MLB_OFFPer600PA {get; set;}
+		public required float MLB_DefPer1000IN {get; set;}
+		public required int MLB_DefOuts {get; set;}
 		public required int YearsSinceDraft {get; set;}
 
 		public Model_College_HitterProStats Clone()
@@ -36,6 +39,9 @@ namespace Db
 				MLB_WAR = this.MLB_WAR,
 				DefOuts = this.DefOuts,
 				MLB_PA = this.MLB_PA,
+				MLB_OFFPer600PA = this.MLB_OFFPer600PA,
+				MLB_DefPer1000IN = this.MLB_DefPer1000IN,
+				MLB_DefOuts = this.MLB_DefOuts,
 				YearsSinceDraft = this.YearsSinceDraft,
 			};
 		}

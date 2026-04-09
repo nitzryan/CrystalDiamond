@@ -160,7 +160,7 @@ namespace Db
             double step = (stop - start) / (numPoints - 1);
 
             return Enumerable.Range(0, numPoints)
-                             .Select(i => start + i * step)
+                             .Select(i => start + (i * step))
                              .ToArray();
         }
 
@@ -191,6 +191,7 @@ namespace Db
                 }
             }
 
+            #pragma warning disable CS8629 // Will be filtered out
             return new FieldingScenario
             {
                 Hardness = (PBP_HitHardness)pbp.HitHardness,
@@ -198,6 +199,7 @@ namespace Db
                 ZoneAngle = hitZone,
                 ZoneDist = 1
             };
+            #pragma warning restore CS8629
         }
 
         private static readonly double[] LinedriveZoneAngles = Linspace(-1.05 * Math.PI / 4, 1.05 * Math.PI / 4, 31);

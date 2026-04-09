@@ -1823,13 +1823,16 @@ class DB_Model_College_HitterProStats:
 		self.MLB_WAR = values[11]
 		self.DefOuts = values[12]
 		self.MLB_PA = values[13]
-		self.YearsSinceDraft = values[14]
+		self.MLB_OFFPer600PA = values[14]
+		self.MLB_DefPer1000IN = values[15]
+		self.MLB_DefOuts = values[16]
+		self.YearsSinceDraft = values[17]
 
-	NUM_ELEMENTS = 15
+	NUM_ELEMENTS = 18
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.TBCId,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH,self.DEF,self.MLB_WAR,self.DefOuts,self.MLB_PA,self.YearsSinceDraft)
+		return (self.TBCId,self.PercC,self.Perc1B,self.Perc2B,self.Perc3B,self.PercSS,self.PercLF,self.PercCF,self.PercRF,self.PercDH,self.DEF,self.MLB_WAR,self.DefOuts,self.MLB_PA,self.MLB_OFFPer600PA,self.MLB_DefPer1000IN,self.MLB_DefOuts,self.YearsSinceDraft)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_College_HitterProStats']:

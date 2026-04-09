@@ -31,7 +31,7 @@ if __name__ == "__main__":
         
         
         for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
-            train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, i + 1)
+            train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, i + 1, is_hitter=False)
             network = RNN_Model(train_dataset.get_input_size(), data_prep, is_hitter=False)
             network = network.to(device)
             

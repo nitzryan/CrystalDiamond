@@ -22,6 +22,29 @@ namespace ModelDb
 		public required float War5 {get; set;}
 		public required float War6 {get; set;}
 		public required float War {get; set;}
+		public required float Off0 {get; set;}
+		public required float Off1 {get; set;}
+		public required float Off2 {get; set;}
+		public required float Off3 {get; set;}
+		public required float Off4 {get; set;}
+		public required float Off5 {get; set;}
+		public required float Off6 {get; set;}
+		public required float OffNone {get; set;}
+		public required float Def0 {get; set;}
+		public required float Def1 {get; set;}
+		public required float Def2 {get; set;}
+		public required float Def3 {get; set;}
+		public required float Def4 {get; set;}
+		public required float Def5 {get; set;}
+		public required float Def6 {get; set;}
+		public required float DefNone {get; set;}
+		public required float Pa0 {get; set;}
+		public required float Pa1 {get; set;}
+		public required float Pa2 {get; set;}
+		public required float Pa3 {get; set;}
+		public required float Pa4 {get; set;}
+		public required float Pa5 {get; set;}
+		public required float Pa6 {get; set;}
 		public required float ProbC {get; set;}
 		public required float Prob1B {get; set;}
 		public required float Prob2B {get; set;}
@@ -56,6 +79,29 @@ namespace ModelDb
 				War5 = this.War5,
 				War6 = this.War6,
 				War = this.War,
+				Off0 = this.Off0,
+				Off1 = this.Off1,
+				Off2 = this.Off2,
+				Off3 = this.Off3,
+				Off4 = this.Off4,
+				Off5 = this.Off5,
+				Off6 = this.Off6,
+				OffNone = this.OffNone,
+				Def0 = this.Def0,
+				Def1 = this.Def1,
+				Def2 = this.Def2,
+				Def3 = this.Def3,
+				Def4 = this.Def4,
+				Def5 = this.Def5,
+				Def6 = this.Def6,
+				DefNone = this.DefNone,
+				Pa0 = this.Pa0,
+				Pa1 = this.Pa1,
+				Pa2 = this.Pa2,
+				Pa3 = this.Pa3,
+				Pa4 = this.Pa4,
+				Pa5 = this.Pa5,
+				Pa6 = this.Pa6,
 				ProbC = this.ProbC,
 				Prob1B = this.Prob1B,
 				Prob2B = this.Prob2B,

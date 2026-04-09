@@ -123,6 +123,35 @@ CREATE TABLE "Output_College_Hitter" (
 	"war6"	REAL NOT NULL,
 	"war" REAL NOT NULL,
 
+	-- OFF
+	"off0"	REAL NOT NULL,
+	"off1"	REAL NOT NULL,
+	"off2"	REAL NOT NULL,
+	"off3"	REAL NOT NULL,
+	"off4"	REAL NOT NULL,
+	"off5"	REAL NOT NULL,
+	"off6"	REAL NOT NULL,
+	"offNone" REAL NOT NULL,
+
+	-- DEF
+	"def0"	REAL NOT NULL,
+	"def1"	REAL NOT NULL,
+	"def2"	REAL NOT NULL,
+	"def3"	REAL NOT NULL,
+	"def4"	REAL NOT NULL,
+	"def5"	REAL NOT NULL,
+	"def6"	REAL NOT NULL,
+	"defNone" REAL NOT NULL,
+
+	-- PA
+	"pa0"	REAL NOT NULL,
+	"pa1"	REAL NOT NULL,
+	"pa2"	REAL NOT NULL,
+	"pa3"	REAL NOT NULL,
+	"pa4"	REAL NOT NULL,
+	"pa5"	REAL NOT NULL,
+	"pa6"	REAL NOT NULL,
+
 	-- Pro Position
 	"ProbC" REAL NOT NULL,
 	"Prob1B" REAL NOT NULL,
