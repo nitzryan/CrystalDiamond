@@ -4,11 +4,7 @@ import torch.nn.init as init
 import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
 from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
-
-class LayerArch:
-    def __init__(self, layer_size : int, num_layers : int):
-        self.layer_size = layer_size
-        self.num_layers = num_layers
+from Pro.Model.Player_Model import LayerArch
 
 DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=3)
 DEFAULT_POS_ARCH = LayerArch(layer_size=50, num_layers=2)
@@ -63,30 +59,14 @@ class RNN_Model(nn.Module):
                                 dropout=dropout,
                                 )
         
-        self.linear_draftFirst = nn.Linear(hidden_size, stats_arch.layer_size)
-        self.linear_draftArray = nn.ModuleList(nn.Linear(stats_arch.layer_size, stats_arch.layer_size) for _ in range(stats_arch.num_layers - 2))
-        self.linear_draftLast = nn.Linear(stats_arch.layer_size, len(DRAFT_BUCKETS))
-        
-        self.linear_posFirst = nn.Linear(hidden_size, stats_arch_pos.layer_size)
-        self.linear_posArray = nn.ModuleList(nn.Linear(stats_arch_pos.layer_size, stats_arch_pos.layer_size) for _ in range(stats_arch_pos.num_layers - 2))
-        self.linear_posLast = nn.Linear(stats_arch_pos.layer_size, pos_output_len)
-        
-        self.linear_warFirst = nn.Linear(hidden_size, war_arch.layer_size)
-        self.linear_warArray = nn.ModuleList(nn.Linear(war_arch.layer_size, war_arch.layer_size) for _ in range(war_arch.num_layers - 2))
-        self.linear_warLast = nn.Linear(war_arch.layer_size, len(TOTAL_WAR_BUCKETS))
+        self.draft_layers = stats_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
+        self.pos_layers = stats_arch_pos.GetArchitecture(hidden_size, pos_output_len)
+        self.war_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS))
         
         if self.is_hitter:
-            self.linear_offFirst = nn.Linear(hidden_size, off_arch.layer_size)
-            self.linear_offArray = nn.ModuleList(nn.Linear(off_arch.layer_size, off_arch.layer_size) for _ in range(off_arch.num_layers - 2))
-            self.linear_offLast = nn.Linear(off_arch.layer_size, len(OFF_RATE_BUCKETS) + 1)
-            
-            self.linear_defFirst = nn.Linear(hidden_size, def_arch.layer_size)
-            self.linear_defArray = nn.ModuleList(nn.Linear(def_arch.layer_size, def_arch.layer_size) for _ in range(def_arch.num_layers - 2))
-            self.linear_defLast = nn.Linear(def_arch.layer_size, len(DEF_RATE_BUCKETS) + 1)
-            
-            self.linear_paFirst = nn.Linear(hidden_size, pa_arch.layer_size)
-            self.linear_paArray = nn.ModuleList(nn.Linear(pa_arch.layer_size, pa_arch.layer_size) for _ in range(pa_arch.num_layers - 2))
-            self.linear_paLast = nn.Linear(pa_arch.layer_size, len(HITTER_PA_BUCKETS))
+            self.off_layers = off_arch.GetArchitecture(hidden_size, len(OFF_RATE_BUCKETS) + 1)
+            self.def_layers = def_arch.GetArchitecture(hidden_size, len(DEF_RATE_BUCKETS) + 1)
+            self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
         
         self.nonlin = F.leaky_relu
         
@@ -96,6 +76,14 @@ class RNN_Model(nn.Module):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='tanh')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+          
+    def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
+        for layer in moduleList:
+            output = layer(output)
+            if layer != moduleList[-1]:
+                output = self.nonlin(output)
+                
+        return output
                     
     def forward(self, x, lengths):
         if self.training:
@@ -108,42 +96,14 @@ class RNN_Model(nn.Module):
         packedOutput, _ = self.recurrent(packedInput)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
         
-        # Generate draft prediction
-        output_draft = self.nonlin(self.linear_draftFirst(output))
-        for ys in self.linear_draftArray:
-            output_draft = self.nonlin(ys(output_draft))
-        output_draft = self.linear_draftLast(output_draft)
-        
-        # Evaluate WAR prediction
-        output_war = self.nonlin(self.linear_warFirst(output))
-        for ys in self.linear_warArray:
-            output_war = self.nonlin(ys(output_war))
-        output_war = self.linear_warLast(output_war)
-        
-        # Generate Pro pos prediction
-        output_pos = self.nonlin(self.linear_posFirst(output))
-        for ys in self.linear_posArray:
-            output_pos = self.nonlin(ys(output_pos))
-        output_pos = self.linear_posLast(output_pos)
+        output_draft = self.GetModuleOutput(output, self.draft_layers)
+        output_war = self.GetModuleOutput(output, self.war_layers)
+        output_pos = self.GetModuleOutput(output, self.pos_layers)
         
         if self.is_hitter:
-            # Evaluate OFF prediction
-            output_off = self.nonlin(self.linear_offFirst(output))
-            for ys in self.linear_offArray:
-                output_off = self.nonlin(ys(output_off))
-            output_off = self.linear_offLast(output_off)
-            
-            # Evaluate DEF prediction
-            output_def = self.nonlin(self.linear_defFirst(output))
-            for ys in self.linear_defArray:
-                output_def = self.nonlin(ys(output_def))
-            output_def = self.linear_defLast(output_def)
-            
-            # Evaluate OFF prediction
-            output_pa = self.nonlin(self.linear_paFirst(output))
-            for ys in self.linear_paArray:
-                output_pa = self.nonlin(ys(output_pa))
-            output_pa = self.linear_paLast(output_pa)
+            output_off = self.GetModuleOutput(output, self.off_layers)
+            output_def = self.GetModuleOutput(output, self.def_layers)
+            output_pa = self.GetModuleOutput(output, self.pa_layers)
             
             return output_draft, output_war, output_off, output_def, output_pa, output_pos
         
