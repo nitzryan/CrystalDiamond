@@ -22,6 +22,7 @@ if __name__ == "__main__":
         prep_map, output_map = GetModelMaps(model_id)
         
         data_prep = Data_Prep(prep_map, output_map)
+        
         hitter_io_list : list[Player_IO] = data_prep.Generate_IO_Hitters("WHERE isHitter=?", (1,), use_cutoff=False)
         
         lengths = torch.tensor([io.length for io in hitter_io_list])

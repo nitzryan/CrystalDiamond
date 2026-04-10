@@ -15,12 +15,26 @@ def Aggregate_HitterStats(stats : list[DB_Model_HitterStats],
                           endMonth : int,
                           startYear : int,
                           endYear : int,
-                          output_map : Output_Map) -> torch.Tensor:
+                          output_map : Output_Map,
+                          start_idx : int) -> tuple[torch.Tensor, int]:
     
     filteredStats : list[DB_Model_HitterStats] = []
-    for stat in stats:
+    
+    # Start from last good index, stop after good index found and then bad found
+    good_stat_found = False
+    next_start_index = start_idx
+    for i, stat in enumerate(stats[start_idx:], start=start_idx):
         if __IsDateValid(month=stat.Month, year=stat.Year, startMonth=startMonth, endMonth=endMonth, startYear=startYear, endYear=endYear):
             filteredStats.append(stat)
+            
+            # Check for first good datapoint
+            if not good_stat_found:
+                next_start_index = i + 1
+                good_stat_found = True
+                
+        # If good found, first bad datapoint
+        elif good_stat_found:
+            break
     
     # Get weight to smooth results
     totalPa = 0
@@ -30,7 +44,7 @@ def Aggregate_HitterStats(stats : list[DB_Model_HitterStats],
     posTensor = torch.zeros(size=[output_map.hitter_positions_size], dtype=torch.float)
     
     if totalPa == 0: # Stats aggregation will return all zeros
-        return posTensor
+        return posTensor, next_start_index
     
     filteredWeights : list[float] = [stat.PA / totalPa for stat in filteredStats]
     
@@ -39,42 +53,49 @@ def Aggregate_HitterStats(stats : list[DB_Model_HitterStats],
         posList = output_map.map_hitter_positions(stat)
         posTensor += torch.tensor(posList) * weight
         
-    return posTensor
+    return posTensor, next_start_index
 
 def Aggregate_PitcherStats(stats : list[DB_Model_HitterStats],
                           startMonth : int,
                           endMonth : int,
                           startYear : int,
                           endYear : int,
-                          output_map : Output_Map) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                          output_map : Output_Map,
+                          start_idx : int) -> tuple[torch.Tensor, int]:
     
     filteredStats : list[DB_Model_PitcherStats] = []
-    for stat in stats:
+    
+    # Start from last good index, stop after good index found and then bad found
+    good_stat_found = False
+    next_start_index = start_idx
+    for i, stat in enumerate(stats[start_idx:], start=start_idx):
         if __IsDateValid(month=stat.Month, year=stat.Year, startMonth=startMonth, endMonth=endMonth, startYear=startYear, endYear=endYear):
             filteredStats.append(stat)
+            
+            # Check for first good datapoint
+            if not good_stat_found:
+                next_start_index = i + 1
+                good_stat_found = True
+                
+        # If good found, first bad datapoint
+        elif good_stat_found:
+            break
     
     # Get weight to smooth results
     totalPa = 0
     for stat in filteredStats:
         totalPa += stat.BF
     
-    lvlMask = torch.zeros(size=[len(HITTER_LEVEL_BUCKETS)], dtype=torch.float)
-    statTensor = torch.zeros(size=[output_map.pitcher_stats_size], dtype=torch.float)
     posTensor = torch.zeros(size=[output_map.pitcher_positions_size], dtype=torch.float)
     
     if totalPa == 0: # Stats aggregation will return all zeros
-        return lvlMask, statTensor, posTensor
+        return posTensor, next_start_index
     
     filteredWeights : list[float] = [stat.BF / totalPa for stat in filteredStats]
     
     for i, stat in enumerate(filteredStats):
         weight = filteredWeights[i]
-        maskList = Output_Map.GetOutputMasks(stat)
-        statList = output_map.map_pitcher_output(stat)
         posList = output_map.map_pitcher_positions(stat)
-        
-        lvlMask += torch.tensor(maskList) / 6 # don't apply weighting, weights shouldn't necessarily add to 1, /6 to normalize to 600PA rather than 100 for monthly
-        statTensor += torch.tensor(statList) * weight
         posTensor += torch.tensor(posList) * weight
         
-    return lvlMask, statTensor, posTensor
+    return posTensor, next_start_index

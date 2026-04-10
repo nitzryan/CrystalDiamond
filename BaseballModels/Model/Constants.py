@@ -19,6 +19,7 @@ model_db = sqlite3.connect(__MODEL_DB_PATH)
 experimental_db = sqlite3.connect(__EXP_DB_PATH)
 
 DTYPE = torch.float32
+DTYPE_NUMPY = np.float32
 
 TOTAL_WAR_BUCKETS = torch.tensor([0,1,5,10,20,30,np.inf], dtype=DTYPE)
 HITTER_PEAK_WAR_BUCKETS = torch.tensor([0, 0.5, 1, 2, 3, 4, 5, 7, np.inf], dtype=DTYPE)

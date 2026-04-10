@@ -60,7 +60,6 @@ class Player_IO:
             max_length = max(max_length, io.length)
         return max_length
         
-
 _T = TypeVar('T')
 class Data_Prep:
     def __init__(self, prep_map : 'Prep_Map', output_map : 'Output_Map'):
@@ -265,6 +264,21 @@ class Data_Prep:
                 return start_idx
             start_idx += 1
         
+    def __Generate_ModelLevelYearGamesDict(cursor : sqlite3.Cursor) -> dict[tuple[int, int], torch.Tensor]:
+        modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
+        gamesDict = {}
+        for g in modelLevelYearGames:
+            gamesDict[g.Year, g.Month] = torch.tensor([g.MLB_Games / 500, 
+                                              g.AAA_Games / 500, 
+                                              g.AA_Games / 500, 
+                                              g.HA_Games / 500, 
+                                              g.A_Games / 500, 
+                                              g.LA_Games / 500, 
+                                              g.Rk_Games / 500, 
+                                              g.DSL_Games / 500])
+                                                      
+        return gamesDict
+        
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
         # Get Hitters
         cursor = db.cursor()
@@ -285,7 +299,7 @@ class Data_Prep:
         prospect_value_devs : torch.Tensor = getattr(self, "__hit_prospect_value_devs")
         
         # Amount of games played each year at each level for pt predictions
-        modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
+        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
         
         np.random.seed(4980)
         for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
@@ -372,13 +386,15 @@ class Data_Prep:
                 mask_stats[0] = mask_stats[1]
                 pt_year_output[0] = pt_year_output[1]
                 stat_year_output[0] = stat_year_output[1]
+                
                 start_month = stats[1].Month
                 start_year = stats[1].Year
+                stat_start_idx = 0
                 for i, stat in enumerate(stats):
                     if i == 0:
-                        _p = Aggregate_HitterStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats)
+                        _p, _ = Aggregate_HitterStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     else:
-                        _p = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats)
+                        _p, stat_start_idx = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     pos_year_output[i,:] = _p
             
             # MLB Value stats and mask
@@ -409,17 +425,10 @@ class Data_Prep:
                 if i == 0:
                     continue
                 
-                gameCounts = [m for m in modelLevelYearGames if m.Year == date[1].item() and m.Month == date[2].item()]
-                if len(gameCounts) == 1:
-                    gc = gameCounts[0]
-                    mlyg[i,:] = torch.tensor([gc.MLB_Games / 500, 
-                                              gc.AAA_Games / 500, 
-                                              gc.AA_Games / 500, 
-                                              gc.HA_Games / 500, 
-                                              gc.A_Games / 500, 
-                                              gc.LA_Games / 500, 
-                                              gc.Rk_Games / 500, 
-                                              gc.DSL_Games / 500])
+                dateTuple = date[1].item(), date[2].item()
+                gc = modelLevelYearGamesDict[dateTuple] if dateTuple in modelLevelYearGamesDict else None
+                if gc is not None:
+                    mlyg[i,:] = gc
             if l > 1:
                 mlyg[0,:] = mlyg[1,:]
             
@@ -463,7 +472,7 @@ class Data_Prep:
         prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
         
         # Amount of games played each year at each level for pt predictions
-        modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
+        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
         
         np.random.seed(4980)
         for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
@@ -538,9 +547,6 @@ class Data_Prep:
             
             pt_year_output[:,:] = (torch.zeros(self.output_map.pitcher_pt_size, dtype=float) - pitpt_means) / pitpt_devs
             
-            for i, stat in enumerate(stats):
-                pos_year_output[i + 1] = torch.tensor(self.output_map.map_pitcher_positions(stat), dtype=torch.float)
-            
             date_index = 1
             for stat in level_stats:
                 date_index = Data_Prep.__GetDatesIndex(dates, stat.Year, stat.Month, date_index)
@@ -551,7 +557,17 @@ class Data_Prep:
                 stat_year_output[0] = stat_year_output[1]
                 pt_year_output[0] = pt_year_output[1]
                 lvl_year_mask[0] = lvl_year_mask[1]
-                pos_year_output[0] = pos_year_output[1]
+                
+                if len(stats) > 1:
+                    start_month = stats[1].Month
+                    start_year = stats[1].Year
+                    stat_start_idx = 0
+                    for i, stat in enumerate(stats):
+                        if i == 0:
+                            _p, _ = Aggregate_PitcherStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
+                        else:
+                            _p, stat_start_idx = Aggregate_PitcherStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
+                        pos_year_output[i,:] = _p
             
             # MLB Value stats and mask
             mlb_value_mask = torch.zeros(l, 3, 3, dtype=torch.float)
@@ -583,17 +599,10 @@ class Data_Prep:
                 if i == 0:
                     continue
                 
-                gameCounts = [m for m in modelLevelYearGames if m.Year == date[1].item() and m.Month == date[2].item()]
-                if len(gameCounts) == 1:
-                    gc = gameCounts[0]
-                    mlyg[i,:] = torch.tensor([gc.MLB_Games / 500, 
-                                              gc.AAA_Games / 500, 
-                                              gc.AA_Games / 500, 
-                                              gc.HA_Games / 500, 
-                                              gc.A_Games / 500, 
-                                              gc.LA_Games / 500, 
-                                              gc.Rk_Games / 500, 
-                                              gc.DSL_Games / 500])
+                dateTuple = date[1].item(), date[2].item()
+                gc = modelLevelYearGamesDict[dateTuple] if dateTuple in modelLevelYearGamesDict else None
+                if gc is not None:
+                    mlyg[i,:] = gc
             if l > 1:
                 mlyg[0,:] = mlyg[1,:]
             
