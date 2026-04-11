@@ -17,7 +17,7 @@ import numpy as np # Random normal distribution
 NUM_VARIANTS = 10
 
 class Player_IO:
-    def __init__(self, player : DB_Model_Players, 
+    def __init__(self, player : DB_Model_Players | None, 
                  input : torch.Tensor, 
                  output : torch.Tensor,
                  prospect_value : torch.Tensor,

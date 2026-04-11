@@ -176,7 +176,7 @@ class RNN_Model(nn.Module):
                 
         return output
     
-    def forward(self, x, lengths, pt_levelYearGames):
+    def forward(self, x, lengths, pt_levelYearGames, h0):
         # if self.training and self.mutators is not None:
         #     x += self.mutators[:x.size(0), :x.size(1), :]
         
@@ -186,10 +186,12 @@ class RNN_Model(nn.Module):
         # x = self.nonlin(self.pre3(x))
         
         lengths = lengths.to(torch.device("cpu")).long()
+        lengths = torch.clamp(lengths, min=1)
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        packedOutput, _ = self.recurrent(packedInput)
+        h0 = h0.transpose(0, 1).contiguous()
+        packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         output_war = self.GetModuleOutput(output, self.war_layers)

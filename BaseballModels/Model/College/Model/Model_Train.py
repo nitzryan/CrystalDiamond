@@ -10,11 +10,12 @@ NUM_ELEMENTS_HITTER = len(HITTER_ELEMENT_LIST)
 PITCHER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
 NUM_ELEMENTS_PITCHER = len(PITCHER_ELEMENT_LIST)
 
-def GetLossesHitter(network, data, length, targets, masks, shouldBackprop : bool):
+def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     # Get Output
+    data, length = data
     data = data.to(device)
     length = length.to(device)
-    output_draft, output_war, output_off, output_def, output_pa, output_pos = network(data, length)
+    output_draft, output_war, output_off, output_def, output_pa, output_pos, output_hidden = network(data, length)
     
     max_len = output_draft.size(1)
     mask_length = (torch.arange(max_len, device=length.device)
@@ -22,7 +23,7 @@ def GetLossesHitter(network, data, length, targets, masks, shouldBackprop : bool
     
     # Get losses
     target_draft, target_war, target_off, target_def, target_pa, target_pos = targets
-    mask_pos = masks
+    mask_pos, = masks
     
     target_draft = target_draft.to(device)
     loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
@@ -49,15 +50,15 @@ def GetLossesHitter(network, data, length, targets, masks, shouldBackprop : bool
       loss_off.backward(retain_graph=True)
       loss_def.backward(retain_graph=True)
       loss_pa.backward(retain_graph=True)
-      loss_pos.backward()
+      loss_pos.backward(retain_graph=True)
     
-    return loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos
+    return (loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos), output_hidden
 
 def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : bool):
     # Get Output
     data = data.to(device)
     length = length.to(device)
-    output_draft, output_war, output_pos = network(data, length)
+    output_draft, output_war, output_pos, output_hidden = network(data, length)
     
     max_len = output_draft.size(1)
     mask_length = (torch.arange(max_len, device=length.device)
@@ -82,7 +83,7 @@ def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : boo
       loss_war.backward(retain_graph=True)
       loss_pos.backward()
     
-    return loss_draft, loss_war, loss_pos
+    return (loss_draft, loss_war, loss_pos), output_hidden
 
 def train(network, data_generator, num_elements, optimizer, is_hitter):
     network.train()

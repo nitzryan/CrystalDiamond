@@ -10,7 +10,7 @@ from College.DataPrep.Prep_Map import College_Prep_Map
 class College_IO:
     def __init__(
             self,
-            player : DB_College_Player,
+            player : DB_College_Player | None,
             input : torch.Tensor,
             output_draft : torch.Tensor,
             output_war : torch.Tensor,

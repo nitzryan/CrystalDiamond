@@ -17,12 +17,14 @@ WAR_QUANTILE_MULTIPLER = 10
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
-def GetLosses(network, data, length, pt_levelYearGames, targets : tuple, masks : tuple, shouldBackprop : bool, is_hitter: bool, trainingFraction : float) -> tuple:
+def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.Tensor, shouldBackprop : bool, is_hitter: bool) -> tuple:
   # Get Model Output
+  data, length, pt_levelYearGames = data
   data = data.to(device)
   length = length.to(device)
   pt_levelYearGames = pt_levelYearGames.to(device)
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames)
+  h0 = h0.to(device)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames, h0)
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_warvalue = targets
