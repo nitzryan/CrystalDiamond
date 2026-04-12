@@ -332,18 +332,18 @@ class Data_Prep:
                 input[1:, -self.prep_map.mlb_hit_value_size:] = self.Transform_HitterMlbValues([pmw for mhs, pmw in stats_monthlywar])
             
             # Output
-            output = torch.zeros(l, 3, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_hitter_war(hitter)), self.output_map.buckets_hitter_war)
-            output[:,1] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
-            output[:,2] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
+            output = torch.zeros(3, dtype=torch.long)
+            output[0] = torch.bucketize(torch.tensor(self.output_map.map_hitter_war(hitter)), self.output_map.buckets_hitter_war)
+            output[1] = torch.bucketize(torch.tensor(hitter.highestLevelHitter), HITTER_LEVEL_BUCKETS)
+            output[2] = torch.bucketize(torch.tensor(hitter.totalPA), HITTER_PA_BUCKETS)
         
             # Regression prospect value
-            prospect_value = torch.zeros(l, 1, dtype=torch.float)
-            prospect_value[:] = (torch.tensor([hitter.warHitter]) - prospect_value_means) / prospect_value_devs
+            prospect_value = torch.zeros(1, dtype=torch.float)
+            prospect_value = (torch.tensor([hitter.warHitter]) - prospect_value_means) / prospect_value_devs
         
             # Create variants for Prospect value
-            output_war_class_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.long)
-            output_war_regression_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.float)
+            output_war_class_variants = torch.zeros(NUM_VARIANTS, dtype=torch.long)
+            output_war_regression_variants = torch.zeros(NUM_VARIANTS, dtype=torch.float)
             mpws = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1", (hitter.mlbId,))
             if len(mpws) > 0:
                 pa = 0
@@ -353,8 +353,8 @@ class Data_Prep:
                     war += mpw.WAR_h
                 for n in range(NUM_VARIANTS):
                     variant_war = war + ((pa / 600) * np.random.normal(loc=0, scale=0.75, size=1)).item()
-                    output_war_class_variants[:,n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_hitter_war)
-                    output_war_regression_variants[:,n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
+                    output_war_class_variants[n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_hitter_war)
+                    output_war_regression_variants[n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)

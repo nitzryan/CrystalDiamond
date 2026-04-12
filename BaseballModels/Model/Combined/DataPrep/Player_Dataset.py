@@ -41,9 +41,9 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         
         self.pro_pt_levelYearGames = pro_pt_levelYearGames
         
-        self.pro_o_war_buckets = pro_output_labels[:,:,0]
-        self.pro_o_level_buckets = pro_output_labels[:,:,1]
-        self.pro_o_pa_buckets = pro_output_labels[:,:,2]
+        self.pro_o_war_buckets = pro_output_labels[:,0]
+        self.pro_o_level_buckets = pro_output_labels[:,1]
+        self.pro_o_pa_buckets = pro_output_labels[:,2]
         self.pro_o_war_values = pro_output_war_values
         self.pro_o_stats = pro_output_stats
         self.pro_o_positions = pro_output_positions
@@ -110,7 +110,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         return self.pro_data[:,idx], self.pro_lengths[idx], self.pro_pt_levelYearGames[:,idx],
         
     def __GetProOutput__(self, idx : int):
-        return self.pro_o_war_buckets[:,idx], self.pro_o_level_buckets[:,idx], self.pro_o_pa_buckets[:,idx], self.pro_o_stats[:,idx], self.pro_o_positions[:,idx], self.pro_o_mlb_value[:,idx], self.pro_o_pt[:,idx], self.pro_o_war_values[:,idx]
+        return self.pro_o_war_buckets[idx], self.pro_o_level_buckets[idx], self.pro_o_pa_buckets[idx], self.pro_o_stats[:,idx], self.pro_o_positions[:,idx], self.pro_o_mlb_value[:,idx], self.pro_o_pt[:,idx]
         
     def __GetProMask__(self, idx : int):
         return (self.pro_m_labels[:,idx], self.pro_m_stats[:,idx], self.pro_m_year[:,idx], self.pro_m_mlb_value[:,idx])
@@ -155,10 +155,10 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
 
     pro_data_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.input for io in io_train])
     pro_data_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.input for io in io_test])
-    pro_output_labels_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.output for io in io_train])
-    pro_output_labels_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.output for io in io_test])
-    pro_output_war_values_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.prospect_value for io in io_train])
-    pro_output_war_values_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.prospect_value for io in io_test])
+    pro_output_labels_train = torch.stack([io.pro_io.output for io in io_train])
+    pro_output_labels_test = torch.stack([io.pro_io.output for io in io_test])
+    pro_output_war_values_train = torch.stack([io.pro_io.prospect_value for io in io_train])
+    pro_output_war_values_test = torch.stack([io.pro_io.prospect_value for io in io_test])
     
     pro_mask_labels_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.prospect_mask for io in io_train])
     pro_mask_labels_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.prospect_mask for io in io_test])

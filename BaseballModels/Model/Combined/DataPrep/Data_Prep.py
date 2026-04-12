@@ -51,8 +51,8 @@ class Combined_Data_Prep:
         return Player_IO(
             player=None,
             input=torch.zeros(0, *player_template.input.shape[1:]),
-            output=torch.zeros(0, *player_template.output.shape[1:], dtype=torch.long),
-            prospect_value=torch.zeros(0, *player_template.prospect_value.shape[1:]),
+            output=torch.tensor([0,0,0], dtype=torch.long),
+            prospect_value=torch.tensor([0]),
             output_war_class_variants=torch.zeros(0, *player_template.output_war_class_variants.shape[1:]),
             output_war_regression_variants=torch.zeros(0, *player_template.output_war_regression_variants.shape[1:]),
             length = 0,

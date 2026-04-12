@@ -345,27 +345,24 @@ def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
     return loss.sum(dim=1).sum()
     
 def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level, actual_pa, masks):
-    actual_war = actual_war[:,:pred_war.size(1)]
-    actual_level = actual_level[:,:pred_level.size(1)]
-    actual_pa = actual_pa[:,:pred_pa.size(1)]
     masks = masks[:,:pred_level.size(1)]
     
-    batch_size = actual_war.size(0)
-    time_steps = actual_war.size(1)
+    batch_size = pred_war.size(0)
+    time_steps = pred_war.size(1)
     
     num_classes_war = pred_war.size(2)
     num_classes_level = pred_level.size(2)
     num_classes_pa = pred_pa.size(2)
-    
-    actual_war = actual_war.reshape((batch_size * time_steps,))
-    actual_level = actual_level.reshape((batch_size * time_steps,))
-    actual_pa = actual_pa.reshape((batch_size * time_steps,))
     
     masks = masks.reshape((batch_size, time_steps,))
     
     pred_war = pred_war.reshape((batch_size * time_steps, num_classes_war))
     pred_level = pred_level.reshape((batch_size * time_steps, num_classes_level))
     pred_pa = pred_pa.reshape((batch_size * time_steps, num_classes_pa))
+    
+    actual_war = actual_war.repeat_interleave(time_steps)
+    actual_level = actual_level.repeat_interleave(time_steps)
+    actual_pa = actual_pa.repeat_interleave(time_steps)
     
     l = nn.CrossEntropyLoss(reduction='none')
     loss_war = l(pred_war, actual_war)
