@@ -177,28 +177,22 @@ class RNN_Model(nn.Module):
         return output
     
     def forward(self, x, lengths, pt_levelYearGames, h0):
-        # if self.training and self.mutators is not None:
-        #     x += self.mutators[:x.size(0), :x.size(1), :]
-        
-        # Apply transformation to data before entering network
-        # x = self.nonlin(self.pre1(x))
-        # x = self.nonlin(self.pre2(x))
-        # x = self.nonlin(self.pre3(x))
-        
+        # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()
-        lengths = torch.clamp(lengths, min=1)
+        
+        # Compute
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        h0 = h0.transpose(0, 1).contiguous()
+        #h0 = h0.transpose(0, 1).contiguous()
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
+        seq_len = output.size(1)
             
         output_war = self.GetModuleOutput(output, self.war_layers)
         output_level = self.GetModuleOutput(output, self.level_layers)
         output_pa = self.GetModuleOutput(output, self.pa_layers)
         output_yearStats = self.GetModuleOutput(output, self.yearStats_layers)
-        #output_yearStats = self.yearStats_output_transform(self.linear_yearStats4(output_yearStats)) + self.stat_offsets
         output_yearPositions = self.GetModuleOutput(output, self.pos_layers)
         output_mlbValue = self.GetModuleOutput(output, self.value_layers)
         

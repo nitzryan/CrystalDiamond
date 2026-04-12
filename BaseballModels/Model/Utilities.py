@@ -2,6 +2,9 @@ from typing import TypeVar
 import torch
 from Constants import DTYPE
 
+from line_profiler import LineProfiler
+profiler = LineProfiler()
+
 _T = TypeVar('T')
 def Generate_Mean_Std(t: type[_T], items : list[_T]) -> tuple[_T,_T]:
     means = t(items[0].To_Tuple())

@@ -302,7 +302,7 @@ class Data_Prep:
         modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
         
         np.random.seed(4980)
-        for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
+        for hitter in tqdm(hitters, desc="Generating Pro Hitters", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
                                                                      "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
@@ -475,7 +475,7 @@ class Data_Prep:
         modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
         
         np.random.seed(4980)
-        for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
+        for pitcher in tqdm(pitchers, desc="Generating Pro Pitchers", leave=False):
             # Get Stats
             stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
                                                                      "SELECT * FROM Model_PitcherStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? ORDER BY mhs.Year ASC, mhs.Month ASC",

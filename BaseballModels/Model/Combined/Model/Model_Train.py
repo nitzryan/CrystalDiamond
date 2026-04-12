@@ -14,6 +14,8 @@ from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
 import torch
 import matplotlib.pyplot as plt
+from Utilities import profiler
+
 
 def TrainAndGraph(
     pro_network : Pro_Model,
@@ -30,6 +32,8 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0
 ) -> float:
+    profiler.enable()
+    
     num_pro_elements = NUM_ELEMENTS
     if is_hitter:
         num_col_elements =  + NUM_ELEMENTS_HITTER
@@ -45,8 +49,18 @@ def TrainAndGraph(
     best_loss = 999999
     best_epoch = -1
     
-    train_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_generator = torch.utils.data.DataLoader(train_dataset, 
+        batch_size=batch_size, 
+        shuffle=True,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True)
+    test_generator = torch.utils.data.DataLoader(test_dataset, 
+        batch_size=batch_size, 
+        shuffle=False,
+        num_workers=4,
+        persistent_workers=True,
+        pin_memory=True)
     
     col_optimizer = torch.optim.Adam(col_network.parameters(), lr=0.0025)
     col_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(col_optimizer, factor=0.5, patience=5, cooldown=5)
@@ -87,7 +101,7 @@ def TrainAndGraph(
         pro_scheduler.step(test_loss[:num_pro_elements])
         
         if should_output and (epoch % logging_interval == 0):  
-            print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch, num_epochs, train_loss[element_to_save], test_loss[element_to_save]))
+            print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch + 1, num_epochs, train_loss[element_to_save], test_loss[element_to_save]))
         
         if test_loss[element_to_save] < best_loss:
             best_loss = test_loss[element_to_save]
@@ -100,11 +114,15 @@ def TrainAndGraph(
         for n in range(num_elements):
             GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=element_list[n])
         
+    profiler.disable()
+    profiler.dump_stats("train_profile.lprof")
+        
     if get_end_loss:
         return test_loss[element_to_save]
     else:
         return best_loss
-        
+  
+@profiler
 def Train(
     pro_network : Pro_Model,
     col_network : Col_Model,
@@ -150,6 +168,7 @@ def Train(
     return avg_loss
 
 
+@profiler
 def Test(
     pro_network : Pro_Model,
     col_network : Col_Model,

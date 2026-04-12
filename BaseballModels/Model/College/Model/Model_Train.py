@@ -4,17 +4,20 @@ import torch
 from tqdm import tqdm
 from College.Model.College_Model import Classification_Loss, Position_Loss
 
+from Utilities import profiler
+
 HITTER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProOff", "ProDef", "ProPA", "ProPosition"]
 NUM_ELEMENTS_HITTER = len(HITTER_ELEMENT_LIST)
 
 PITCHER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
 NUM_ELEMENTS_PITCHER = len(PITCHER_ELEMENT_LIST)
 
+@profiler
 def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     # Get Output
     data, length = data
-    data = data.to(device)
-    length = length.to(device)
+    data = data.to(device, non_blocking=True)
+    length = length.to(device, non_blocking=True)
     output_draft, output_war, output_off, output_def, output_pa, output_pos, output_hidden = network(data, length)
     
     max_len = output_draft.size(1)
@@ -25,32 +28,24 @@ def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     target_draft, target_war, target_off, target_def, target_pa, target_pos = targets
     mask_pos, = masks
     
-    target_draft = target_draft.to(device)
+    target_draft = target_draft.to(device, non_blocking=True)
+    target_war = target_war.to(device, non_blocking=True)
+    target_off = target_off.to(device, non_blocking=True)
+    target_def = target_def.to(device, non_blocking=True)
+    target_pa = target_pa.to(device, non_blocking=True)
+    target_pos = target_pos.to(device, non_blocking=True)
+    mask_pos = mask_pos.to(device, non_blocking=True)
+    
     loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
-    
-    target_war = target_war.to(device)
     loss_war = Classification_Loss(output_war, target_war, mask_length)
-    
-    target_off = target_off.to(device)
     loss_off = Classification_Loss(output_off, target_off, mask_length)
-    
-    target_def = target_def.to(device)
     loss_def = Classification_Loss(output_def, target_def, mask_length)
-    
-    target_pa = target_pa.to(device)
     loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
-    
-    target_pos = target_pos.to(device)
-    mask_pos = mask_pos.to(device)
     loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
     if shouldBackprop:
-      loss_draft.backward(retain_graph=True)
-      loss_war.backward(retain_graph=True)
-      loss_off.backward(retain_graph=True)
-      loss_def.backward(retain_graph=True)
-      loss_pa.backward(retain_graph=True)
-      loss_pos.backward(retain_graph=True)
+      torch.autograd.backward([loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos], retain_graph=True)
+
     
     return (loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos), output_hidden
 

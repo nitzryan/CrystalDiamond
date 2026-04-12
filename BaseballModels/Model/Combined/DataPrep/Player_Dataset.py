@@ -95,12 +95,6 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
     def GetColInputSize(self) -> int:
         return self.col_data.shape[-1]
     
-    # def get_output_size(self) -> int:
-    #     return 3
-    
-    # def get_mask_size(self) -> int:
-    #     return 1
-    
     def should_augment_data(self, should_augment):
         self.should_augment = should_augment
         
@@ -145,6 +139,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 self.__GetColInput__(idx), \
                 self.__GetColOutput__(idx, self.is_hitter), \
                 self.__GetColMask__(idx)
+        # return idx
     
 def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
     io_train : list[Combined_IO]

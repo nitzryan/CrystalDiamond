@@ -134,7 +134,7 @@ class College_Data_Prep:
         io : list[College_IO] = []
         cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         
-        for hitter in tqdm(hitters, desc="Generating Hitters", leave=False):
+        for hitter in tqdm(hitters, desc="Generating College Hitters", leave=False):
             stats = DB_Model_College_HitterYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (hitter.TBCId, cutoff_year))
             proStats = DB_Model_College_HitterProStats.Select_From_DB(cursor, "WHERE tbcId=?", (hitter.TBCId,))[0]
             l = len(stats)
@@ -191,7 +191,7 @@ class College_Data_Prep:
         io : list[College_IO] = []
         cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         
-        for pitcher in tqdm(pitchers, desc="Generating Pitchers", leave=False):
+        for pitcher in tqdm(pitchers, desc="Generating College Pitchers", leave=False):
             stats = DB_Model_College_PitcherYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (pitcher.TBCId, cutoff_year))
             proStats = DB_Model_College_PitcherProStats.Select_From_DB(cursor, "WHERE tbcId=?", (pitcher.TBCId,))[0]
             l = len(stats)

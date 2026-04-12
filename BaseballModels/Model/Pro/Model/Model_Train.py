@@ -5,32 +5,41 @@ from Constants import device
 from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss
 from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
-LEVEL_LOSS_MULTIPLIER = 0.6
-PA_LOSS_MULTIPLIER = 0.8
-STATS_LOSS_MULTIPLIER = 0.4
-POSITION_LOSS_MULTIPLIER = 1.0
-TWAR_LOSS_MULTIPLIER = 0.8
-MLB_VALUE_LOSS_MULTIPLIER = 0.2
-PT_LOSS_MULTIPLIER = 0.5
-WAR_QUANTILE_MULTIPLER = 10
+from Utilities import profiler
 
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
+@profiler
 def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.Tensor, shouldBackprop : bool, is_hitter: bool) -> tuple:
   # Get Model Output
   data, length, pt_levelYearGames = data
-  data = data.to(device)
-  length = length.to(device)
-  pt_levelYearGames = pt_levelYearGames.to(device)
-  h0 = h0.to(device)
+  mask_valid = length > 0
+  data = data[mask_valid].to(device, non_blocking=True)
+  length = length[mask_valid].to(device, non_blocking=True)
+  pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
+  h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
   output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames, h0)
+  
+  
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_warvalue = targets
   mask_labels, mask_stats, mask_year, mask_mlbValue = masks
-  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_warvalue = target_war.to(device), target_level.to(device), target_pa.to(device), target_yearStats.to(device), target_yearPos.to(device), target_mlbValue.to(device), target_pt.to(device), target_warvalue.to(device)
-  mask_labels, mask_year, mask_stats, mask_mlbValue = mask_labels.to(device), mask_year.to(device), mask_stats.to(device), mask_mlbValue.to(device)
+  
+  target_war = target_war[mask_valid].to(device, non_blocking=True)
+  target_level = target_level[mask_valid].to(device, non_blocking=True)
+  target_pa = target_pa[mask_valid].to(device, non_blocking=True)
+  target_yearStats = target_yearStats[mask_valid].to(device, non_blocking=True)
+  target_yearPos = target_yearPos[mask_valid].to(device, non_blocking=True)
+  target_mlbValue = target_mlbValue[mask_valid].to(device, non_blocking=True)
+  target_pt = target_pt[mask_valid].to(device, non_blocking=True)
+  target_warvalue = target_warvalue[mask_valid].to(device, non_blocking=True)
+  
+  mask_labels = mask_labels[mask_valid].to(device, non_blocking=True)
+  mask_year = mask_year[mask_valid].to(device, non_blocking=True)
+  mask_stats = mask_stats[mask_valid].to(device, non_blocking=True)
+  mask_mlbValue = mask_mlbValue[mask_valid].to(device, non_blocking=True)
   
   # Get losses
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
@@ -40,13 +49,7 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   
   if shouldBackprop:
-    (loss_war * TWAR_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_level * LEVEL_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_pa * PA_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_yearStats * STATS_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_yearPos * POSITION_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_yearPt * PT_LOSS_MULTIPLIER).backward(retain_graph=True)
-    (loss_mlbValue * MLB_VALUE_LOSS_MULTIPLIER).backward(retain_graph=True)
+    torch.autograd.backward([loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue])
   
   return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
 
