@@ -38,28 +38,40 @@ DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 
+DEFAULT_PRO_HIDDEN_SIZE = 35
+DEFAULT_PRO_NUM_LAYERS = 3
+
+DEFAULT_INPUT_NOISE = 0
+DEFAULT_DROPOUT = 0
+
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
-                 num_layers : int, 
-                 hidden_size : int, 
-                 mutators : torch.Tensor, 
-                 data_prep : Data_Prep, 
-                 is_hitter : bool, 
-                 stats_arch : LayerArch = DEFAULT_STATS_ARCH,
-                 warclass_arch : LayerArch = DEFAULT_WARCLASS_ARCH,
-                 pt_arch : LayerArch = DEFAULT_PT_ARCH,
-                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
-                 lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
-                 pa_arch : LayerArch = DEFAULT_PA_ARCH,
-                 val_arch : LayerArch = DEFAULT_VALUE_ARCH,
-                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
-                 warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
-                 pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
-                 pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
-                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
-                 pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
-                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,):
+                 
+                mutators : torch.Tensor, 
+                data_prep : Data_Prep, 
+                is_hitter : bool, 
+                input_noise : float = DEFAULT_INPUT_NOISE,
+                rnn_droupout : float = DEFAULT_DROPOUT,
+                num_layers : int = DEFAULT_PRO_NUM_LAYERS, 
+                hidden_size : int = DEFAULT_PRO_HIDDEN_SIZE, 
+                stats_arch : LayerArch = DEFAULT_STATS_ARCH,
+                warclass_arch : LayerArch = DEFAULT_WARCLASS_ARCH,
+                pt_arch : LayerArch = DEFAULT_PT_ARCH,
+                pos_arch : LayerArch = DEFAULT_POS_ARCH,
+                lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
+                pa_arch : LayerArch = DEFAULT_PA_ARCH,
+                val_arch : LayerArch = DEFAULT_VALUE_ARCH,
+                stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
+                warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
+                pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
+                pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
+                lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
+                pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
+                val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,):
         super().__init__()
+        
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
         
         if not is_hitter:
             stats_arch = stats_arch_p
@@ -73,12 +85,9 @@ class RNN_Model(nn.Module):
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
         
-        self.pre1 = nn.Linear(input_size, input_size)
-        self.pre2 = nn.Linear(input_size, input_size)
-        self.pre3 = nn.Linear(input_size, input_size)
+        self.input_noise = input_noise
         
-        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
-        #self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False)
+        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
         
         # Individual prediction layers
         self.war_layers = warclass_arch.GetArchitecture(hidden_size, len(output_map.buckets_hitter_war))
@@ -135,7 +144,7 @@ class RNN_Model(nn.Module):
             init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        shared_params = GetParameters([self.pre1, self.pre2, self.pre3, self.recurrent])
+        shared_params = GetParameters([self.recurrent])
         war_class_params = GetParameters(self.war_layers)
         level_params = GetParameters(self.level_layers)
         pa_params = GetParameters(self.pa_layers)
@@ -168,6 +177,12 @@ class RNN_Model(nn.Module):
             self.mutators = self.mutators.to(*args, **kwargs)
         return super(RNN_Model, self).to(*args, **kwargs)
     
+    def GetHiddenSize(self) -> int:
+        return self.hidden_size
+    
+    def GetNumLayers(self) -> int:
+        return self.num_layers
+    
     def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
         for layer in moduleList:
             output = layer(output)
@@ -177,6 +192,11 @@ class RNN_Model(nn.Module):
         return output
     
     def forward(self, x, lengths, pt_levelYearGames, h0):
+        # Uncomment if want to apply noise, but 0 noise worked best
+        # if self.training:
+        #     noise = torch.rand_like(x, requires_grad=False) * self.input_noise
+        #     x += noise
+        
         # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()
         
@@ -187,7 +207,6 @@ class RNN_Model(nn.Module):
         #h0 = h0.transpose(0, 1).contiguous()
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
-        seq_len = output.size(1)
             
         output_war = self.GetModuleOutput(output, self.war_layers)
         output_level = self.GetModuleOutput(output, self.level_layers)

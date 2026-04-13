@@ -30,9 +30,10 @@ def TrainAndGraph(
     pro_model_name : str = "no_name_pro",
     col_model_name : str = "no_name_col",
     get_end_loss : bool = False,
-    element_to_save : int = 0
+    element_to_save : int = 0,
+    early_stopping_cutoff : int = 10,
 ) -> float:
-    profiler.enable()
+    #profiler.enable()
     
     num_pro_elements = NUM_ELEMENTS
     if is_hitter:
@@ -48,6 +49,7 @@ def TrainAndGraph(
     epoch_counter : list[int] = []
     best_loss = 999999
     best_epoch = -1
+    epochs_since_improve = 0
     
     train_generator = torch.utils.data.DataLoader(train_dataset, 
         batch_size=batch_size, 
@@ -106,16 +108,24 @@ def TrainAndGraph(
         if test_loss[element_to_save] < best_loss:
             best_loss = test_loss[element_to_save]
             best_epoch = epoch
+            epochs_since_improve = 0
             torch.save(col_network.state_dict(), col_model_name + ".pt")
             torch.save(pro_network.state_dict(), pro_model_name + ".pt")
+        else:
+            epochs_since_improve += 1
+           
+        if epochs_since_improve >= early_stopping_cutoff:
+            if should_output:
+                print(f"Exited Early at epoch={epoch}")
+            break
             
     if should_output:
         print(f"Best result at epoch={best_epoch} loss={best_loss}")
         for n in range(num_elements):
             GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=element_list[n])
         
-    profiler.disable()
-    profiler.dump_stats("train_profile.lprof")
+    # profiler.disable()
+    # profiler.dump_stats("train_profile.lprof")
         
     if get_end_loss:
         return test_loss[element_to_save]
