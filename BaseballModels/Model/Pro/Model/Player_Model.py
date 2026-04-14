@@ -153,7 +153,7 @@ class RNN_Model(nn.Module):
         mlbValue_params = GetParameters(self.value_layers)
         yearPt_params = GetParameters(self.pt_layers)
         
-        self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
+        self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.003},
                                            {'params': war_class_params, 'lr': 0.00125},
                                            {'params': level_params, 'lr': 0.013},
                                            {'params': pa_params, 'lr': 0.003},
@@ -192,10 +192,9 @@ class RNN_Model(nn.Module):
         return output
     
     def forward(self, x, lengths, pt_levelYearGames, h0):
-        # Uncomment if want to apply noise, but 0 noise worked best
-        # if self.training:
-        #     noise = torch.rand_like(x, requires_grad=False) * self.input_noise
-        #     x += noise
+        if self.training and self.input_noise > 0:
+            noise = torch.rand_like(x, requires_grad=False) * self.input_noise
+            x += noise
         
         # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()

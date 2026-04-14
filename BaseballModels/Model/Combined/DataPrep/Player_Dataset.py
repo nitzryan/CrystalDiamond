@@ -1,8 +1,7 @@
 import torch
-from Pro.DataPrep.Data_Prep import Player_IO
-from College.DataPrep.Data_Prep import College_IO
-from Combined.DataPrep.Data_Prep import Combined_IO, Combined_Data_Prep
+from Combined.DataPrep.Data_Prep import Combined_IO
 from sklearn.model_selection import train_test_split # type: ignore
+from Constants import device
 
 class Combined_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self, 
@@ -36,46 +35,49 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         
         self.is_hitter = is_hitter
         
-        self.pro_data = pro_data
-        self.pro_lengths = pro_lengths
+        # === Transpose at creation time so shape becomes (num_players, time_steps, features) ===
+        self.pro_data = pro_data.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_lengths = pro_lengths.to(device, non_blocking=True)
         
-        self.pro_pt_levelYearGames = pro_pt_levelYearGames
+        self.pro_pt_levelYearGames = pro_pt_levelYearGames.to(device, non_blocking=True).transpose(0, 1)
         
-        self.pro_o_war_buckets = pro_output_labels[:,0]
-        self.pro_o_level_buckets = pro_output_labels[:,1]
-        self.pro_o_pa_buckets = pro_output_labels[:,2]
-        self.pro_o_war_values = pro_output_war_values
-        self.pro_o_stats = pro_output_stats
-        self.pro_o_positions = pro_output_positions
-        self.pro_o_mlb_value = pro_output_mlb_value
-        self.pro_o_pt = pro_output_pt
+        self.pro_o_war_buckets = pro_output_labels[:,0].to(device, non_blocking=True)
+        self.pro_o_level_buckets = pro_output_labels[:,1].to(device, non_blocking=True)
+        self.pro_o_pa_buckets = pro_output_labels[:,2].to(device, non_blocking=True)
+        self.pro_o_war_values = pro_output_war_values.to(device, non_blocking=True)
         
-        self.pro_m_labels = pro_mask_labels
-        self.pro_m_stats = pro_mask_stats
-        self.pro_m_year = pro_mask_year
-        self.pro_m_mlb_value = pro_mask_mlb_value
+        self.pro_o_stats = pro_output_stats.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_o_positions = pro_output_positions.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_o_mlb_value = pro_output_mlb_value.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_o_pt = pro_output_pt.to(device, non_blocking=True).transpose(0, 1)
         
-        self.pro_v_war_class = pro_variants_war_class
-        self.pro_v_war_regression = pro_variants_war_regression
+        self.pro_m_labels = pro_mask_labels.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_m_stats = pro_mask_stats.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_m_year = pro_mask_year.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_m_mlb_value = pro_mask_mlb_value.to(device, non_blocking=True).transpose(0, 1)
+        
+        self.pro_v_war_class = pro_variants_war_class.to(device, non_blocking=True)
+        self.pro_v_war_regression = pro_variants_war_regression.to(device, non_blocking=True)
         self.pro_v_idx = 0
         self.pro_use_variants = False
         
-        self.col_bio=col_bio
-        self.col_data=col_data
-        self.col_lengths=col_lengths
-        self.col_output_draft=col_output_draft
-        self.col_output_war=col_output_war
-        self.col_output_pos=col_output_pos
-        self.col_output_off=col_output_off
-        self.col_output_def=col_output_def
-        self.col_output_pa=col_output_pa
-        self.col_mask_pos=col_mask_pos
+        self.col_bio = col_bio
+        self.col_data = col_data.to(device, non_blocking=True).transpose(0, 1)
+        self.col_lengths = col_lengths.to(device, non_blocking=True)
+        self.col_output_draft = col_output_draft.to(device, non_blocking=True)
+        self.col_output_war = col_output_war.to(device, non_blocking=True)
+        self.col_output_pos = col_output_pos.to(device, non_blocking=True)
+        self.col_output_off = col_output_off.to(device, non_blocking=True)
+        self.col_output_def = col_output_def.to(device, non_blocking=True)
+        self.col_output_pa = col_output_pa.to(device, non_blocking=True)
+        self.col_mask_pos = col_mask_pos.to(device, non_blocking=True)
     
-        self.size_pro = sum(1 for l in self.pro_lengths if l > 0)
-        self.size_col = sum(1 for l in self.col_lengths if l > 0)
+        # Faster size calculation
+        self.size_pro = (self.pro_lengths > 0).sum().item()
+        self.size_col = (self.col_lengths > 0).sum().item()
     
     def __len__(self):
-        return self.pro_data.size(dim=1)
+        return self.pro_data.size(dim=0)
     
     def GetProLength(self) -> int:
         return self.size_pro
@@ -84,13 +86,13 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         return self.size_col
     
     def GetProMaxLength(self) -> int:
-        return self.pro_data.shape[0]
+        return self.pro_data.shape[1]
     
     def GetProInputSize(self) -> int:
         return self.pro_data.shape[-1]
     
     def GetColMaxLength(self) -> int:
-        return self.col_data.shape[0]
+        return self.col_data.shape[1]
     
     def GetColInputSize(self) -> int:
         return self.col_data.shape[-1]
@@ -106,40 +108,243 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         if (self.v_idx >= self.v_war_class.size(2)):
             self.v_idx = 0
         
-    def __GetProInput__(self, idx : int):
-        return self.pro_data[:,idx], self.pro_lengths[idx], self.pro_pt_levelYearGames[:,idx],
-        
-    def __GetProOutput__(self, idx : int):
-        return self.pro_o_war_buckets[idx], self.pro_o_level_buckets[idx], self.pro_o_pa_buckets[idx], self.pro_o_stats[:,idx], self.pro_o_positions[:,idx], self.pro_o_mlb_value[:,idx], self.pro_o_pt[:,idx]
-        
-    def __GetProMask__(self, idx : int):
-        return (self.pro_m_labels[:,idx], self.pro_m_stats[:,idx], self.pro_m_year[:,idx], self.pro_m_mlb_value[:,idx])
-        
-    def __GetColInput__(self, idx : int):
-        return self.col_data[:,idx], self.col_lengths[idx]
-    
-    def __GetColOutput__(self, idx : int, is_hitter : bool):
-        if is_hitter:
-            return self.col_output_draft[idx], self.col_output_war[idx], self.col_output_off[idx], self.col_output_def[idx], self.col_output_pa[idx], self.col_output_pos[idx]
+    def get_batch(self, batch_indices):
+        pro_input = (
+            self.pro_data[batch_indices],
+            self.pro_lengths[batch_indices],
+            self.pro_pt_levelYearGames[batch_indices],
+        )
+
+        pro_targets = (
+            self.pro_o_war_buckets[batch_indices],
+            self.pro_o_level_buckets[batch_indices],
+            self.pro_o_pa_buckets[batch_indices],
+            self.pro_o_stats[batch_indices],
+            self.pro_o_positions[batch_indices],
+            self.pro_o_mlb_value[batch_indices],
+            self.pro_o_pt[batch_indices],
+        )
+
+        pro_masks = (
+            self.pro_m_labels[batch_indices],
+            self.pro_m_stats[batch_indices],
+            self.pro_m_year[batch_indices],
+            self.pro_m_mlb_value[batch_indices],
+        )
+
+        col_input = (
+            self.col_data[batch_indices],
+            self.col_lengths[batch_indices],
+        )
+
+        if self.is_hitter:
+            col_targets = (
+                self.col_output_draft[batch_indices],
+                self.col_output_war[batch_indices],
+                self.col_output_off[batch_indices],
+                self.col_output_def[batch_indices],
+                self.col_output_pa[batch_indices],
+                self.col_output_pos[batch_indices],
+            )
         else:
-            return self.col_output_draft[idx], self.col_output_war[idx]
+            col_targets = (
+                self.col_output_draft[batch_indices],
+                self.col_output_war[batch_indices],
+            )
+
+        col_masks = (self.col_mask_pos[batch_indices],)
+
+        return pro_input, pro_targets, pro_masks, col_input, col_targets, col_masks
+
+# class Combined_Player_Dataset(torch.utils.data.Dataset):
+#     def __init__(self, 
+#                 pro_data, 
+#                 pro_lengths, 
+#                 pro_output_labels, 
+#                 pro_output_war_values, 
+#                 pro_mask_labels, 
+#                 pro_mask_stats, 
+#                 pro_mask_year, 
+#                 pro_output_stats, 
+#                 pro_output_positions, 
+#                 pro_mask_mlb_value, 
+#                 pro_output_mlb_value, 
+#                 pro_variants_war_class, 
+#                 pro_variants_war_regression, 
+#                 pro_output_pt,
+#                 pro_pt_levelYearGames,
+                
+#                 col_bio,
+#                 col_data,
+#                 col_lengths,
+#                 col_output_draft,
+#                 col_output_war,
+#                 col_output_pos,
+#                 col_output_off,
+#                 col_output_def,
+#                 col_output_pa,
+#                 is_hitter : bool,
+#                 col_mask_pos,):
         
-    def __GetColMask__(self, idx : int):
-        return self.col_mask_pos[idx],
+#         self.is_hitter = is_hitter
         
-    def __getitem__(self, idx):
-        # if self.should_use_variants:
-        #     return self.__GetProInput__(idx),\
-        #         (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx], self.o_war_values[:,idx]), \
-        #         self.__GetProMask__(idx),
-        # else:
-            return self.__GetProInput__(idx), \
-                self.__GetProOutput__(idx), \
-                self.__GetProMask__(idx), \
-                self.__GetColInput__(idx), \
-                self.__GetColOutput__(idx, self.is_hitter), \
-                self.__GetColMask__(idx)
-        # return idx
+#         self.pro_data = pro_data.to(device, non_blocking=True)
+#         self.pro_lengths = pro_lengths.to(device, non_blocking=True)
+        
+#         self.pro_pt_levelYearGames = pro_pt_levelYearGames.to(device, non_blocking=True)
+        
+#         self.pro_o_war_buckets = pro_output_labels[:,0].to(device, non_blocking=True)
+#         self.pro_o_level_buckets = pro_output_labels[:,1].to(device, non_blocking=True)
+#         self.pro_o_pa_buckets = pro_output_labels[:,2].to(device, non_blocking=True)
+#         self.pro_o_war_values = pro_output_war_values.to(device, non_blocking=True)
+#         self.pro_o_stats = pro_output_stats.to(device, non_blocking=True)
+#         self.pro_o_positions = pro_output_positions.to(device, non_blocking=True)
+#         self.pro_o_mlb_value = pro_output_mlb_value.to(device, non_blocking=True)
+#         self.pro_o_pt = pro_output_pt.to(device, non_blocking=True)
+        
+#         self.pro_m_labels = pro_mask_labels.to(device, non_blocking=True)
+#         self.pro_m_stats = pro_mask_stats.to(device, non_blocking=True)
+#         self.pro_m_year = pro_mask_year.to(device, non_blocking=True)
+#         self.pro_m_mlb_value = pro_mask_mlb_value.to(device, non_blocking=True)
+        
+#         self.pro_v_war_class = pro_variants_war_class.to(device, non_blocking=True)
+#         self.pro_v_war_regression = pro_variants_war_regression.to(device, non_blocking=True)
+#         self.pro_v_idx = 0
+#         self.pro_use_variants = False
+        
+#         self.col_bio=col_bio
+#         self.col_data=col_data.to(device, non_blocking=True)
+#         self.col_lengths=col_lengths.to(device, non_blocking=True)
+#         self.col_output_draft=col_output_draft.to(device, non_blocking=True)
+#         self.col_output_war=col_output_war.to(device, non_blocking=True)
+#         self.col_output_pos=col_output_pos.to(device, non_blocking=True)
+#         self.col_output_off=col_output_off.to(device, non_blocking=True)
+#         self.col_output_def=col_output_def.to(device, non_blocking=True)
+#         self.col_output_pa=col_output_pa.to(device, non_blocking=True)
+#         self.col_mask_pos=col_mask_pos.to(device, non_blocking=True)
+    
+#         self.size_pro = sum(1 for l in self.pro_lengths if l > 0)
+#         self.size_col = sum(1 for l in self.col_lengths if l > 0)
+    
+#     def __len__(self):
+#         return self.pro_data.size(dim=1)
+    
+#     def GetProLength(self) -> int:
+#         return self.size_pro
+    
+#     def GetColLength(self) -> int:
+#         return self.size_col
+    
+#     def GetProMaxLength(self) -> int:
+#         return self.pro_data.shape[0]
+    
+#     def GetProInputSize(self) -> int:
+#         return self.pro_data.shape[-1]
+    
+#     def GetColMaxLength(self) -> int:
+#         return self.col_data.shape[0]
+    
+#     def GetColInputSize(self) -> int:
+#         return self.col_data.shape[-1]
+    
+#     def should_augment_data(self, should_augment):
+#         self.should_augment = should_augment
+        
+#     def should_use_variants(self, should_use : bool):
+#         self.use_variants = should_use
+        
+#     def increase_variant(self):
+#         self.v_idx += 1
+#         if (self.v_idx >= self.v_war_class.size(2)):
+#             self.v_idx = 0
+        
+#     def __GetProInput__(self, idx : int):
+#         return self.pro_data[:,idx], self.pro_lengths[idx], self.pro_pt_levelYearGames[:,idx],
+        
+#     def __GetProOutput__(self, idx : int):
+#         return self.pro_o_war_buckets[idx], self.pro_o_level_buckets[idx], self.pro_o_pa_buckets[idx], self.pro_o_stats[:,idx], self.pro_o_positions[:,idx], self.pro_o_mlb_value[:,idx], self.pro_o_pt[:,idx]
+        
+#     def __GetProMask__(self, idx : int):
+#         return (self.pro_m_labels[:,idx], self.pro_m_stats[:,idx], self.pro_m_year[:,idx], self.pro_m_mlb_value[:,idx])
+        
+#     def __GetColInput__(self, idx : int):
+#         return self.col_data[:,idx], self.col_lengths[idx]
+    
+#     def __GetColOutput__(self, idx : int, is_hitter : bool):
+#         if is_hitter:
+#             return self.col_output_draft[idx], self.col_output_war[idx], self.col_output_off[idx], self.col_output_def[idx], self.col_output_pa[idx], self.col_output_pos[idx]
+#         else:
+#             return self.col_output_draft[idx], self.col_output_war[idx]
+        
+#     def __GetColMask__(self, idx : int):
+#         return self.col_mask_pos[idx],
+        
+#     def get_batch(self, batch_indices):
+#         # pro input
+#         pro_input = (
+#             self.pro_data[:, batch_indices],
+#             self.pro_lengths[batch_indices],
+#             self.pro_pt_levelYearGames[:, batch_indices],
+#         )
+
+#         # pro targets (7 tensors)
+#         pro_targets = (
+#             self.pro_o_war_buckets[batch_indices],
+#             self.pro_o_level_buckets[batch_indices],
+#             self.pro_o_pa_buckets[batch_indices],
+#             self.pro_o_stats[:, batch_indices],
+#             self.pro_o_positions[:, batch_indices],
+#             self.pro_o_mlb_value[:, batch_indices],
+#             self.pro_o_pt[:, batch_indices],
+#         )
+
+#         # pro masks (4 tensors)
+#         pro_masks = (
+#             self.pro_m_labels[:, batch_indices],
+#             self.pro_m_stats[:, batch_indices],
+#             self.pro_m_year[:, batch_indices],
+#             self.pro_m_mlb_value[:, batch_indices],
+#         )
+
+#         # col input
+#         col_input = (
+#             self.col_data[:, batch_indices],
+#             self.col_lengths[batch_indices],
+#         )
+
+#         # col targets
+#         if self.is_hitter:
+#             col_targets = (
+#                 self.col_output_draft[batch_indices],
+#                 self.col_output_war[batch_indices],
+#                 self.col_output_off[batch_indices],
+#                 self.col_output_def[batch_indices],
+#                 self.col_output_pa[batch_indices],
+#                 self.col_output_pos[batch_indices],
+#             )
+#         else:
+#             col_targets = (
+#                 self.col_output_draft[batch_indices],
+#                 self.col_output_war[batch_indices],
+#             )
+
+#         # col masks
+#         col_masks = (self.col_mask_pos[batch_indices],)
+
+#         return pro_input, pro_targets, pro_masks, col_input, col_targets, col_masks
+        
+#     def __getitem__(self, idx):
+#         # if self.should_use_variants:
+#         #     return self.__GetProInput__(idx),\
+#         #         (self.v_war_class[:,idx,self.v_idx], self.o_level_buckets[:,idx], self.o_pa_buckets[:,idx], self.o_stats[:,idx], self.o_positions[:,idx], self.o_mlb_value[:,idx], self.o_pt[:,idx], self.o_war_values[:,idx]), \
+#         #         self.__GetProMask__(idx),
+#         # else:
+#             return self.__GetProInput__(idx), \
+#                 self.__GetProOutput__(idx), \
+#                 self.__GetProMask__(idx), \
+#                 self.__GetColInput__(idx), \
+#                 self.__GetColOutput__(idx, self.is_hitter), \
+#                 self.__GetColMask__(idx)
     
 def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
     io_train : list[Combined_IO]

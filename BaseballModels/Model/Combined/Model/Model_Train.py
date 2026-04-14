@@ -16,15 +16,17 @@ import torch
 import matplotlib.pyplot as plt
 from Utilities import profiler
 
+SHOULD_PROFILE = False
 
 def TrainAndGraph(
     pro_network : Pro_Model,
     col_network : Col_Model,
     train_dataset : Combined_Player_Dataset,
     test_dataset : Combined_Player_Dataset,
-    batch_size : int,
-    num_epochs : int,
+    
     is_hitter : bool,
+    num_epochs : int = 201,
+    batch_size : int = 1600,
     logging_interval : int = 10,
     should_output : bool = True,
     pro_model_name : str = "no_name_pro",
@@ -32,8 +34,10 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 10,
+    accumulation_steps : int = 1,
 ) -> float:
-    #profiler.enable()
+    if SHOULD_PROFILE:
+        profiler.enable()
     
     num_pro_elements = NUM_ELEMENTS
     if is_hitter:
@@ -51,19 +55,6 @@ def TrainAndGraph(
     best_epoch = -1
     epochs_since_improve = 0
     
-    train_generator = torch.utils.data.DataLoader(train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True,
-        num_workers=4,
-        persistent_workers=True,
-        pin_memory=True)
-    test_generator = torch.utils.data.DataLoader(test_dataset, 
-        batch_size=batch_size, 
-        shuffle=False,
-        num_workers=4,
-        persistent_workers=True,
-        pin_memory=True)
-    
     col_optimizer = torch.optim.Adam(col_network.parameters(), lr=0.0025)
     col_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(col_optimizer, factor=0.5, patience=5, cooldown=5)
     pro_scheduler = Scheduler(pro_network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
@@ -76,23 +67,25 @@ def TrainAndGraph(
         train_loss = Train(
             pro_network=pro_network, 
             col_network=col_network, 
-            generator=train_generator, 
+            dataset=train_dataset, 
             pro_size=train_dataset.GetProLength(), 
             col_size=train_dataset.GetColLength(), 
             pro_optimizer=pro_network.optimizer, 
             col_optimizer=col_optimizer,
             is_hitter=is_hitter,
             pro_elements=num_pro_elements,
-            col_elements=num_col_elements,)
+            col_elements=num_col_elements,
+            batch_size=batch_size)
         test_loss = Test(
             pro_network=pro_network,
             col_network=col_network,
-            generator=test_generator,
+            dataset=test_dataset,
             pro_size=test_dataset.GetProLength(),
             col_size=test_dataset.GetColLength(),
             is_hitter=is_hitter,
             pro_elements=num_pro_elements,
-            col_elements=num_col_elements,)
+            col_elements=num_col_elements,
+            batch_size=batch_size)
         
         for n in range(num_elements):
             train_loss_history[n].append(train_loss[n])
@@ -123,20 +116,21 @@ def TrainAndGraph(
         print(f"Best result at epoch={best_epoch} loss={best_loss}")
         for n in range(num_elements):
             GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=element_list[n])
-        
-    # profiler.disable()
-    # profiler.dump_stats("train_profile.lprof")
+    
+    if SHOULD_PROFILE:    
+        profiler.disable()
+        profiler.dump_stats("train_profile.lprof")
         
     if get_end_loss:
-        return test_loss[element_to_save]
+        return test_loss[element_to_save], epoch
     else:
-        return best_loss
+        return best_loss, epoch
   
 @profiler
 def Train(
     pro_network : Pro_Model,
     col_network : Col_Model,
-    generator : torch.utils.data.DataLoader,
+    dataset : Combined_Player_Dataset,
     pro_size : int,
     col_size : int,
     pro_optimizer : torch.optim.Optimizer,
@@ -144,13 +138,24 @@ def Train(
     is_hitter : bool,
     pro_elements : int,
     col_elements : int,
+    batch_size : int,
 ) -> list[float]:
     
     pro_network.train()
     col_network.train()
     avg_loss = [0] * (pro_elements + col_elements)
     
-    for pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks in generator:
+    n_samples = len(dataset)
+    num_batches = (n_samples + batch_size - 1) // batch_size
+    indices = torch.randperm(n_samples)
+    
+    # for i, (pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks) in enumerate(generator):
+    for batch_i in range(num_batches):
+        start = batch_i * batch_size
+        end = min(start + batch_size, n_samples)
+        batch_indices = indices[start:end]
+        pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks = dataset.get_batch(batch_indices)
+        
         col_optimizer.zero_grad()
         pro_optimizer.zero_grad()
         if is_hitter:
@@ -182,19 +187,29 @@ def Train(
 def Test(
     pro_network : Pro_Model,
     col_network : Col_Model,
-    generator : torch.utils.data.DataLoader,
+    dataset : Combined_Player_Dataset,
     pro_size : int,
     col_size : int,
     is_hitter : bool,
     pro_elements : int,
     col_elements : int,
+    batch_size : int,
 ) -> list[float]:
     
     pro_network.eval()
     col_network.eval()
     avg_loss = [0] * (pro_elements + col_elements)
     
-    for pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks in generator:
+    n_samples = len(dataset)
+    num_batches = (n_samples + batch_size - 1) // batch_size
+    indices = torch.arange(n_samples)
+    
+    for batch_i in range(num_batches):
+        start = batch_i * batch_size
+        end = min(start + batch_size, n_samples)
+        batch_indices = indices[start:end]
+        pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks = dataset.get_batch(batch_indices)
+        
         if is_hitter:
             col_losses, h0 = GetLossesHitter(col_network, col_data, col_targets, col_masks, shouldBackprop=False)
         else:

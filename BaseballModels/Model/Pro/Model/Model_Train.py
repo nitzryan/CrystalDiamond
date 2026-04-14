@@ -45,7 +45,7 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   
-  if shouldBackprop:
+  if shouldBackprop or False:
     torch.autograd.backward([loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue])
   
   return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)

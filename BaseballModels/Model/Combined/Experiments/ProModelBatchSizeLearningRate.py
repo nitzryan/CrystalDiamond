@@ -8,11 +8,12 @@ from College.Model.College_Model import RNN_Model as College_Model
 from Combined.Model.Model_Train import TrainAndGraph
 import torch
 from Constants import device
+import time
 
 if __name__ == "__main__":
 
-    batch_sizes = range(200, 4801, 400)
-    learning_rates = [x / 2000 for x in range(10)]
+    batch_sizes = range(1200, 6401, 400)
+    learning_rates = [x / 2000 for x in range(1, 21)]
     num_epochs = 201
 
     data_prep = Combined_Data_Prep(
@@ -28,33 +29,29 @@ if __name__ == "__main__":
     xs = []
     ys = []
     zs = []
-
-    pro_model = Pro_Model(
-        input_size=train_dataset.GetProInputSize(),
-        mutators=torch.empty(0),
-        data_prep=data_prep.pro_data_prep,
-        is_hitter=True,
-    ).to(device)
-    col_model = College_Model(
-        input_size=train_dataset.GetColInputSize(),
-        data_prep=data_prep.college_data_prep,
-        is_hitter=True,
-        output_hidden_size=pro_model.GetHiddenSize(),
-        output_num_layers=pro_model.GetNumLayers()
-    ).to(device)
+    z_epochs = []
+    z_times = []
 
     for batch_size in tqdm(batch_sizes, desc="Batch Size"):
-        for lr in tqdm(learning_rates, desc="Dropout", leave=False):
+        for lr in tqdm(learning_rates, desc="Learning Rates", leave=False):
             pro_model = Pro_Model(
-                input_size=train_dataset.GetProInputSize(),
-                mutators=torch.empty(0),
-                data_prep=data_prep.pro_data_prep,
+            input_size=train_dataset.GetProInputSize(),
+            mutators=torch.empty(0),
+            data_prep=data_prep.pro_data_prep,
+            is_hitter=True,
+            ).to(device)
+            col_model = College_Model(
+                input_size=train_dataset.GetColInputSize(),
+                data_prep=data_prep.college_data_prep,
                 is_hitter=True,
+                output_hidden_size=pro_model.GetHiddenSize(),
+                output_num_layers=pro_model.GetNumLayers()
             ).to(device)
             
             pro_model.optimizer.param_groups[0]["lr"] = lr
             
-            best_loss = TrainAndGraph(
+            start = time.perf_counter()
+            best_loss, last_epoch = TrainAndGraph(
                 pro_network=pro_model,
                 col_network=col_model,
                 train_dataset=train_dataset,
@@ -66,15 +63,19 @@ if __name__ == "__main__":
                 is_hitter=True,
                 should_output=False
             )
+            end = time.perf_counter()
             
             xs.append(batch_size)
             ys.append(lr)
             zs.append(best_loss)
+            z_epochs.append(last_epoch)
+            z_times.append(end - start)
             
     import pandas as pd
     import seaborn as sns
     import matplotlib.pyplot as plt
 
+    # Test Loss
     df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
     pivot_table = df.pivot(index='y', columns='x', values='z')
     plt.figure(figsize=(1 * len(batch_sizes), .75 * len(learning_rates) + 2))
@@ -84,10 +85,46 @@ if __name__ == "__main__":
         fmt='.3f',
         cmap='viridis',
         linewidths=0.5,
-        xticklabels=["{x}" for x in batch_sizes],
+        xticklabels=[f"{x}" for x in batch_sizes],
         yticklabels=[f"{y:.4f}" for y in learning_rates],
     )
     plt.xlabel('Batch Size')
     plt.ylabel('Learning Rates')
     plt.title('Test Loss vs Training Params')
     plt.savefig(f'Combined/Experiments/Results/Hitters_ProBatchSizeLearningRate.png', dpi=400)
+    
+    # Num Epochs
+    df = pd.DataFrame({'x': xs, 'y': ys, 'z': z_epochs})
+    pivot_table = df.pivot(index='y', columns='x', values='z')
+    plt.figure(figsize=(1 * len(batch_sizes), .75 * len(learning_rates) + 2))
+    sns.heatmap(
+        pivot_table, 
+        annot=True,
+        fmt='d',
+        cmap='viridis',
+        linewidths=0.5,
+        xticklabels=[f"{x}" for x in batch_sizes],
+        yticklabels=[f"{y:.4f}" for y in learning_rates],
+    )
+    plt.xlabel('Batch Size')
+    plt.ylabel('Learning Rates')
+    plt.title('Num Epochs vs Training Params')
+    plt.savefig(f'Combined/Experiments/Results/Hitters_EpochsToComplete.png', dpi=400)
+    
+    # Runtime
+    df = pd.DataFrame({'x': xs, 'y': ys, 'z': z_times})
+    pivot_table = df.pivot(index='y', columns='x', values='z')
+    plt.figure(figsize=(1 * len(batch_sizes), .75 * len(learning_rates) + 2))
+    sns.heatmap(
+        pivot_table, 
+        annot=True,
+        fmt='.1f',
+        cmap='viridis',
+        linewidths=0.5,
+        xticklabels=[f"{x}" for x in batch_sizes],
+        yticklabels=[f"{y:.4f}" for y in learning_rates],
+    )
+    plt.xlabel('Batch Size')
+    plt.ylabel('Learning Rates')
+    plt.title('Runtime vs Training Params')
+    plt.savefig(f'Combined/Experiments/Results/Hitters_RuntimeProBatchSizeLearningRate.png', dpi=400)

@@ -18,6 +18,7 @@ def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     data, length = data
     data = data.to(device, non_blocking=True)
     length = length.to(device, non_blocking=True)
+    
     output_draft, output_war, output_off, output_def, output_pa, output_pos, output_hidden = network(data, length)
     
     max_len = output_draft.size(1)
@@ -43,7 +44,7 @@ def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
     loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
-    if shouldBackprop:
+    if shouldBackprop or False:
       torch.autograd.backward([loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos], retain_graph=True)
 
     
