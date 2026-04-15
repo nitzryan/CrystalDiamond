@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 from Pro.DataPrep.Prep_Map import Prep_Map
 from Pro.DataPrep.Output_Map import Output_Map
-from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats
+from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS
 import DB_AdvancedStatements
 import numpy as np # Random normal distribution
 
@@ -33,7 +33,11 @@ class Player_IO:
                  mlb_value_mask : torch.Tensor,
                  mlb_value_stats : torch.Tensor,
                  pt_year_output : torch.Tensor,
-                 pt_levelYearGames : torch.Tensor):
+                 pt_levelYearGames : torch.Tensor,
+                 
+                 mlb_stat_buckets : torch.Tensor,
+                 mlb_stat_mask : torch.Tensor,
+                 ):
         
         self.player = player
         self.input = input
@@ -52,6 +56,9 @@ class Player_IO:
         self.mlb_value_stats = mlb_value_stats
         self.pt_year_output = pt_year_output
         self.pt_levelYearGames = pt_levelYearGames
+        
+        self.mlb_stat_buckets = mlb_stat_buckets
+        self.mlb_stat_mask = mlb_stat_mask
         
     @staticmethod
     def GetMaxLength(io_list : list['Player_IO']) -> int:
@@ -397,6 +404,23 @@ class Data_Prep:
                         _p, stat_start_idx = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     pos_year_output[i,:] = _p
             
+            # MLB Stat Buckets
+            mlb_stat_buckets = torch.zeros(l, NUM_HITTER_STATS, dtype=torch.long)
+            mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
+            if len(level_stats) > 1:
+                start_month = stats[1].Month
+                start_year = stats[1].Year
+                stat_start_idx = 0
+                
+                for i in range(l):
+                    if i == 0:
+                        buckets, mask, _ = Aggregate_HitterMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=level_stats, start_idx=stat_start_idx)
+                    else:
+                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=level_stats, start_idx=stat_start_idx)
+                    
+                    mlb_stat_buckets[i,:] = buckets
+                    mlb_stat_mask[i] = mask
+            
             # MLB Value stats and mask
             mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.float)
             mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
@@ -448,7 +472,10 @@ class Data_Prep:
                                 pt_year_output=pt_year_output, 
                                 mlb_value_mask=mlb_value_mask, 
                                 mlb_value_stats=mlb_value_stats,
-                                pt_levelYearGames = mlyg))
+                                pt_levelYearGames = mlyg,
+                                
+                                mlb_stat_buckets = mlb_stat_buckets,
+                                mlb_stat_mask = mlb_stat_mask,))
         
         return io
        

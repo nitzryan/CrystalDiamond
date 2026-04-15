@@ -66,6 +66,8 @@ class Combined_Data_Prep:
             mlb_value_stats=torch.zeros(0, *player_template.mlb_value_stats.shape[1:]),
             pt_year_output=torch.zeros(0, *player_template.pt_year_output.shape[1:]),
             pt_levelYearGames=torch.zeros(0, *player_template.pt_levelYearGames.shape[1:]),
+            mlb_stat_buckets=torch.zeros(0, *player_template.mlb_stat_buckets.shape[1:], dtype=torch.long),
+            mlb_stat_mask=torch.zeros(0, *player_template.mlb_stat_mask.shape[1:]),
         )
     
     def GetEmptyCollegeIO(self) -> College_IO:

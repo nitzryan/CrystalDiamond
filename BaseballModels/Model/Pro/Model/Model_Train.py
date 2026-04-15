@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, Prospect_WarRegression_Loss, Pt_Loss
+from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
 from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 from Utilities import profiler
 
-ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime"]
+ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
+ELEMENT_LOSS_SCALES = [1] * NUM_ELEMENTS
 
 @profiler
 def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.Tensor, shouldBackprop : bool, is_hitter: bool) -> tuple:
@@ -19,11 +20,11 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   length = length[mask_valid].to(device, non_blocking=True)
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
   h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt = network(data, length, pt_levelYearGames, h0)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0)
   
   # Move targets and masks to GPU
-  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt = targets
-  mask_labels, mask_stats, mask_year, mask_mlbValue = masks
+  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets
+  mask_labels, mask_stats, mask_year, mask_mlbValue, mask_mlbstat = masks
   
   target_war = target_war[mask_valid].to(device, non_blocking=True)
   target_level = target_level[mask_valid].to(device, non_blocking=True)
@@ -32,11 +33,13 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   target_yearPos = target_yearPos[mask_valid].to(device, non_blocking=True)
   target_mlbValue = target_mlbValue[mask_valid].to(device, non_blocking=True)
   target_pt = target_pt[mask_valid].to(device, non_blocking=True)
+  target_mlbstat = target_mlbstat[mask_valid].to(device, non_blocking=True)
   
   mask_labels = mask_labels[mask_valid].to(device, non_blocking=True)
   mask_year = mask_year[mask_valid].to(device, non_blocking=True)
   mask_stats = mask_stats[mask_valid].to(device, non_blocking=True)
   mask_mlbValue = mask_mlbValue[mask_valid].to(device, non_blocking=True)
+  mask_mlbstat = mask_mlbstat[mask_valid].to(device, non_blocking=True)
   
   # Get losses
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
@@ -44,11 +47,24 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
+  loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat)
   
-  if shouldBackprop or False:
-    torch.autograd.backward([loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue])
+  # Scale how much each loss should effect the model
+  losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]
+  for i in range(NUM_ELEMENTS):
+    els = ELEMENT_LOSS_SCALES[i]
+    if els != 1:
+      losses[i] *= els
   
-  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt)
+  if shouldBackprop:
+    torch.autograd.backward(losses)
+  
+  for i in range(NUM_ELEMENTS):
+    els = ELEMENT_LOSS_SCALES[i]
+    if els != 1:
+      losses[i] /= els
+  
+  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat)
 
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution

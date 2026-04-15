@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Pro.DataPrep.Data_Prep import Data_Prep
+from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
@@ -29,6 +30,7 @@ DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
+DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
@@ -37,6 +39,7 @@ DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
 DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
+DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
 DEFAULT_PRO_HIDDEN_SIZE = 35
 DEFAULT_PRO_NUM_LAYERS = 3
@@ -61,13 +64,15 @@ class RNN_Model(nn.Module):
                 lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
                 pa_arch : LayerArch = DEFAULT_PA_ARCH,
                 val_arch : LayerArch = DEFAULT_VALUE_ARCH,
+                mlbstat_arch : LayerArch = DEFAULT_MLBSTAT_ARCH,
                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
                 warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
                 pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
                 pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                 pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
-                val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,):
+                val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
+                mlbstat_arch_p : LayerArch = DEFAULT_MLBSTAT_ARCH_P,):
         super().__init__()
         
         self.hidden_size = hidden_size
@@ -81,6 +86,7 @@ class RNN_Model(nn.Module):
             lvl_arch = lvl_arch_p
             pa_arch = pa_arch_p
             val_arch = val_arch_p
+            mlbstat_arch = mlbstat_arch_p
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
@@ -97,6 +103,7 @@ class RNN_Model(nn.Module):
         self.pos_layers = pos_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         self.pt_layers = pt_arch.GetArchitecture(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
         self.value_layers = val_arch.GetArchitecture(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
+        self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
         
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
@@ -152,6 +159,7 @@ class RNN_Model(nn.Module):
         yearPos_params = GetParameters(self.pos_layers)
         mlbValue_params = GetParameters(self.value_layers)
         yearPt_params = GetParameters(self.pt_layers)
+        mlbstat_params = GetParameters(self.mlbstat_layers)
         
         self.optimizer = torch.optim.Adam([{'params': shared_params, 'lr': 0.003},
                                            {'params': war_class_params, 'lr': 0.00125},
@@ -160,7 +168,8 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.015},
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.005},
-                                           {'params': yearPt_params, 'lr': 0.012}]) \
+                                           {'params': yearPt_params, 'lr': 0.012},
+                                           {'params': mlbstat_params, 'lr': 0.001}]) \
                                         \
                         if is_hitter else \
                         torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
@@ -170,7 +179,8 @@ class RNN_Model(nn.Module):
                                            {'params': yearStat_params, 'lr': 0.01},
                                            {'params': yearPos_params, 'lr': 0.025},
                                            {'params': mlbValue_params, 'lr': 0.01},
-                                           {'params': yearPt_params, 'lr': 0.018}])
+                                           {'params': yearPt_params, 'lr': 0.018},
+                                           {'params': mlbstat_params, 'lr': 0.005}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -213,6 +223,7 @@ class RNN_Model(nn.Module):
         output_yearStats = self.GetModuleOutput(output, self.yearStats_layers)
         output_yearPositions = self.GetModuleOutput(output, self.pos_layers)
         output_mlbValue = self.GetModuleOutput(output, self.value_layers)
+        output_mlbStat = self.GetModuleOutput(output, self.mlbstat_layers)
         
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
@@ -236,7 +247,7 @@ class RNN_Model(nn.Module):
             output_pt = F.tanh(layer(output_pt))
         output_pt = self.softplus(self.pt_layers[-1](output_pt)) + self.pt_offset
         
-        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt
+        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
     
     
 def Stats_Loss(pred_stats, actual_stats, masks):
@@ -344,23 +355,22 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
         l += (loss(pred_positions[:,x,:], actual_positions[:,x,:]) * masks[:,x]).sum()
     return l
     
-def Prospect_WarRegression_Loss(pred_war, actual_war, masks):
-    actual_war = actual_war[:,:pred_war.size(1)]
-    masks = masks[:,:pred_war.size(1)]
+def MLB_Stat_Classification_Loss(pred_stats, actual_stats, masks):
+    batch_size = pred_stats.size(0)
+    time_steps = pred_stats.size(1)
+    masks = masks[:,:time_steps]
+    actual_stats = actual_stats[:, :time_steps]
     
-    batch_size = actual_war.size(0)
-    time_steps = actual_war.size(1)
+    pred_stats = pred_stats.reshape((batch_size * time_steps, NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT))
+    masks = masks.reshape((batch_size * time_steps,))
+    actual_stats = actual_stats.reshape((batch_size * time_steps, NUM_HITTER_STATS))
     
-    actual_war = actual_war.reshape((batch_size * time_steps,))
-    masks = masks.reshape((batch_size, time_steps,))
-    pred_war = pred_war.reshape((batch_size * time_steps,))
-    
-    l = nn.HuberLoss(reduction='none')
-    loss = l(pred_war, actual_war)
-    loss = loss.reshape((batch_size, time_steps))
-    loss *= masks
-    
-    return loss.sum(dim=1).sum()
+    l = nn.CrossEntropyLoss(reduction='none', label_smoothing=0.25)
+    loss = 0
+    for i in range(NUM_HITTER_STATS):
+        loss += (l(pred_stats[:, i], actual_stats[:,i]) * masks).sum()
+        
+    return loss
     
 def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level, actual_pa, masks):
     masks = masks[:,:pred_level.size(1)]

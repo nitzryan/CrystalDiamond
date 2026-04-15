@@ -8,11 +8,11 @@ from College.Model.College_Model import RNN_Model as College_Model
 from Combined.Model.Model_Train import TrainAndGraph
 import torch
 from Constants import device
+import math
+from Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST, ELEMENT_LOSS_SCALES
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    pro_hidden_sizes = range(10, 141, 5)
-    pro_num_layers = range(1, 11)
-
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
         Output_Map.base_output_map,
@@ -23,29 +23,30 @@ if __name__ == "__main__":
                                             col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0, True)
 
-    xs = []
-    ys = []
-    zs = []
+    param_values = [0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6]
+    param_idx = range(NUM_ELEMENTS)
 
-    for num_layers in tqdm(pro_num_layers, desc="Num Layers"):
-        for hidden_size in tqdm(pro_hidden_sizes, desc="Hidden Sizes", leave=False):
+    for i in tqdm(param_idx, desc="Output Branches"):
+        xs = []
+        ys = []
+        for pv in tqdm(param_values, desc="Scale Values", leave=False):
+            pro_model = Pro_Model(
+            input_size=train_dataset.GetProInputSize(),
+            mutators=torch.empty(0),
+            data_prep=data_prep.pro_data_prep,
+            is_hitter=True,
+            ).to(device)
             col_model = College_Model(
                 input_size=train_dataset.GetColInputSize(),
                 data_prep=data_prep.college_data_prep,
                 is_hitter=True,
-                output_hidden_size=hidden_size,
-                output_num_layers=num_layers
-            ).to(device)
-            pro_model = Pro_Model(
-                input_size=train_dataset.GetProInputSize(),
-                num_layers=num_layers,
-                hidden_size=hidden_size,
-                mutators=torch.empty(0),
-                data_prep=data_prep.pro_data_prep,
-                is_hitter=True,
+                output_hidden_size=pro_model.GetHiddenSize(),
+                output_num_layers=pro_model.GetNumLayers()
             ).to(device)
             
-            best_loss, _ = TrainAndGraph(
+            ELEMENT_LOSS_SCALES[i] = pv
+            
+            best_loss, last_epoch = TrainAndGraph(
                 pro_network=pro_model,
                 col_network=col_model,
                 train_dataset=train_dataset,
@@ -56,27 +57,16 @@ if __name__ == "__main__":
                 should_output=False
             )
             
-            xs.append(hidden_size)
-            ys.append(num_layers)
-            zs.append(best_loss)
+            xs.append(pv)
+            ys.append(best_loss)
             
-    import pandas as pd
-    import seaborn as sns
-    import matplotlib.pyplot as plt
+    
 
-    df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
-    pivot_table = df.pivot(index='y', columns='x', values='z')
-    plt.figure(figsize=(1 * len(pro_hidden_sizes), .75 * len(pro_num_layers) + 2))
-    sns.heatmap(
-        pivot_table, 
-        annot=True,
-        fmt='.3f',
-        cmap='viridis',
-        linewidths=0.5,
-        xticklabels=[round(x) for x in pro_hidden_sizes],
-        yticklabels=[round(y) for y in pro_num_layers],
-    )
-    plt.xlabel('Hidden Size')
-    plt.ylabel('Num Layers')
-    plt.title('Test Loss vs Pro RNN Architecture')
-    plt.savefig(f'Combined/Experiments/Results/Hitters_ProRecurrent_HiddenSizeNumLayers.png', dpi=400)
+        # Test Loss
+        plt.scatter(xs, ys)
+        plt.xlabel('Parameter Scale')
+        plt.ylabel('Test Loss')
+        plt.title(f'Parameter Scale for {ELEMENT_LIST[i]}')
+        plt.tight_layout(pad=0.25)
+        plt.savefig(f'Combined/Experiments/Results/BranchLearningRates/Hitters_{ELEMENT_LIST[i]}_LearningRate.png', dpi=400)
+        plt.clf()

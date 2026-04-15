@@ -23,7 +23,6 @@ def TrainAndGraph(
     col_network : Col_Model,
     train_dataset : Combined_Player_Dataset,
     test_dataset : Combined_Player_Dataset,
-    
     is_hitter : bool,
     num_epochs : int = 201,
     batch_size : int = 1600,
@@ -34,7 +33,6 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 10,
-    accumulation_steps : int = 1,
 ) -> float:
     if SHOULD_PROFILE:
         profiler.enable()
@@ -57,7 +55,7 @@ def TrainAndGraph(
     
     col_optimizer = torch.optim.Adam(col_network.parameters(), lr=0.0025)
     col_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(col_optimizer, factor=0.5, patience=5, cooldown=5)
-    pro_scheduler = Scheduler(pro_network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
+    pro_scheduler = Scheduler(pro_network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7], [8]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)
     
     iterable = range(num_epochs)
