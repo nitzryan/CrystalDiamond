@@ -17,6 +17,11 @@ CREATE TABLE PitchStatcast
     "PitchType" INTEGER NOT NULL,
 
     "PaResult" INTEGER NOT NULL,
+    "PaResultOccupancy" INTEGER NOT NULL,
+    "PaResultOuts" INTEGER NOT NULL,
+    "PaResultDirectRuns" INTEGER NOT NULL,
+    "RunsAfterPa" INTEGER NOT NULL, 
+
     "Result" INTEGER NOT NULL,
     "HadSwing" INTEGER NOT NULL,
     "HadContact" INTEGER NOT NULL,

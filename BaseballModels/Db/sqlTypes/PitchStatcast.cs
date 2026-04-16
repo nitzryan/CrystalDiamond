@@ -16,6 +16,10 @@ namespace Db
 		public required DbEnums.BaseOccupancy BaseOccupancy {get; set;}
 		public required DbEnums.PitchType PitchType {get; set;}
 		public required DbEnums.PitchPaResult PaResult {get; set;}
+		public required DbEnums.BaseOccupancy PaResultOccupancy {get; set;}
+		public required int PaResultOuts {get; set;}
+		public required int PaResultDirectRuns {get; set;}
+		public required int RunsAfterPa {get; set;}
 		public required DbEnums.PitchResult Result {get; set;}
 		public required bool HadSwing {get; set;}
 		public required bool HadContact {get; set;}
@@ -72,6 +76,10 @@ namespace Db
 				BaseOccupancy = this.BaseOccupancy,
 				PitchType = this.PitchType,
 				PaResult = this.PaResult,
+				PaResultOccupancy = this.PaResultOccupancy,
+				PaResultOuts = this.PaResultOuts,
+				PaResultDirectRuns = this.PaResultDirectRuns,
+				RunsAfterPa = this.RunsAfterPa,
 				Result = this.Result,
 				HadSwing = this.HadSwing,
 				HadContact = this.HadContact,

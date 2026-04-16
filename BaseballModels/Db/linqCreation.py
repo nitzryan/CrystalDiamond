@@ -24,6 +24,7 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("GamePlayByPlay", "StartBaseOccupancy", "DbEnums.BaseOccupancy"), 
                   ("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
                   ("PitchStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
+                  ("PitchStatcast", "PaResultOccupancy", "DbEnums.BaseOccupancy"),
                   ("PitchNonStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
                   
                   ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),

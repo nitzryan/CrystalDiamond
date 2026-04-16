@@ -7,7 +7,7 @@ using static Db.DbEnums;
 
 namespace DataAquisition
 {
-    internal class GetStatcastData
+    internal class PitchData
     {
         private const int NUM_THREADS = 256; // Older games are really slow to get from server, so use a lot of threads since tons of time will be waiting
         private static int progress_bar_thread = 0;
@@ -339,13 +339,15 @@ namespace DataAquisition
             JsonDocument json = JsonDocument.Parse(responseBody);
             var allPlaysArray = json.RootElement.GetProperty("allPlays").EnumerateArray();
 
+            var playsByInningElement = json.RootElement.GetProperty("playsByInning").EnumerateArray();
             // Track current state, set to impossible values to make sure they are properly getting reset upon entering
             // Both base-occupancy and outs may change due to baserunning moves, but will just ignore, they will average out
             // Only using to see if there are different results for different situations
             int currentOuts = -1;
-            List<int?> baseOccupancy = [null, null, null];
+            List<int?> baseOccupancy = [null, null, null], endBaseOccupancy = [null, null, null];
             int currentInning = 0;
             bool currentInningTop = false;
+            int runsScoredInning = -1;
             foreach (var play in allPlaysArray)
             {
                 // Check to see if new half-inning
@@ -356,8 +358,30 @@ namespace DataAquisition
                 {
                     currentOuts = 0;
                     baseOccupancy = [null, null, null];
+                    endBaseOccupancy = [null, null, null];
                     currentInning = inning;
                     currentInningTop = isTop;
+                    runsScoredInning = 0;
+
+                    // Go through all plays in inning, see how many runners scored
+                    var indInningPlays = playsByInningElement.ElementAt(inning - 1);
+                    var halfInningPlays = (isTop ? indInningPlays.GetProperty("top") : indInningPlays.GetProperty("bottom"))
+                        .EnumerateArray().Select(f => f.GetInt32());
+
+                    foreach (int playIdx in halfInningPlays)
+                    {
+                        var p = allPlaysArray.ElementAt(playIdx);
+                        var runn = p.GetProperty("runners").EnumerateArray();
+                        foreach (var r in runn)
+                        {
+                            if (r.TryGetProperty("movement", out var movementProperty)
+                                && movementProperty.TryGetProperty("end", out var endProperty)
+                                && endProperty.GetString() == "score")
+                            {
+                                runsScoredInning++;
+                            }
+                        }
+                    }
                 }
 
                 // Get results for all pitches this play
@@ -373,7 +397,33 @@ namespace DataAquisition
                 var playEvents = play.GetProperty("playEvents");
                 int countBalls = 0;
                 int countStrikes = 0;
-                
+
+                // Update occupancy
+                var runners = play.GetProperty("runners").EnumerateArray();
+                foreach (var runner in runners)
+                {
+                    var movement = runner.GetProperty("movement");
+                    int originBase = JsonElementToBaseInt(movement.GetProperty("originBase"));
+                    int startBase = JsonElementToBaseInt(movement.GetProperty("start"));
+                    int endBase = JsonElementToBaseInt(movement.GetProperty("end"));
+
+                    var runDetails = runner.GetProperty("details");
+                    int runnerId = runDetails.GetProperty("runner").GetProperty("id").GetInt32();
+
+                    if (endBase != -1 && endBase < 3)
+                        endBaseOccupancy[endBase] = runnerId;
+
+                    if (originBase >= 0 && originBase < 3 && endBaseOccupancy[originBase] == runnerId)
+                        endBaseOccupancy[originBase] = null;
+                    if (startBase >= 0 && startBase < 3 && endBaseOccupancy[startBase] == runnerId)
+                        endBaseOccupancy[startBase] = null;
+                }
+
+                // Get Runs scored this Pa and this inning
+                int runsScoredThisPa = runners.Count(f => f.TryGetProperty("movement", out var movementProperty) && movementProperty.TryGetProperty("end", out var endProperty) && endProperty.GetString() == "score");
+                int outsThisPa = runners.Count(f => f.TryGetProperty("movement", out var movementProperty) && movementProperty.TryGetProperty("isOut", out var isOutProperty) && (isOutProperty.ValueKind != JsonValueKind.Null) && isOutProperty.GetBoolean());
+                runsScoredInning -= runsScoredThisPa;
+
                 foreach (int pitchIndex in pitchIndexArray)
                 {
                     // Get what happened on pitch
@@ -427,8 +477,14 @@ namespace DataAquisition
                             CountStrike = countStrikes,
                             Outs = currentOuts,
                             BaseOccupancy = OccupancyArrayToInt(baseOccupancy),
+
                             PitchType = pitchType,
                             PaResult = playResult,
+                            PaResultOccupancy = OccupancyArrayToInt(endBaseOccupancy),
+                            PaResultOuts = outsThisPa,
+                            PaResultDirectRuns = runsScoredThisPa,
+                            RunsAfterPa = runsScoredInning,
+
                             Result = pitchResult,
                             HadSwing = hadSwing,
                             HadContact = hadContact,
@@ -502,26 +558,8 @@ namespace DataAquisition
                     currentOuts = count.GetProperty("outs").GetInt32();
                 }
 
-                // Update occupancy
-                var runners = play.GetProperty("runners").EnumerateArray();
-                foreach (var runner in runners)
-                {
-                    var movement = runner.GetProperty("movement");
-                    int originBase = JsonElementToBaseInt(movement.GetProperty("originBase"));
-                    int startBase = JsonElementToBaseInt(movement.GetProperty("start"));
-                    int endBase = JsonElementToBaseInt(movement.GetProperty("end"));
-
-                    var runDetails = runner.GetProperty("details");
-                    int runnerId = runDetails.GetProperty("runner").GetProperty("id").GetInt32();
-
-                    if (endBase != -1 && endBase < 3)
-                        baseOccupancy[endBase] = runnerId;
-
-                    if (originBase >= 0 && originBase < 3 && baseOccupancy[originBase] == runnerId)
-                        baseOccupancy[originBase] = null;
-                    if (startBase >= 0 && startBase < 3 && baseOccupancy[startBase] == runnerId)
-                        baseOccupancy[startBase] = null;
-                }
+                for (int i = 0; i < 3; i++)
+                    baseOccupancy[i] = endBaseOccupancy[i];
             }
 
             return (statcastPitches, nonStatcastPitches);

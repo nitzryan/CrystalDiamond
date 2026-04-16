@@ -132,8 +132,10 @@
             {
                 foreach (var year in years)
                 {
-                    while (!await GetStatcastData.Update(year, year == years.Last()))
+                    while (!await PitchData.Update(year, year == years.Last()))
                     { }
+
+                    
                 }
             }
             
