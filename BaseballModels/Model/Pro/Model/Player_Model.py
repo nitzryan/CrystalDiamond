@@ -26,10 +26,10 @@ class LayerArch:
 DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=150, num_layers=2)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=70, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=130, num_layers=3)
-DEFAULT_POS_ARCH = LayerArch(layer_size=30, num_layers=2)
-DEFAULT_LVL_ARCH = LayerArch(layer_size=70, num_layers=2)
-DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
-DEFAULT_VALUE_ARCH = LayerArch(layer_size=40, num_layers=2)
+DEFAULT_POS_ARCH = LayerArch(layer_size=90, num_layers=2)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=60, num_layers=3)
+DEFAULT_PA_ARCH = LayerArch(layer_size=70, num_layers=2)
+DEFAULT_VALUE_ARCH = LayerArch(layer_size=80, num_layers=3)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
@@ -41,8 +41,8 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 35
-DEFAULT_PRO_NUM_LAYERS = 3
+DEFAULT_PRO_HIDDEN_SIZE = 45
+DEFAULT_PRO_NUM_LAYERS = 10
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_DROPOUT = 0
@@ -169,7 +169,7 @@ class RNN_Model(nn.Module):
                                            {'params': yearPos_params, 'lr': 0.01},
                                            {'params': mlbValue_params, 'lr': 0.005},
                                            {'params': yearPt_params, 'lr': 0.012},
-                                           {'params': mlbstat_params, 'lr': 0.001}]) \
+                                           {'params': mlbstat_params, 'lr': 0.0001}]) \
                                         \
                         if is_hitter else \
                         torch.optim.Adam([{'params': shared_params, 'lr': 0.00125},
