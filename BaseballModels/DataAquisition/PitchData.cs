@@ -9,7 +9,7 @@ namespace DataAquisition
 {
     internal class PitchData
     {
-        private const int NUM_THREADS = 256; // Older games are really slow to get from server, so use a lot of threads since tons of time will be waiting
+        private const int NUM_THREADS = 16; // If need to get to old MiLB data, bump up really high since data is cold on db server
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
         private const int PITCHES_PER_GAME = 500;
@@ -445,7 +445,13 @@ namespace DataAquisition
 
                     // Need to check if statcast data exists or not
                     // Pre-15 had PitchFx, which will just pollute data
-                    if (date.Year >= 2015 && pitchData.TryGetProperty("startSpeed", out var startSpeedElement))
+                    // MiLB had 2021 for FSL, 2022 for PCL (and charlotte, but ignoring), 2023 for AAA
+                    if (date.Year >= 2015 
+                        && pitchData.TryGetProperty("startSpeed", out var startSpeedElement) 
+                        && (date.LevelId == 1 || 
+                            (date.Year >= 2021 && date.LeagueId == 123) ||
+                            (date.Year >= 2022 && date.LeagueId == 112) ||
+                            (date.Year >= 2023 && date.LevelId == 11)))
                     {
                         (var launchSpeed, var launchAngle, var totalDist, var hitCoordX, var hitCoordY) = GetHitData(pitchEvent);
 
@@ -469,7 +475,7 @@ namespace DataAquisition
                             PitchId = gamePitchIndex,
                             PitcherId = pitcherId,
                             HitterId = hitterId,
-                            LeagueId = date.LeagueId,
+                            LeagueId = (date.LeagueId == 103 || date.LeagueId == 104) ? 1 : date.LeagueId,
                             LevelId = date.LevelId,
                             Year = date.Year,
                             Month = date.Month,
@@ -532,7 +538,7 @@ namespace DataAquisition
                             HitterId = hitterId,
                             Year = date.Year,
                             Month = date.Month,
-                            LeagueId = date.LeagueId,
+                            LeagueId = (date.LeagueId == 103 || date.LeagueId == 104) ? 1 : date.LeagueId,
                             LevelId = date.LevelId,
                             CountBalls = countBalls,
                             CountStrike = countStrikes,

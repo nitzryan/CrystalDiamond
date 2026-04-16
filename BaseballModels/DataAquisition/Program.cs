@@ -135,7 +135,7 @@
                     while (!await PitchData.Update(year, year == years.Last()))
                     { }
 
-                    
+                    PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
                 }
             }
             
