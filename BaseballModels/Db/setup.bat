@@ -9,6 +9,7 @@ if exist %db_file% (
 )
 echo creating database file
 sqlite3 %DB_FILE% < creation.sql
+sqlite3 %DB_FILE% < creation_pitch.sql
 
 setlocal EnableDelayedExpansion
 IF EXIST %DB_BACKUP% (

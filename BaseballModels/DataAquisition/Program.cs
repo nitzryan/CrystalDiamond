@@ -6,9 +6,10 @@
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
 
-        const bool UPDATE_COLLEGE_DATA = true;
+        const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
+        const bool STATCAST_ONLY_UPDATE = true;
 
         static async Task Main(string[] args)
         {
@@ -123,6 +124,16 @@
 
                         Model_RawStats.UpdateRawStats(year, month);
                     }
+                }
+            }
+
+            ////////// Statcast Data //////////
+            if (STATCAST_ONLY_UPDATE || DATA_UPDATE || FULL_REFRESH)
+            {
+                foreach (var year in years)
+                {
+                    while (!await GetStatcastData.Update(year, year == years.Last()))
+                    { }
                 }
             }
             

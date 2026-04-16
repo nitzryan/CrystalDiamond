@@ -133,5 +133,60 @@
             IF = 1 << 10,
             OF = 1 << 11,
         }
+
+        public enum PitchType
+        {
+            Unknown = 0,
+
+            Fourseam = 1,
+            Sinker = 2,
+            Fastball = 14,
+            Twoseam = 16,
+
+            Splitter = 3,
+            Changeup = 4,
+            Forkball = 12,
+
+            Cutter = 5,
+            Slider = 6,
+            Sweeper = 7,
+            Slurve = 8,
+            Curveball = 9,
+            KnuckleCurve = 11,
+            Screwball = 13,
+            SlowCurve = 15,
+            
+            Knuckleball = 10,
+
+            Eephus = 12,
+        }
+
+        public enum PitchResult
+        {
+            CalledStrike = 1,
+            SwingingStrike = 2,
+            Foul = 3,
+            Ball = 4,
+            InPlay = 5,
+            HBP = 6,
+        }
+
+        [Flags]
+        public enum PitchPaResult
+        {
+            Out = 1 << 0,   
+            Strikeout = 1 << 1,
+            Groundout = 1 << 2,
+            Flyout = 1 << 3,
+            GIDP = 1 << 4,
+            BB = 1 << 5,
+            HBP = 1 << 6,
+            Hit1B = 1 << 7,
+            Hit2B = 1 << 8,
+            Hit3B = 1 << 9,
+            HitHR = 1 << 10,
+            Error = 1 << 11,
+            Other = 1 << 12
+        }
     }
 }

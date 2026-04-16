@@ -20,18 +20,32 @@ autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"),
 type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"), 
                   ("GamePlayByPlay", "HitTrajectory", "DbEnums.PBP_HitTrajectory"), 
                   ("GamePlayByPlay", "HitHardness", "DbEnums.PBP_HitHardness"), 
+                  
                   ("GamePlayByPlay", "StartBaseOccupancy", "DbEnums.BaseOccupancy"), 
                   ("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
+                  ("PitchStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
+                  ("PitchNonStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
+                  
                   ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
                   ("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
                   ("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
                   ("Player_Fielder_YearStats", "Position", "DbEnums.Position"),
                   ("College_HitterStats", "Pos", "DbEnums.CollegePosition"),
-                  ("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),]
+                  ("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),
+                  
+                  ("PitchStatcast", "PitchType", "DbEnums.PitchType"),
+                  
+                  ("PitchStatcast", "Result", "DbEnums.PitchResult"),
+                  ("PitchNonStatcast", "Result", "DbEnums.PitchResult"),
+                  
+                  ("PitchStatcast", "PaResult", "DbEnums.PitchPaResult"),
+                  ("PitchNonStatcast", "PaResult", "DbEnums.PitchPaResult"),]
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
                  ("GamePlayByPlay_GameFielders", ["IsHome"]),
-                 ("College_Player", ["IsHitter", "IsPitcher"])]
+                 ("College_Player", ["IsHitter", "IsPitcher"]),
+                 ("PitchStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
+                 ("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),]
 
 for table, in tables:
     # Get table data

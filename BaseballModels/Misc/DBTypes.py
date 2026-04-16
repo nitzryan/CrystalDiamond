@@ -1860,5 +1860,104 @@ class DB_Model_College_PitcherProStats:
 		items = cursor.execute("SELECT * FROM Model_College_PitcherProStats " + conditional, values).fetchall()
 		return [DB_Model_College_PitcherProStats(i) for i in items]
 
+class DB_PitchStatcast:
+	def __init__(self, values : tuple[any]):
+		self.GameId = values[0]
+		self.PitchId = values[1]
+		self.PitcherId = values[2]
+		self.HitterId = values[3]
+		self.LeagueId = values[4]
+		self.LevelId = values[5]
+		self.Year = values[6]
+		self.Month = values[7]
+		self.CountBalls = values[8]
+		self.CountStrike = values[9]
+		self.Outs = values[10]
+		self.BaseOccupancy = values[11]
+		self.PitchType = values[12]
+		self.PaResult = values[13]
+		self.Result = values[14]
+		self.HadSwing = values[15]
+		self.HadContact = values[16]
+		self.IsInPlay = values[17]
+		self.HitIsR = values[18]
+		self.PitIsR = values[19]
+		self.vX = values[20]
+		self.vY = values[21]
+		self.vZ = values[22]
+		self.vStart = values[23]
+		self.vEnd = values[24]
+		self.aX = values[25]
+		self.aY = values[26]
+		self.aZ = values[27]
+		self.pfxX = values[28]
+		self.pfxZ = values[29]
+		self.BreakAngle = values[30]
+		self.BreakVertical = values[31]
+		self.BreakInduced = values[32]
+		self.BreakHorizontal = values[33]
+		self.SpinRate = values[34]
+		self.SpinDirection = values[35]
+		self.pX = values[36]
+		self.pZ = values[37]
+		self.ZoneTop = values[38]
+		self.ZoneBot = values[39]
+		self.Extension = values[40]
+		self.x0 = values[41]
+		self.y0 = values[42]
+		self.z0 = values[43]
+		self.PlateTime = values[44]
+		self.LaunchSpeed = values[45]
+		self.LaunchAngle = values[46]
+		self.TotalDist = values[47]
+		self.HitCoordX = values[48]
+		self.HitCoordY = values[49]
+		self.RunValueHitter = values[50]
+
+	NUM_ELEMENTS = 51
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.GameId,self.PitchId,self.PitcherId,self.HitterId,self.LeagueId,self.LevelId,self.Year,self.Month,self.CountBalls,self.CountStrike,self.Outs,self.BaseOccupancy,self.PitchType,self.PaResult,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.HitIsR,self.PitIsR,self.vX,self.vY,self.vZ,self.vStart,self.vEnd,self.aX,self.aY,self.aZ,self.pfxX,self.pfxZ,self.BreakAngle,self.BreakVertical,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinDirection,self.pX,self.pZ,self.ZoneTop,self.ZoneBot,self.Extension,self.x0,self.y0,self.z0,self.PlateTime,self.LaunchSpeed,self.LaunchAngle,self.TotalDist,self.HitCoordX,self.HitCoordY,self.RunValueHitter)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchStatcast']:
+		items = cursor.execute("SELECT * FROM PitchStatcast " + conditional, values).fetchall()
+		return [DB_PitchStatcast(i) for i in items]
+
+class DB_PitchNonStatcast:
+	def __init__(self, values : tuple[any]):
+		self.GameId = values[0]
+		self.PitchId = values[1]
+		self.PitcherId = values[2]
+		self.HitterId = values[3]
+		self.LeagueId = values[4]
+		self.LevelId = values[5]
+		self.Year = values[6]
+		self.Month = values[7]
+		self.CountBalls = values[8]
+		self.CountStrike = values[9]
+		self.Outs = values[10]
+		self.BaseOccupancy = values[11]
+		self.PaResult = values[12]
+		self.Result = values[13]
+		self.HadSwing = values[14]
+		self.HadContact = values[15]
+		self.IsInPlay = values[16]
+		self.HitIsR = values[17]
+		self.PitIsR = values[18]
+		self.RunValueHitter = values[19]
+
+	NUM_ELEMENTS = 20
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.GameId,self.PitchId,self.PitcherId,self.HitterId,self.LeagueId,self.LevelId,self.Year,self.Month,self.CountBalls,self.CountStrike,self.Outs,self.BaseOccupancy,self.PaResult,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.HitIsR,self.PitIsR,self.RunValueHitter)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchNonStatcast']:
+		items = cursor.execute("SELECT * FROM PitchNonStatcast " + conditional, values).fetchall()
+		return [DB_PitchNonStatcast(i) for i in items]
+
 
 ##############################################################################################
