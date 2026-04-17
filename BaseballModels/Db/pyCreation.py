@@ -8,7 +8,7 @@ tables = cursor.fetchall()
 
 insert_tables = ["Model_TrainingHistory", "Output_PlayerWar"]
 
-for fn in ["../Model/DBTypes.py", "../Misc/DBTypes.py"]:
+for fn in ["../Model/DBTypes.py", "../Misc/DBTypes.py", "../PitchModel/DBTypes.py"]:
     with open(fn, "w") as file:
         file.write("import sqlite3\n\n")
         for table, in tables:
