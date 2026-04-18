@@ -39,9 +39,9 @@ class PitchDataset(torch.utils.data.Dataset):
                 output_contact : torch.Tensor,
                 output_inplay : torch.Tensor,):
         
-        self.data_overview = data_overview
-        self.data_loc = data_loc
-        self.data_stuff = data_stuff
+        self.data_overview = data_overview.t()
+        self.data_loc = data_loc.t()
+        self.data_stuff = data_stuff.t()
         
         self.output_value = output_value
         self.output_runs = output_runs
@@ -51,10 +51,10 @@ class PitchDataset(torch.utils.data.Dataset):
         self.output_inplay = output_inplay
         
     def __len__(self):
-        return self.data_overview.size(dim=1)
+        return self.data_overview.size(dim=0)
     
     def __getitem__(self, idx):
-        return (self.data_overview[:,idx], self.data_loc[:,idx], self.data_stuff[:,idx]), \
+        return (self.data_overview[idx], self.data_loc[idx], self.data_stuff[idx]), \
             (self.output_value[idx], self.output_runs[idx], self.output_outs[idx], self.output_swung[idx], self.output_contact[idx], self.output_inplay[idx])
             
 def CreateTestTrainDatasets(data : list[PitchIO], test_size : float, random_state : int) -> tuple[PitchDataset, PitchDataset]:

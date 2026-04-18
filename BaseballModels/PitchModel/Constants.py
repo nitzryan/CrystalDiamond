@@ -1,6 +1,7 @@
 import torch
 import sqlite3
 from pathlib import Path
+from line_profiler import LineProfiler
 
 use_cuda = torch.cuda.is_available()
 if (use_cuda):
@@ -16,3 +17,5 @@ db = sqlite3.connect(__DB_PATH)
 model_db = sqlite3.connect(__MODEL_DB_PATH)
 
 DTYPE = torch.float32
+
+profiler = LineProfiler()

@@ -4,12 +4,12 @@ from Buckets import *
 class PitcherPredLayers:
     def __init__(self, 
                 input_size : int,
-                layer_size_value : int = 30,
-                layer_size_runs : int = 20,
-                layer_size_outs : int = 10,
-                layer_size_swung : int = 10,
-                layer_size_contact : int = 10,
-                layer_size_inplay : int = 10):
+                layer_size_value : int = 50,
+                layer_size_runs : int = 30,
+                layer_size_outs : int = 20,
+                layer_size_swung : int = 20,
+                layer_size_contact : int = 20,
+                layer_size_inplay : int = 20):
         self.input_size = input_size
         
         self.layer_size_value = layer_size_value

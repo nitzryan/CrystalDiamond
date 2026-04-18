@@ -6,11 +6,15 @@ from Stuff.Model.PitchModel import PitchModel
 from Stuff.DataPrep.PitchDataset import PitchDataset
 from Stuff.Model.LossFunctions import *
 
+from Constants import profiler
+
 _MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
 _MODEL_OUTPUTS = ["Value", "Runs", "Outs", "Swung", "Contact", "InPlay"]
 _TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
 
 [x + "hi" for x in _MODEL_OUTPUTS]
+
+SHOULD_PROFILE = False
 
 def TrainAndGraph(
     network : PitchModel,
@@ -25,6 +29,9 @@ def TrainAndGraph(
     model_name : str = "no_name",
 ) -> list[float]:
     
+    if SHOULD_PROFILE:
+        profiler.enable()
+    
     test_loss_history : list[list[float]] = [[] for _ in range(len(_TOTAL_OUTPUTS))]
     train_loss_history : list[list[float]] = [[] for _ in range(len(_TOTAL_OUTPUTS))]
     epoch_counter : list[int] = []
@@ -33,10 +40,7 @@ def TrainAndGraph(
     best_epoch = 0
     epochs_since_improve = 0
     
-    train_generator = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_generator = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    
-    optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(network.parameters(), lr=0.002)
     
     # TODO : Need a custom scheduler for this
     
@@ -45,13 +49,15 @@ def TrainAndGraph(
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
         train_losses = TrainTest(network=network, 
-            generator=train_generator, 
+            dataset=train_dataset, 
             optimizer=optimizer, 
+            batch_size=batch_size,
             total_size=len(train_dataset),
             is_train=True)
         test_losses = TrainTest(network=network, 
-            generator=test_generator, 
-            optimizer=None, 
+            dataset=test_dataset, 
+            optimizer=None,
+            batch_size=batch_size,
             total_size=len(test_dataset),
             is_train=False)
         
@@ -75,6 +81,10 @@ def TrainAndGraph(
                 print("Stopped Training Early")
             break
         
+    if SHOULD_PROFILE:    
+        profiler.disable()
+        profiler.dump_stats("train_profile.lprof")
+        
     if should_output:
         print(f"Best result at epoch={best_epoch} with loss={best_loss}")
         
@@ -84,16 +94,46 @@ def TrainAndGraph(
     return test_losses
 
 
-
-def TrainTest(network : PitchModel, generator : torch.utils.data.DataLoader, optimizer : torch.optim.Optimizer | None, total_size : int, is_train : bool) -> list[float]:
+@profiler
+def TrainTest(network : PitchModel, 
+              dataset : PitchDataset, 
+              optimizer : torch.optim.Optimizer | None, 
+              total_size : int,
+              batch_size : int,
+              is_train : bool) -> list[float]:
+    
+    
     if is_train:
         network.train()
+        indices = torch.randperm(total_size, device='cpu')
         if optimizer is None:
             raise RuntimeError("Optimizer is none for Train")
     else:
         network.eval()
+        indices = torch.arange(total_size, device='cpu')
+        
     avg_losses = [0] * len(_TOTAL_OUTPUTS)
-    for data, targets in generator:
+    for i in range(0, total_size, batch_size):
+        # Fetch Data
+        batch_idx = indices[i:i + batch_size]
+        data = (
+            dataset.data_overview[batch_idx],
+            dataset.data_loc[batch_idx],
+            dataset.data_stuff[batch_idx]
+        )
+        targets = (
+            dataset.output_value[batch_idx],
+            dataset.output_runs[batch_idx],
+            dataset.output_outs[batch_idx],
+            dataset.output_swung[batch_idx],
+            dataset.output_contact[batch_idx],
+            dataset.output_inplay[batch_idx]
+        )
+        
+        data = tuple(d.to(device, non_blocking=True) for d in data)
+        targets = tuple(t.to(device, non_blocking=True) for t in targets)
+        
+        # Run through model, get losses
         if is_train:
             optimizer.zero_grad()
         losses = GetLosses(network, data, targets, is_train)
@@ -111,12 +151,6 @@ def TrainTest(network : PitchModel, generator : torch.utils.data.DataLoader, opt
         
 def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], should_backprop : bool) -> list[torch.Tensor]:
     data_overview, data_loc, data_stuff = data
-    data_overview = data_overview.to(device, non_blocking=True)
-    data_loc = data_loc.to(device, non_blocking=True)
-    data_stuff = data_stuff.to(device, non_blocking=True)
-    
-    for i in range(len(targets)):
-        targets[i] = targets[i].to(device, non_blocking=True)
     
     outputs = network(data_overview, data_loc, data_stuff)
     
