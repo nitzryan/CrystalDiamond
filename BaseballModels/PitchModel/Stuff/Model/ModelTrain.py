@@ -87,9 +87,8 @@ def TrainAndGraph(
         
     if should_output:
         print(f"Best result at epoch={best_epoch} with loss={best_loss}")
-        
-    for n in range(len(_TOTAL_OUTPUTS)):
-        GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=_TOTAL_OUTPUTS[n], start=1)
+        for n in range(len(_TOTAL_OUTPUTS)):
+            GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=_TOTAL_OUTPUTS[n], start=1)
         
     return test_losses
 

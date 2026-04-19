@@ -1,5 +1,6 @@
 import torch
 from sklearn.model_selection import train_test_split
+from Constants import device
 
 class PitchIO:
     def __init__(self,
@@ -39,16 +40,16 @@ class PitchDataset(torch.utils.data.Dataset):
                 output_contact : torch.Tensor,
                 output_inplay : torch.Tensor,):
         
-        self.data_overview = data_overview.t()
-        self.data_loc = data_loc.t()
-        self.data_stuff = data_stuff.t()
+        self.data_overview = data_overview.t().to(device=device, non_blocking=True)
+        self.data_loc = data_loc.t().to(device=device, non_blocking=True)
+        self.data_stuff = data_stuff.t().to(device=device, non_blocking=True)
         
-        self.output_value = output_value
-        self.output_runs = output_runs
-        self.output_outs = output_outs
-        self.output_swung = output_swung
-        self.output_contact = output_contact
-        self.output_inplay = output_inplay
+        self.output_value = output_value.to(device=device, non_blocking=True)
+        self.output_runs = output_runs.to(device=device, non_blocking=True)
+        self.output_outs = output_outs.to(device=device, non_blocking=True)
+        self.output_swung = output_swung.to(device=device, non_blocking=True)
+        self.output_contact = output_contact.to(device=device, non_blocking=True)
+        self.output_inplay = output_inplay.to(device=device, non_blocking=True)
         
     def __len__(self):
         return self.data_overview.size(dim=0)

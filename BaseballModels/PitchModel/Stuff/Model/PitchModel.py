@@ -7,8 +7,8 @@ from Stuff.Model.LayerArch import LayerArch
 from Stuff.Model.PitcherPredLayers import PitcherPredLayers
 from Stuff.Model.Utilities import *
 
-DEFAULT_LOCATION_LA = LayerArch(layer_size=80, num_layers=4)
-DEFAULT_STUFF_LA = LayerArch(layer_size=80, num_layers=4)
+DEFAULT_LOCATION_LA = LayerArch(layer_size=120, num_layers=4)
+DEFAULT_STUFF_LA = LayerArch(layer_size=120, num_layers=4)
         
 class PitchModel(nn.Module):
     def __init__(self,
