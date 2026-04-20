@@ -219,21 +219,22 @@ CREATE TABLE "Model_TrainingHistory" (
 	"IsHitter"	INTEGER NOT NULL,
 	"TestLoss"	REAL NOT NULL,
 	"ModelIdx"	INTEGER NOT NULL,
-	"NumLayers" INTEGER NOT NULL,
-	"HiddenSize" INTEGER NOT NULL,
+	"ProNumLayers" INTEGER NOT NULL,
+	"ProHiddenSize" INTEGER NOT NULL,
+	"ColNumLayers" INTEGER NOT NULL,
+	"ColHiddenSize" INTEGER NOT NULL,
 	PRIMARY KEY("ModelName","ModelIdx","IsHitter")
 );
 
 CREATE TABLE "PlayersInTrainingData" (
 	"mlbId" INTEGER NOT NULL,
+	"tbcId" INTEGER NOT NULL,
 	"modelIdx" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "modelIdx")
+	PRIMARY KEY ("mlbId", "tbcId", "modelIdx")
 );
 
 CREATE TABLE "ModelIdx" (
 	"id" INTEGER NOT NULL,
-	"pitcherModelName" TEXT NOT NULL,
-	"hitterModelName" TEXT NOT NULL,
 	"modelName" TEXT NOT NULL,
 	PRIMARY KEY("id")
 );

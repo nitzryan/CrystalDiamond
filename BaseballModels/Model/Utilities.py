@@ -26,20 +26,14 @@ def Normalize(item: _T, means: _T, devs: _T) -> _T:
 
 from Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
 from Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
-def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map]:
+from College.DataPrep.Output_Map import College_Output_Map, college_output_map
+from College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map, college_meanrevert_prep_map
+def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map, College_Prep_Map, College_Output_Map]:
     if model_id == 1:
-        return base_prep_map, base_output_map
+        return base_prep_map, base_output_map, college_base_prep_map, college_output_map
     if model_id == 2:
         return statsonly_prep_map, base_output_map
     if model_id == 3:
         return meanrregression_prep_map, meanregression_output_map
     raise Exception(f"No mapping found for model_id={model_id}")
 
-from College.DataPrep.Output_Map import College_Output_Map, college_output_map
-from College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map, college_meanrevert_prep_map
-def GetCollegeModelMaps(model_id : int) -> tuple[College_Prep_Map, College_Output_Map]:
-    if model_id == 1:
-        return college_base_prep_map, college_output_map
-    elif model_id == 2:
-        return college_meanrevert_prep_map, college_output_map
-    raise Exception(f"No mapping found for model_id={model_id}")

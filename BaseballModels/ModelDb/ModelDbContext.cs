@@ -31,7 +31,7 @@ namespace ModelDb
 			modelBuilder.Entity<Output_College_Hitter>().HasKey(f => new {f.TbcId,f.Model,f.ModelIdx,f.Year});
 			modelBuilder.Entity<Output_College_Pitcher>().HasKey(f => new {f.TbcId,f.Model,f.ModelIdx,f.Year});
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
-			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.ModelIdx});
+			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.TbcId,f.ModelIdx});
 			modelBuilder.Entity<ModelIdx>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<Model_TrainingHistory_College>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelIdx});
 			modelBuilder.Entity<PlayersInTrainingData_College>().HasKey(f => new {f.TbcId,f.ModelIdx});

@@ -20,10 +20,6 @@ if __name__ == "__main__":
     model_idxs = model_cursor.execute("SELECT modelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
     for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
-        model_cursor = model_db.cursor()
-        model_cursor.execute("DELETE FROM PlayersInTrainingData WHERE modelIdx=?", (model_id,))
-        model_db.commit()
-        
         pro_prep_map, pro_output_map, col_prep_map, col_output_map = GetModelMaps(model_id)
         
         data_prep = Combined_Data_Prep(
@@ -33,28 +29,28 @@ if __name__ == "__main__":
             college_output_map=col_output_map
         )
         
-        hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", pro_player_values=(2025,2015,1), pro_use_cutoff=True,
-                col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
+        pitcher_io_list = data_prep.Generate_IO_Pitchers(pro_player_condition="WHERE lastMLBSeason<? AND signingYear<? AND isPitcher=?", pro_player_values=(2025,2015,1), pro_use_cutoff=True,
+                col_player_condition="WHERE LastYear<=? AND isPitcher=?", col_player_values=(2015, 1), col_use_cutoff=True)
         
         model_cursor = model_db.cursor()
         model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
         model_db.commit()
         
-        for i in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
+        for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
             train_dataset : Combined_Player_Dataset
             test_dataset : Combined_Player_Dataset
-            train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1, True)
+            train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, i + 1, False)
             
             model_name_pt = f"{model_name}_{i}"
             pro_network = ProModel(
                 input_size=train_dataset.GetProInputSize(),
                 mutators=torch.empty(0),
                 data_prep=data_prep.pro_data_prep,
-                is_hitter=True,).to(device)
+                is_hitter=False,).to(device)
             col_network = ColModel(
                 input_size=train_dataset.GetColInputSize(),
                 data_prep=data_prep.college_data_prep,
-                is_hitter=True,
+                is_hitter=False,
                 output_hidden_size=pro_network.GetHiddenSize(),
                 output_num_layers=pro_network.GetNumLayers(),
             ).to(device)
@@ -64,21 +60,25 @@ if __name__ == "__main__":
                 col_network=col_network,
                 train_dataset=train_dataset,
                 test_dataset=test_dataset,
-                pro_model_name=f"Models/pro_{model_name_pt}_hit",
-                col_model_name=f"Models/col_{model_name_pt}_hit",
-                is_hitter=True,
+                pro_model_name=f"Models/pro_{model_name_pt}_pit",
+                col_model_name=f"Models/col_{model_name_pt}_pit",
+                is_hitter=False,
                 should_output=False,
             )
             
             model_cursor = model_db.cursor()
-            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?)", (model_name, 1, best_loss, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
+            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?)", (model_name, 0, best_loss, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
             model_db.commit()
             
         # Insert hitters that were trained on so that they can be marked on the site
         model_cursor = model_db.cursor()
-        model_cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?,?)", [
-            (io.pro_io.player.mlbId if io.pro_io.player is not None else -1,
-            io.college_io.player.TBCId if io.college_io.player is not None else -1,
-            model_id
-            ) for io in hitter_io_list])
+        for io in pitcher_io_list:
+            if model_cursor.execute("SELECT COUNT(*) FROM PlayersInTrainingData WHERE mlbId=? AND tbcId=? AND modelIdx=?", (
+                    io.pro_io.player.mlbId if io.pro_io.player is not None else -1,
+                    io.college_io.player.TBCId if io.college_io.player is not None else -1, model_id)).fetchone()[0] == 0:
+                
+                model_cursor.execute("INSERT INTO PlayersInTrainingData VALUES(?,?,?)", (
+                        io.pro_io.player.mlbId if io.pro_io.player is not None else -1,
+                        io.college_io.player.TBCId if io.college_io.player is not None else -1,
+                        model_id))
         model_db.commit()

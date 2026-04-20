@@ -48,6 +48,9 @@ class RNN_Model(nn.Module):
         
         super().__init__()
         
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        
         if is_hitter:
             pos_output_len = data_prep.output_map.len_pos_h
         else:
@@ -91,6 +94,12 @@ class RNN_Model(nn.Module):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='tanh')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+    
+    def GetHiddenSize(self) -> int:
+        return self.hidden_size
+    
+    def GetNumLayers(self) -> int:
+        return self.num_layers      
           
     def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
         for layer in moduleList:

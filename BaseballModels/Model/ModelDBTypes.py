@@ -211,14 +211,16 @@ class DB_Model_TrainingHistory:
 		self.IsHitter = values[1]
 		self.TestLoss = values[2]
 		self.ModelIdx = values[3]
-		self.NumLayers = values[4]
-		self.HiddenSize = values[5]
+		self.ProNumLayers = values[4]
+		self.ProHiddenSize = values[5]
+		self.ColNumLayers = values[6]
+		self.ColHiddenSize = values[7]
 
-	NUM_ELEMENTS = 6
+	NUM_ELEMENTS = 8
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelName,self.IsHitter,self.TestLoss,self.ModelIdx,self.NumLayers,self.HiddenSize)
+		return (self.ModelName,self.IsHitter,self.TestLoss,self.ModelIdx,self.ProNumLayers,self.ProHiddenSize,self.ColNumLayers,self.ColHiddenSize)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_TrainingHistory']:
@@ -228,13 +230,14 @@ class DB_Model_TrainingHistory:
 class DB_PlayersInTrainingData:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
-		self.modelIdx = values[1]
+		self.tbcId = values[1]
+		self.modelIdx = values[2]
 
-	NUM_ELEMENTS = 2
+	NUM_ELEMENTS = 3
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.modelIdx)
+		return (self.mlbId,self.tbcId,self.modelIdx)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PlayersInTrainingData']:
@@ -244,15 +247,13 @@ class DB_PlayersInTrainingData:
 class DB_ModelIdx:
 	def __init__(self, values : tuple[any]):
 		self.id = values[0]
-		self.pitcherModelName = values[1]
-		self.hitterModelName = values[2]
-		self.modelName = values[3]
+		self.modelName = values[1]
 
-	NUM_ELEMENTS = 4
+	NUM_ELEMENTS = 2
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.id,self.pitcherModelName,self.hitterModelName,self.modelName)
+		return (self.id,self.modelName)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_ModelIdx']:
