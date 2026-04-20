@@ -9,7 +9,7 @@
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = true;
+        const bool STATCAST_ONLY_UPDATE = false;
 
         static async Task Main(string[] args)
         {

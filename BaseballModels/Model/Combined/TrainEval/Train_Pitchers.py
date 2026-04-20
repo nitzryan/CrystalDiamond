@@ -1,6 +1,7 @@
 import sys
 from tqdm import tqdm
 import torch
+import gc
 
 from Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
@@ -33,7 +34,7 @@ if __name__ == "__main__":
                 col_player_condition="WHERE LastYear<=? AND isPitcher=?", col_player_values=(2015, 1), col_use_cutoff=True)
         
         model_cursor = model_db.cursor()
-        model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}'")
+        model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}' AND IsHitter=0")
         model_db.commit()
         
         for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
@@ -69,6 +70,15 @@ if __name__ == "__main__":
             model_cursor = model_db.cursor()
             model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?)", (model_name, 0, best_loss, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
             model_db.commit()
+            
+            # Force VRAM to get cleared before allocating next iteration
+            del pro_network
+            del col_network
+            del train_dataset
+            del test_dataset
+            torch.cuda.empty_cache()
+            gc.collect()
+            
             
         # Insert hitters that were trained on so that they can be marked on the site
         model_cursor = model_db.cursor()

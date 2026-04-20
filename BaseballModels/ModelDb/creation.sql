@@ -238,27 +238,3 @@ CREATE TABLE "ModelIdx" (
 	"modelName" TEXT NOT NULL,
 	PRIMARY KEY("id")
 );
-
-CREATE TABLE "Model_TrainingHistory_College" (
-	"ModelName"	TEXT NOT NULL,
-	"IsHitter"	INTEGER NOT NULL,
-	"TestLoss"	REAL NOT NULL,
-	"ModelIdx"	INTEGER NOT NULL,
-	"NumLayers" INTEGER NOT NULL,
-	"HiddenSize" INTEGER NOT NULL,
-	PRIMARY KEY("ModelName","ModelIdx","IsHitter")
-);
-
-CREATE TABLE "PlayersInTrainingData_College" (
-	"tbcId" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
-	PRIMARY KEY ("tbcId", "modelIdx")
-);
-
-CREATE TABLE "ModelIdx_College" (
-	"id" INTEGER NOT NULL,
-	"pitcherModelName" TEXT NOT NULL,
-	"hitterModelName" TEXT NOT NULL,
-	"modelName" TEXT NOT NULL,
-	PRIMARY KEY("id")
-);

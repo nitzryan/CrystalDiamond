@@ -260,60 +260,6 @@ class DB_ModelIdx:
 		items = cursor.execute("SELECT * FROM ModelIdx " + conditional, values).fetchall()
 		return [DB_ModelIdx(i) for i in items]
 
-class DB_Model_TrainingHistory_College:
-	def __init__(self, values : tuple[any]):
-		self.ModelName = values[0]
-		self.IsHitter = values[1]
-		self.TestLoss = values[2]
-		self.ModelIdx = values[3]
-		self.NumLayers = values[4]
-		self.HiddenSize = values[5]
-
-	NUM_ELEMENTS = 6
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelName,self.IsHitter,self.TestLoss,self.ModelIdx,self.NumLayers,self.HiddenSize)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_TrainingHistory_College']:
-		items = cursor.execute("SELECT * FROM Model_TrainingHistory_College " + conditional, values).fetchall()
-		return [DB_Model_TrainingHistory_College(i) for i in items]
-
-class DB_PlayersInTrainingData_College:
-	def __init__(self, values : tuple[any]):
-		self.tbcId = values[0]
-		self.modelIdx = values[1]
-
-	NUM_ELEMENTS = 2
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.tbcId,self.modelIdx)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PlayersInTrainingData_College']:
-		items = cursor.execute("SELECT * FROM PlayersInTrainingData_College " + conditional, values).fetchall()
-		return [DB_PlayersInTrainingData_College(i) for i in items]
-
-class DB_ModelIdx_College:
-	def __init__(self, values : tuple[any]):
-		self.id = values[0]
-		self.pitcherModelName = values[1]
-		self.hitterModelName = values[2]
-		self.modelName = values[3]
-
-	NUM_ELEMENTS = 4
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.id,self.pitcherModelName,self.hitterModelName,self.modelName)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_ModelIdx_College']:
-		items = cursor.execute("SELECT * FROM ModelIdx_College " + conditional, values).fetchall()
-		return [DB_ModelIdx_College(i) for i in items]
-
 class DB_Output_HitterStatsAggregation:
 	def __init__(self, values : tuple[any]):
 		self.MlbId = values[0]

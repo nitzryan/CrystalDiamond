@@ -960,19 +960,18 @@ namespace DataAquisition
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            var missingPlayers = db.College_Player.Where(f => f.MlbId == 0 && f.DraftOvrHitter > 0);
+            var missingPlayers = db.College_Player.Where(f => f.MlbId == 0 && (f.DraftOvrHitter > 0 || f.DraftOvrPitcher > 0));
 
             foreach (var p in missingPlayers)
             {
-                var dbPlayer = db.Player.Where(f => f.DraftPick == p.DraftOvrHitter && f.SigningYear == p.LastYear);
+                var dbPlayer = db.Player.Where(f => (f.DraftPick == p.DraftOvrHitter || f.DraftPick == p.DraftOvrPitcher) && f.SigningYear == p.LastYear);
 
                 if (dbPlayer.Any())
                 {
                     Player player = dbPlayer.Single();
 
-
                     // Make sure that last names match (a player might have been drafted but not signed
-                    if (p.LastName.ToLower() != player.UseLastName.ToLower() &&
+                    if (p.LastName.Replace(" ", "").ToLower() != player.UseLastName.Replace(" ", "").ToLower() &&
                         ((p.LastName + " Jr.").ToLower() != player.UseLastName.ToLower()))
                     {
                         throw new Exception($"Last Names did not match: TBC {p.LastName} vs MLB {player.UseLastName}");
@@ -1557,6 +1556,12 @@ namespace DataAquisition
 
             // Josh Morgan has wrong draft data
             db.College_Player.Where(f => f.TBCId == 38027).Single().DraftOvrHitter = 605;
+
+            // The wrong Tyler Cox was listed as drafted 1044
+            var tylerCox = db.College_Player.Where(f => f.TBCId == 55597).Single();
+            tylerCox.DraftOvrPitcher = 0;
+            tylerCox.DraftOvrHitter = 0;
+            db.College_Player.Where(f => f.TBCId == 147199).Single().DraftOvrPitcher = 1044;
 
             db.SaveChanges();
         }

@@ -5,17 +5,17 @@ from sklearn.model_selection import train_test_split # type: ignore
 
 class College_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self,
-                 bio : list[DB_College_Player],
-                 data,
-                 lengths,
-                 output_draft,
-                 output_war,
-                 output_pos,
-                 output_off,
-                 output_def,
-                 output_pa,
-                 is_hitter : bool,
-                 mask_pos,):
+                bio : list[DB_College_Player],
+                data,
+                lengths,
+                output_draft,
+                output_war,
+                output_pos,
+                output_off,
+                output_def,
+                output_pa,
+                is_hitter : bool,
+                mask_pos,):
         
         self.bio = bio
         self.data = data

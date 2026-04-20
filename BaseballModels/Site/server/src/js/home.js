@@ -710,6 +710,18 @@ var DB_PlayerRank = (function () {
     }
     return DB_PlayerRank;
 }());
+var DB_DraftRank = (function () {
+    function DB_DraftRank(data) {
+        this.tbcId = data['tbcId'];
+        this.modelId = data['modelId'];
+        this.isHitter = data['isHitter'];
+        this.year = data['year'];
+        this.isEligible = data['isEligible'];
+        this.rankEligible = data['rankEligible'];
+        this.value = data['value'];
+    }
+    return DB_DraftRank;
+}());
 var DB_TeamRank = (function () {
     function DB_TeamRank(data) {
         this.teamId = data['teamId'];

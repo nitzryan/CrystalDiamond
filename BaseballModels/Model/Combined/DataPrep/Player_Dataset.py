@@ -1,11 +1,11 @@
 import torch
 from Combined.DataPrep.Data_Prep import Combined_IO
 from sklearn.model_selection import train_test_split # type: ignore
-from Constants import device
 
 class Combined_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self, 
-                pro_data, 
+                pro_dates,
+                pro_data,
                 pro_lengths, 
                 pro_output_labels, 
                 pro_output_war_values, 
@@ -23,6 +23,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 pro_mlb_stat_buckets,
                 pro_mlb_stat_mask,
                 
+                col_dates,
                 col_bio,
                 col_data,
                 col_lengths,
@@ -33,9 +34,13 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 col_output_def,
                 col_output_pa,
                 is_hitter : bool,
-                col_mask_pos,):
+                col_mask_pos,
+                device):
         
         self.is_hitter = is_hitter
+        
+        self.pro_dates = pro_dates.to(device, non_blocking=True).transpose(0, 1)
+        self.col_dates = col_dates.to(device, non_blocking=True).transpose(0, 1)
         
         # === Transpose at creation time so shape becomes (num_players, time_steps, features) ===
         self.pro_data = pro_data.to(device, non_blocking=True).transpose(0, 1)
@@ -165,11 +170,13 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
 
         return pro_input, pro_targets, pro_masks, col_input, col_targets, col_masks
     
-def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
+def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool, device = 'cuda') -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
     io_train : list[Combined_IO]
     io_test : list[Combined_IO]
     io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
 
+    pro_dates_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.dates for io in io_train])
+    pro_dates_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.dates for io in io_test])
     
     pro_lengths_train = torch.tensor([io.pro_io.length for io in io_train])
     pro_lengths_test = torch.tensor([io.pro_io.length for io in io_test])
@@ -213,6 +220,10 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
     pro_mask_mlbstat_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_mask for io in io_train])
     pro_mask_mlbstat_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_mask for io in io_test])
 
+    # College
+    col_dates_train = torch.nn.utils.rnn.pad_sequence([io.college_io.dates for io in io_train])
+    col_dates_test = torch.nn.utils.rnn.pad_sequence([io.college_io.dates for io in io_test])
+
     col_bio_train = [io.college_io.player for io in io_train]
     col_bio_test = [io.college_io.player for io in io_test]
     
@@ -249,6 +260,7 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
     col_mask_pos_test = torch.tensor([io.college_io.mask_pos for io in io_test])
 
     train_dataset = Combined_Player_Dataset(
+        pro_dates= pro_dates_train,
         pro_data = pro_data_train, 
         pro_lengths = pro_lengths_train, 
         pro_output_labels = pro_output_labels_train, 
@@ -267,6 +279,7 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         pro_mlb_stat_buckets=pro_output_mlbstat_train,
         pro_mlb_stat_mask=pro_mask_mlbstat_train,
         
+        col_dates= col_dates_train,
         col_bio=col_bio_train,
         col_data=col_data_train, 
         col_lengths=col_lengths_train, 
@@ -277,9 +290,12 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         col_output_pa=col_output_pa_train,
         col_output_pos=col_output_pos_train,
         col_mask_pos=col_mask_pos_train,
-        is_hitter=is_hitter)
+        is_hitter=is_hitter,
+        
+        device=device,)
     
     test_dataset = Combined_Player_Dataset(
+        pro_dates= pro_dates_test,
         pro_data = pro_data_test, 
         pro_lengths = pro_lengths_test, 
         pro_output_labels = pro_output_labels_test, 
@@ -298,6 +314,7 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         pro_mlb_stat_buckets=pro_output_mlbstat_test,
         pro_mlb_stat_mask=pro_mask_mlbstat_test,
         
+        col_dates= col_dates_test,
         col_bio=col_bio_test,
         col_data=col_data_test, 
         col_lengths=col_lengths_test, 
@@ -308,7 +325,9 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         col_output_pa=col_output_pa_test,
         col_output_pos=col_output_pos_test,
         col_mask_pos=col_mask_pos_test,
-        is_hitter=is_hitter)
+        is_hitter=is_hitter,
+        
+        device=device,)
     
     train_dataset.should_use_variants(True)
     test_dataset.should_use_variants(False)
