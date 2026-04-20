@@ -1,18 +1,8 @@
-from sklearn.decomposition import PCA # type: ignore
-from typing import TypeVar, Optional, Callable
+from typing import TypeVar
 from DBTypes import *
-from Constants import db, DTYPE, NUM_LEVELS
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
-from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
-import math
 import torch
-from tqdm import tqdm
-import random
 from Pro.DataPrep.Prep_Map import Prep_Map
 from Pro.DataPrep.Output_Map import Output_Map
-from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats
-import DB_AdvancedStatements
-import numpy as np # Random normal distribution
 
 from College.DataPrep.Data_Prep import College_Data_Prep, College_IO
 from Pro.DataPrep.Data_Prep import Data_Prep, Player_IO
@@ -42,11 +32,11 @@ class Combined_Data_Prep:
         self.pro_data_prep = Data_Prep(prep_map=prep_map, output_map=output_map)
         self.college_data_prep = College_Data_Prep(prep_map=college_prep_map, output_map=college_output_map)
         
-        self.pro_empty_io = self.GetEmptyProIO()
-        self.college_empty_io = self.GetEmptyCollegeIO()
-        
-    def GetEmptyProIO(self) -> Player_IO:
-        player_template = self.pro_data_prep.Generate_IO_Hitters("WHERE MlbId=?", (596146,), False)[0]
+    def GetEmptyProIO(self, is_hitter : bool) -> Player_IO:
+        if is_hitter:
+            player_template = self.pro_data_prep.Generate_IO_Hitters("WHERE MlbId=?", (596146,), False)[0]
+        else:
+            player_template = self.pro_data_prep.Generate_IO_Pitchers("WHERE MlbId=?", (446155,), False)[0]
         
         return Player_IO(
             player=None,
@@ -70,8 +60,11 @@ class Combined_Data_Prep:
             mlb_stat_mask=torch.zeros(0, *player_template.mlb_stat_mask.shape[1:]),
         )
     
-    def GetEmptyCollegeIO(self) -> College_IO:
-        player_template = self.college_data_prep.Generate_IO_Hitters("WHERE TBCId=?", (297375,), False)[0]
+    def GetEmptyCollegeIO(self, is_hitter : bool) -> College_IO:
+        if is_hitter:
+            player_template = self.college_data_prep.Generate_IO_Hitters("WHERE TBCId=?", (297375,), False)[0]
+        else:
+            player_template = self.college_data_prep.Generate_IO_Pitchers("WHERE TBCId=?", (103,), False)[0]
 
         return College_IO(
             player=None,
@@ -94,6 +87,9 @@ class Combined_Data_Prep:
         pro_io = self.pro_data_prep.Generate_IO_Hitters(pro_player_condition, pro_player_values, pro_use_cutoff)
         college_io = self.college_data_prep.Generate_IO_Hitters(col_player_condition, col_player_values, col_use_cutoff)
         
+        empty_pro_io = self.GetEmptyProIO(is_hitter=True)
+        empty_college_io = self.GetEmptyCollegeIO(is_hitter=True)
+        
         io : list[Combined_IO] = []
         
         # Need to map pro <based on mlbId> and college <based on tbcId>
@@ -104,7 +100,7 @@ class Combined_Data_Prep:
         # Add all college hitters
         for c in college_io:
             id = c.player.MlbId
-            pro = pro_io[mlbid_idx_dict[id]] if id in mlbid_idx_dict else self.pro_empty_io
+            pro = pro_io[mlbid_idx_dict[id]] if id in mlbid_idx_dict else empty_pro_io
             io.append(Combined_IO(pro, c))
             
         # Need to map college hitters by mlbId to create shared for player with no college
@@ -116,8 +112,42 @@ class Combined_Data_Prep:
                 
         for p in pro_io:
             if not p.player.mlbId in col_idx_dict:
-                io.append(Combined_IO(p, self.college_empty_io))
+                io.append(Combined_IO(p, empty_college_io))
         
         return io
        
-    
+    def Generate_IO_Pitchers(self,
+            pro_player_condition : str, pro_player_values : tuple[any], pro_use_cutoff : bool,
+            col_player_condition : str, col_player_values : tuple[any], col_use_cutoff : bool,) -> list[Combined_IO]:
+        
+        pro_io = self.pro_data_prep.Generate_IO_Pitchers(pro_player_condition, pro_player_values, pro_use_cutoff)
+        college_io = self.college_data_prep.Generate_IO_Pitchers(col_player_condition, col_player_values, col_use_cutoff)
+        
+        empty_pro_io = self.GetEmptyProIO(is_hitter=False)
+        empty_college_io = self.GetEmptyCollegeIO(is_hitter=False)
+        
+        io : list[Combined_IO] = []
+        
+        # Need to map pro <based on mlbId> and college <based on tbcId>
+        mlbid_idx_dict : dict[int, int] = {}
+        for i, p in enumerate(pro_io):
+            mlbid_idx_dict[p.player.mlbId] = i
+            
+        # Add all college hitters
+        for c in college_io:
+            id = c.player.MlbId
+            pro = pro_io[mlbid_idx_dict[id]] if id in mlbid_idx_dict else empty_pro_io
+            io.append(Combined_IO(pro, c))
+            
+        # Need to map college pitchers by mlbId to create shared for player with no college
+        # Won't need an actual value, just that it is in the dict
+        col_idx_dict : dict[int, None] = {}
+        for c in college_io:
+            if c.player.MlbId != 0:
+                col_idx_dict[c.player.MlbId] = None
+                
+        for p in pro_io:
+            if not p.player.mlbId in col_idx_dict:
+                io.append(Combined_IO(p, empty_college_io))
+        
+        return io

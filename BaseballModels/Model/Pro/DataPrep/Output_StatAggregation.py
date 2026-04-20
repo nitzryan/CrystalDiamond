@@ -82,7 +82,6 @@ def Aggregate_HitterMlbBuckets(stats : list[DB_Model_HitterLevelStats],
                           endMonth : int,
                           startYear : int,
                           endYear : int,
-                          output_map : Output_Map,
                           start_idx : int) -> tuple[torch.Tensor, int]:
     
     filteredStats : list[DB_Model_HitterLevelStats] = []
@@ -192,3 +191,73 @@ def Aggregate_PitcherStats(stats : list[DB_Model_HitterStats],
         posTensor += torch.tensor(posList) * weight
         
     return posTensor, next_start_index
+
+# endYear, endMonth, startYear inclusive, startMonth exclusive
+NUM_PITCHER_STATS = 6
+NUM_PITCHER_BUCKETS_PER_STAT = 21
+OUT_STAT_RATE = 450
+_HALF_BUCKETS = NUM_PITCHER_BUCKETS_PER_STAT // 2
+_LARGE_DELTA = 4
+_MED_DELTA = 8
+_SMALL_DELTA = 10
+BUCKET_PIT_ERA = torch.tensor([x / _SMALL_DELTA for x in range(NUM_PITCHER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+BUCKET_PIT_HR = torch.tensor([x / _SMALL_DELTA for x in range(NUM_PITCHER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+BUCKET_PIT_BB = torch.tensor([x / _SMALL_DELTA for x in range(NUM_PITCHER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+BUCKET_PIT_HBP = torch.tensor([x / _SMALL_DELTA for x in range(NUM_PITCHER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+BUCKET_PIT_K = torch.tensor([x / _SMALL_DELTA for x in range(NUM_PITCHER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+BUCKET_PIT_PF = torch.tensor([1 + ((x - _HALF_BUCKETS) / 50) for x in range(NUM_HITTER_BUCKETS_PER_STAT - 1)], dtype=torch.float)
+
+def Aggregate_PitcherMlbBuckets(stats : list[DB_Model_PitcherLevelStats],
+                          startMonth : int,
+                          endMonth : int,
+                          startYear : int,
+                          endYear : int,
+                          start_idx : int) -> tuple[torch.Tensor, int]:
+    
+    filteredStats : list[DB_Model_PitcherLevelStats] = []
+    
+    # Start from last good index, stop after good index found and then bad found
+    good_stat_found = False
+    next_start_index = start_idx
+    for i, stat in enumerate(stats[start_idx:], start=start_idx):
+        if __IsDateValid(month=stat.Month, year=stat.Year, startMonth=startMonth, endMonth=endMonth, startYear=startYear, endYear=endYear):
+            if stat.LevelId == 0:
+                filteredStats.append(stat)
+            
+            # Check for first good datapoint
+            if not good_stat_found:
+                next_start_index = i + 1
+                good_stat_found = True
+                
+        # If good found, first bad datapoint
+        elif good_stat_found:
+            break
+    
+    # Get weight to smooth results
+    totalOuts = 0
+    for stat in filteredStats:
+        totalOuts += stat.Outs_SP + stat.Outs_RP
+    
+    mask = min(totalOuts / 30, 1)
+    statTensor = torch.zeros(NUM_PITCHER_STATS, dtype=torch.long)
+    
+    
+    if totalOuts == 0: # Stats aggregation will return all zeros
+        return statTensor, mask, next_start_index
+    
+    # MLB rate stats
+    pitERA = sum([s.ERA * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    pitHR = sum([s.HR * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    pitBB = sum([s.BB * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    pitHBP = sum([s.HBP * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    pitK = sum([s.K * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    parkFactor = sum([s.ParkRunFactor * (s.Outs_SP + s.Outs_RP) for s in filteredStats])
+    
+    statTensor[0] = torch.bucketize(pitERA / totalOuts, BUCKET_PIT_ERA)
+    statTensor[1] = torch.bucketize(pitHR / totalOuts, BUCKET_PIT_HR)
+    statTensor[2] = torch.bucketize(pitBB / totalOuts, BUCKET_PIT_BB)
+    statTensor[3] = torch.bucketize(pitHBP / totalOuts, BUCKET_PIT_HBP)
+    statTensor[4] = torch.bucketize(pitK / totalOuts, BUCKET_PIT_K)
+    statTensor[5] = torch.bucketize(parkFactor / totalOuts, BUCKET_PIT_PF)
+        
+    return statTensor, mask, next_start_index

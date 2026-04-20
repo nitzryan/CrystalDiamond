@@ -47,7 +47,7 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
-  loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat)
+  loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat, is_hitter)
   
   # Scale how much each loss should effect the model
   losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]

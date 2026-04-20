@@ -10,7 +10,7 @@ from tqdm import tqdm
 import random
 from Pro.DataPrep.Prep_Map import Prep_Map
 from Pro.DataPrep.Output_Map import Output_Map
-from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS
+from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS, Aggregate_PitcherMlbBuckets, NUM_PITCHER_STATS
 import DB_AdvancedStatements
 import numpy as np # Random normal distribution
 
@@ -414,9 +414,9 @@ class Data_Prep:
                 
                 for i in range(l):
                     if i == 0:
-                        buckets, mask, _ = Aggregate_HitterMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=level_stats, start_idx=stat_start_idx)
+                        buckets, mask, _ = Aggregate_HitterMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, stats=level_stats, start_idx=stat_start_idx)
                     else:
-                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=level_stats, start_idx=stat_start_idx)
+                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, stats=level_stats, start_idx=stat_start_idx)
                     
                     mlb_stat_buckets[i,:] = buckets
                     mlb_stat_mask[i] = mask
@@ -532,18 +532,18 @@ class Data_Prep:
                 input[1:, -self.prep_map.mlb_pit_value_size:] = self.Transform_PitcherMlbValues([pmw for mhs, pmw in stats_monthlywar])
             
             # Output
-            output = torch.zeros(l, 3, dtype=torch.long)
-            output[:,0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_war(pitcher)), self.output_map.buckets_pitcher_war)
-            output[:,1] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
-            output[:,2] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
+            output = torch.zeros(3, dtype=torch.long)
+            output[0] = torch.bucketize(torch.tensor(self.output_map.map_pitcher_war(pitcher)), self.output_map.buckets_pitcher_war)
+            output[1] = torch.bucketize(torch.tensor(pitcher.highestLevelPitcher), PITCHER_LEVEL_BUCKETS)
+            output[2] = torch.bucketize(torch.tensor(pitcher.totalOuts), PITCHER_BF_BUCKETS)
         
             # Regression prospect value
-            prospect_value = torch.zeros(l, 1, dtype=torch.float)
-            prospect_value[:] = (torch.tensor([pitcher.warPitcher]) - prospect_value_means) / prospect_value_devs
+            prospect_value = torch.zeros(1, dtype=torch.float)
+            prospect_value = (torch.tensor([pitcher.warPitcher]) - prospect_value_means) / prospect_value_devs
         
             # Create variants for Prospect value
-            output_war_class_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.long)
-            output_war_regression_variants = torch.zeros(l, NUM_VARIANTS, dtype=torch.float)
+            output_war_class_variants = torch.zeros(NUM_VARIANTS, dtype=torch.long)
+            output_war_regression_variants = torch.zeros(NUM_VARIANTS, dtype=torch.float)
             mpws = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=0", (pitcher.mlbId,))
             if len(mpws) > 0:
                 pa = 0
@@ -553,8 +553,8 @@ class Data_Prep:
                     war += mpw.WAR_r + mpw.WAR_s
                 for n in range(NUM_VARIANTS):
                     variant_war = war + ((pa / 600) * np.random.normal(loc=0, scale=0.75, size=1)).item()
-                    output_war_class_variants[:,n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_pitcher_war)
-                    output_war_regression_variants[:,n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
+                    output_war_class_variants[n] = torch.bucketize(torch.tensor([variant_war]), self.output_map.buckets_pitcher_war)
+                    output_war_regression_variants[n] = (torch.tensor([variant_war]) - prospect_value_means) / prospect_value_devs
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
@@ -595,6 +595,23 @@ class Data_Prep:
                         else:
                             _p, stat_start_idx = Aggregate_PitcherStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                         pos_year_output[i,:] = _p
+            
+            # MLB Stat Buckets
+            mlb_stat_buckets = torch.zeros(l, NUM_PITCHER_STATS, dtype=torch.long)
+            mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
+            if len(level_stats) > 1:
+                start_month = stats[1].Month
+                start_year = stats[1].Year
+                stat_start_idx = 0
+                
+                for i in range(l):
+                    if i == 0:
+                        buckets, mask, _ = Aggregate_PitcherMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, stats=level_stats, start_idx=stat_start_idx)
+                    else:
+                        buckets, mask, stat_start_idx = Aggregate_PitcherMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, stats=level_stats, start_idx=stat_start_idx)
+                    
+                    mlb_stat_buckets[i,:] = buckets
+                    mlb_stat_mask[i] = mask
             
             # MLB Value stats and mask
             mlb_value_mask = torch.zeros(l, 3, 3, dtype=torch.float)
@@ -648,7 +665,10 @@ class Data_Prep:
                                 pt_year_output=pt_year_output, 
                                 mlb_value_mask=mlb_value_mask, 
                                 mlb_value_stats=mlb_value_stats,
-                                pt_levelYearGames=mlyg))
+                                pt_levelYearGames=mlyg,
+                                
+                                mlb_stat_buckets = mlb_stat_buckets,
+                                mlb_stat_mask = mlb_stat_mask,))
         
         return io
         

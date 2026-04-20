@@ -44,16 +44,16 @@ def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
     loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
     loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
-    if shouldBackprop or False:
+    if shouldBackprop:
       torch.autograd.backward([loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos], retain_graph=True)
-
     
     return (loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos), output_hidden
 
-def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : bool):
+def GetLossesPitcher(network, data, targets, masks, shouldBackprop : bool):
     # Get Output
-    data = data.to(device)
-    length = length.to(device)
+    data, length = data
+    data = data.to(device, non_blocking=True)
+    length = length.to(device, non_blocking=True)
     output_draft, output_war, output_pos, output_hidden = network(data, length)
     
     max_len = output_draft.size(1)
@@ -62,7 +62,7 @@ def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : boo
     
     # Get losses
     target_draft, target_war, target_pos = targets
-    mask_pos = masks
+    mask_pos, = masks
     
     target_draft = target_draft.to(device)
     loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
@@ -75,9 +75,7 @@ def GetLossesPitcher(network, data, length, targets, masks, shouldBackprop : boo
     loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
     if shouldBackprop:
-      loss_draft.backward(retain_graph=True)
-      loss_war.backward(retain_graph=True)
-      loss_pos.backward()
+      torch.autograd.backward([loss_draft, loss_war, loss_pos], retain_graph=True)
     
     return (loss_draft, loss_war, loss_pos), output_hidden
 

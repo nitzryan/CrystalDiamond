@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from Pro.DataPrep.Data_Prep import Data_Prep
-from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT
+from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
 
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
@@ -103,7 +103,11 @@ class RNN_Model(nn.Module):
         self.pos_layers = pos_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
         self.pt_layers = pt_arch.GetArchitecture(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
         self.value_layers = val_arch.GetArchitecture(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
-        self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
+        
+        if is_hitter:
+            self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
+        else:
+            self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_PITCHER_STATS * NUM_PITCHER_BUCKETS_PER_STAT)
         
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
@@ -355,19 +359,23 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
         l += (loss(pred_positions[:,x,:], actual_positions[:,x,:]) * masks[:,x]).sum()
     return l
     
-def MLB_Stat_Classification_Loss(pred_stats, actual_stats, masks):
+def MLB_Stat_Classification_Loss(pred_stats, actual_stats, masks, is_hitter : bool):
     batch_size = pred_stats.size(0)
     time_steps = pred_stats.size(1)
+    
     masks = masks[:,:time_steps]
     actual_stats = actual_stats[:, :time_steps]
     
-    pred_stats = pred_stats.reshape((batch_size * time_steps, NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT))
+    num_stats = NUM_HITTER_STATS if is_hitter else NUM_PITCHER_STATS
+    num_buckets = NUM_HITTER_BUCKETS_PER_STAT if is_hitter else NUM_PITCHER_BUCKETS_PER_STAT
+    
+    pred_stats = pred_stats.reshape((batch_size * time_steps, num_stats, num_buckets))
     masks = masks.reshape((batch_size * time_steps,))
-    actual_stats = actual_stats.reshape((batch_size * time_steps, NUM_HITTER_STATS))
+    actual_stats = actual_stats.reshape((batch_size * time_steps, num_stats))
     
     l = nn.CrossEntropyLoss(reduction='none', label_smoothing=0.25)
     loss = 0
-    for i in range(NUM_HITTER_STATS):
+    for i in range(num_stats):
         loss += (l(pred_stats[:, i], actual_stats[:,i]) * masks).sum()
         
     return loss

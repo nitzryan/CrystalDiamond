@@ -71,9 +71,11 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         self.col_output_draft = col_output_draft.to(device, non_blocking=True)
         self.col_output_war = col_output_war.to(device, non_blocking=True)
         self.col_output_pos = col_output_pos.to(device, non_blocking=True)
-        self.col_output_off = col_output_off.to(device, non_blocking=True)
-        self.col_output_def = col_output_def.to(device, non_blocking=True)
-        self.col_output_pa = col_output_pa.to(device, non_blocking=True)
+        
+        if is_hitter:
+            self.col_output_off = col_output_off.to(device, non_blocking=True)
+            self.col_output_def = col_output_def.to(device, non_blocking=True)
+            self.col_output_pa = col_output_pa.to(device, non_blocking=True)
         self.col_mask_pos = col_mask_pos.to(device, non_blocking=True)
     
         # Faster size calculation
@@ -156,6 +158,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             col_targets = (
                 self.col_output_draft[batch_indices],
                 self.col_output_war[batch_indices],
+                self.col_output_pos[batch_indices],
             )
 
         col_masks = (self.col_mask_pos[batch_indices],)
