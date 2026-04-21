@@ -173,7 +173,12 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
 def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool, device = 'cuda') -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
     io_train : list[Combined_IO]
     io_test : list[Combined_IO]
-    io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
+    
+    if test_size > 0:
+        io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
+    else:
+        io_train = player_list
+        io_test = [player_list[0]] # Needs to have something so test variants don't fail, will discard later
 
     pro_dates_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.dates for io in io_train])
     pro_dates_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.dates for io in io_test])
@@ -293,6 +298,9 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         is_hitter=is_hitter,
         
         device=device,)
+    
+    if test_size == 0:
+        return train_dataset, None
     
     test_dataset = Combined_Player_Dataset(
         pro_dates= pro_dates_test,

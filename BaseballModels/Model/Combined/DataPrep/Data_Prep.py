@@ -133,7 +133,7 @@ class Combined_Data_Prep:
         for i, p in enumerate(pro_io):
             mlbid_idx_dict[p.player.mlbId] = i
             
-        # Add all college hitters
+        # Add all college pitchers
         for c in college_io:
             id = c.player.MlbId
             pro = pro_io[mlbid_idx_dict[id]] if id in mlbid_idx_dict else empty_pro_io

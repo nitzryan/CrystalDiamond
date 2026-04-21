@@ -40,8 +40,9 @@ if __name__ == "__main__":
         pitcher_io_list = data_prep.Generate_IO_Pitchers(pro_player_condition="WHERE isPitcher=?", pro_player_values=(1,), pro_use_cutoff=False,
                 col_player_condition="WHERE isPitcher=?", col_player_values=(1,), col_use_cutoff=False)
         
+        
         dataset : Combined_Player_Dataset
-        dataset, _ = Create_Test_Train_Datasets(pitcher_io_list, 0.25, 0, is_hitter=False, device='cpu')
+        dataset, _ = Create_Test_Train_Datasets(pitcher_io_list, 0, 0, is_hitter=False, device='cpu')
         
         n_samples = len(dataset)
         num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
@@ -104,18 +105,9 @@ if __name__ == "__main__":
                 col_data, col_length = col_data
                 col_data = col_data.to(device, non_blocking=True)
                 col_length = col_length.to(device, non_blocking=True)
-                col_output_draft, col_output_war, col_output_pos, h0 = col_network(col_data, col_length)
                 
-                # Run Through Pro Model
-                pro_data, pro_length, pro_pt_levelYearGames = pro_data
-                prospect_mask, _, _, _, _ = pro_masks
-                
-                mask_valid = pro_length > 0
-                pro_data = pro_data[mask_valid].to(device, non_blocking=True)
-                pro_length = pro_length[mask_valid].to(device, non_blocking=True)
-                pro_pt_levelYearGames = pro_pt_levelYearGames[mask_valid].to(device, non_blocking=True)
-                h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-                pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0)
+                with torch.no_grad():
+                    col_output_draft, col_output_war, col_output_pos, h0 = col_network(col_data, col_length)
                 
                 # Insert College Data
                 col_mask_valid = col_length > 0
@@ -146,6 +138,19 @@ if __name__ == "__main__":
                     cursor.executemany(f"INSERT INTO Output_College_Pitcher VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                 
                 
+                # Run Through Pro Model
+                pro_data, pro_length, pro_pt_levelYearGames = pro_data
+                prospect_mask, _, _, _, _ = pro_masks
+                
+                mask_valid = pro_length > 0
+                pro_data = pro_data[mask_valid].to(device, non_blocking=True)
+                pro_length = pro_length[mask_valid].to(device, non_blocking=True)
+                pro_pt_levelYearGames = pro_pt_levelYearGames[mask_valid].to(device, non_blocking=True)
+                h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
+                
+                with torch.no_grad():
+                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0)
+                
                 # Insert Pro Data
                 pro_output_war = F.softmax(pro_output_war, dim=2) 
                 pro_war = torch.zeros(size=(pro_output_war.size(0), pro_output_war.size(1))).to(device)
@@ -163,7 +168,6 @@ if __name__ == "__main__":
                 opw = torch.cat((mask.unsqueeze(-1), mlbIds, modelIdxs, pro_dtes, pro_output_war, pro_war.unsqueeze(-1)), dim=2)
                 db_data = torch.nn.utils.rnn.unpad_sequence(opw, pro_length, batch_first=True)
                 for dbd in db_data:
-                    #print(dbd[0][1].item())
                     # Only log where player is actually a prospect
                     dbd = dbd[dbd[:,0] != 0]
                     d = dbd[:,1:]
