@@ -1963,5 +1963,59 @@ class DB_PitchNonStatcast:
 		items = cursor.execute("SELECT * FROM PitchNonStatcast " + conditional, values).fetchall()
 		return [DB_PitchNonStatcast(i) for i in items]
 
+class DB_PitcherStatcastGame:
+	def __init__(self, values : tuple[any]):
+		self.MlbId = values[0]
+		self.GameId = values[1]
+		self.LevelId = values[2]
+		self.FastballVelo = values[3]
+		self.FastballBreakHoriz = values[4]
+		self.FastballBreakInduced = values[5]
+		self.FastballBreakVert = values[6]
+		self.SinkerVelo = values[7]
+		self.SinkerBreakHoriz = values[8]
+		self.SinkerBreakInduced = values[9]
+		self.SinkerBreakVert = values[10]
+
+	NUM_ELEMENTS = 11
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.MlbId,self.GameId,self.LevelId,self.FastballVelo,self.FastballBreakHoriz,self.FastballBreakInduced,self.FastballBreakVert,self.SinkerVelo,self.SinkerBreakHoriz,self.SinkerBreakInduced,self.SinkerBreakVert)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStatcastGame']:
+		items = cursor.execute("SELECT * FROM PitcherStatcastGame " + conditional, values).fetchall()
+		return [DB_PitcherStatcastGame(i) for i in items]
+
+class DB_PitchDateAverages:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.Month = values[1]
+		self.Extension = values[2]
+		self.FastballVelo = values[3]
+		self.Fastball4SeamVert = values[4]
+		self.Fastball4SeamHoriz = values[5]
+		self.FastballCount = values[6]
+		self.SinkerVelo = values[7]
+		self.SinkerVert = values[8]
+		self.SinkerHoriz = values[9]
+		self.SinkerCount = values[10]
+		self.CurveballVelo = values[11]
+		self.CurveballHoriz = values[12]
+		self.CurveballVert = values[13]
+		self.CurveballCount = values[14]
+
+	NUM_ELEMENTS = 15
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.Month,self.Extension,self.FastballVelo,self.Fastball4SeamVert,self.Fastball4SeamHoriz,self.FastballCount,self.SinkerVelo,self.SinkerVert,self.SinkerHoriz,self.SinkerCount,self.CurveballVelo,self.CurveballHoriz,self.CurveballVert,self.CurveballCount)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchDateAverages']:
+		items = cursor.execute("SELECT * FROM PitchDateAverages " + conditional, values).fetchall()
+		return [DB_PitchDateAverages(i) for i in items]
+
 
 ##############################################################################################

@@ -107,3 +107,47 @@ CREATE TABLE PitchNonStatcast
 );
 
 -- Indexes created in GetStatcastData.cs
+
+CREATE TABLE PitcherStatcastGame
+(
+    "MlbId" INTEGER NOT NULL,
+    "GameId" INTEGER NOT NULL,
+    "LevelId" INTEGER NOT NULL,
+
+    "FastballVelo" REAL,
+    "FastballBreakHoriz" REAL,
+    "FastballBreakInduced" REAL,
+    "FastballBreakVert" REAL,
+
+    "SinkerVelo" REAL,
+    "SinkerBreakHoriz" REAL,
+    "SinkerBreakInduced" REAL,
+    "SinkerBreakVert" REAL,
+
+    PRIMARY KEY("MlbId", "GameId")
+);
+
+CREATE TABLE PitchDateAverages
+(
+    "Year" INTEGER NOT NULL,
+    "Month" INTEGER NOT NULL,
+
+    "Extension" REAL NOT NULL,
+
+    "FastballVelo" REAL NOT NULL,
+    "Fastball4SeamVert" REAL NOT NULL,
+    "Fastball4SeamHoriz" REAL NOT NULL,
+    "FastballCount" INTEGER NOT NULL,
+
+    "SinkerVelo" REAL NOT NULL,
+    "SinkerVert" REAL NOT NULL,
+    "SinkerHoriz" REAL NOT NULL,
+    "SinkerCount" INTEGER NOT NULL,
+
+    "CurveballVelo" REAL NOT NULL,
+    "CurveballHoriz" REAL NOT NULL,
+    "CurveballVert" REAL NOT NULL,
+    "CurveballCount" INTEGER NOT NULL,
+
+    PRIMARY KEY ("Year", "Month")
+)

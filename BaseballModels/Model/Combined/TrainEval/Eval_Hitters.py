@@ -153,8 +153,6 @@ if __name__ == "__main__":
                 with torch.no_grad():
                     pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0)
                 
-                
-                
                 # Insert Pro Data
                 pro_output_war = F.softmax(pro_output_war, dim=2) 
                 pro_war = torch.zeros(size=(pro_output_war.size(0), pro_output_war.size(1))).to(device)

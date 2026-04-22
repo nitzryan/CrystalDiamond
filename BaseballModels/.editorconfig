@@ -2,3 +2,5 @@
 
 # IDE0047: Remove unnecessary parentheses
 dotnet_diagnostic.IDE0047.severity = none
+# IDEO0305 Disable collection expression
+dotnet_style_prefer_collection_expression = false

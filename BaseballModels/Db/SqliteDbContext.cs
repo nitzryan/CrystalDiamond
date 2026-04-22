@@ -71,6 +71,8 @@ namespace Db
 		public DbSet<Model_College_PitcherProStats> Model_College_PitcherProStats {get; set;}
 		public DbSet<PitchStatcast> PitchStatcast {get; set;}
 		public DbSet<PitchNonStatcast> PitchNonStatcast {get; set;}
+		public DbSet<PitcherStatcastGame> PitcherStatcastGame {get; set;}
+		public DbSet<PitchDateAverages> PitchDateAverages {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -143,6 +145,8 @@ namespace Db
 			modelBuilder.Entity<Model_College_PitcherProStats>().HasKey(f => new {f.TBCId});
 			modelBuilder.Entity<PitchStatcast>().HasKey(f => new {f.GameId,f.PitchId});
 			modelBuilder.Entity<PitchNonStatcast>().HasKey(f => new {f.GameId,f.PitchId});
+			modelBuilder.Entity<PitcherStatcastGame>().HasKey(f => new {f.MlbId,f.GameId});
+			modelBuilder.Entity<PitchDateAverages>().HasKey(f => new {f.Year,f.Month});
 		}
 	}
 }

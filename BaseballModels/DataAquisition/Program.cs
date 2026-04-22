@@ -9,7 +9,7 @@
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = false;
+        const bool STATCAST_ONLY_UPDATE = true;
 
         static async Task Main(string[] args)
         {
@@ -132,10 +132,20 @@
             {
                 foreach (var year in years)
                 {
-                    while (!await PitchData.Update(year, year == years.Last()))
-                    { }
+                    //while (!await PitchData.Update(year, year == years.Last()))
+                    //{ }
 
-                    PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
+                    //PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
+
+                    PitchAggregation.CreatePitcherGameBaselines(year);
+
+                    foreach (var month in months)
+                    {
+                        if (year == END_YEAR && month == END_MONTH)
+                            break;
+
+                        PitchAggregation.CreateLeagueDateAverages(year, month);
+                    }
                 }
             }
             
