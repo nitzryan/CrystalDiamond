@@ -1968,20 +1968,22 @@ class DB_PitcherStatcastGame:
 		self.MlbId = values[0]
 		self.GameId = values[1]
 		self.LevelId = values[2]
-		self.FastballVelo = values[3]
-		self.FastballBreakHoriz = values[4]
-		self.FastballBreakInduced = values[5]
-		self.FastballBreakVert = values[6]
-		self.SinkerVelo = values[7]
-		self.SinkerBreakHoriz = values[8]
-		self.SinkerBreakInduced = values[9]
-		self.SinkerBreakVert = values[10]
+		self.Year = values[3]
+		self.Month = values[4]
+		self.FastballVelo = values[5]
+		self.FastballBreakHoriz = values[6]
+		self.FastballBreakInduced = values[7]
+		self.FastballBreakVert = values[8]
+		self.SinkerVelo = values[9]
+		self.SinkerBreakHoriz = values[10]
+		self.SinkerBreakInduced = values[11]
+		self.SinkerBreakVert = values[12]
 
-	NUM_ELEMENTS = 11
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.MlbId,self.GameId,self.LevelId,self.FastballVelo,self.FastballBreakHoriz,self.FastballBreakInduced,self.FastballBreakVert,self.SinkerVelo,self.SinkerBreakHoriz,self.SinkerBreakInduced,self.SinkerBreakVert)
+		return (self.MlbId,self.GameId,self.LevelId,self.Year,self.Month,self.FastballVelo,self.FastballBreakHoriz,self.FastballBreakInduced,self.FastballBreakVert,self.SinkerVelo,self.SinkerBreakHoriz,self.SinkerBreakInduced,self.SinkerBreakVert)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStatcastGame']:

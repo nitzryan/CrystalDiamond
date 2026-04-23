@@ -6,6 +6,13 @@ from typing import TypeVar, Callable
 from Constants import db, DTYPE
 from Buckets import *
 from Stuff.DataPrep.PitchDataset import PitchIO
+from tqdm.notebook import tqdm
+        
+_OVERVIEW_STRING = "overview"
+_LOC_STRING = "loc"
+_STUFF_STRING = "stuff"
+_GAME_STRING = "game"
+_AVG_STRING = "avg"
         
 _T = TypeVar('T')
 class DataPrep:
@@ -16,6 +23,7 @@ class DataPrep:
         self.prep_map = prep_map
         
         cursor = db.cursor()
+        # Get valid pitches
         # Make sure that all nullable values are not null
         vars_to_check = ["vStart", 
                         "BreakAngle", 
@@ -30,17 +38,34 @@ class DataPrep:
         self.conditional_statement = "WHERE "
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
-        self.conditional_statement += "Year<=? AND LevelId=1"
+        
+        self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
             cursor=cursor,
-            conditional=self.conditional_statement,
+            conditional=self.conditional_statement + "AND YEAR > 2016 AND Year<=? AND LevelId=1",
             values=(DataPrep.__CutoffYear,)
         )
         
-        self.__Create_PCA_Norms(self.prep_map.pitch_overview_map, pitches, "overview", self.prep_map.pitch_overview_size)
-        self.__Create_PCA_Norms(self.prep_map.pitch_loc_map, pitches, "loc", self.prep_map.pitch_loc_size)
-        self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, "stuff", self.prep_map.pitch_stuff_size)
+        self.__Create_PCA_Norms(self.prep_map.pitch_overview_map, pitches, _OVERVIEW_STRING, self.prep_map.pitch_overview_size)
+        self.__Create_PCA_Norms(self.prep_map.pitch_loc_map, pitches, _LOC_STRING, self.prep_map.pitch_loc_size)
+        self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
+       
+        # Get pitcher game averages
+        pitcher_games = DB_PitcherStatcastGame.Select_From_DB(
+            cursor=cursor,
+            conditional="WHERE Year > 2016 AND Year<=? AND LevelId=1",
+            values=(DataPrep.__CutoffYear,)
+        )
+        self.__Create_PCA_Norms(self.prep_map.pitcher_game_map, pitcher_games, _GAME_STRING, self.prep_map.pitcher_game_size)
+       
+        # Get Month/Year MLB averages
+        date_avg = DB_PitchDateAverages.Select_From_DB(
+            cursor=cursor,
+            conditional="WHERE Year > 2016 AND Year<=?",
+            values=(DataPrep.__CutoffYear,)
+        )
+        self.__Create_PCA_Norms(self.prep_map.league_baseline_map, date_avg, _AVG_STRING, self.prep_map.league_baseline_size)
        
     __CutoffYear = 2023
         
@@ -75,34 +100,94 @@ class DataPrep:
         loc_stats = torch.tensor([self.prep_map.pitch_loc_map(x) for x in stats], dtype=DTYPE)
         stuff_stats = torch.tensor([self.prep_map.pitch_stuff_map(x) for x in stats], dtype=DTYPE)
 
-        overview_pca = self.Get_PCA_Transform(overview_stats, "overview")
-        loc_pca = self.Get_PCA_Transform(loc_stats, "loc")
-        stuff_pca = self.Get_PCA_Transform(stuff_stats, "stuff")
+        overview_pca = self.Get_PCA_Transform(overview_stats, _OVERVIEW_STRING)
+        loc_pca = self.Get_PCA_Transform(loc_stats, _LOC_STRING)
+        stuff_pca = self.Get_PCA_Transform(stuff_stats, _STUFF_STRING)
         
         return overview_pca, loc_pca, stuff_pca
     
-    def GenerateIOPitches(self, use_cutoff : bool) -> list[PitchIO]:
+    def Transform_PitchGameData(self, games_dict : dict[(int, int), DB_PitcherStatcastGame], pitch_data : list[DB_PitchStatcast]) -> torch.Tensor:
+        pitch_gamedata = torch.tensor([self.prep_map.pitcher_game_map(games_dict[p.GameId, p.PitcherId]) for p in pitch_data], dtype=DTYPE)
+        pitch_gamedata_pca = self.Get_PCA_Transform(pitch_gamedata, _GAME_STRING)
+        return pitch_gamedata_pca
+        
+    def Transform_PitchAverage(self, avg : DB_PitchDateAverages) -> torch.Tensor:
+        data_avg = torch.tensor(self.prep_map.league_baseline_map(avg)).unsqueeze(0)
+        avg_pca = self.Get_PCA_Transform(data_avg, _AVG_STRING).squeeze()
+        return avg_pca
+    
+    def GenerateIOPitches(self, start_year : int, end_year : int, end_month : int) -> list[list[PitchIO]]:
         cursor = db.cursor()
-        pitches = DB_PitchStatcast.Select_From_DB(
-            cursor=cursor,
-            conditional=self.conditional_statement,
-            values=(DataPrep.__CutoffYear if use_cutoff else 100000,)
-        )
+        pitcher_dict : dict[int, list[PitchIO]] = {}
         
-        data_overview, data_loc, data_stuff = self.Transform_PitchStats(pitches)
+        for year in tqdm(range(start_year, end_year + 1), desc="DataPrep Years"):
+            for month in tqdm([4,5,6,7,8,9], desc="Months", leave=False):
+                if year == end_year and month > end_month:
+                    continue
+                if year == 2020 and month < 7: # COVID
+                    continue
+                # MLB average for the month
+                pitch_avg = DB_PitchDateAverages.Select_From_DB(
+                    cursor=cursor,
+                    conditional="WHERE Year=? AND Month=?",
+                    values=(year,month)
+                )
+                
+                if len(pitch_avg) == 0:
+                    raise Exception(f"No data found for PitchDataAverages for {year}-{month}")
+                pitch_avg = pitch_avg[0]
+                data_pitch_averages = self.Transform_PitchAverage(pitch_avg)
+                
+                # Pitcher Games
+                pitcher_games = DB_PitcherStatcastGame.Select_From_DB(
+                    cursor=cursor,
+                    conditional="WHERE Year=? AND Month=?",
+                    values=(year, month)
+                )
+                
+                pitcher_games_dict : dict[(int, int), DB_PitcherStatcastGame] = {}
+                for pg in pitcher_games:
+                    pitcher_games_dict[(pg.GameId, pg.MlbId)] = pg
+                
+                # Individual Pitches
+                pitches = DB_PitchStatcast.Select_From_DB(
+                    cursor=cursor,
+                    conditional=self.conditional_statement + "AND Year=? AND Month=?",
+                    values=(year, month)
+                )
+                
+                player_pitch_dict : dict[int, list[DB_PitchStatcast]] = {}
+                for pitch in pitches:
+                    if not pitch.PitcherId in player_pitch_dict:
+                        player_pitch_dict[pitch.PitcherId] = [pitch]
+                    else:
+                        player_pitch_dict[pitch.PitcherId].append(pitch)
         
-        pitch_io_list : list[PitchIO] = []
-        for i in range(len(pitches)):
-            pitch_io_list.append(PitchIO(
-                data_overview=data_overview[i],
-                data_loc=data_loc[i],
-                data_stuff=data_stuff[i],
-                output_value=torch.bucketize(torch.tensor([pitches[i].RunValueHitter]), BUCKET_PITCHVALUE).item(),
-                output_runs=pitches[i].PaResultDirectRuns,
-                output_outs=min(pitches[i].PaResultOuts, 2),
-                output_swung=pitches[i].HadSwing,
-                output_contact=pitches[i].HadContact,
-                output_inplay=pitches[i].IsInPlay
-            ))
-            
-        return pitch_io_list
+                # Iterate through players
+                for id, pitch_data in player_pitch_dict.items():
+                    data_pitcher_game = self.Transform_PitchGameData(pitcher_games_dict, pitch_data)
+                    data_overview, data_loc, data_stuff = self.Transform_PitchStats(pitch_data)
+
+                    # Iterate through pitches
+                    io_list : list[PitchIO] = []
+                    for i, pitch in enumerate(pitch_data):
+                        io_list.append(PitchIO(
+                            data_overview=data_overview[i],
+                            data_loc=data_loc[i],
+                            data_stuff=data_stuff[i],
+                            data_pitcher_game=data_pitcher_game[i],
+                            data_league_avg=data_pitch_averages,
+                            output_value=torch.bucketize(torch.tensor([pitch.RunValueHitter]), BUCKET_PITCHVALUE).item(),
+                            output_runs=pitch.PaResultDirectRuns,
+                            output_outs=min(pitch.PaResultOuts, 2),
+                            output_swung=pitch.HadSwing,
+                            output_contact=pitch.HadContact,
+                            output_inplay=pitch.IsInPlay
+                        ))
+                    
+                    if not id in pitcher_dict:
+                        pitcher_dict[id] = io_list
+                    else:
+                        pitcher_dict[id] += io_list
+        
+        return list(pitcher_dict.values())

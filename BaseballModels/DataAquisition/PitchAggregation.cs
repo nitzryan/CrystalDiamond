@@ -52,6 +52,8 @@ namespace DataAquisition
                     {
                         MlbId = gpp.Key.PitcherId,
                         GameId = gpp.Key.GameId,
+                        Year = gpp.First().Year,
+                        Month = gpp.First().Month,
                         LevelId = gpp.First().LevelId,
                         FastballVelo = fastballVelo,
                         FastballBreakHoriz = fastballBreakHoriz,

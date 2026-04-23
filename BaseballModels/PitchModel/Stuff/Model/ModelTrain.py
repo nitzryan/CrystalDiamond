@@ -118,7 +118,9 @@ def TrainTest(network : PitchModel,
         data = (
             dataset.data_overview[batch_idx],
             dataset.data_loc[batch_idx],
-            dataset.data_stuff[batch_idx]
+            dataset.data_stuff[batch_idx],
+            dataset.data_pitcher_game[batch_idx],
+            dataset.data_league_avg[batch_idx]
         )
         targets = (
             dataset.output_value[batch_idx],
@@ -149,9 +151,9 @@ def TrainTest(network : PitchModel,
     return avg_losses
         
 def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], should_backprop : bool) -> list[torch.Tensor]:
-    data_overview, data_loc, data_stuff = data
+    data_overview, data_loc, data_stuff, data_game, data_avg = data
     
-    outputs = network(data_overview, data_loc, data_stuff)
+    outputs = network(data_overview, data_loc, data_stuff, data_game, data_avg)
     
     if len(outputs) / len(targets) != len(_MODEL_VARIANTS):
         raise RuntimeError(f"Not the same number of outputs ({len(outputs)}) and targets ({len(targets)})")

@@ -113,6 +113,8 @@ CREATE TABLE PitcherStatcastGame
     "MlbId" INTEGER NOT NULL,
     "GameId" INTEGER NOT NULL,
     "LevelId" INTEGER NOT NULL,
+    "Year" INTEGER NOT NULL,
+    "Month" INTEGER NOT NULL,
 
     "FastballVelo" REAL,
     "FastballBreakHoriz" REAL,

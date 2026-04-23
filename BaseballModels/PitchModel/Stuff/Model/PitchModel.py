@@ -30,7 +30,7 @@ class PitchModel(nn.Module):
         
         # Stuff and Pitch Overview
         self.layers_stuff = DEFAULT_STUFF_LA.GetArchitecture(
-            hidden_size=prep_map.pitch_stuff_size + prep_map.pitch_overview_size,
+            hidden_size=prep_map.pitch_stuff_size + prep_map.pitch_overview_size + prep_map.pitcher_game_size + prep_map.league_baseline_size,
             output_size=stuff_branch_size
         )
         
@@ -46,13 +46,13 @@ class PitchModel(nn.Module):
         self.layers_comb_value, self.layers_comb_runs, self.layers_comb_outs, self.layers_comb_swung, self.layers_comb_contact, self.layers_comb_inplay = \
             PitcherPredLayers(location_branch_size + stuff_branch_size).GetArchitecture()
         
-    def forward(self, overview : torch.Tensor, location : torch.Tensor, stuff : torch.Tensor) -> tuple[torch.Tensor, ...]:
+    def forward(self, overview : torch.Tensor, location : torch.Tensor, stuff : torch.Tensor, game : torch.Tensor, league_avg : torch.Tensor) -> tuple[torch.Tensor, ...]:
         # Location
         data_location = torch.cat((overview, location), dim=-1)
         inter_location = GetModuleOutput(data_location, self.layers_location, self.nonlin)
         
         # Stuff
-        data_stuff = torch.cat((overview, stuff), dim=-1)
+        data_stuff = torch.cat((overview, stuff, game, league_avg), dim=-1)
         inter_stuff = GetModuleOutput(data_stuff, self.layers_stuff, self.nonlin)
         
         inter_comb = torch.cat((inter_location, inter_stuff), dim=-1)
