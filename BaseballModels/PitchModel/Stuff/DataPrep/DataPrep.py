@@ -6,7 +6,8 @@ from typing import TypeVar, Callable
 from Constants import db, DTYPE
 from Buckets import *
 from Stuff.DataPrep.PitchDataset import PitchIO
-from tqdm.notebook import tqdm
+from tqdm import tqdm
+from Constants import profiler
         
 _OVERVIEW_STRING = "overview"
 _LOC_STRING = "loc"
@@ -14,8 +15,14 @@ _STUFF_STRING = "stuff"
 _GAME_STRING = "game"
 _AVG_STRING = "avg"
         
+SHOULD_PROFILE = True
+   
+if SHOULD_PROFILE:
+    profiler.enable()
+        
 _T = TypeVar('T')
 class DataPrep:
+    @profiler
     def __init__(self,
         prep_map : Prep_Map,
     ):
@@ -116,6 +123,7 @@ class DataPrep:
         avg_pca = self.Get_PCA_Transform(data_avg, _AVG_STRING).squeeze()
         return avg_pca
     
+    @profiler
     def GenerateIOPitches(self, start_year : int, end_year : int, end_month : int) -> list[list[PitchIO]]:
         cursor = db.cursor()
         pitcher_dict : dict[int, list[PitchIO]] = {}
@@ -152,7 +160,7 @@ class DataPrep:
                 # Individual Pitches
                 pitches = DB_PitchStatcast.Select_From_DB(
                     cursor=cursor,
-                    conditional=self.conditional_statement + "AND Year=? AND Month=?",
+                    conditional=self.conditional_statement + "AND Year=? AND Month=? AND LevelId=1",
                     values=(year, month)
                 )
                 
@@ -189,5 +197,9 @@ class DataPrep:
                         pitcher_dict[id] = io_list
                     else:
                         pitcher_dict[id] += io_list
+        
+        if SHOULD_PROFILE:
+            profiler.disable()
+            profiler.dump_stats("data_prep.lprof")
         
         return list(pitcher_dict.values())

@@ -674,7 +674,7 @@ namespace DataAquisition
                         // Restore indexes
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastPitcher ON PitchStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastHitter ON PitchStatcast(HitterId, Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastYearMonth ON PitchStatcast(Year, Month, LevelId, LeagueId);");
+                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastYearMonth ON PitchStatcast(Year, Month, LevelId, vStart, BreakAngle, BreakInduced, BreakHorizontal, Extension, pX, pZ, ZoneTop, ZoneBot);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastPitcher ON PitchNonStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastHitter ON PitchNonStatcast(HitterId, Year, Month, LevelId, LeagueId);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastYearMonth ON PitchNonStatcast(Year, Month, LevelId, LeagueId);");
