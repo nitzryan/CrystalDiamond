@@ -20,9 +20,10 @@ def TrainAndGraph(
     network : PitchModel,
     train_dataset : PitchDataset,
     test_dataset : PitchDataset,
-    batch_size : int = 100,
-    num_epochs : int = 21,
-    logging_interval : int = 10,
+    batch_size : int = 30000,
+    learning_rate : float = 0.005,
+    num_epochs : int = 1001,
+    logging_interval : int = 50,
     early_stopping_cutoff : int = 20,
     base_element : int = 12,
     should_output : bool = True,
@@ -40,7 +41,7 @@ def TrainAndGraph(
     best_epoch = 0
     epochs_since_improve = 0
     
-    optimizer = torch.optim.Adam(network.parameters(), lr=0.002)
+    optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
     
     # TODO : Need a custom scheduler for this
     

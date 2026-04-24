@@ -15,7 +15,7 @@ _STUFF_STRING = "stuff"
 _GAME_STRING = "game"
 _AVG_STRING = "avg"
         
-SHOULD_PROFILE = True
+SHOULD_PROFILE = False
    
 if SHOULD_PROFILE:
     profiler.enable()
@@ -124,11 +124,11 @@ class DataPrep:
         return avg_pca
     
     @profiler
-    def GenerateIOPitches(self, start_year : int, end_year : int, end_month : int) -> list[list[PitchIO]]:
+    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2023, end_month : int = 13) -> list[list[PitchIO]]:
         cursor = db.cursor()
         pitcher_dict : dict[int, list[PitchIO]] = {}
         
-        for year in tqdm(range(start_year, end_year + 1), desc="DataPrep Years"):
+        for year in tqdm(range(start_year, end_year + 1), desc="DataPrep Years", leave=False):
             for month in tqdm([4,5,6,7,8,9], desc="Months", leave=False):
                 if year == end_year and month > end_month:
                     continue
