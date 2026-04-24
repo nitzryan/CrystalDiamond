@@ -193,13 +193,23 @@ CREATE TABLE "PlayerRank" (
 
 CREATE TABLE "DraftRank" (
 	"tbcId" INTEGER NOT NULL,
+	"mlbId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
+	"Name" TEXT,
+	"Position" TEXT,
 	"year" INTEGER NOT NULL,
 	"isEligible" INTEGER NOT NULL,
 	"rankEligible" INTEGER NOT NULL,
-	"value" REAL NOT NULL,
-	PRIMARY KEY("tbcId", "modelId", "year", "isHitter")
+	"warPre" REAL,
+	"warPost" REAL,
+	"draftPick" INTEGER,
+	PRIMARY KEY("tbcId", "modelId", "year", "isHitter", "mlbId")
+);
+
+CREATE INDEX idx_DraftRankMLBID on DraftRank
+(
+	"mlbId", "modelId"
 );
 
 CREATE TABLE "TeamRank" (

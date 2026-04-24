@@ -1,4 +1,8 @@
-﻿namespace Db
+﻿using System.ComponentModel;
+using System.Reflection;
+using System.Text;
+
+namespace Db
 {
     public static class DbEnums
     {
@@ -122,8 +126,11 @@
             None = 0,
             P = 1 << 0,
             C = 1 << 1,
+            [Description("1B")]
             B1 = 1 << 2,
+            [Description("2B")]
             B2 = 1 << 3,
+            [Description("3B")]
             B3 = 1 << 4,
             SS = 1 << 5,
             LF = 1 << 6,
@@ -132,6 +139,32 @@
             DH = 1 << 9,
             IF = 1 << 10,
             OF = 1 << 11,
+        }
+
+        public static string GetFlagsDescription(Enum value)
+        {
+            var sb = new StringBuilder();
+            var type = value.GetType();
+            var first = true;
+
+            // Iterate through all possible flags
+            foreach (Enum flag in Enum.GetValues(type))
+            {
+                if (flag.Equals(value.GetType().GetEnumValues().GetValue(0))) // Skip None (0)
+                    continue;
+
+                if (value.HasFlag(flag))
+                {
+                    if (!first) sb.Append(", ");
+                    first = false;
+
+                    var field = type.GetField(flag.ToString());
+                    var attr = field?.GetCustomAttribute<DescriptionAttribute>();
+                    sb.Append(attr?.Description ?? flag.ToString());
+                }
+            }
+
+            return sb.Length > 0 ? sb.ToString() : value.ToString();
         }
 
         public enum PitchType

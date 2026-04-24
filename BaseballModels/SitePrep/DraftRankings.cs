@@ -13,6 +13,7 @@ namespace SitePrep
         {
             public int tbcId;
             public float value;
+            public required string position;
             public bool isHitter;
             public bool isEligible;
         }
@@ -152,6 +153,7 @@ namespace SitePrep
                             tbcId = hs.TbcId,
                             value = hs.War,
                             isHitter = true,
+                            position = DbEnums.GetFlagsDescription(hitStats.Pos),
                             isEligible = IsPlayerEligible(cp, hs.Year, hitStats.ExpYears),
                         });
                     }
@@ -165,6 +167,7 @@ namespace SitePrep
                             tbcId = ps.TbcId,
                             value = ps.War,
                             isHitter = false,
+                            position = "P",
                             isEligible = IsPlayerEligible(cp, ps.Year, pitStats.ExpYears),
                         });
                     }
@@ -179,15 +182,40 @@ namespace SitePrep
                     int rank = 1;
                     foreach (var dr in draftRankings)
                     {
+                        var colPlayer = db.College_Player.Where(f => f.TBCId == dr.tbcId).Single();
+                        int? draftPick = null;
+                        float? warPost = null;
+
+
+                        // Check if player was drafted
+                        if (colPlayer.LastYear == modelYear.Year && (colPlayer.DraftOvrHitter + colPlayer.DraftOvrPitcher) > 0)
+                        {
+                            draftPick = Math.Max(colPlayer.DraftOvrPitcher, colPlayer.DraftOvrHitter);
+
+                            try
+                            {
+                                warPost = modelDb.Output_PlayerWarAggregation
+                                .Where(f => f.MlbId == colPlayer.MlbId && f.Model == modelYear.Model && f.Year == 0)
+                                .Max(f => f.War);
+                            }
+                            catch (Exception) { /* Drafted and not signed, so no data */ }
+                            
+                        }
+
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = dr.tbcId,
+                            MlbId = colPlayer.MlbId ?? -1,
                             ModelId = modelYear.Model,
+                            Name = colPlayer.FirstName + " " + colPlayer.LastName,
+                            Position = dr.position,
                             IsHitter = dr.isHitter,
                             Year = modelYear.Year,
                             IsEligible = true,
                             RankEligible = rank,
-                            Value=dr.value,
+                            WarPre = dr.value,
+                            WarPost = warPost,
+                            DraftPick = draftPick,
                         });
                         rank++;
                     }
@@ -196,19 +224,60 @@ namespace SitePrep
                     var ineligiblePlayers = playerValues.Where(f => !f.isEligible);
                     foreach (var ip in ineligiblePlayers)
                     {
+                        var colPlayer = db.College_Player.Where(f => f.TBCId == ip.tbcId).Single();
+
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = ip.tbcId,
+                            MlbId = colPlayer.MlbId ?? -1,
                             ModelId = modelYear.Model,
+                            Name = colPlayer.FirstName + " " + colPlayer.LastName,
+                            Position = ip.position,
                             IsHitter = ip.isHitter,
                             Year = modelYear.Year,
                             IsEligible = false,
                             RankEligible = -1,
-                            Value = ip.value,
+                            WarPre = ip.value,
+                            WarPost = null, // Ineligible, so not possible to be drafted
+                            DraftPick = null,
                         });
                     }
 
                     siteDb.BulkInsert(draftRanks);
+
+                    // Add in all drafted players that don't have a rating (mostly HS players)
+                    var draftedPlayers = db.Player.Where(f => f.SigningYear == modelYear.Year
+                        && f.DraftPick != null);
+                    List<DraftRank> hsDraftedPlayers = new(draftedPlayers.Count());
+                    foreach (var dp in draftedPlayers)
+                    {
+                        if (siteDb.DraftRank.Any(f => f.MlbId == dp.MlbId && f.ModelId == modelYear.Model))
+                            continue;
+
+                        float warPost = modelDb.Output_PlayerWarAggregation
+                                .Where(f => f.MlbId == dp.MlbId 
+                                    && f.Model == modelYear.Model 
+                                    && f.Year == 0)
+                                .Max(f => f.War);
+
+                        hsDraftedPlayers.Add(new DraftRank
+                        {
+                            TbcId = -1,
+                            MlbId = dp.MlbId,
+                            ModelId = modelYear.Model,
+                            Name = dp.UseFirstName + " " + dp.UseLastName,
+                            Position = dp.Position,
+                            IsHitter = dp.Position == "H",
+                            Year = modelYear.Year,
+                            IsEligible = false,
+                            RankEligible = -1,
+                            WarPre = null,
+                            WarPost = warPost,
+                            DraftPick = dp.DraftPick,
+                        });
+                    }
+
+                    siteDb.BulkInsert(hsDraftedPlayers);
 
                     progressBar.Tick();
                 }

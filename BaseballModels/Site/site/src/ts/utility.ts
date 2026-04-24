@@ -40,7 +40,7 @@ function getJsonArray(obj : JsonObject, key : string) : JsonArray
 function getJsonNumberNullable(obj : JsonObject, key: string) : number | null
 {
     const value = obj[key];
-    if (value === undefined) {
+    if (value === undefined || value == null) {
         return null;
     }
     if (typeof value === "number")

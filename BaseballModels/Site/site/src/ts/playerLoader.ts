@@ -13,7 +13,12 @@ type Player = {
     birthYear : number,
     birthMonth : number,
     level : number | null,
-    playingTime : number | null
+    playingTime : number | null,
+
+    // Draft data
+    draftPick : number | null,
+    preDraftWar : number | null,
+    postDraftWar : number | null,
 }
 
 function createPlayer(obj : JsonObject)
@@ -27,7 +32,10 @@ function createPlayer(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : getJsonNumber(obj, "highestLevel"),
-        playingTime : null
+        playingTime : null,
+        draftPick : null,
+        preDraftWar : null,
+        postDraftWar : null,
     }
     return p
 }
@@ -43,7 +51,10 @@ function createMLBHitter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "pa")
+        playingTime : getJsonNumber(obj, "pa"),
+        draftPick : null,
+        preDraftWar : null,
+        postDraftWar : null,
     }
     return p
 }
@@ -59,7 +70,10 @@ function createMLBStarter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "spIP")
+        playingTime : getJsonNumber(obj, "spIP"),
+        draftPick : null,
+        preDraftWar : null,
+        postDraftWar : null,
     }
     return p
 }
@@ -75,7 +89,29 @@ function createMLBReliever(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
-        playingTime : getJsonNumber(obj, "rpIP")
+        playingTime : getJsonNumber(obj, "rpIP"),
+        draftPick : null,
+        preDraftWar : null,
+        postDraftWar : null,
+    }
+    return p
+}
+
+function createDraftProspect(obj : JsonObject)
+{
+    const p : Player = {
+        name : getJsonString(obj, "Name"),
+        war : 0,
+        id : getJsonNumber(obj, "mlbId"),
+        team : 0, // TODO
+        position : getJsonString(obj, "Position"),
+        birthYear : 0, // TODO
+        birthMonth : 0, // TODO
+        level : null,
+        playingTime : null,
+        draftPick : getJsonNumberNullable(obj, "draftPick"),
+        preDraftWar : getJsonNumberNullable(obj, "warPre"),
+        postDraftWar : getJsonNumberNullable(obj, "warPost"),
     }
     return p
 }
@@ -108,11 +144,44 @@ function createPlayerElement(player : Player, year : number, month : number, mod
     return el
 }
 
+function createDraftPlayerElement(player : Player, year : number, month : number) : HTMLTableRowElement
+{
+    const el = document.createElement('tr') as HTMLTableRowElement
+    el.classList.add('rankings_item')
+
+    const teamAbbr : string = player.team == 0 ? "" : getParentAbbr(player.team)
+    let ageInYears = year - player.birthYear
+    if (month < player.birthMonth)
+        ageInYears--
+
+    const pre_war = player.preDraftWar === null ? '---' : player.preDraftWar.toFixed(1)
+    const post_war = player.postDraftWar === null ? '---' : player.postDraftWar.toFixed(1)
+    const draft_pick = player.draftPick === null ? '---' : player.draftPick
+    
+    const player_href = player.draftPick === null ? '' : `href='./player?id=${player.id}'`
+
+    el.innerHTML = `
+            <td>${__current_rank}</td>
+            <td class='c_name'><a ${player_href}>${player.name}</a></td>
+            <td class='c_pre'>${pre_war}</td>
+            <td class='c_post'>${post_war}</td>
+            <td class='c_pick'>${draft_pick}</td>
+            <td class='c_pos'>${player.position}</td>
+            <td class='c_age'>${ageInYears}</td>
+        `
+
+    __current_rank += 1
+    return el
+}
+
 enum PlayerLoaderType {
     Prospect,
     MLBHitter = 1,
     MLBStarter = 2,
-    MLBReliever = 3
+    MLBReliever = 3,
+
+    DraftRank = 4,
+    DraftResult = 5,
 }
 
 type PlayerLoaderArgs = {
@@ -164,11 +233,19 @@ class PlayerLoader
             response = this.teamId !== null ? 
             await fetch(`/mlbRank?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}&period=${this.period}&reqType=${typeInt}`) : 
             await fetch(`/mlbRank?year=${this.year}&month=${this.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${this.model}&period=${this.period}&reqType=${typeInt}`)
+        } else if (this.type == PlayerLoaderType.DraftRank || this.type == PlayerLoaderType.DraftResult)
+        {
+            const typeInt : number = this.type
+            response = this.teamId !== null ?
+                await fetch(`/draft_rank?year=${this.year}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}&reqType=${typeInt}`) :
+                await fetch(`/draft_rank?year=${this.year}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}&reqType=${typeInt}`)
         } else {
             throw new Error("No type in PlayerLoader")
         }
 
         const players = await response.json() as JsonArray
+
+        console.log(players)
 
         this.exhaustedElements = (players.length != num_elements)
         this.index += players.length
@@ -185,10 +262,16 @@ class PlayerLoader
             return players.map(f => {
                 return createPlayerElement(createMLBStarter(f as JsonObject), this.year, this.month, this.model)
             })
-        else
+        else if (this.type === PlayerLoaderType.MLBReliever)
             return players.map(f => {
                 return createPlayerElement(createMLBReliever(f as JsonObject), this.year, this.month, this.model)
             })
+        else if (this.type === PlayerLoaderType.DraftRank || this.type === PlayerLoaderType.DraftResult)
+            return players.map(f => {
+                return createDraftPlayerElement(createDraftProspect(f as JsonObject), this.year, this.month)
+            })
+        else
+            throw Error("Unprogrammed PlayerLoaderType")
     }
 }
 
@@ -199,9 +282,26 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
 
     // @ts-ignore
     const teamString : string = args.teamId !== null ? org_map["parents"][args.teamId]["name"] + " " : ""
-    const typeString : string = args.type === PlayerLoaderType.Prospect ?
-        "Prospect" : args.type === PlayerLoaderType.MLBHitter ? "MLB Hitter" : 
-        args.type === PlayerLoaderType.MLBStarter ? "MLB Starter" : "MLB Reliever"
+    let typeString : string = "INVALID"
+    switch(args.type)
+    {
+        case PlayerLoaderType.Prospect:
+            typeString = "Prospect"
+            break
+        case PlayerLoaderType.MLBHitter:
+            typeString = "MLB HITTER"
+            break
+        case PlayerLoaderType.MLBStarter:
+            typeString = "MLB Starter"
+            break
+        case PlayerLoaderType.MLBReliever:
+            typeString = "MLB Reliever"
+            break
+        case PlayerLoaderType.DraftRank:
+        case PlayerLoaderType.DraftResult:
+            typeString = "Draft Prospect"
+            break
+    }
 
     // Intentionally leave no space between teamString and month, teamString will have the space if it isn't blank
     rankings_header.innerText = `${typeString} Rankings for ${teamString}${MONTH_CODES[month]} ${year}`
@@ -214,7 +314,7 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
         }
     })
     
-    
+    let headerString : string
     let valueString : string
     let levelString : string = ""
     let ptString : string = ""
@@ -222,24 +322,24 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
     // Setup visibility for rankings table
     if (args.type === PlayerLoaderType.Prospect)
     {
-        levelString = "<th>Level</th>"
-        valueString = "WAR"
+        headerString = "<th>Team</th><th>WAR</th><th>Level</th>"
     } else 
     {
         if (args.type === PlayerLoaderType.MLBHitter)
         {
-            valueString = "WAR / 600PA"
-            ptString = "<th>PA</th>"
+            headerString = "<th>Team</th><th>WAR / 600 PA</th><th>PA</th>"
         } 
         else if (args.type === PlayerLoaderType.MLBStarter)
         {
-            valueString = "WAR / 150IP"
-            ptString = "<th>IP</th>"
+            headerString = "<th>Team</th><th>WAR / 150 IP</th><th>PA</th>"
         } 
         else if (args.type === PlayerLoaderType.MLBReliever)
         {
-            valueString = "WAR / 50IP"
-            ptString = "<th>IP</th>"
+            headerString = "<th>Team</th><th>WAR / 50 IP</th><th>PA</th>"
+        }
+        else if (args.type === PlayerLoaderType.DraftRank || args.type === PlayerLoaderType.DraftResult)
+        {
+            headerString = "<th>College Model WAR</th><th>Pro Model War</th><th>Draft Pick</th>"
         }
         else {
             throw new Error("Invalid args.type in PlayerLoader")
@@ -250,10 +350,7 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
         <tr>
             <th></th>
             <th>Name</th>
-            <th>Team</th>
-            <th>${valueString}</th>
-            ${levelString}
-            ${ptString}
+            ${headerString}
             <th>Position</th>
             <th>Age</th>
         <tr>

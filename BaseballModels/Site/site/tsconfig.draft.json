@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "none",
+        "outFile": "../server/src/js/draft.js",
+        "outDir": "dist",
+        "rootDir": "src",
+    },
+    "include": ["src/ts/draft.ts", "src/ts/dateSelector.ts", "src/ts/playerLoader.ts", "src/ts/searchbar.ts", "src/ts/keycontrols.ts", "src/ts/css_styles.ts", "src/ts/utility.ts", "src/*.d.ts", "src/ts/global.d.ts"],
+}

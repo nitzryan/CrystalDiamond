@@ -387,22 +387,32 @@ class DB_PlayerRank
 class DB_DraftRank
 {
 	public tbcId : number
+	public mlbId : number
 	public modelId : number
 	public isHitter : number
+	public Name : string
+	public Position : string
 	public year : number
 	public isEligible : number
 	public rankEligible : number
-	public value : number
+	public warPre : number
+	public warPost : number
+	public draftPick : number
 
 	constructor(data : JsonObject)
 	{
 		this.tbcId = data['tbcId'] as number
+		this.mlbId = data['mlbId'] as number
 		this.modelId = data['modelId'] as number
 		this.isHitter = data['isHitter'] as number
+		this.Name = data['Name'] as string
+		this.Position = data['Position'] as string
 		this.year = data['year'] as number
 		this.isEligible = data['isEligible'] as number
 		this.rankEligible = data['rankEligible'] as number
-		this.value = data['value'] as number
+		this.warPre = data['warPre'] as number
+		this.warPost = data['warPost'] as number
+		this.draftPick = data['draftPick'] as number
 	}
 }
 

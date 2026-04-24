@@ -306,6 +306,8 @@ namespace SitePrep
                 datesJson.Add("endYear", endYear);
                 datesJson.Add("endMonth", endMonth);
                 datesJson.Add("startYear", 2015);
+                int draftEndYear = modelDb.Output_College_HitterAggregation.Max(f => f.Year);
+                datesJson.Add("draftEndYear", draftEndYear);
                 using var fileStreamDates = new FileStream(Constants.SITE_ASSET_FOLDER + $"dates.json.gz", FileMode.Create);
                 using var gzipStreamDates = new GZipStream(fileStreamDates, CompressionLevel.Optimal);
                 using var writerDates = new Utf8JsonWriter(gzipStreamDates, new JsonWriterOptions { Indented = false });
