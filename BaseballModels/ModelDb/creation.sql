@@ -218,6 +218,7 @@ CREATE TABLE "Model_TrainingHistory" (
 	"ModelName"	TEXT NOT NULL,
 	"IsHitter"	INTEGER NOT NULL,
 	"TestLoss"	REAL NOT NULL,
+	"TestLossCollege" REAL NOT NULL,
 	"ModelIdx"	INTEGER NOT NULL,
 	"ProNumLayers" INTEGER NOT NULL,
 	"ProHiddenSize" INTEGER NOT NULL,

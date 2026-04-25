@@ -210,17 +210,18 @@ class DB_Model_TrainingHistory:
 		self.ModelName = values[0]
 		self.IsHitter = values[1]
 		self.TestLoss = values[2]
-		self.ModelIdx = values[3]
-		self.ProNumLayers = values[4]
-		self.ProHiddenSize = values[5]
-		self.ColNumLayers = values[6]
-		self.ColHiddenSize = values[7]
+		self.TestLossCollege = values[3]
+		self.ModelIdx = values[4]
+		self.ProNumLayers = values[5]
+		self.ProHiddenSize = values[6]
+		self.ColNumLayers = values[7]
+		self.ColHiddenSize = values[8]
 
-	NUM_ELEMENTS = 8
+	NUM_ELEMENTS = 9
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelName,self.IsHitter,self.TestLoss,self.ModelIdx,self.ProNumLayers,self.ProHiddenSize,self.ColNumLayers,self.ColHiddenSize)
+		return (self.ModelName,self.IsHitter,self.TestLoss,self.TestLossCollege,self.ModelIdx,self.ProNumLayers,self.ProHiddenSize,self.ColNumLayers,self.ColHiddenSize)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_TrainingHistory']:

@@ -5,6 +5,7 @@ namespace ModelDb
 		public required string ModelName {get; set;}
 		public required int IsHitter {get; set;}
 		public required float TestLoss {get; set;}
+		public required float TestLossCollege {get; set;}
 		public required int ModelIdx {get; set;}
 		public required int ProNumLayers {get; set;}
 		public required int ProHiddenSize {get; set;}
@@ -18,6 +19,7 @@ namespace ModelDb
 				ModelName = this.ModelName,
 				IsHitter = this.IsHitter,
 				TestLoss = this.TestLoss,
+				TestLossCollege = this.TestLossCollege,
 				ModelIdx = this.ModelIdx,
 				ProNumLayers = this.ProNumLayers,
 				ProHiddenSize = this.ProHiddenSize,

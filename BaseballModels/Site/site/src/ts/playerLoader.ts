@@ -236,9 +236,7 @@ class PlayerLoader
         } else if (this.type == PlayerLoaderType.DraftRank || this.type == PlayerLoaderType.DraftResult)
         {
             const typeInt : number = this.type
-            response = this.teamId !== null ?
-                await fetch(`/draft_rank?year=${this.year}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}&reqType=${typeInt}`) :
-                await fetch(`/draft_rank?year=${this.year}&startRank=${this.index + 1}&endRank=${endRank}&teamId=${this.teamId}&model=${this.model}&reqType=${typeInt}`)
+            response = await fetch(`/draft_rank?year=${this.year}&model=${this.model}&reqType=${typeInt}`)
         } else {
             throw new Error("No type in PlayerLoader")
         }

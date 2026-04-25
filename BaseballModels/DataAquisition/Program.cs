@@ -6,10 +6,10 @@
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
 
-        const bool UPDATE_COLLEGE_DATA = false;
+        const bool UPDATE_COLLEGE_DATA = true;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = true;
+        const bool STATCAST_ONLY_UPDATE = false;
 
         static async Task Main(string[] args)
         {

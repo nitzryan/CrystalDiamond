@@ -66,12 +66,12 @@ def MapPos(pos : int) -> list[float]:
         
 college_base_prep_map = College_Prep_Map(
     map_bio=lambda p : [MapBats(p.Bats), MapThrows(p.Throws)],
-    map_hitstats=lambda h : [h.ExpYears, h.Age, h.ParkRunFactor, h.ConfScore, h.PA, h.HR, h.SB, h.CS, h.BB, h.K, h.AVG, h.OBP, h.SLG, h.Height],
+    map_hitstats=lambda h : [h.ExpYears, h.Age, h.ParkRunFactor, h.ConfScore, h.PA, min(h.H, 2), min(h.H2B, 4), min(h.H3B, 10), min(h.HR, 10), min(h.SB, 10), min(h.CS, 10), min(h.BB, 4), min(h.K, 3), min(h.HBP, 7), h.Height],
     map_def=lambda h : MapPos(h.Pos),
     map_pitstats=lambda p : [p.ExpYears, p.Age, p.ParkRunFactor, p.ConfScore, p.G, p.GS, p.Outs, p.ERA, p.H9, p.HR9, p.BB9, p.K9, p.WHIP, p.Height],
     
     bio_size=2,
-    hitstats_size=14,
+    hitstats_size=15,
     def_size=10,
     pitstats_size=14
 )
@@ -88,14 +88,15 @@ college_meanrevert_prep_map = College_Prep_Map(
          h.ParkRunFactor, 
          h.ConfScore, 
          h.PA, 
+         _MeanRevert(f, h.H), 
+         _MeanRevert(f, h.H2B), 
+         _MeanRevert(f, h.H3B), 
          _MeanRevert(f, h.HR), 
          _MeanRevert(f, h.SB), 
          _MeanRevert(f, h.CS), 
          _MeanRevert(f, h.BB), 
          _MeanRevert(f, h.K), 
-         _MeanRevert(f, h.AVG), 
-         _MeanRevert(f, h.OBP), 
-         _MeanRevert(f, h.SLG), 
+         _MeanRevert(f, h.HBP), 
          h.Height])[-1],
     map_pitstats=lambda p : (f := min((p.Outs + 1) / 45, 1),
         [p.ExpYears, 
@@ -114,7 +115,7 @@ college_meanrevert_prep_map = College_Prep_Map(
          p.Height])[-1],
     
     bio_size=2,
-    hitstats_size=14,
+    hitstats_size=15,
     def_size=10,
     pitstats_size=14
 )

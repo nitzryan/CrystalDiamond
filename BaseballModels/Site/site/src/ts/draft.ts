@@ -13,6 +13,7 @@ async function main()
     year = getQueryParamBackup("year", endYear)
     modelId = getQueryParamBackup("model", 1)
     const draftType = getQueryParamBackup("type", 4)
+    draft_select.value = draftType.toString()
 
     org_map = await retrieveJson("../../assets/map.json.gz")
     setupSelector({

@@ -151,9 +151,10 @@ def TrainTest(network : PitchModel,
         avg_losses[i] /= total_size
     return avg_losses
         
+@profiler
 def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], should_backprop : bool) -> list[torch.Tensor]:
     data_overview, data_loc, data_stuff, data_game, data_avg = data
-    
+
     outputs = network(data_overview, data_loc, data_stuff, data_game, data_avg)
     
     if len(outputs) / len(targets) != len(_MODEL_VARIANTS):

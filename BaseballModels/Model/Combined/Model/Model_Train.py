@@ -50,6 +50,7 @@ def TrainAndGraph(
     train_loss_history : list[list[float]] = [[] for _ in range(num_elements)]
     epoch_counter : list[int] = []
     best_loss = 999999
+    best_loss_college = 999999
     best_epoch = -1
     epochs_since_improve = 0
     
@@ -90,7 +91,7 @@ def TrainAndGraph(
             test_loss_history[n].append(test_loss[n])
         epoch_counter.append(epoch)
         
-        col_scheduler.step(test_loss[num_pro_elements])
+        col_scheduler.step(test_loss[num_pro_elements + 1])
         pro_scheduler.step(test_loss[:num_pro_elements])
         
         if should_output and (epoch % logging_interval == 0):  
@@ -98,6 +99,7 @@ def TrainAndGraph(
         
         if test_loss[element_to_save] < best_loss:
             best_loss = test_loss[element_to_save]
+            best_loss_college = test_loss[num_pro_elements + 1]
             best_epoch = epoch
             epochs_since_improve = 0
             torch.save(col_network.state_dict(), col_model_name + ".pt")
@@ -122,7 +124,7 @@ def TrainAndGraph(
     if get_end_loss:
         return test_loss[element_to_save], epoch
     else:
-        return best_loss, epoch
+        return best_loss, best_loss_college, epoch
   
 @profiler
 def Train(

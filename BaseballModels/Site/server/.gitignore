@@ -1,3 +1,4 @@
 *.js
 src/html/*
 src/css/*
+!server.js

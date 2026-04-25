@@ -14,4 +14,6 @@ day_str = f"{day}{months[month]}{year}"
 
 cursor = model_db.cursor()
 cursor.execute(f"INSERT INTO ModelIdx VALUES(1,'Base_{day_str}')")
+cursor.execute(f"INSERT INTO ModelIdx VALUES(2,'NoDraftPos_{day_str}')")
+cursor.execute(f"INSERT INTO ModelIdx VALUES(3,'MeanRevert_{day_str}')")
 model_db.commit()

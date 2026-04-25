@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 output_num_layers=pro_network.GetNumLayers(),
             ).to(device)
             
-            best_loss, best_epoch = TrainAndGraph(
+            best_loss, best_loss_college, best_epoch = TrainAndGraph(
                 pro_network=pro_network,
                 col_network=col_network,
                 train_dataset=train_dataset,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             )
             
             model_cursor = model_db.cursor()
-            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?)", (model_name, 1, best_loss, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
+            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?,?)", (model_name, 1, best_loss, best_loss_college, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
             model_db.commit()
             
             # Force VRAM to get cleared before allocating next iteration
