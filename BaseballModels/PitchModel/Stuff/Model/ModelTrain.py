@@ -12,8 +12,6 @@ _MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
 _MODEL_OUTPUTS = ["Value", "Runs", "Outs", "Swung", "Contact", "InPlay"]
 _TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
 
-[x + "hi" for x in _MODEL_OUTPUTS]
-
 SHOULD_PROFILE = False
 
 def TrainAndGraph(
@@ -116,21 +114,7 @@ def TrainTest(network : PitchModel,
     for i in range(0, total_size, batch_size):
         # Fetch Data
         batch_idx = indices[i:i + batch_size]
-        data = (
-            dataset.data_overview[batch_idx],
-            dataset.data_loc[batch_idx],
-            dataset.data_stuff[batch_idx],
-            dataset.data_pitcher_game[batch_idx],
-            dataset.data_league_avg[batch_idx]
-        )
-        targets = (
-            dataset.output_value[batch_idx],
-            dataset.output_runs[batch_idx],
-            dataset.output_outs[batch_idx],
-            dataset.output_swung[batch_idx],
-            dataset.output_contact[batch_idx],
-            dataset.output_inplay[batch_idx]
-        )
+        _, data, targets = dataset.GetEntries(batch_idx)
         
         data = tuple(d.to(device, non_blocking=True) for d in data)
         targets = tuple(t.to(device, non_blocking=True) for t in targets)
@@ -153,9 +137,7 @@ def TrainTest(network : PitchModel,
         
 @profiler
 def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], should_backprop : bool) -> list[torch.Tensor]:
-    data_overview, data_loc, data_stuff, data_game, data_avg = data
-
-    outputs = network(data_overview, data_loc, data_stuff, data_game, data_avg)
+    outputs = network(data)
     
     if len(outputs) / len(targets) != len(_MODEL_VARIANTS):
         raise RuntimeError(f"Not the same number of outputs ({len(outputs)}) and targets ({len(targets)})")

@@ -58,6 +58,17 @@ class DataPrep:
         self.__Create_PCA_Norms(self.prep_map.pitch_loc_map, pitches, _LOC_STRING, self.prep_map.pitch_loc_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
        
+        # Get average result for each bucket
+        num_buckets = BUCKET_PITCHVALUE.size(0) + 1
+        entries_in_bucket = torch.zeros(num_buckets, dtype=torch.long)
+        value_in_bucket = torch.zeros_like(entries_in_bucket, dtype=torch.float64)
+        buckets = torch.bucketize(torch.tensor([p.RunValueHitter for p in pitches]), BUCKET_PITCHVALUE)
+        for i, pitch in enumerate(pitches):
+            bucket = buckets[i].item()
+            entries_in_bucket[bucket] += 1
+            value_in_bucket[bucket] += pitch.RunValueHitter
+        self.bucket_value = value_in_bucket / entries_in_bucket
+       
         # Get pitcher game averages
         pitcher_games = DB_PitcherStatcastGame.Select_From_DB(
             cursor=cursor,
@@ -124,7 +135,7 @@ class DataPrep:
         return avg_pca
     
     @profiler
-    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2023, end_month : int = 13) -> list[list[PitchIO]]:
+    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2023, end_month : int = 13, mlb_only : bool = True) -> list[list[PitchIO]]:
         cursor = db.cursor()
         pitcher_dict : dict[int, list[PitchIO]] = {}
         
@@ -158,9 +169,10 @@ class DataPrep:
                     pitcher_games_dict[(pg.GameId, pg.MlbId)] = pg
                 
                 # Individual Pitches
+                level_cond = "AND LevelId=1" if mlb_only else ""
                 pitches = DB_PitchStatcast.Select_From_DB(
                     cursor=cursor,
-                    conditional=self.conditional_statement + "AND Year=? AND Month=? AND LevelId=1",
+                    conditional=self.conditional_statement + f"AND Year=? AND Month=? {level_cond}",
                     values=(year, month)
                 )
                 
@@ -180,6 +192,8 @@ class DataPrep:
                     io_list : list[PitchIO] = []
                     for i, pitch in enumerate(pitch_data):
                         io_list.append(PitchIO(
+                            game_id=pitch.GameId,
+                            pitch_num=pitch.PitchId,
                             data_overview=data_overview[i],
                             data_loc=data_loc[i],
                             data_stuff=data_stuff[i],

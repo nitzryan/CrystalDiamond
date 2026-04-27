@@ -13,8 +13,8 @@ DEFAULT_STUFF_LA = LayerArch(layer_size=120, num_layers=4)
 class PitchModel(nn.Module):
     def __init__(self,
                 data_prep : DataPrep,
-                location_branch_size : int = 20,
-                stuff_branch_size : int = 20,
+                location_branch_size : int = 55,
+                stuff_branch_size : int = 55,
     ):
         super().__init__()
         
@@ -46,7 +46,8 @@ class PitchModel(nn.Module):
         self.layers_comb_value, self.layers_comb_runs, self.layers_comb_outs, self.layers_comb_swung, self.layers_comb_contact, self.layers_comb_inplay = \
             PitcherPredLayers(location_branch_size + stuff_branch_size).GetArchitecture()
         
-    def forward(self, overview : torch.Tensor, location : torch.Tensor, stuff : torch.Tensor, game : torch.Tensor, league_avg : torch.Tensor) -> tuple[torch.Tensor, ...]:
+    def forward(self, data : tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
+        overview, location, stuff, game, league_avg = data
         # Location
         data_location = torch.cat((overview, location), dim=-1)
         inter_location = GetModuleOutput(data_location, self.layers_location, self.nonlin)

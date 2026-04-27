@@ -10,11 +10,11 @@ else:
   device = torch.device("cpu")
   
 __BASE_DIR = Path(__file__).parent.resolve()
-__DB_PATH = __BASE_DIR / '../Db/BaseballStats.db'
-__MODEL_DB_PATH = __BASE_DIR / "../ModelDb/Model.db"
+DB_PATH = __BASE_DIR / '../Db/BaseballStats.db'
+__PITCH_DB_PATH = __BASE_DIR / "../PitchDb/Pitch.db"
 
-db = sqlite3.connect(__DB_PATH)
-model_db = sqlite3.connect(__MODEL_DB_PATH)
+db = sqlite3.connect(DB_PATH)
+pitch_db = sqlite3.connect(__PITCH_DB_PATH)
 
 DTYPE = torch.float32
 

@@ -1,4 +1,6 @@
-﻿namespace DataAquisition
+﻿using ShellProgressBar;
+
+namespace DataAquisition
 {
     internal class Program
     {
@@ -6,10 +8,10 @@
         const int END_YEAR = 2025;
         const int END_MONTH = 9;
 
-        const bool UPDATE_COLLEGE_DATA = true;
+        const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = false;
+        const bool STATCAST_ONLY_UPDATE = true;
 
         static async Task Main(string[] args)
         {
@@ -132,19 +134,23 @@
             {
                 foreach (var year in years)
                 {
-                    while (!await PitchData.Update(year, year == years.Last()))
-                    { }
+                    //while (!await PitchData.Update(year, year == years.Last()))
+                    //{ }
 
-                    PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
+                    //PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
 
-                    PitchAggregation.CreatePitcherGameBaselines(year);
+                    //PitchAggregation.CreatePitcherGameBaselines(year);
 
-                    foreach (var month in months)
+                    using (ProgressBar progressBar = new(months.Count(), $"Generating Statcast League Date Averages for {year}"))
                     {
-                        if (year == END_YEAR && month == END_MONTH)
-                            break;
+                        foreach (var month in months)
+                        {
+                            if (year == END_YEAR && month > END_MONTH)
+                                break;
 
-                        PitchAggregation.CreateLeagueDateAverages(year, month);
+                            PitchAggregation.CreateLeagueDateAverages(year, month);
+                            progressBar.Tick();
+                        }
                     }
                 }
             }
