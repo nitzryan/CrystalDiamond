@@ -13,6 +13,15 @@ tables = cursor.fetchall()
 # Allows for not being required to create column, but not being nullable
 autoincrement_pairs = []
 
+type_overrides = [("PitcherStuff", "Scenario", "DbEnums.Scenario"), 
+                  
+                  ("PitcherStuff", "PitchType", "Db.DbEnums.PitchType"), 
+                  ]
+
+boolean_types = [
+    
+                ]
+
 for table, in tables:
     # Get table data
     cursor.execute(f"PRAGMA table_info({table})")
@@ -23,7 +32,7 @@ for table, in tables:
     cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t\t"
     # Write type to class file
     with open(f"sqlTypes/{table}.cs", "w") as classFile:
-        classFile.write("namespace ModelDb\n{\n")
+        classFile.write("namespace PitchDb\n{\n")
         classFile.write(f"\tpublic class {table}\n" + '\t{\n')
         for _, name, type, notnull, _, pk in vals:
             name = name[0].capitalize() + name[1:]
@@ -43,6 +52,17 @@ for table, in tables:
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
         
+            for (tbl, col, typ) in type_overrides:
+                if (tbl == table) and (col == name):
+                    csharp_type = typ
+        
+            for (tbl, cols) in boolean_types:
+                if tbl == table:
+                    for col in cols:
+                        if col == name:
+                            csharp_type = "bool"
+                            break
+        
             if notnull == 0:
                 csharp_type += '?'
             elif not (table, name) in autoincrement_pairs:
@@ -56,13 +76,13 @@ for table, in tables:
         classFile.write('\t}\n}')
         modelBuilderStrings.append(modelBuilderString)
         
-with open(f"ModelDbContext.cs", "w") as file:
+with open(f"PitchDbContext.cs", "w") as file:
     file.write("using Microsoft.EntityFrameworkCore;\n\n")
-    file.write("namespace ModelDb\n{\n")
-    file.write("\tpublic class ModelDbContext : DbContext\n\t{\n")
+    file.write("namespace PitchDb\n{\n")
+    file.write("\tpublic class PitchDbContext : DbContext\n\t{\n")
     for setString in dbSetStrings:
         file.write("\t\t" + setString + "\n")
-    file.write("\n\t\tpublic ModelDbContext(DbContextOptions<ModelDbContext> options) : base(options) { }\n")
+    file.write("\n\t\tpublic PitchDbContext(DbContextOptions<PitchDbContext> options) : base(options) { }\n")
     file.write("\n\t\tprotected override void OnModelCreating(ModelBuilder modelBuilder)\n\t\t{\n")
     for mbs in modelBuilderStrings:
         file.write("\t\t\t" + mbs + ";\n")

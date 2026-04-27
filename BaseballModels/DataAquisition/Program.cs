@@ -134,12 +134,12 @@ namespace DataAquisition
             {
                 foreach (var year in years)
                 {
-                    //while (!await PitchData.Update(year, year == years.Last()))
-                    //{ }
+                    while (!await PitchData.Update(year, year == years.Last()))
+                    { }
 
-                    //PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
+                    PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
 
-                    //PitchAggregation.CreatePitcherGameBaselines(year);
+                    PitchAggregation.CreatePitcherGameBaselines(year);
 
                     using (ProgressBar progressBar = new(months.Count(), $"Generating Statcast League Date Averages for {year}"))
                     {

@@ -58,6 +58,33 @@ class DB_ModelTrainingHistory_PitchValue:
 		items = cursor.execute("SELECT * FROM ModelTrainingHistory_PitchValue " + conditional, values).fetchall()
 		return [DB_ModelTrainingHistory_PitchValue(i) for i in items]
 
+class DB_PitcherStuff:
+	def __init__(self, values : tuple[any]):
+		self.MlbId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.GameId = values[3]
+		self.PitchType = values[4]
+		self.Scenario = values[5]
+		self.NumPitches = values[6]
+		self.ValueStuff = values[7]
+		self.ValueLoc = values[8]
+		self.ValueCombined = values[9]
+		self.Vel = values[10]
+		self.BreakHoriz = values[11]
+		self.BreakVert = values[12]
+
+	NUM_ELEMENTS = 13
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.MlbId,self.Year,self.Month,self.GameId,self.PitchType,self.Scenario,self.NumPitches,self.ValueStuff,self.ValueLoc,self.ValueCombined,self.Vel,self.BreakHoriz,self.BreakVert)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStuff']:
+		items = cursor.execute("SELECT * FROM PitcherStuff " + conditional, values).fetchall()
+		return [DB_PitcherStuff(i) for i in items]
+
 class DB_Output_PitchValueAggregation:
 	def __init__(self, values : tuple[any]):
 		self.model = values[0]

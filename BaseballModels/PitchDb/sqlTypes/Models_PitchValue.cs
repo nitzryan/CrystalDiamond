@@ -1,4 +1,4 @@
-namespace ModelDb
+namespace PitchDb
 {
 	public class Models_PitchValue
 	{

@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelDb", "ModelDb\ModelDb.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PitchDb", "PitchDb\PitchDb.csproj", "{B7CD19D2-8924-47F5-87B1-E4CE7060A19B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PitchAnalysis", "PitchAnalysis\PitchAnalysis.csproj", "{187B48B8-134C-4A1B-AC25-95793F71928D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -56,6 +58,10 @@ Global
 		{B7CD19D2-8924-47F5-87B1-E4CE7060A19B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7CD19D2-8924-47F5-87B1-E4CE7060A19B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7CD19D2-8924-47F5-87B1-E4CE7060A19B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{187B48B8-134C-4A1B-AC25-95793F71928D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{187B48B8-134C-4A1B-AC25-95793F71928D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{187B48B8-134C-4A1B-AC25-95793F71928D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{187B48B8-134C-4A1B-AC25-95793F71928D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

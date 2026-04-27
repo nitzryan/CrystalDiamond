@@ -1,3 +1,4 @@
+-- Individual pitch data from model
 CREATE TABLE Output_PitchValue (
 	"model" INTEGER NOT NULL,
 	"gameId" INTEGER NOT NULL,
@@ -32,4 +33,31 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"Arch" TEXT NOT NULL,
 
 	PRIMARY KEY("ModelId", "ModelRun")
+);
+
+-- Pitcher/Game Model Runs
+CREATE TABLE PitcherStuff
+(
+	"MlbId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"GameId" INTEGER NOT NULL,
+	"PitchType" INTEGER NOT NULL,
+	"Scenario" INTEGER NOT NULL,
+
+	"NumPitches" INTEGER NOT NULL,
+	"ValueStuff" REAL NOT NULL,
+	"ValueLoc" REAL NOT NULL,
+	"ValueCombined" REAL NOT NULL,
+
+	"Vel" REAL NOT NULL,
+	"BreakHoriz" REAL NOT NULL,
+	"BreakVert" REAL NOT NULL,
+
+	PRIMARY KEY("MlbId", "Year", "Month", "PitchType", "Scenario", "GameId")
+);
+
+CREATE INDEX idx_PitcherStuffGame ON PitcherStuff
+(
+	"MlbId", "GameId", "PitchType", "Scenario"
 );

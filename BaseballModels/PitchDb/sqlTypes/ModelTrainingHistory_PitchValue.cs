@@ -1,4 +1,4 @@
-namespace ModelDb
+namespace PitchDb
 {
 	public class ModelTrainingHistory_PitchValue
 	{
