@@ -1,11 +1,20 @@
 import torch.nn as nn
+import torch
+from Stuff.Model.ResnetBlock import ResnetBlock
 
-class LayerArch:
-    def __init__(self, layer_size : int, num_layers : int):
-        self.layer_size = layer_size
-        self.num_layers = num_layers
+class LayerArch(nn.Module):
+    def __init__(self, input_size : int, num_blocks : int, block_dim : int, output_size : int, dropout : float = 0.0):
+        super().__init__()
         
-    def GetArchitecture(self, hidden_size : int, output_size : int):
-        return nn.ModuleList([nn.Linear(hidden_size, self.layer_size)] + \
-                            [nn.Linear(self.layer_size, self.layer_size) for _ in range(self.num_layers - 2)] +\
-                            [nn.Linear(self.layer_size, output_size)])
+        self.input_linear = nn.Linear(input_size, block_dim)
+        self.blocks = nn.ModuleList([
+            ResnetBlock(dim=block_dim, dropout=dropout) for _ in range(num_blocks)
+        ])
+        self.output_linear = nn.Linear(block_dim, output_size)
+        
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
+        x = self.input_linear(x)
+        for block in self.blocks:
+            x = block(x)
+        x = self.output_linear(x)
+        return x

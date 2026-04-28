@@ -40,7 +40,9 @@ class DataPrep:
                         "pX", 
                         "pZ", 
                         "ZoneTop", 
-                        "ZoneBot"
+                        "ZoneBot",
+                        "SpinRate",
+                        "SpinDirection",
                         ]
         self.conditional_statement = "WHERE "
         for v in vars_to_check:
