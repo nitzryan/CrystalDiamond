@@ -12,6 +12,15 @@ class PitchModel(nn.Module):
                 data_prep : DataPrep,
                 location_branch_size : int = 55,
                 stuff_branch_size : int = 55,
+                
+                combined_pred_size_value : int = 70,
+                combined_pred_blocks_value : int = 6,
+                
+                location_pred_size_value : int = 70,
+                location_pred_blocks_value : int = 6,
+                
+                stuff_pred_size_value : int = 70,
+                stuff_pred_blocks_value : int = 6,
     ):
         super().__init__()
         
@@ -37,17 +46,26 @@ class PitchModel(nn.Module):
         
         # Prediction layers for Location only
         self.location_pred = PitcherPredLayers(
-            input_size=location_branch_size
+            input_size=location_branch_size,
+            
+            # block_size_value=location_pred_size_value,
+            # num_layers_value=location_pred_blocks_value,
         )
             
         # Prediction layers for stuff only
         self.stuff_pred = PitcherPredLayers(
-            input_size=stuff_branch_size
+            input_size=stuff_branch_size,
+            
+            # block_size_value=stuff_pred_size_value,
+            # num_layers_value=stuff_pred_blocks_value,
         )
         
         # Prediction layers for location + stuff
         self.combined_pred = PitcherPredLayers(
-            input_size=location_branch_size + stuff_branch_size
+            input_size=location_branch_size + stuff_branch_size,
+            
+            block_size_value=combined_pred_size_value,
+            num_layers_value=combined_pred_blocks_value,
         )
         
     def forward(self, data : tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:

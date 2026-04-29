@@ -56,23 +56,26 @@ class PitchDataset(torch.utils.data.Dataset):
                 output_outs : torch.Tensor,
                 output_swung : torch.Tensor,
                 output_contact : torch.Tensor,
-                output_inplay : torch.Tensor,):
+                output_inplay : torch.Tensor,
+                
+                dataset_device = device
+                ):
         
         self.mapping_game_ids = mapping_game_ids
         self.mapping_pitch_nums = mapping_pitch_nums
         
-        self.data_overview = data_overview.t().to(device=device, non_blocking=True)
-        self.data_loc = data_loc.t().to(device=device, non_blocking=True)
-        self.data_stuff = data_stuff.t().to(device=device, non_blocking=True)
-        self.data_pitcher_game = data_pitcher_game.t().to(device=device, non_blocking=True)
-        self.data_league_avg = data_league_avg.t().to(device=device, non_blocking=True)
+        self.data_overview = data_overview.t().to(device=dataset_device, non_blocking=True)
+        self.data_loc = data_loc.t().to(device=dataset_device, non_blocking=True)
+        self.data_stuff = data_stuff.t().to(device=dataset_device, non_blocking=True)
+        self.data_pitcher_game = data_pitcher_game.t().to(device=dataset_device, non_blocking=True)
+        self.data_league_avg = data_league_avg.t().to(device=dataset_device, non_blocking=True)
         
-        self.output_value = output_value.to(device=device, non_blocking=True)
-        self.output_runs = output_runs.to(device=device, non_blocking=True)
-        self.output_outs = output_outs.to(device=device, non_blocking=True)
-        self.output_swung = output_swung.to(device=device, non_blocking=True)
-        self.output_contact = output_contact.to(device=device, non_blocking=True)
-        self.output_inplay = output_inplay.to(device=device, non_blocking=True)
+        self.output_value = output_value.to(device=dataset_device, non_blocking=True)
+        self.output_runs = output_runs.to(device=dataset_device, non_blocking=True)
+        self.output_outs = output_outs.to(device=dataset_device, non_blocking=True)
+        self.output_swung = output_swung.to(device=dataset_device, non_blocking=True)
+        self.output_contact = output_contact.to(device=dataset_device, non_blocking=True)
+        self.output_inplay = output_inplay.to(device=dataset_device, non_blocking=True)
         
     def __len__(self):
         return self.data_overview.size(dim=0)
@@ -105,7 +108,7 @@ class PitchDataset(torch.utils.data.Dataset):
         
         return mappings, data, targets
             
-def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, random_state : int) -> tuple[PitchDataset, PitchDataset]:
+def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, random_state : int, dataset_device = device) -> tuple[PitchDataset, PitchDataset]:
     # Create Test/Train keeping a player entirely inside of 1 dataset
     if test_size > 0:
         io_train, io_test = train_test_split(data, test_size=test_size, random_state=random_state)
@@ -169,6 +172,8 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         output_swung_train,
         output_contact_train,
         output_inplay_train,
+        
+        dataset_device=dataset_device,
     )
     
     test_dataset = PitchDataset(
@@ -187,6 +192,8 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         output_swung_test,
         output_contact_test,
         output_inplay_test,
+        
+        dataset_device=dataset_device,
     )
     
     return train_dataset, test_dataset

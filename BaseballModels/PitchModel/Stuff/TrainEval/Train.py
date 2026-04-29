@@ -17,6 +17,8 @@ if __name__ == "__main__":
         
     cursor = pitch_db.cursor()
     model_ids = cursor.execute("SELECT Id, Name FROM Models_PitchValue ORDER BY id ASC").fetchall()
+    cursor.execute("DELETE FROM ModelTrainingHistory_PitchValue")
+    pitch_db.commit()
     
     for model_id, model_name in tqdm(model_ids, desc="Training Architectures"):
         # Generatate IO data

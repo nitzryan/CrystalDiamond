@@ -24,14 +24,11 @@ class Prep_Map:
         self.pitcher_game_map = pitcher_game_map
         self.pitcher_game_size = pitcher_game_size
         
-        
-__map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.vStart, p.BreakAngle, p.BreakInduced, p.BreakHorizontal, p.Extension]
-__size_stuff = 5
+
     
-__map_pitch_stuff_larger : Callable[[DB_PitchStatcast], list[float]] = \
+__map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [p.vStart, p.BreakAngle, p.BreakInduced, p.BreakHorizontal, p.Extension, p.x0, p.z0, p.SpinRate, p.SpinDirection, p.aX, p.aY, p.aZ]
-__size_stuff_larger = 12
+__size_stuff = 12
     
 __map_pitch_loc : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [p.pX, p.pZ, p.ZoneTop, p.ZoneBot]
@@ -66,14 +63,6 @@ __size_game = 8
     
 standard_prep_map = Prep_Map(
     pitch_stuff_map=__map_pitch_stuff, pitch_stuff_size=__size_stuff,
-    pitch_loc_map=__map_pitch_loc, pitch_loc_size=__size_loc,
-    pitch_overview_map=__map_pitch_overview, pitch_overview_size=__size_overview,
-    league_baseline_map=__map_league_baseline, league_baseline_size=__size_baseline,
-    pitcher_game_map=__map_pitcher_game, pitcher_game_size=__size_game
-)
-
-larger_prep_map = Prep_Map(
-    pitch_stuff_map=__map_pitch_stuff_larger, pitch_stuff_size=__size_stuff_larger,
     pitch_loc_map=__map_pitch_loc, pitch_loc_size=__size_loc,
     pitch_overview_map=__map_pitch_overview, pitch_overview_size=__size_overview,
     league_baseline_map=__map_league_baseline, league_baseline_size=__size_baseline,

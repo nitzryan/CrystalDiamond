@@ -11,37 +11,42 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Get Data
-
 data_prep = DataPrep(standard_prep_map)
 pitch_io_list = data_prep.GenerateIOPitches()
 train_dataset, test_dataset = CreateTestTrainDatasets(pitch_io_list, test_size=0.25, random_state=0)
 pitch_io_list = None # Clear Memory
 
-location_branch_sizes = range(5, 56, 10)
-stuff_branch_sizes = range(5, 56, 10)
+num_blocks_range = range(0, 11, 2)
+block_size_range = range(30, 111, 20)
 
 xs = []
 ys = []
-zs_location = []
 zs_stuff = []
+zs_location = []
 zs_combined = []
 
 # Iterate through training
-
-for lbs in tqdm(location_branch_sizes, desc="Location"):
-    for sbs in tqdm(stuff_branch_sizes, desc="Stuff", leave=False):
-        xs.append(lbs)
-        ys.append(sbs)
+for num_blocks in tqdm(num_blocks_range, desc="Num Blocks"):
+    for block_size in tqdm(block_size_range, desc="Block Size", leave=False):
+        xs.append(block_size)
+        ys.append(num_blocks)
         
-        network = PitchModel(data_prep,
-            location_branch_size=lbs,
-            stuff_branch_size=sbs).to(device)
+        network = PitchModel(
+            data_prep=data_prep,
+            combined_pred_blocks_value=num_blocks,
+            combined_pred_size_value=block_size,
+            
+            location_pred_blocks_value=num_blocks,
+            location_pred_size_value=block_size,
+            
+            stuff_pred_blocks_value=num_blocks,
+            stuff_pred_size_value=block_size,
+        ).to(device)
+        
         losses = TrainAndGraph(
             network=network,
             train_dataset=train_dataset,
             test_dataset=test_dataset,
-            batch_size=50000,
-            num_epochs=1001,
             model_name="Models/default",
             should_output=False)
         
@@ -49,23 +54,22 @@ for lbs in tqdm(location_branch_sizes, desc="Location"):
         zs_stuff.append(losses[len(_MODEL_OUTPUTS)])
         zs_combined.append(losses[2 * len(_MODEL_OUTPUTS)])
         
-        
 # Log Results
 for zs, name in [(zs_location, "Location"), (zs_stuff, "Stuff"), (zs_combined, "Combined")]:
     df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
     pivot_table = df.pivot(index='y', columns='x', values='z')
-    plt.figure(figsize=(1 * len(location_branch_sizes), .75 * len(stuff_branch_sizes) + 2))
+    plt.figure(figsize=(1 * len(block_size_range), .75 * len(num_blocks_range) + 2))
     sns.heatmap(
         pivot_table, 
         annot=True,
         fmt='.3f',
         cmap='viridis',
         linewidths=0.5,
-        xticklabels=[round(x) for x in location_branch_sizes],
-        yticklabels=[round(y) for y in stuff_branch_sizes],
+        xticklabels=[x for x in block_size_range],
+        yticklabels=[y for y in num_blocks_range],
     )
-    plt.xlabel('Location Branch Sizes')
-    plt.ylabel('Stuff Branch Sizes')
-    plt.title(f'Test Loss for {name}')
-    plt.savefig(f'Stuff/Experiments/Results/BranchSizes_{name}.png', dpi=400)
+    plt.xlabel('Block Size')
+    plt.ylabel('Num Blocks')
+    plt.title(f'Test Loss')
+    plt.savefig(f'Stuff/Experiments/Results/Pred_{name}.png', dpi=400)
     plt.clf()

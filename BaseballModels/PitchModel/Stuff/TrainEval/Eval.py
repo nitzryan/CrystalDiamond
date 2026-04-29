@@ -18,7 +18,7 @@ _SHOULD_PROFILE = True
 
 @eval_profiler
 def main():
-    BATCH_SIZE = 200000
+    BATCH_SIZE = 100000
     
     # Delete old data
     cursor = pitch_db.cursor()
@@ -44,7 +44,7 @@ def main():
         
         for year in tqdm(range(2017, last_year + 1), desc="Years", leave=False):
             pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=13, mlb_only=True)
-            dataset, _ = CreateTestTrainDatasets(pitch_io_list, 0, 0)
+            dataset, _ = CreateTestTrainDatasets(pitch_io_list, 0, 0, 'cpu')
             
             n_samples = len(dataset)
             num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
