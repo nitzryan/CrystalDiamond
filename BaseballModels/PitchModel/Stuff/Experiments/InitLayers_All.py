@@ -1,0 +1,72 @@
+from Stuff.DataPrep.DataPrep import DataPrep
+from Stuff.DataPrep.PrepMap import standard_prep_map
+from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
+from Stuff.Model.PitchModel import PitchModel
+from Stuff.Model.ModelTrain import TrainAndGraph, _MODEL_OUTPUTS
+from Constants import device
+from tqdm import tqdm
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Get Data
+data_prep = DataPrep(standard_prep_map)
+pitch_io_list = data_prep.GenerateIOPitches()
+train_dataset, test_dataset = CreateTestTrainDatasets(pitch_io_list, test_size=0.25, random_state=0)
+pitch_io_list = None # Clear Memory
+
+num_blocks_range = range(0, 11, 2)
+block_size_range = range(30, 111, 20)
+
+xs = []
+ys = []
+zs_stuff = []
+zs_location = []
+zs_combined = []
+
+# Iterate through training
+for num_blocks in tqdm(num_blocks_range, desc="Num Blocks"):
+    for block_size in tqdm(block_size_range, desc="Block Size", leave=False):
+        xs.append(block_size)
+        ys.append(num_blocks)
+        
+        network = PitchModel(
+            data_prep=data_prep,
+            location_init_layers=num_blocks,
+            location_init_size=block_size,
+            
+            stuff_init_layers=num_blocks,
+            stuff_init_size=block_size,
+        ).to(device)
+        
+        losses = TrainAndGraph(
+            network=network,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            model_name="Models/default",
+            should_output=False)
+        
+        zs_location.append(losses[0])
+        zs_stuff.append(losses[len(_MODEL_OUTPUTS)])
+        zs_combined.append(losses[2 * len(_MODEL_OUTPUTS)])
+        
+# Log Results
+for zs, name in [(zs_location, "Location"), (zs_stuff, "Stuff"), (zs_combined, "Combined")]:
+    df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
+    pivot_table = df.pivot(index='y', columns='x', values='z')
+    plt.figure(figsize=(1 * len(block_size_range), .75 * len(num_blocks_range) + 2))
+    sns.heatmap(
+        pivot_table, 
+        annot=True,
+        fmt='.3f',
+        cmap='viridis',
+        linewidths=0.5,
+        xticklabels=[x for x in block_size_range],
+        yticklabels=[y for y in num_blocks_range],
+    )
+    plt.xlabel('Block Size')
+    plt.ylabel('Num Blocks')
+    plt.title(f'Test Loss')
+    plt.savefig(f'Stuff/Experiments/Results/Init_{name}.png', dpi=400)
+    plt.clf()

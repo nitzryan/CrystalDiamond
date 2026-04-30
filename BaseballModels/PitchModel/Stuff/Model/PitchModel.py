@@ -21,6 +21,12 @@ class PitchModel(nn.Module):
                 
                 stuff_pred_size_value : int = 70,
                 stuff_pred_blocks_value : int = 8,
+                
+                location_init_size : int = 50,
+                location_init_layers : int = 4,
+                
+                stuff_init_size : int = 50,
+                stuff_init_layers : int = 4,
     ):
         super().__init__()
         
@@ -31,16 +37,16 @@ class PitchModel(nn.Module):
         # Location and pitch overview
         self.location_block = LayerArch(
             input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size,
-            num_blocks=4,
-            block_dim=100,
+            num_blocks=location_init_layers,
+            block_dim=location_init_size,
             output_size=location_branch_size
         )
         
         # Stuff and Pitch Overview
         self.stuff_block = LayerArch(
             input_size=prep_map.pitch_stuff_size + prep_map.pitch_overview_size + prep_map.pitcher_game_size + prep_map.league_baseline_size,
-            num_blocks=4,
-            block_dim=100,
+            num_blocks=stuff_init_layers,
+            block_dim=stuff_init_size,
             output_size=location_branch_size
         )
         
