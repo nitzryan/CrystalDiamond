@@ -14,13 +14,13 @@ class PitchModel(nn.Module):
                 stuff_branch_size : int = 55,
                 
                 combined_pred_size_value : int = 70,
-                combined_pred_blocks_value : int = 6,
+                combined_pred_blocks_value : int = 8,
                 
-                location_pred_size_value : int = 70,
-                location_pred_blocks_value : int = 6,
+                location_pred_size_value : int = 50,
+                location_pred_blocks_value : int = 8,
                 
                 stuff_pred_size_value : int = 70,
-                stuff_pred_blocks_value : int = 6,
+                stuff_pred_blocks_value : int = 8,
     ):
         super().__init__()
         
@@ -48,16 +48,16 @@ class PitchModel(nn.Module):
         self.location_pred = PitcherPredLayers(
             input_size=location_branch_size,
             
-            # block_size_value=location_pred_size_value,
-            # num_layers_value=location_pred_blocks_value,
+            block_size_value=location_pred_size_value,
+            num_layers_value=location_pred_blocks_value,
         )
             
         # Prediction layers for stuff only
         self.stuff_pred = PitcherPredLayers(
             input_size=stuff_branch_size,
             
-            # block_size_value=stuff_pred_size_value,
-            # num_layers_value=stuff_pred_blocks_value,
+            block_size_value=stuff_pred_size_value,
+            num_layers_value=stuff_pred_blocks_value,
         )
         
         # Prediction layers for location + stuff
