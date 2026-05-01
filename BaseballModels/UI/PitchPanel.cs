@@ -23,20 +23,28 @@ namespace UI
                   ControlStyles.OptimizedDoubleBuffer |
                   ControlStyles.ResizeRedraw, true
             );
-
-            using SqliteDbContext db = new(Connection.DB_READONLY_OPTIONS);
-
-            var pitches = db.PitchStatcast.Where(f => f.Year == 2025 && f.PitcherId == 657746 && f.PitchType == DbEnums.PitchType.Fourseam).AsEnumerable();
-
-            PitchGrid pg = new PitchGrid(
-                pitches, 
-                GridSize, 
-                ZONE_LEFT - (2 * GridSize), 
-                ZoneBot - (2 * GridSize), 8, 9);
-            SetPitchGrid(pg);
         }
 
-        public void SetPitchGrid(PitchGrid? pg)
+        public void ShowPitches(IEnumerable<PitchStatcast> pitches)
+        {
+            SetPitchGrid(
+                new PitchGrid(
+                    pitches,
+                    GridSize,
+                    ZONE_LEFT - (2 * GridSize),
+                    ZoneBot - (2 * GridSize), 
+                    8, 
+                    9
+                )
+            );
+        }
+
+        public void HidePitches()
+        {
+            SetPitchGrid(null);
+        }
+
+        private void SetPitchGrid(PitchGrid? pg)
         {
             pitchGrid = pg;
             Invalidate();
