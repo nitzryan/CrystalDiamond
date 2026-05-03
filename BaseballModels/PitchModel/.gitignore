@@ -1,3 +1,4 @@
 *.lprof
 Models/*
 Results/
+*.png

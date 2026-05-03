@@ -35,31 +35,31 @@ class PitcherPredLayers(nn.Module):
         self.runs_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_runs)] +
             [ResnetBlock(dim=block_size_runs) for _ in range(num_layers_runs)] +
-            [nn.Linear(block_size_runs, BUCKET_PITCHVALUE.size(0) + 1)]
+            [nn.Linear(block_size_runs, 5)]
         )
         
         self.outs_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_outs)] +
             [ResnetBlock(dim=block_size_outs) for _ in range(num_layers_outs)] +
-            [nn.Linear(block_size_outs, BUCKET_PITCHVALUE.size(0) + 1)]
+            [nn.Linear(block_size_outs, 3)]
         )
         
         self.swung_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_swung)] +
             [ResnetBlock(dim=block_size_swung) for _ in range(num_layers_swung)] +
-            [nn.Linear(block_size_swung, BUCKET_PITCHVALUE.size(0) + 1)]
+            [nn.Linear(block_size_swung, 2)]
         )
         
         self.contact_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_contact)] +
             [ResnetBlock(dim=block_size_contact) for _ in range(num_layers_contact)] +
-            [nn.Linear(block_size_contact, BUCKET_PITCHVALUE.size(0) + 1)]
+            [nn.Linear(block_size_contact, 2)]
         )
         
         self.inplay_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_inplay)] +
             [ResnetBlock(dim=block_size_inplay) for _ in range(num_layers_inplay)] +
-            [nn.Linear(block_size_inplay, BUCKET_PITCHVALUE.size(0) + 1)]
+            [nn.Linear(block_size_inplay, 2)]
         )
         
     def forward(self, x : torch.Tensor) -> tuple[torch.Tensor, ...]:

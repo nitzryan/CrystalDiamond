@@ -6,16 +6,17 @@ class DB_Output_PitchValue:
 		self.gameId = values[1]
 		self.pitchId = values[2]
 		self.ModelRun = values[3]
-		self.absValue = values[4]
-		self.stuffOnly = values[5]
-		self.locationOnly = values[6]
-		self.combined = values[7]
+		self.Year = values[4]
+		self.absValue = values[5]
+		self.stuffOnly = values[6]
+		self.locationOnly = values[7]
+		self.combined = values[8]
 
-	NUM_ELEMENTS = 8
+	NUM_ELEMENTS = 9
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.model,self.gameId,self.pitchId,self.ModelRun,self.absValue,self.stuffOnly,self.locationOnly,self.combined)
+		return (self.model,self.gameId,self.pitchId,self.ModelRun,self.Year,self.absValue,self.stuffOnly,self.locationOnly,self.combined)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValue']:
@@ -90,16 +91,17 @@ class DB_Output_PitchValueAggregation:
 		self.model = values[0]
 		self.gameId = values[1]
 		self.pitchId = values[2]
-		self.absValue = values[3]
-		self.stuffOnly = values[4]
-		self.locationOnly = values[5]
-		self.combined = values[6]
+		self.Year = values[3]
+		self.absValue = values[4]
+		self.stuffOnly = values[5]
+		self.locationOnly = values[6]
+		self.combined = values[7]
 
-	NUM_ELEMENTS = 7
+	NUM_ELEMENTS = 8
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.model,self.gameId,self.pitchId,self.absValue,self.stuffOnly,self.locationOnly,self.combined)
+		return (self.model,self.gameId,self.pitchId,self.Year,self.absValue,self.stuffOnly,self.locationOnly,self.combined)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValueAggregation']:
