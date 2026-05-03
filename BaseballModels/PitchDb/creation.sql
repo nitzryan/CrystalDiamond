@@ -4,6 +4,7 @@ CREATE TABLE Output_PitchValue (
 	"gameId" INTEGER NOT NULL,
 	"pitchId" INTEGER NOT NULL,
 	"ModelRun"	INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
 	
 	"absValue" REAL NOT NULL,
 	"stuffOnly" REAL NOT NULL,
@@ -11,6 +12,11 @@ CREATE TABLE Output_PitchValue (
 	"combined" REAL NOT NULL,
 
 	PRIMARY KEY("model", "gameId", "pitchId", "ModelRun")
+);
+
+CREATE INDEX idx_Output_PitchValue ON Output_PitchValue
+(
+	"gameId", "model", "pitchId"
 );
 
 CREATE TABLE Models_PitchValue

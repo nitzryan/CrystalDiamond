@@ -16,6 +16,7 @@ namespace PitchAnalysis
             List<Output_PitchValueAggregation> pitchList = new();
 
             var pitchOutputs = pitchDb.Output_PitchValue
+                .AsNoTracking()
                 .GroupBy(f => new { f.PitchId, f.GameId, f.Model });
             int count = pitchOutputs.Count();
             pitchList.Capacity = count;
@@ -31,6 +32,7 @@ namespace PitchAnalysis
                         Model = pitch.Key.Model,
                         GameId = pitch.Key.GameId,
                         PitchId = pitch.Key.PitchId,
+                        Year = pitch.First().Year,
                         AbsValue = 0,
                         StuffOnly = 0,
                         LocationOnly = 0,

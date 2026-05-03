@@ -6,6 +6,7 @@ namespace PitchDb
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
 		public required int ModelRun {get; set;}
+		public required int Year {get; set;}
 		public required float AbsValue {get; set;}
 		public required float StuffOnly {get; set;}
 		public required float LocationOnly {get; set;}
@@ -19,6 +20,7 @@ namespace PitchDb
 				GameId = this.GameId,
 				PitchId = this.PitchId,
 				ModelRun = this.ModelRun,
+				Year = this.Year,
 				AbsValue = this.AbsValue,
 				StuffOnly = this.StuffOnly,
 				LocationOnly = this.LocationOnly,
