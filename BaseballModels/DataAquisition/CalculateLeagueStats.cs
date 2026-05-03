@@ -315,7 +315,7 @@ namespace DataAquisition
                             PBPerOut = pbPerOut,
                             RPerPA = (float)totalRunsScoredInLeague / leagueHittingStats.PA,
                             RPerWin = runsPerWin,
-                            LeaguePA = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league)
+                            LeaguePA = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
                                 .Select(f => f.PA).Sum(),
                             LeagueGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.LeagueId == league)
                                 .Select(f => f.GameId).Distinct().Count(),

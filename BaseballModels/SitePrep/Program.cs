@@ -1,4 +1,6 @@
-﻿namespace SitePrep
+﻿using Db;
+
+namespace SitePrep
 {
     internal class Program
     {
@@ -7,8 +9,10 @@
             if (args.Length != 2)
                 throw new Exception($"Wrong number of arguments: 2 expected (year, month), {args.Length} provided");
 
-            int year = Convert.ToInt32(args[0]);
-            int month = Convert.ToInt32(args[1]);
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            int year = db.Model_HitterStats.Select(f => f.Year).Max();
+            int month = db.Model_HitterStats.Where(f => f.Year == year).Select(f => f.Month).Max();
 
             ModelAggregation.Update();
             GeneratePlayerPositions.Update();

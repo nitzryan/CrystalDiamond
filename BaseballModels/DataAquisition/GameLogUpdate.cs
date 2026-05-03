@@ -12,6 +12,8 @@ namespace DataAquisition
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [];
 
+        private static int END_YEAR, END_MONTH;
+
         private static async Task<List<Player_Hitter_GameLog>> Get_Hitter_GameLogs_ThreadFunction(IEnumerable<int> ids, int year, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             HttpClient httpClient = new();
@@ -129,6 +131,9 @@ namespace DataAquisition
                     #pragma warning restore CS8602
                     int gameMonth = Convert.ToInt32(gamedate[1]);
 
+                    if (gameMonth > END_MONTH && year == END_YEAR)
+                        continue;
+
                     var stats = game.GetProperty("stat");
                     var positions = game.GetProperty("positionsPlayed").EnumerateArray();
 
@@ -216,6 +221,9 @@ namespace DataAquisition
                     string[] gamedate = game.GetProperty("date").GetString().Split("-");
                     #pragma warning restore CS8602
                     int gameMonth = Convert.ToInt32(gamedate[1]);
+
+                    if (gameMonth > END_MONTH && year == END_YEAR)
+                        continue;
 
                     var stats = game.GetProperty("stat");
 
@@ -411,10 +419,13 @@ namespace DataAquisition
             return true;
         }
 
-        public static async Task<bool> Update(int year, bool rescan)
+        public static async Task<bool> Update(int year, bool rescan, int endYear, int endMonth)
         {
             HttpClient httpClient = new();
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            END_YEAR = endYear;
+            END_MONTH = endMonth;
 
             try
             {

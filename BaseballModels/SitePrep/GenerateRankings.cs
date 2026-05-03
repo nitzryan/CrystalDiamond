@@ -7,7 +7,6 @@ using SiteDb;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using static SitePrep.GenerateRankings;
 
 namespace SitePrep
 {

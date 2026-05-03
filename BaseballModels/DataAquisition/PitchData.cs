@@ -9,7 +9,7 @@ namespace DataAquisition
 {
     internal class PitchData
     {
-        private const int NUM_THREADS = 16; // If need to get to old MiLB data, bump up really high since data is cold on db server
+        private const int NUM_THREADS = 256; // If need to get to old MiLB data, bump up really high since data is cold on db server
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
         private const int PITCHES_PER_GAME = 500;
@@ -479,9 +479,9 @@ namespace DataAquisition
                             LevelId = date.LevelId,
                             Year = date.Year,
                             Month = date.Month,
-                            CountBalls = countBalls,
-                            CountStrike = countStrikes,
-                            Outs = currentOuts,
+                            CountBalls = Math.Min(countBalls, 3),
+                            CountStrike = Math.Min(countStrikes, 2),
+                            Outs = Math.Min(currentOuts, 2),
                             BaseOccupancy = OccupancyArrayToInt(baseOccupancy),
 
                             PitchType = pitchType,

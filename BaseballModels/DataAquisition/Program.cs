@@ -5,13 +5,14 @@ namespace DataAquisition
     internal class Program
     {
         const int START_YEAR = 2005;
-        const int END_YEAR = 2025;
-        const int END_MONTH = 9;
+        const int END_YEAR = 2026;
+        const int END_MONTH = 4;
 
-        const bool UPDATE_COLLEGE_DATA = false;
+        const bool UPDATE_COLLEGE_DATA = true;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = true;
+        const bool DRAFT_UPDATE = false;
+        const bool STATCAST_ONLY_UPDATE = false;
 
         static async Task Main(string[] args)
         {
@@ -44,13 +45,17 @@ namespace DataAquisition
             {
                 foreach (int year in years)
                 {
-                    while (!await DraftResults.Update(year))
-                    { }
+                    if ((FULL_REFRESH && year != END_YEAR) || DRAFT_UPDATE)
+                    {
+                        while (!await DraftResults.Update(year))
+                        { }
+                    }
+                    
                     while (!await PlayerUpdate.Update(year))
                     { }
-                    while (!await GameLogUpdate.Update(year, year == END_YEAR))
+                    while (!await GameLogUpdate.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
                     { }
-                    while (!await FielderGameLog.Update(year, year == END_YEAR))
+                    while (!await FielderGameLog.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
                     { }
                     while (!await GetPlayByPlay.Update(year))
                     { }
@@ -61,8 +66,9 @@ namespace DataAquisition
                     foreach (int month in months)
                     {
                         CreateLevelGameCounts.Update(year, month);
-                        CalculateLeagueBaselines.Update(year, month);
                         CalculateMonthStats.Update(year, month);
+                        CalculateLeagueBaselines.Update(year, month);
+                        CalculateMonthStats.UpdateAdvanced(year, month);
                         CalculateMonthRatios.Update(year, month);
                         CalculateMonthBaserunning.Update(year, month);
                         CalculateMonthFielding.Update(year, month);
@@ -168,6 +174,9 @@ namespace DataAquisition
                 {
                     // Covid-Year interrupted, don't use data that exists
                     if (year == 2020)
+                        continue;
+
+                    if (year == END_YEAR && !DRAFT_UPDATE)
                         continue;
 
                     College.UpdateConfStrength(year);

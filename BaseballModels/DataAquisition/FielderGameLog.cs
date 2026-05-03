@@ -11,6 +11,7 @@ namespace DataAquisition
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
         private static int[] thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+        private static int END_YEAR, END_MONTH;
 
         private const string FIELDER_LOG_DIRECTORY = Constants.DATA_AQ_DIRECTORY + "/Logs/FielderGameLogs/";
 
@@ -156,6 +157,9 @@ namespace DataAquisition
                 int[] date = [.. dateElement.GetString().Split('-').Select(f => Int32.Parse(f))];
                 #pragma warning restore CS6802
 
+                if (date[1] > END_MONTH && year == END_YEAR)
+                    continue;
+
                 if (!split.TryGetProperty("isHome", out var isHomeElement))
                     throw new Exception("Did not find property isHome");
 
@@ -218,8 +222,11 @@ namespace DataAquisition
             return statsArray.Select(f => f.GetProperty("playerId").GetInt32()).ToList();
         }
 
-        public static async Task<bool> Update(int year, bool rescan)
-        { 
+        public static async Task<bool> Update(int year, bool rescan, int endYear, int endMonth)
+        {
+            END_YEAR = endYear;
+            END_MONTH = endMonth;
+
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 

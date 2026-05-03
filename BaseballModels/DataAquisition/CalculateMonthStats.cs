@@ -151,11 +151,11 @@ namespace DataAquisition
             };
         }
 
+        // TODO : These functions share too much functionality
         private static void CalculateHitterMonthStats(SqliteDbContext db, int year, int month)
         {
             // Remove existing data
             db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
-            db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
             // Store all park factor values to reduce db queries
             Dictionary<int, Park_Factors> ParkFactorDict = new();
@@ -187,12 +187,52 @@ namespace DataAquisition
                             continue;
 
                         db.Player_Hitter_MonthStats.Add(stats);
+                    }
+                }
+            }
+            
+            db.SaveChanges();
+            db.ChangeTracker.Clear();
+        }
+
+        private static void CalculateHitterMonthStatsAdvanced(SqliteDbContext db, int year, int month)
+        {
+            // Remove existing data
+            db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            // Store all park factor values to reduce db queries
+            Dictionary<int, Park_Factors> ParkFactorDict = new();
+            var parkFactors = db.Park_Factors.Where(f => f.Year == year);
+            foreach (var pf in parkFactors)
+                ParkFactorDict[pf.StadiumId] = pf;
+
+            // Iterate through player/level combinations
+            var monthGames = month == 4 ?
+                db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month <= month) :
+                month == 9 ?
+                    db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month >= month) :
+                    db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month);
+            var ids = monthGames.Select(f => f.MlbId).Distinct();
+            using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Calculating Hitter Month Stats for Month={month} Year={year}"))
+            {
+                foreach (int mlbId in ids)
+                {
+                    progressBar.Tick(); // Tick before so skips don't mess up count
+
+                    var playerGames = monthGames.Where(f => f.MlbId == mlbId).ToArray();
+                    var leagues = playerGames.Select(f => f.LeagueId).Distinct();
+                    foreach (int leagueId in leagues)
+                    {
+                        var gameLogs = playerGames.Where(f => f.LeagueId == leagueId);
 
                         // Advanced Stats
                         var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
                         foreach (var a in teamLeagues)
                         {
-                            stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), ParkFactorDict, month);
+                            var stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), ParkFactorDict, month);
+                            if (stats.AB + stats.BB + stats.HBP + stats.SB + stats.CS == 0)
+                                continue;
+
                             Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;
@@ -214,7 +254,7 @@ namespace DataAquisition
                     }
                 }
             }
-            
+
             db.SaveChanges();
             db.ChangeTracker.Clear();
         }
@@ -223,7 +263,6 @@ namespace DataAquisition
         {
             // Remove existing data
             db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
-            db.Player_Pitcher_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
             // Store all park factor values to reduce db queries
             Dictionary<int, Park_Factors> ParkFactorDict = new();
@@ -257,13 +296,56 @@ namespace DataAquisition
                             continue;
 
                         db.Player_Pitcher_MonthStats.Add(stats);
+                    }
+                }
+            }
+
+            db.SaveChanges();
+            db.ChangeTracker.Clear();
+        }
+
+        private static void CalculatePitcherMonthStatsAdvanced(SqliteDbContext db, int year, int month)
+        {
+            // Remove existing data
+            db.Player_Pitcher_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            // Store all park factor values to reduce db queries
+            Dictionary<int, Park_Factors> ParkFactorDict = new();
+            var parkFactors = db.Park_Factors.Where(f => f.Year == year);
+            foreach (var pf in parkFactors)
+                ParkFactorDict[pf.StadiumId] = pf;
+
+            // Iterate through player/level combinations
+            // Iterate through player/level combinations
+            var monthGames = month == 4 ?
+                db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month <= month) :
+                month == 9 ?
+                    db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month >= month) :
+                    db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month == month);
+
+            var ids = monthGames.Select(f => f.MlbId).Distinct();
+            using (ProgressBar progressBar = new ProgressBar(ids.Count(), $"Calculating Pitcher Month Stats for Month={month} Year={year}"))
+            {
+                foreach (int mlbId in ids)
+                {
+                    progressBar.Tick(); // Tick before so skips don't mess up count
+
+                    var playerGames = monthGames.Where(f => f.MlbId == mlbId).ToArray();
+                    var leagues = playerGames.Select(f => f.LeagueId).Distinct();
+                    foreach (int leagueId in leagues)
+                    {
+                        var gameLogs = playerGames.Where(f => f.LeagueId == leagueId);
 
                         // Advanced Stats
                         var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
                         foreach (var a in teamLeagues)
                         {
                             var games = gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId);
-                            stats = GetMonthStatsPitcher(games, ParkFactorDict, month);
+                            var stats = GetMonthStatsPitcher(games, ParkFactorDict, month);
+
+                            if (stats.BattersFaced == 0)
+                                continue;
+
                             Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single(), db);
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;
@@ -332,6 +414,22 @@ namespace DataAquisition
             } catch (Exception e)
             {
                 Console.WriteLine("Error in CalculateMonthStats");
+                Utilities.LogException(e);
+                throw;
+            }
+        }
+
+        public static void UpdateAdvanced(int year, int month)
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            try
+            {
+                CalculateHitterMonthStatsAdvanced(db, year, month);
+                CalculatePitcherMonthStatsAdvanced(db, year, month);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in CalculateMonthStats Advanced");
                 Utilities.LogException(e);
                 throw;
             }

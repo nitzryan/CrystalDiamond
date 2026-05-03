@@ -12,7 +12,7 @@ namespace DataAquisition
             );
             db.SaveChanges();
 
-            var stats = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month);//.OrderByDescending(f => f.MlbId).OrderByDescending(f => f.LevelId);
+            var stats = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month);
             var leagueStats = db.League_HitterStats.Where(f => f.Year == year && f.Month == month);
             foreach (var stat in stats)
             {

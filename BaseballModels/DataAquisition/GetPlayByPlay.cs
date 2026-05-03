@@ -10,7 +10,7 @@ namespace DataAquisition
 {
     internal class GetPlayByPlay
     {
-        private const int NUM_THREADS = 16;
+        private const int NUM_THREADS = 256;
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
         private const int EVENTS_PER_GAME = 100;
