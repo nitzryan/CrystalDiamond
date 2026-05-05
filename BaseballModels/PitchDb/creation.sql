@@ -16,7 +16,7 @@ CREATE TABLE Output_PitchValue (
 
 CREATE INDEX idx_Output_PitchValue ON Output_PitchValue
 (
-	"gameId", "model", "pitchId"
+	"gameId", "pitchId", "model"
 );
 
 CREATE TABLE Models_PitchValue

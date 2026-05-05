@@ -10,6 +10,8 @@ CREATE TABLE PitchStatcast
     "Year" INTEGER NOT NULL,
     "Month" INTEGER NOT NULL,
 
+    "PitcherPitchNum" INTEGER NOT NULL,
+
     "CountBalls" INTEGER NOT NULL,
     "CountStrike" INTEGER NOT NULL,
     "Outs" INTEGER NOT NULL,
@@ -71,6 +73,9 @@ CREATE TABLE PitchStatcast
 
     "RunValueHitter" REAL NOT NULL,
 
+    "Scenario" INTEGER NOT NULL,
+    "ModelOutput" TEXT NOT NULL,
+
     PRIMARY KEY("GameId", "PitchId")
 );
 
@@ -85,6 +90,8 @@ CREATE TABLE PitchNonStatcast
 
     "Year" INTEGER NOT NULL,
     "Month" INTEGER NOT NULL,
+
+    "PitcherPitchNum" INTEGER NOT NULL,
 
     "CountBalls" INTEGER NOT NULL,
     "CountStrike" INTEGER NOT NULL,
@@ -102,6 +109,8 @@ CREATE TABLE PitchNonStatcast
     "PitIsR" INTEGER NOT NULL,
 
     "RunValueHitter" REAL NOT NULL,
+
+    "Scenario" INTEGER NOT NULL,
 
     PRIMARY KEY("GameId", "PitchId")
 );

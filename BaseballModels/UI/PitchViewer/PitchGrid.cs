@@ -1,37 +1,66 @@
 ﻿using Db;
 using System.Drawing.Drawing2D;
+using System.Text.Json;
 
 namespace UI
 {
+    public enum PitchValueType
+    { 
+        Actual,
+        Stuff,
+        Location,
+        Exp,
+    }
+
     public class PitchBox
     { 
-        public int NumPitches { get; set; }
-        public float ExpValue { get; set; }
-        public float ActValue { get; set; }
+        public required int NumPitches { get; set; }
+        public required float StuffValue { get; set; }
+        public required float LocValue { get; set; }
+        public required float ExpValue { get; set; }
+        public required float ActValue { get; set; }
 
-        public float X { get; set; }
-        public float Y { get; set; }
+        public required float X { get; set; }
+        public required float Y { get; set; }
 
-        public Color GetColor()
+        public required float Vel { get; set; }
+        public required float BreakHoriz { get; set; }
+        public required float BreakVert { get; set; }
+
+        public Color GetColor(PitchValueType valueType, float min, float max)
         {
-            const float MIN = -50;
-            const float MAX = 50;
-            float clampedValue = Math.Clamp(ExpValue, MIN, MAX);
+            float value = 0;
+            switch (valueType)
+            {
+                case PitchValueType.Actual:
+                    value = ActValue;
+                    break;
+                case PitchValueType.Exp:
+                    value = ExpValue;
+                    break;
+                case PitchValueType.Stuff:
+                    value = StuffValue;
+                    break;
+                case PitchValueType.Location:
+                    value = LocValue;
+                    break;
+            }
+            float clampedValue = Math.Clamp(value, min, max);
 
             float h, s, v;
 
             if (clampedValue <= 0)
             {
-                // Blue → Light Gray
-                float t = clampedValue / MIN;
+                // Blue -> Light Gray
+                float t = clampedValue / min;
                 h = 240f;
                 s = t;
                 v = 0.85f + (t * 0.15f);
             }
             else
             {
-                // Light Gray → Red
-                float t = clampedValue / MAX;
+                // Light Gray -> Red
+                float t = clampedValue / max;
                 h = 0f;
                 s = t;
                 v = 0.85f + (t * 0.15f);
@@ -46,7 +75,7 @@ namespace UI
             if (h < 0) h += 360;
 
             float c = v * s;
-            float x = c * (1 - Math.Abs((h / 60) % 2 - 1));
+            float x = c * (1 - Math.Abs(((h / 60) % 2) - 1));
             float m = v - c;
 
             float r = 0, g = 0, b = 0;
@@ -70,8 +99,18 @@ namespace UI
     {
         public List<PitchBox> Pitches;
         private float GridSize;
+        public PitchValueType PitchValueType = PitchValueType.Actual;
+        public float Scale = 50;
 
-        public PitchGrid(IEnumerable<PitchStatcast> pitches, float gridSize, float minX, float minY, int cellsX, int cellsY)
+        public PitchGrid(
+            IEnumerable<PitchStatcast> pitches, 
+            float gridSize, 
+            float minX, 
+            float minY, 
+            int cellsX, 
+            int cellsY, 
+            int modelId
+            )
         {
             Pitches = new();
             GridSize = gridSize;
@@ -91,12 +130,20 @@ namespace UI
             foreach (var x in xs)
                 foreach (var y in ys)
                 {
-                    PitchBox pb = new();
-                    pb.NumPitches = 0;
-                    pb.ActValue = 0;
-                    pb.ExpValue = 0;
-                    pb.X = x;
-                    pb.Y = y;
+                    PitchBox pb = new()
+                    {
+                        NumPitches = 0,
+                        ActValue = 0,
+                        StuffValue = 0,
+                        LocValue = 0,
+                        ExpValue = 0,
+                        X = x,
+                        Y = y,
+                        BreakHoriz = 0,
+                        BreakVert = 0,
+                        Vel = 0,
+                    };
+                    
                     Pitches.Add(pb);
                 }
 
@@ -149,22 +196,44 @@ namespace UI
                         yBin = ys.Count - 1;
                 }
 
+                // Get model output
+                #pragma warning disable CS8600, CS8602 // Non Null References, if wrong will except
+                Dictionary<int, PitchAnalysis.PitchModelOutput> modelJson =
+                    JsonSerializer.Deserialize<Dictionary<int, PitchAnalysis.PitchModelOutput>>(pitch.ModelOutput);
+
+                var pitchModelOutput = modelJson[modelId];
+                #pragma warning restore CS8600, CS8602
+
                 // Assign to bin
                 PitchBox bin = Pitches[(xBin.Value * ys.Count) + yBin.Value];
 
                 bin.NumPitches++;
-                bin.ExpValue += pitch.RunValueHitter;
+                bin.ExpValue += (float)pitchModelOutput.expValue;
                 bin.ActValue += pitch.RunValueHitter;
+                bin.StuffValue += (float)pitchModelOutput.stuffValue;
+                bin.LocValue += (float)pitchModelOutput.locationValue;
+
+                #pragma warning disable CS8629 // Any values here will have these values
+                bin.Vel += pitch.VStart.Value;
+                bin.BreakHoriz += pitch.BreakHorizontal.Value;
+                bin.BreakVert += pitch.BreakInduced.Value;
+                #pragma warning restore CS8629
             }
 
             // Filter out bins without enough data
             Pitches = Pitches.Where(f => f.NumPitches >= 10).ToList();
 
-            // Normalize values to per 1000 pitches
+            // Normalize values to per 1000 pitches on value, per pitch on info
             Pitches.ForEach(f =>
             {
                 f.ActValue = f.ActValue / f.NumPitches * 1000;
                 f.ExpValue = f.ExpValue / f.NumPitches * 1000;
+                f.StuffValue = f.StuffValue / f.NumPitches * 1000;
+                f.LocValue = f.LocValue / f.NumPitches * 1000;
+
+                f.Vel /= f.NumPitches;
+                f.BreakHoriz /= f.NumPitches;
+                f.BreakVert /= f.NumPitches;
             });
         }
 
@@ -180,7 +249,7 @@ namespace UI
 
                 foreach (var pitch in Pitches)
                 {
-                    Color color = pitch.GetColor();
+                    Color color = pitch.GetColor(PitchValueType, -Scale, Scale);
                     SolidBrush brush = new(color);
 
                     graphics.FillRectangle(

@@ -9,7 +9,7 @@ namespace DataAquisition
 {
     internal class PitchData
     {
-        private const int NUM_THREADS = 256; // If need to get to old MiLB data, bump up really high since data is cold on db server
+        private const int NUM_THREADS = 64; // If need to get to old MiLB data, bump up really high since data is cold on db server
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
         private const int PITCHES_PER_GAME = 500;
@@ -147,6 +147,39 @@ namespace DataAquisition
                 default:
                     throw new Exception("Unexpected Event: " + eventString);
             }
+        }
+
+        private static PitchScenario GetScenario(int balls, int strikes, int outs, BaseOccupancy occupancy, bool batIsR, bool pitIsR)
+        {
+            PitchScenario scenario = PitchScenario.All;
+
+            // Count
+            if (balls > strikes)
+                scenario = PitchScenario.BehindCount;
+            else if (balls < strikes)
+                scenario = PitchScenario.AheadCount;
+            else
+                scenario = PitchScenario.EvenCount;
+
+            // Handedness
+            if (batIsR == pitIsR)
+                scenario |= PitchScenario.SameSide;
+            else
+                scenario |= PitchScenario.OppSide;
+
+            // Two Strikes
+            if (strikes == 2)
+                scenario |= PitchScenario.TwoStrikes;
+            else
+                scenario |= PitchScenario.NotTwoStrikes;
+
+            // Double Play
+            if (outs < 2 && occupancy.HasFlag(BaseOccupancy.B1))
+                scenario |= PitchScenario.DoublePlayOpp;
+            else
+                scenario |= PitchScenario.NonDoublePlayOpp;
+
+            return scenario;
         }
 
         private static (PitchResult, bool, bool, bool, bool) GetPitchResult(JsonElement pitchEvent)
@@ -324,6 +357,9 @@ namespace DataAquisition
 
         private static async Task<(List<PitchStatcast>, List<PitchNonStatcast>)> GetPlayByPlayAsync(int gameId, HttpClient httpClient, SqliteDbContext db)
         {
+            // Dict to track pitch counts
+            Dictionary<int, int> pitchCountDict = new();
+        
             List<PitchStatcast> statcastPitches = new(PITCHES_PER_GAME);
             List<PitchNonStatcast> nonStatcastPitches = new(PITCHES_PER_GAME);
 
@@ -443,6 +479,20 @@ namespace DataAquisition
                     if (!pitchEvent.TryGetProperty("pitchData", out var pitchData))
                         continue;
 
+                    // Get scenario, capped at reasonable value
+                    int balls = Math.Min(countBalls, 3);
+                    int strikes = Math.Min(countStrikes, 2);
+                    int outs = Math.Min(currentOuts, 2);
+                    BaseOccupancy occupancy = OccupancyArrayToInt(baseOccupancy);
+                    PitchScenario scenario = GetScenario(balls, strikes, outs, occupancy, isBatR, isPitR);
+
+                    // Pitch Count
+                    if (!pitchCountDict.ContainsKey(pitcherId))
+                        pitchCountDict[pitcherId] = 0;
+
+                    int pitchCount = pitchCountDict[pitcherId] + 1;
+                    pitchCountDict[pitcherId]++;
+
                     // Need to check if statcast data exists or not
                     // Pre-15 had PitchFx, which will just pollute data
                     // MiLB had 2021 for FSL, 2022 for PCL (and charlotte, but ignoring), 2023 for AAA
@@ -479,10 +529,11 @@ namespace DataAquisition
                             LevelId = date.LevelId,
                             Year = date.Year,
                             Month = date.Month,
-                            CountBalls = Math.Min(countBalls, 3),
-                            CountStrike = Math.Min(countStrikes, 2),
-                            Outs = Math.Min(currentOuts, 2),
-                            BaseOccupancy = OccupancyArrayToInt(baseOccupancy),
+                            PitcherPitchNum = pitchCount,
+                            CountBalls = balls,
+                            CountStrike = strikes,
+                            Outs = outs,
+                            BaseOccupancy = occupancy,
 
                             PitchType = pitchType,
                             PaResult = playResult,
@@ -528,6 +579,8 @@ namespace DataAquisition
                             HitCoordX = hitCoordX,
                             HitCoordY = hitCoordY,
                             RunValueHitter = -100000, // Will be modified later
+                            Scenario = scenario,
+                            ModelOutput = ""
                         });
                     } else {
                         nonStatcastPitches.Add(new PitchNonStatcast
@@ -540,10 +593,11 @@ namespace DataAquisition
                             Month = date.Month,
                             LeagueId = (date.LeagueId == 103 || date.LeagueId == 104) ? 1 : date.LeagueId,
                             LevelId = date.LevelId,
-                            CountBalls = countBalls,
-                            CountStrike = countStrikes,
-                            Outs = currentOuts,
-                            BaseOccupancy = OccupancyArrayToInt(baseOccupancy),
+                            PitcherPitchNum = pitchCount,
+                            CountBalls = balls,
+                            CountStrike = strikes,
+                            Outs = outs,
+                            BaseOccupancy = occupancy,
                             PaResult = playResult,
                             Result = pitchResult,
                             HadSwing = hadSwing,
@@ -552,6 +606,7 @@ namespace DataAquisition
                             HitIsR = isBatR,
                             PitIsR = isPitR,
                             RunValueHitter = -100000, // Will be modified later
+                            Scenario = scenario,
                         });
                     }
 

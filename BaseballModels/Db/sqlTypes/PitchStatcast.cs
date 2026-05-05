@@ -10,6 +10,7 @@ namespace Db
 		public required int LevelId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
+		public required int PitcherPitchNum {get; set;}
 		public required int CountBalls {get; set;}
 		public required int CountStrike {get; set;}
 		public required int Outs {get; set;}
@@ -57,6 +58,8 @@ namespace Db
 		public float? HitCoordX {get; set;}
 		public float? HitCoordY {get; set;}
 		public required float RunValueHitter {get; set;}
+		public required DbEnums.PitchScenario Scenario {get; set;}
+		public required string ModelOutput {get; set;}
 
 		public PitchStatcast Clone()
 		{
@@ -70,6 +73,7 @@ namespace Db
 				LevelId = this.LevelId,
 				Year = this.Year,
 				Month = this.Month,
+				PitcherPitchNum = this.PitcherPitchNum,
 				CountBalls = this.CountBalls,
 				CountStrike = this.CountStrike,
 				Outs = this.Outs,
@@ -117,6 +121,8 @@ namespace Db
 				HitCoordX = this.HitCoordX,
 				HitCoordY = this.HitCoordY,
 				RunValueHitter = this.RunValueHitter,
+				Scenario = this.Scenario,
+				ModelOutput = this.ModelOutput,
 			};
 		}
 	}

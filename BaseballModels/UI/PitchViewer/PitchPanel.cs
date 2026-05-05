@@ -34,7 +34,8 @@ namespace UI
                     ZONE_LEFT - (2 * GridSize),
                     ZoneBot - (2 * GridSize), 
                     8, 
-                    9
+                    9,
+                    1 // TODO Implement model switch
                 )
             );
         }

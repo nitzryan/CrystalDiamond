@@ -8,7 +8,7 @@ namespace PitchAnalysis
     {
         public static readonly DbContextOptions<SqliteDbContext> DB_OPTIONS = new DbContextOptionsBuilder<SqliteDbContext>()
                     .UseSqlite("Data Source=../../../../Db/BaseballStats.db;")
-                    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+                    .EnableSensitiveDataLogging()
                     .Options;
 
         public static readonly DbContextOptions<PitchDbContext> PITCHDB_OPTIONS = new DbContextOptionsBuilder<PitchDbContext>()

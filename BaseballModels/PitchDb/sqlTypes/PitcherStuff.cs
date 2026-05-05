@@ -7,7 +7,7 @@ namespace PitchDb
 		public required int Month {get; set;}
 		public required int GameId {get; set;}
 		public required Db.DbEnums.PitchType PitchType {get; set;}
-		public required DbEnums.Scenario Scenario {get; set;}
+		public required Db.DbEnums.PitchScenario Scenario {get; set;}
 		public required int NumPitches {get; set;}
 		public required float ValueStuff {get; set;}
 		public required float ValueLoc {get; set;}

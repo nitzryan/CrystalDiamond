@@ -86,25 +86,3 @@ class DB_PitcherStuff:
 		items = cursor.execute("SELECT * FROM PitcherStuff " + conditional, values).fetchall()
 		return [DB_PitcherStuff(i) for i in items]
 
-class DB_Output_PitchValueAggregation:
-	def __init__(self, values : tuple[any]):
-		self.model = values[0]
-		self.gameId = values[1]
-		self.pitchId = values[2]
-		self.Year = values[3]
-		self.absValue = values[4]
-		self.stuffOnly = values[5]
-		self.locationOnly = values[6]
-		self.combined = values[7]
-
-	NUM_ELEMENTS = 8
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.model,self.gameId,self.pitchId,self.Year,self.absValue,self.stuffOnly,self.locationOnly,self.combined)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValueAggregation']:
-		items = cursor.execute("SELECT * FROM Output_PitchValueAggregation " + conditional, values).fetchall()
-		return [DB_Output_PitchValueAggregation(i) for i in items]
-

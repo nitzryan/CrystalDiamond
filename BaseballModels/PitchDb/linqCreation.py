@@ -13,7 +13,7 @@ tables = cursor.fetchall()
 # Allows for not being required to create column, but not being nullable
 autoincrement_pairs = []
 
-type_overrides = [("PitcherStuff", "Scenario", "DbEnums.Scenario"), 
+type_overrides = [("PitcherStuff", "Scenario", "Db.DbEnums.PitchScenario"), 
                   
                   ("PitcherStuff", "PitchType", "Db.DbEnums.PitchType"), 
                   ]

@@ -1,58 +1,80 @@
-﻿using EFCore.BulkExtensions;
+﻿using Db;
+using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
+using System.Text.Json;
 
 namespace PitchAnalysis
 {
+    public record PitchModelOutput(double absValue, double stuffValue, double locationValue, double expValue);
+
     internal class PitchAggregation
     {
         public static void Update()
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            pitchDb.Output_PitchValueAggregation.ExecuteDelete();
-
-            List<Output_PitchValueAggregation> pitchList = new();
+            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelOutput=''");
 
             var pitchOutputs = pitchDb.Output_PitchValue
                 .AsNoTracking()
-                .GroupBy(f => new { f.PitchId, f.GameId, f.Model });
+                .GroupBy(f => new { f.GameId, f.PitchId });
             int count = pitchOutputs.Count();
-            pitchList.Capacity = count;
+
+            int pitchCount = 0;
 
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitch Model Results"))
             {
                 foreach (var pitch in pitchOutputs)
                 {
-                    int size = pitch.Count();
+                    Dictionary<int, PitchModelOutput> modelValues = new();
 
-                    Output_PitchValueAggregation opva = new()
+                    var modelPitches = pitch.GroupBy(f => f.Model);
+                    foreach (var mp in modelPitches)
                     {
-                        Model = pitch.Key.Model,
-                        GameId = pitch.Key.GameId,
-                        PitchId = pitch.Key.PitchId,
-                        Year = pitch.First().Year,
-                        AbsValue = 0,
-                        StuffOnly = 0,
-                        LocationOnly = 0,
-                        Combined = 0,
-                    };
+                        int size = mp.Count();
 
-                    foreach (var p in pitch)
-                    {
-                        opva.AbsValue += p.AbsValue / size;
-                        opva.LocationOnly += p.LocationOnly / size;
-                        opva.StuffOnly += p.StuffOnly / size;
-                        opva.Combined += p.Combined / size;
+                        double absValue = 0;
+                        double stuffValue = 0;
+                        double locValue = 0;
+                        double combinedValue = 0;
+
+                        foreach (var p in mp)
+                        {
+                            absValue += p.AbsValue / size;
+                            locValue += p.LocationOnly / size;
+                            stuffValue += p.StuffOnly / size;
+                            combinedValue += p.Combined / size;
+                        }
+
+                        modelValues[mp.Key] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3));
                     }
 
-                    pitchList.Add(opva);
+                    // Write to JSON 
+                    string json = JsonSerializer.Serialize(modelValues, new JsonSerializerOptions
+                    {
+                        WriteIndented = false
+                    });
+                    db.PitchStatcast
+                        .Where(f => f.PitchId == pitch.Key.PitchId && f.GameId == pitch.Key.GameId)
+                        .Single().ModelOutput = json;
+
+                    // Make sure that too many pitches don't get logged to run out of memory
+                    pitchCount++;
+                    if (pitchCount >= 1000000)
+                    {
+                        db.SaveChanges();
+                        db.ChangeTracker.Clear();
+                        pitchCount = 0;
+                    }
+
                     progressBar.Tick();
                 }
             }
 
-            pitchDb.BulkInsert(pitchList);
+            db.SaveChanges();
         }
     }
 }

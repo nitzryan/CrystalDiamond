@@ -8,7 +8,6 @@ namespace PitchDb
 		public DbSet<Models_PitchValue> Models_PitchValue {get; set;}
 		public DbSet<ModelTrainingHistory_PitchValue> ModelTrainingHistory_PitchValue {get; set;}
 		public DbSet<PitcherStuff> PitcherStuff {get; set;}
-		public DbSet<Output_PitchValueAggregation> Output_PitchValueAggregation {get; set;}
 
 		public PitchDbContext(DbContextOptions<PitchDbContext> options) : base(options) { }
 
@@ -18,7 +17,6 @@ namespace PitchDb
 			modelBuilder.Entity<Models_PitchValue>().HasKey(f => new {f.Id});
 			modelBuilder.Entity<ModelTrainingHistory_PitchValue>().HasKey(f => new {f.ModelId,f.ModelRun});
 			modelBuilder.Entity<PitcherStuff>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.GameId,f.PitchType,f.Scenario});
-			modelBuilder.Entity<Output_PitchValueAggregation>().HasKey(f => new {f.Model,f.GameId,f.PitchId});
 		}
 	}
 }

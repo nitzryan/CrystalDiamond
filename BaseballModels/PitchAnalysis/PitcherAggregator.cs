@@ -3,112 +3,24 @@ using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
-using static PitchDb.DbEnums;
+using System.Text.Json;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
     internal class PitcherAggregator
     {
-        private record PitchData
-        {
-            public required int gameId;
-            public required int pitcherId;
-            public required int year;
-            public required int month;
-            public required int model;
-
-            public required Scenario scenario;
-            public required Db.DbEnums.PitchType pitchType;
-
-            public required float absValue;
-            public required float stuffValue;
-            public required float locValue;
-            public required float combinedValue;
-
-            public required float vel;
-            public required float breakHoriz;
-            public required float breakVert;
-        }
-
-        private static List<PitchData> GetPitchData(IEnumerable<Output_PitchValueAggregation> opvas)
-        {
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
-
-            int count = opvas.Count();
-            List<PitchData> pd = new(count);
-            using (ProgressBar progressBar = new ProgressBar(count, $"Creating PitchData"))
-            {
-                foreach (var opva in opvas)
-                {
-                    var pitchStatcast = db.PitchStatcast.Where(f => f.GameId == opva.GameId && f.PitchId == opva.PitchId).Single();
-
-                    Scenario scenario = Scenario.All;
-                    // Same/Opp Side
-                    if (pitchStatcast.PitIsR == pitchStatcast.HitIsR)
-                        scenario |= Scenario.SameSide;
-                    else
-                        scenario |= Scenario.OppSide;
-
-                    // Two/Not Two strikes
-                    if (pitchStatcast.CountStrike == 2)
-                        scenario |= Scenario.TwoStrikes;
-                    else
-                        scenario |= Scenario.NotTwoStrikes;
-
-                    // Double Play Opportunity
-                    if (pitchStatcast.BaseOccupancy.HasFlag(Db.DbEnums.BaseOccupancy.B1) && pitchStatcast.Outs < 2)
-                        scenario |= Scenario.DoublePlayOpp;
-                    else
-                        scenario |= Scenario.NonDoublePlayOpp;
-
-                    // Balance of count
-                    if (pitchStatcast.CountBalls > pitchStatcast.CountStrike)
-                        scenario |= Scenario.BehindCount;
-                    else if (pitchStatcast.CountBalls < pitchStatcast.CountStrike)
-                        scenario |= Scenario.AheadCount;
-                    else
-                        scenario |= Scenario.EvenCount;
-
-                    #pragma warning disable CS8629 // Any null values for pitch statcast data would not have been run through model
-                    pd.Add(new PitchData
-                    {
-                        gameId = pitchStatcast.GameId,
-                        pitcherId = pitchStatcast.PitcherId,
-                        year = pitchStatcast.Year,
-                        month = pitchStatcast.Month,
-                        model = opva.Model,
-
-                        scenario = scenario,
-                        pitchType = pitchStatcast.PitchType,
-
-                        absValue = opva.AbsValue,
-                        stuffValue = opva.StuffOnly,
-                        locValue = opva.LocationOnly,
-                        combinedValue = opva.Combined,
-
-                        vel = pitchStatcast.VStart.Value,
-                        breakVert = pitchStatcast.BreakInduced.Value,
-                        breakHoriz = pitchStatcast.BreakHorizontal.Value,
-                    });
-                    #pragma warning restore CS8629
-
-                    progressBar.Tick();
-                }
-            }
-
-            return pd;
-        }
-
         private static List<PitcherStuff> GetPitcherYearMonthStuffByScenarios(
-            IEnumerable<PitchData> pitches,
+            IEnumerable<PitchStatcast> pitches,
+            int model,
             bool isFullYear,
             bool isSingleGame,
-            IEnumerable<Scenario> scenarios)
+            IEnumerable<PitchScenario> scenarios)
         {
             List<PitcherStuff> pitchSideBreakdowns = new();
 
             // Group by PitchType
-            var pitchGroupings = pitches.GroupBy(f => f.pitchType);
+            var pitchGroupings = pitches.GroupBy(f => f.PitchType);
 
             foreach (var pitchGroup in pitchGroupings)
             {
@@ -118,13 +30,13 @@ namespace PitchAnalysis
                     s => s,
                     s => new PitcherStuff
                     {
-                        MlbId = firstPitch.pitcherId,
-                        Year = isSingleGame ? -1 : firstPitch.year,
+                        MlbId = firstPitch.PitcherId,
+                        Year = isSingleGame ? -1 : firstPitch.Year,
                         Month = isSingleGame ? -1 :
-                            isFullYear ? 13 : firstPitch.month,
-                        GameId = isSingleGame ? firstPitch.gameId : -1,
+                            isFullYear ? 13 : firstPitch.Month,
+                        GameId = isSingleGame ? firstPitch.GameId : -1,
 
-                        PitchType = firstPitch.pitchType,
+                        PitchType = firstPitch.PitchType,
                         Scenario = s,
 
                         NumPitches = 0,
@@ -140,20 +52,31 @@ namespace PitchAnalysis
                 // Accumulate values
                 foreach (var p in pitchGroup)
                 {
+                    var modelOutput = JsonSerializer.Deserialize<Dictionary<int, (double, double, double, double)>>(p.ModelOutput);
+                    if (modelOutput == null)
+                        throw new Exception($"Failed to deserialize modelOutput for PitchId={p.PitchId}");
+
+                    if (!modelOutput.ContainsKey(model))
+                        throw new Exception($"Couldn't find model={model} for PitchId={p.PitchId}");
+
+                    (double absValue, double location, double stuff, double combined) = modelOutput[model];
+
                     foreach (var scen in scenarios)
                     {
-                        if (p.scenario.HasFlag(scen) || scen == Scenario.All)
+                        if (p.Scenario.HasFlag(scen) || scen == PitchScenario.All)
                         {
                             var pointer = scenarioStats[scen];
 
                             pointer.NumPitches++;
-                            pointer.ValueStuff += p.stuffValue;
-                            pointer.ValueLoc += p.locValue;
-                            pointer.ValueCombined += p.combinedValue;
+                            pointer.ValueStuff += (float)stuff;
+                            pointer.ValueLoc += (float)location;
+                            pointer.ValueCombined += (float)combined;
 
-                            pointer.Vel += p.vel;
-                            pointer.BreakHoriz += p.breakHoriz;
-                            pointer.BreakVert += p.breakVert;
+                            #pragma warning disable CS8629 // Will be not null if put through model
+                            pointer.Vel += (float)p.VStart;
+                            pointer.BreakHoriz += (float)p.BreakHorizontal;
+                            pointer.BreakVert += (float)p.BreakInduced;
+                            #pragma warning restore CS8629
                         }
                     }
                 }
@@ -181,69 +104,77 @@ namespace PitchAnalysis
         public static void CreateStats()
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             pitchDb.PitcherStuff.ExecuteDelete();
 
             List<PitcherStuff> stuffList = new();
-            List<Scenario> scenarios = [
-                Scenario.All,
-                Scenario.SameSide, Scenario.OppSide,
-                Scenario.NotTwoStrikes, Scenario.TwoStrikes,
-                Scenario.DoublePlayOpp, Scenario.NonDoublePlayOpp,
-                Scenario.AheadCount, Scenario.EvenCount, Scenario.BehindCount
-                ];
 
-            // Get pitchData
-            var pitchDataList = GetPitchData(pitchDb.Output_PitchValueAggregation);
+            List<PitchScenario> scenarios = [
+                PitchScenario.All,
+                PitchScenario.SameSide, PitchScenario.OppSide,
+                PitchScenario.NotTwoStrikes, PitchScenario.TwoStrikes,
+                PitchScenario.DoublePlayOpp, PitchScenario.NonDoublePlayOpp,
+                PitchScenario.AheadCount, PitchScenario.EvenCount, PitchScenario.BehindCount
+                ];
+            List<int> modelIds = pitchDb.Output_PitchValue.Select(f => f.Model).Distinct().ToList();
 
             // Get year stats
-            var pitchDataYears = pitchDataList.GroupBy(f => f.year);
+            var pitches = db.PitchStatcast.Where(f => f.ModelOutput != "");
+            var pitchDataYears = pitches.GroupBy(f => f.Year);
             using (ProgressBar progressBar = new ProgressBar(pitchDataYears.Count(), "Creating Pitcher Pitch Stats"))
             {
                 foreach (var pdy in pitchDataYears)
                 {
-                    var yearPitchers = pdy.GroupBy(f => f.pitcherId);
-                    using (ChildProgressBar pitcherChild = progressBar.Spawn(yearPitchers.Count(), $"Creating Pitch Stats For Year {pdy.Key}"))
+                    var yearPitchers = pdy.GroupBy(f => f.PitcherId).ToList();
+                    using (ChildProgressBar pitcherChild = progressBar.Spawn(yearPitchers.Count, $"Creating Pitch Stats For Year {pdy.Key}"))
                     {
                         foreach (var pitcher in yearPitchers)
                         {
-                            // Year Stats
-                            stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
-                                (
-                                    pitcher,
-                                    true,
-                                    false,
-                                    scenarios
-                                )
-                            );
-
-                            // Month Stats
-                            var monthPitcher = pitcher.GroupBy(f => f.month);
-                            foreach (var mp in monthPitcher)
+                            foreach (int modelId in modelIds)
                             {
+                                // Year Stats
                                 stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
                                     (
-                                        mp,
-                                        false,
-                                        false,
-                                        scenarios
-                                    )
-                                );
-                            }
-
-                            // Game stats
-                            var gamePitcher = pitcher.GroupBy(f => f.gameId);
-                            foreach (var gp in gamePitcher)
-                            {
-                                stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
-                                    (
-                                        gp,
-                                        false,
+                                        pitcher,
+                                        modelId,
                                         true,
+                                        false,
                                         scenarios
                                     )
                                 );
+
+                                // Month Stats
+                                var monthPitcher = pitcher.GroupBy(f => f.Month);
+                                foreach (var mp in monthPitcher)
+                                {
+                                    stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
+                                        (
+                                            mp,
+                                            modelId,
+                                            false,
+                                            false,
+                                            scenarios
+                                        )
+                                    );
+                                }
+
+                                // Game stats
+                                var gamePitcher = pitcher.GroupBy(f => f.GameId);
+                                foreach (var gp in gamePitcher)
+                                {
+                                    stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
+                                        (
+                                            gp,
+                                            modelId,
+                                            false,
+                                            true,
+                                            scenarios
+                                        )
+                                    );
+                                }
                             }
+                            
 
                             pitcherChild.Tick();
                         }
