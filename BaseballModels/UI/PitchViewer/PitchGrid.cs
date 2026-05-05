@@ -100,7 +100,7 @@ namespace UI
         public List<PitchBox> Pitches;
         private float GridSize;
         public PitchValueType PitchValueType = PitchValueType.Actual;
-        public float Scale = 50;
+        public float Scale;
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches, 
@@ -109,11 +109,15 @@ namespace UI
             float minY, 
             int cellsX, 
             int cellsY, 
-            int modelId
+            int modelId,
+            PitchValueType pitchValueType,
+            decimal scale
             )
         {
             Pitches = new();
             GridSize = gridSize;
+            PitchValueType = pitchValueType;
+            Scale = (float)scale;
 
             pitches = pitches.Where(f => f.PX != null && f.PZ != null);
 
@@ -264,8 +268,17 @@ namespace UI
                     graphics.ScaleTransform(1f, -1f);
                     graphics.TranslateTransform(0, -2 * pitch.Y);
 
+                    float pitchValue = PitchValueType switch
+                    {
+                        PitchValueType.Actual => pitch.ActValue,
+                        PitchValueType.Stuff => pitch.StuffValue,
+                        PitchValueType.Location => pitch.LocValue,
+                        PitchValueType.Exp => pitch.ExpValue,
+                        _ => pitch.ActValue
+                    };
+
                     graphics.DrawString(
-                        Math.Round(pitch.ExpValue, 1).ToString() + "\n" + pitch.NumPitches, 
+                        Math.Round(pitchValue, 1).ToString() + "\n" + pitch.NumPitches, 
                         font, 
                         fontBrush, 
                         pitch.X, 

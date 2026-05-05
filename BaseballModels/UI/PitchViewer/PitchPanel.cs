@@ -25,7 +25,7 @@ namespace UI
             );
         }
 
-        public void ShowPitches(IEnumerable<PitchStatcast> pitches)
+        public void ShowPitches(IEnumerable<PitchStatcast> pitches, int modelId, PitchValueType pvt, decimal scale)
         {
             SetPitchGrid(
                 new PitchGrid(
@@ -35,7 +35,9 @@ namespace UI
                     ZoneBot - (2 * GridSize), 
                     8, 
                     9,
-                    1 // TODO Implement model switch
+                    modelId,
+                    pvt,
+                    scale
                 )
             );
         }

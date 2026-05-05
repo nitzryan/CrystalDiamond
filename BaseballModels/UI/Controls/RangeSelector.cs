@@ -13,9 +13,11 @@
 
             minRange.Minimum = min;
             minRange.Maximum = max;
+            minRange.Value = min;
 
             maxRange.Minimum = min;
-            maxRange.Minimum = max;
+            maxRange.Maximum = max;
+            maxRange.Value = max;
         }
 
         private void maxRange_ValueChanged(object sender, EventArgs e)

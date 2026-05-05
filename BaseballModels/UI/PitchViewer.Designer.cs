@@ -34,22 +34,33 @@
             playerIdEntry = new NumericUpDown();
             pbSearchPlayer = new Button();
             groupBoxFilters = new GroupBox();
+            label2 = new Label();
+            label1 = new Label();
+            cbSituations = new ComboBox();
+            cbPitchSelector = new ComboBox();
+            yearSelector = new RangeSelector();
             nudMinPitches = new NumericUpDown();
             pbPitchSearch = new Button();
             label3 = new Label();
             label4 = new Label();
             labelKernel = new Label();
-            label2 = new Label();
-            label1 = new Label();
             cbBinSizes = new ComboBox();
             cbKernel = new ComboBox();
-            cbSituations = new ComboBox();
-            cbPitchSelector = new ComboBox();
-            yearSelector = new RangeSelector();
+            groupBox1 = new GroupBox();
+            groupBox2 = new GroupBox();
+            label6 = new Label();
+            cbOutput = new ComboBox();
+            label5 = new Label();
+            cbModel = new ComboBox();
+            label7 = new Label();
+            nudMaxScale = new NumericUpDown();
             groupBoxPlayer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)playerIdEntry).BeginInit();
             groupBoxFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).BeginInit();
+            groupBox1.SuspendLayout();
+            groupBox2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)nudMaxScale).BeginInit();
             SuspendLayout();
             // 
             // pitchPanel
@@ -104,68 +115,17 @@
             // 
             // groupBoxFilters
             // 
-            groupBoxFilters.Controls.Add(nudMinPitches);
-            groupBoxFilters.Controls.Add(pbPitchSearch);
-            groupBoxFilters.Controls.Add(label3);
-            groupBoxFilters.Controls.Add(label4);
-            groupBoxFilters.Controls.Add(labelKernel);
             groupBoxFilters.Controls.Add(label2);
             groupBoxFilters.Controls.Add(label1);
-            groupBoxFilters.Controls.Add(cbBinSizes);
-            groupBoxFilters.Controls.Add(cbKernel);
             groupBoxFilters.Controls.Add(cbSituations);
             groupBoxFilters.Controls.Add(cbPitchSelector);
             groupBoxFilters.Controls.Add(yearSelector);
             groupBoxFilters.Location = new Point(12, 152);
             groupBoxFilters.Name = "groupBoxFilters";
-            groupBoxFilters.Size = new Size(305, 461);
+            groupBoxFilters.Size = new Size(305, 131);
             groupBoxFilters.TabIndex = 2;
             groupBoxFilters.TabStop = false;
-            groupBoxFilters.Text = "Filters";
-            // 
-            // nudMinPitches
-            // 
-            nudMinPitches.Location = new Point(179, 403);
-            nudMinPitches.Name = "nudMinPitches";
-            nudMinPitches.Size = new Size(120, 23);
-            nudMinPitches.TabIndex = 4;
-            // 
-            // pbPitchSearch
-            // 
-            pbPitchSearch.Location = new Point(224, 432);
-            pbPitchSearch.Name = "pbPitchSearch";
-            pbPitchSearch.Size = new Size(75, 23);
-            pbPitchSearch.TabIndex = 3;
-            pbPitchSearch.Text = "Search";
-            pbPitchSearch.UseVisualStyleBackColor = true;
-            pbPitchSearch.Click += pbPitchSearch_Click;
-            // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new Point(6, 405);
-            label3.Name = "label3";
-            label3.Size = new Size(69, 15);
-            label3.TabIndex = 2;
-            label3.Text = "Min Pitches";
-            // 
-            // label4
-            // 
-            label4.AutoSize = true;
-            label4.Location = new Point(6, 348);
-            label4.Name = "label4";
-            label4.Size = new Size(52, 15);
-            label4.TabIndex = 2;
-            label4.Text = "Bin Sizes";
-            // 
-            // labelKernel
-            // 
-            labelKernel.AutoSize = true;
-            labelKernel.Location = new Point(6, 377);
-            labelKernel.Name = "labelKernel";
-            labelKernel.Size = new Size(40, 15);
-            labelKernel.TabIndex = 2;
-            labelKernel.Text = "Kernel";
+            groupBoxFilters.Text = "Pitch Filters";
             // 
             // label2
             // 
@@ -184,22 +144,6 @@
             label1.Size = new Size(34, 15);
             label1.TabIndex = 2;
             label1.Text = "Pitch";
-            // 
-            // cbBinSizes
-            // 
-            cbBinSizes.FormattingEnabled = true;
-            cbBinSizes.Location = new Point(129, 345);
-            cbBinSizes.Name = "cbBinSizes";
-            cbBinSizes.Size = new Size(170, 23);
-            cbBinSizes.TabIndex = 1;
-            // 
-            // cbKernel
-            // 
-            cbKernel.FormattingEnabled = true;
-            cbKernel.Location = new Point(129, 374);
-            cbKernel.Name = "cbKernel";
-            cbKernel.Size = new Size(170, 23);
-            cbKernel.TabIndex = 1;
             // 
             // cbSituations
             // 
@@ -224,11 +168,158 @@
             yearSelector.Size = new Size(299, 35);
             yearSelector.TabIndex = 0;
             // 
+            // nudMinPitches
+            // 
+            nudMinPitches.Location = new Point(179, 88);
+            nudMinPitches.Maximum = new decimal(new int[] { 10000, 0, 0, 0 });
+            nudMinPitches.Name = "nudMinPitches";
+            nudMinPitches.Size = new Size(120, 23);
+            nudMinPitches.TabIndex = 4;
+            nudMinPitches.Value = new decimal(new int[] { 10, 0, 0, 0 });
+            // 
+            // pbPitchSearch
+            // 
+            pbPitchSearch.Location = new Point(337, 614);
+            pbPitchSearch.Name = "pbPitchSearch";
+            pbPitchSearch.Size = new Size(75, 23);
+            pbPitchSearch.TabIndex = 3;
+            pbPitchSearch.Text = "Search";
+            pbPitchSearch.UseVisualStyleBackColor = true;
+            pbPitchSearch.Click += pbPitchSearch_Click;
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(6, 90);
+            label3.Name = "label3";
+            label3.Size = new Size(69, 15);
+            label3.TabIndex = 2;
+            label3.Text = "Min Pitches";
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(6, 33);
+            label4.Name = "label4";
+            label4.Size = new Size(52, 15);
+            label4.TabIndex = 2;
+            label4.Text = "Bin Sizes";
+            // 
+            // labelKernel
+            // 
+            labelKernel.AutoSize = true;
+            labelKernel.Location = new Point(6, 62);
+            labelKernel.Name = "labelKernel";
+            labelKernel.Size = new Size(40, 15);
+            labelKernel.TabIndex = 2;
+            labelKernel.Text = "Kernel";
+            // 
+            // cbBinSizes
+            // 
+            cbBinSizes.FormattingEnabled = true;
+            cbBinSizes.Location = new Point(129, 30);
+            cbBinSizes.Name = "cbBinSizes";
+            cbBinSizes.Size = new Size(170, 23);
+            cbBinSizes.TabIndex = 1;
+            // 
+            // cbKernel
+            // 
+            cbKernel.FormattingEnabled = true;
+            cbKernel.Location = new Point(129, 59);
+            cbKernel.Name = "cbKernel";
+            cbKernel.Size = new Size(170, 23);
+            cbKernel.TabIndex = 1;
+            // 
+            // groupBox1
+            // 
+            groupBox1.Controls.Add(nudMaxScale);
+            groupBox1.Controls.Add(nudMinPitches);
+            groupBox1.Controls.Add(cbKernel);
+            groupBox1.Controls.Add(cbBinSizes);
+            groupBox1.Controls.Add(label7);
+            groupBox1.Controls.Add(label3);
+            groupBox1.Controls.Add(labelKernel);
+            groupBox1.Controls.Add(label4);
+            groupBox1.Location = new Point(12, 415);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Size = new Size(305, 151);
+            groupBox1.TabIndex = 3;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Post Processing";
+            // 
+            // groupBox2
+            // 
+            groupBox2.Controls.Add(label6);
+            groupBox2.Controls.Add(cbOutput);
+            groupBox2.Controls.Add(label5);
+            groupBox2.Controls.Add(cbModel);
+            groupBox2.Location = new Point(12, 298);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(305, 111);
+            groupBox2.TabIndex = 4;
+            groupBox2.TabStop = false;
+            groupBox2.Text = "Output Type";
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new Point(6, 65);
+            label6.Name = "label6";
+            label6.Size = new Size(45, 15);
+            label6.TabIndex = 2;
+            label6.Text = "Output";
+            // 
+            // cbOutput
+            // 
+            cbOutput.FormattingEnabled = true;
+            cbOutput.Location = new Point(129, 62);
+            cbOutput.Name = "cbOutput";
+            cbOutput.Size = new Size(170, 23);
+            cbOutput.TabIndex = 1;
+            // 
+            // label5
+            // 
+            label5.AutoSize = true;
+            label5.Location = new Point(6, 36);
+            label5.Name = "label5";
+            label5.Size = new Size(41, 15);
+            label5.TabIndex = 2;
+            label5.Text = "Model";
+            // 
+            // cbModel
+            // 
+            cbModel.FormattingEnabled = true;
+            cbModel.Location = new Point(129, 33);
+            cbModel.Name = "cbModel";
+            cbModel.Size = new Size(170, 23);
+            cbModel.TabIndex = 1;
+            // 
+            // label7
+            // 
+            label7.AutoSize = true;
+            label7.Location = new Point(6, 117);
+            label7.Name = "label7";
+            label7.Size = new Size(59, 15);
+            label7.TabIndex = 2;
+            label7.Text = "Max Scale";
+            // 
+            // nudMaxScale
+            // 
+            nudMaxScale.Location = new Point(179, 115);
+            nudMaxScale.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
+            nudMaxScale.Name = "nudMaxScale";
+            nudMaxScale.Size = new Size(120, 23);
+            nudMaxScale.TabIndex = 4;
+            nudMaxScale.Value = new decimal(new int[] { 50, 0, 0, 0 });
+            // 
             // PitchViewer
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(986, 783);
+            Controls.Add(groupBox2);
+            Controls.Add(pbPitchSearch);
+            Controls.Add(groupBox1);
             Controls.Add(groupBoxFilters);
             Controls.Add(groupBoxPlayer);
             Controls.Add(pitchPanel);
@@ -241,6 +332,11 @@
             groupBoxFilters.ResumeLayout(false);
             groupBoxFilters.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).EndInit();
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)nudMaxScale).EndInit();
             ResumeLayout(false);
         }
 
@@ -265,5 +361,13 @@
         private ComboBox cbKernel;
         private Label label4;
         private ComboBox cbBinSizes;
+        private GroupBox groupBox1;
+        private GroupBox groupBox2;
+        private Label label6;
+        private ComboBox cbOutput;
+        private Label label5;
+        private ComboBox cbModel;
+        private NumericUpDown nudMaxScale;
+        private Label label7;
     }
 }

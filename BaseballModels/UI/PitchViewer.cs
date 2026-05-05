@@ -6,6 +6,14 @@ namespace UI
 {
     public partial class PitchViewer : Form
     {
+        private class ComboBoxItem<T>
+        {
+            public required string Text { get; set; }
+            public required T Value { get; set; }
+
+            public override string ToString() => Text;
+        }
+
         private SqliteDbContext? db = null;
         private PitchDbContext? pitchDb = null;
         private int PlayerId = 0;
@@ -22,12 +30,44 @@ namespace UI
             {
                 cbSituations.Items.Add(situation);
             }
+            cbSituations.SelectedIndex = 0;
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             db = new(Db.Connection.DB_READONLY_OPTIONS);
             pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
+
+            // Models
+            cbModel.Items.Clear();
+            var pitchModels = pitchDb.Models_PitchValue.OrderBy(f => f.Id).ToList();
+            foreach (var pm in pitchModels)
+            {
+                cbModel.Items.Add(new ComboBoxItem<int>
+                {
+                    Text = $"{pm.Id} {pm.Name}",
+                    Value = pm.Id
+                });
+            }
+            cbModel.SelectedIndex = 0;
+
+            // Output type
+            List<(PitchValueType, string)> outputTypes = [
+                (PitchValueType.Actual, "Actual"),
+                (PitchValueType.Stuff, "Stuff Only"),
+                (PitchValueType.Location, "Location Only"),
+                (PitchValueType.Exp, "Pitch Model")
+            ];
+            cbOutput.Items.Clear();
+            foreach (var ot in outputTypes)
+            {
+                cbOutput.Items.Add(new ComboBoxItem<PitchValueType>
+                {
+                    Text = ot.Item2,
+                    Value = ot.Item1
+                });
+            }
+            cbOutput.SelectedIndex = 0;
         }
 
         private void pbSearchPlayer_Click(object sender, EventArgs e)
@@ -46,9 +86,11 @@ namespace UI
             }
 
             playerLinkLabel.Text = player.UseFirstName + " " + player.UseLastName;
-            
+
+            PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == PlayerId && f.ModelOutput != "").ToList();
+
             // Player Years
-            List<int> years = db.PitchStatcast
+            List<int> years = PlayerPitches
                 .Where(f => f.PitcherId == player.MlbId)
                 .Select(f => f.Year)
                 .Distinct()
@@ -69,17 +111,18 @@ namespace UI
             yearSelector.Update(years.Min(), years.Max(), "Year");
 
             // Pitch Types
-            List<PitchType> pitchTypes = db.PitchStatcast
+            List<PitchType> pitchTypes = PlayerPitches
                 .Where(f => f.PitcherId == player.MlbId)
-                .Select(f => f.PitchType)
-                .Distinct()
-                .Order()
+                .GroupBy(f => f.PitchType)
+                .OrderByDescending(f => f.Count())
+                .Select(f => f.Key)
                 .ToList();
             cbPitchSelector.Items.Clear();
             foreach (var pt in pitchTypes)
                 cbPitchSelector.Items.Add(pt);
+            cbPitchSelector.SelectedIndex = 0;
+            
 
-            PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == PlayerId && f.ModelOutput != "").ToList();
 
             Invalidate();
         }
@@ -88,26 +131,27 @@ namespace UI
         {
             int minYear = (int)yearSelector.GetMinimum();
             int maxYear = (int)yearSelector.GetMaximum();
+            decimal scale = nudMaxScale.Value;
 
-            if (cbPitchSelector.SelectedItem is PitchType pitchType)
+            if (cbPitchSelector.SelectedItem is PitchType pitchType &&
+                cbSituations.SelectedItem is PitchScenario scenario &&
+                cbModel.SelectedItem is ComboBoxItem<int> modelComboBox &&
+                cbOutput.SelectedItem is ComboBoxItem<PitchValueType> pitchValueComboBox)
             {
-                if (cbSituations.SelectedItem is PitchScenario scenario)
+                var pitches = PlayerPitches
+                    .Where(f => f.Year >= minYear
+                        && f.Year <= maxYear
+                        && f.PitchType == pitchType);
+
+                foreach (PitchScenario ps in Enum.GetValues(typeof(PitchScenario)))
                 {
-                    var pitches = PlayerPitches
-                        .Where(f => f.Year >= minYear
-                            && f.Year <= maxYear
-                            && f.PitchType == pitchType);
-
-                    foreach (PitchScenario ps in Enum.GetValues(typeof(PitchScenario)))
+                    if (ps != PitchScenario.All && scenario.HasFlag(ps))
                     {
-                        if (ps != PitchScenario.All && scenario.HasFlag(ps))
-                        {
-                            pitches = pitches.Where(f => f.Scenario.HasFlag(ps));
-                        }
+                        pitches = pitches.Where(f => f.Scenario.HasFlag(ps));
                     }
-
-                    pitchPanel.ShowPitches(pitches);
                 }
+
+                pitchPanel.ShowPitches(pitches, modelComboBox.Value, pitchValueComboBox.Value, scale);
             }
         }
     }
