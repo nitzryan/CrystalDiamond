@@ -139,9 +139,7 @@ namespace UI
             PitchBoxes = PitchGrid.GetPitchBoxes(pitchGridType, zoneTop, zoneBot, zoneLeft, zoneRight);
 
             List<float> xs = PitchBoxes.First().Select(f => f.X).Order().ToList();
-            List<float> ys = PitchBoxes.Select(f => f.First().Y).Order().ToList();
             List<float> widths = PitchBoxes.First().OrderBy(f => f.X).Select(f => f.Width).ToList();
-            List<float> heights = PitchBoxes.Select(f => f.First()).OrderBy(f => f.Y).Select(f => f.Height).ToList();
 
             // Go through all pitches and map to a box
             foreach (var pitch in pitches)
@@ -156,18 +154,27 @@ namespace UI
                 for (int i = 0; i < xs.Count; i++)
                 {
 
-                    if (Math.Abs(xs[i] - pitchX) < widths[i])
+                    if (Math.Abs(xs[i] - pitchX) < (widths[i] / 2.0f))
                     {
                         xBin = i;
                         break;
                     }
 
                 }
+
+                // Calculate heights of y bins
+                float pitchZoneTop = pitch.ZoneTop.Value;
+                float pitchZoneBot = pitch.ZoneBot.Value;
+
+                var (pitchYs, _, pitchFixedY) = GetGridCenters(PitchGridType, pitchZoneTop, pitchZoneBot, zoneLeft, zoneRight);
+                List<float> pitchHeights = ComputeZoneSizes(pitchYs, pitchFixedY);
+
+                // Calculate Y Bin
                 int? yBin = null;
-                for (int i = 0; i < ys.Count; i++)
+                for (int i = 0; i < pitchYs.Count; i++)
                 {
 
-                    if (Math.Abs(ys[i] - pitchY) < heights[i])
+                    if (Math.Abs(pitchYs[i] - pitchY) < (pitchHeights[i] / 2.0f))
                     {
                         yBin = i;
                         break;
@@ -185,10 +192,10 @@ namespace UI
                 }
                 if (yBin == null)
                 {
-                    if (pitchY < ys[0])
+                    if (pitchY < pitchYs[0])
                         yBin = 0;
                     else
-                        yBin = ys.Count - 1;
+                        yBin = pitchYs.Count - 1;
                 }
 
                 // Get model output
@@ -237,10 +244,55 @@ namespace UI
             float zoneRight
         )
         {
+            var (ys, xs, fixedZones) = GetGridCenters(gridType, zoneTop, zoneBot, zoneLeft, zoneRight);
+            List<float> rowHeights = ComputeZoneSizes(ys, fixedZones);
+            List<float> columnWidths = ComputeZoneSizes(xs, fixedZones);
+
+            List<List<PitchBox>> pitches = [];
+            for (int j = 0; j < ys.Count; j++)
+            {
+                List<PitchBox> pitchRow = [];
+                for (int i = 0; i < xs.Count; i++) 
+                {
+                    PitchBox pb = new()
+                    {
+                        NumPitches = 0,
+                        ActValue = 0,
+                        StuffValue = 0,
+                        LocValue = 0,
+                        ExpValue = 0,
+                        X = xs[i],
+                        Y = ys[j],
+                        Height = rowHeights[j],
+                        Width = columnWidths[i],
+                        FixedDeltaXZone = fixedZones[i],
+                        FixedDeltaYZone = fixedZones[j],
+                        BreakHoriz = 0,
+                        BreakVert = 0,
+                        Vel = 0,
+                    };
+
+                    pitchRow.Add(pb);
+                }
+
+                pitches.Add(pitchRow);
+            }
+            return pitches;
+        }
+
+        private static (List<float> yCenters, List<float> xCenters, List<float?> fixedFlags)
+        GetGridCenters(
+            PitchGridType gridType,
+            float zoneTop,
+            float zoneBot,
+            float zoneLeft,
+            float zoneRight)
+        {
             const float SHADOW_SIZE = 0.40f;
             const float SHADOW_SIZE_3X3 = 0.25f;
             const float HALF_SHADOW = SHADOW_SIZE / 2;
             const float OUTER_ZONE_LOC = 0.9f;
+
             List<float> ys = gridType switch
             {
                 PitchGridType._3x3 => [
@@ -315,41 +367,7 @@ namespace UI
                 _ => throw new Exception("Unhandled PitchGridType")
             };
 
-
-
-            List<float> rowHeights = ComputeZoneSizes(ys, FixedZones);
-            List<float> columnWidths = ComputeZoneSizes(xs, FixedZones);
-
-            List<List<PitchBox>> pitches = [];
-            for (int j = 0; j < ys.Count; j++)
-            {
-                List<PitchBox> pitchRow = [];
-                for (int i = 0; i < xs.Count; i++) 
-                {
-                    PitchBox pb = new()
-                    {
-                        NumPitches = 0,
-                        ActValue = 0,
-                        StuffValue = 0,
-                        LocValue = 0,
-                        ExpValue = 0,
-                        X = xs[i],
-                        Y = ys[j],
-                        Height = rowHeights[j],
-                        Width = columnWidths[i],
-                        FixedDeltaXZone = FixedZones[i],
-                        FixedDeltaYZone = FixedZones[j],
-                        BreakHoriz = 0,
-                        BreakVert = 0,
-                        Vel = 0,
-                    };
-
-                    pitchRow.Add(pb);
-                }
-
-                pitches.Add(pitchRow);
-            }
-            return pitches;
+            return (ys, xs, FixedZones);
         }
 
         private static List<float> ComputeZoneSizes(List<float> centers, List<float?> fixedFlags)
