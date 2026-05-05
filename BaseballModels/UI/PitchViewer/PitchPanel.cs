@@ -25,19 +25,26 @@ namespace UI
             );
         }
 
-        public void ShowPitches(IEnumerable<PitchStatcast> pitches, int modelId, PitchValueType pvt, decimal scale)
+        public void ShowPitches(
+            IEnumerable<PitchStatcast> pitches, 
+            int modelId, 
+            PitchValueType pvt, 
+            PitchGridType pgt, 
+            decimal scale, 
+            int minPitches)
         {
             SetPitchGrid(
                 new PitchGrid(
                     pitches,
-                    GridSize,
-                    ZONE_LEFT - (2 * GridSize),
-                    ZoneBot - (2 * GridSize), 
-                    8, 
-                    9,
                     modelId,
                     pvt,
-                    scale
+                    pgt,
+                    scale,
+                    ZoneTop,
+                    ZoneBot,
+                    ZONE_LEFT,
+                    ZONE_RIGHT,
+                    minPitches
                 )
             );
         }

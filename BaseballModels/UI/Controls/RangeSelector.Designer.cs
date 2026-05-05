@@ -77,7 +77,6 @@
 
         #endregion
 
-        private NumericUpDown numericUpDown1;
         private Label name;
         private NumericUpDown minRange;
         private NumericUpDown maxRange;

@@ -12,6 +12,13 @@ namespace UI
         Exp,
     }
 
+    public enum PitchGridType
+    {
+        _3x3_Shadow,
+        _3x3,
+        _5x5
+    }
+
     public class PitchBox
     { 
         public required int NumPitches { get; set; }
@@ -22,6 +29,12 @@ namespace UI
 
         public required float X { get; set; }
         public required float Y { get; set; }
+
+        public required float Width { get; set; }
+        public required float Height { get; set; }
+
+        public required float? FixedDeltaXZone { get; set; }
+        public required float? FixedDeltaYZone { get; set; }
 
         public required float Vel { get; set; }
         public required float BreakHoriz { get; set; }
@@ -97,62 +110,40 @@ namespace UI
 
     public class PitchGrid
     {
-        public List<PitchBox> Pitches;
-        private float GridSize;
-        public PitchValueType PitchValueType = PitchValueType.Actual;
+        public List<List<PitchBox>> PitchBoxes;
+        public PitchValueType PitchValueType;
+        public PitchGridType PitchGridType;
         public float Scale;
+        public int FilterSize;
 
         public PitchGrid(
-            IEnumerable<PitchStatcast> pitches, 
-            float gridSize, 
-            float minX, 
-            float minY, 
-            int cellsX, 
-            int cellsY, 
+            IEnumerable<PitchStatcast> pitches,
             int modelId,
             PitchValueType pitchValueType,
-            decimal scale
+            PitchGridType pitchGridType,
+            decimal scale,
+            float zoneTop,
+            float zoneBot,
+            float zoneLeft,
+            float zoneRight,
+            int filterSize
             )
         {
-            Pitches = new();
-            GridSize = gridSize;
+            PitchBoxes = new();
             PitchValueType = pitchValueType;
+            PitchGridType = pitchGridType;
             Scale = (float)scale;
+            FilterSize = filterSize;
 
             pitches = pitches.Where(f => f.PX != null && f.PZ != null);
+            PitchBoxes = PitchGrid.GetPitchBoxes(pitchGridType, zoneTop, zoneBot, zoneLeft, zoneRight);
 
-            // Create Cell Spacing
-            List<float> xs = new();
-            for (int i = 0; i < cellsX; i++)
-                xs.Add(minX + (i * gridSize));
-
-            List<float> ys = new();
-            for (int i = 0; i < cellsY; i++)
-                ys.Add(minY + (i * gridSize));
-
-            // Create PitchBoxes
-            foreach (var x in xs)
-                foreach (var y in ys)
-                {
-                    PitchBox pb = new()
-                    {
-                        NumPitches = 0,
-                        ActValue = 0,
-                        StuffValue = 0,
-                        LocValue = 0,
-                        ExpValue = 0,
-                        X = x,
-                        Y = y,
-                        BreakHoriz = 0,
-                        BreakVert = 0,
-                        Vel = 0,
-                    };
-                    
-                    Pitches.Add(pb);
-                }
+            List<float> xs = PitchBoxes.First().Select(f => f.X).Order().ToList();
+            List<float> ys = PitchBoxes.Select(f => f.First().Y).Order().ToList();
+            List<float> widths = PitchBoxes.First().OrderBy(f => f.X).Select(f => f.Width).ToList();
+            List<float> heights = PitchBoxes.Select(f => f.First()).OrderBy(f => f.Y).Select(f => f.Height).ToList();
 
             // Go through all pitches and map to a box
-            float halfBoxSize = gridSize / 2.0f;
             foreach (var pitch in pitches)
             {
                 #pragma warning disable CS8629 // Filtered at beginning of function
@@ -164,19 +155,19 @@ namespace UI
                 int? xBin = null;
                 for (int i = 0; i < xs.Count; i++)
                 {
-                    
-                    if (Math.Abs(xs[i] - pitchX) < halfBoxSize)
+
+                    if (Math.Abs(xs[i] - pitchX) < widths[i])
                     {
                         xBin = i;
                         break;
                     }
-                    
+
                 }
                 int? yBin = null;
                 for (int i = 0; i < ys.Count; i++)
                 {
 
-                    if (Math.Abs(ys[i] - pitchY) < halfBoxSize)
+                    if (Math.Abs(ys[i] - pitchY) < heights[i])
                     {
                         yBin = i;
                         break;
@@ -209,7 +200,7 @@ namespace UI
                 #pragma warning restore CS8600, CS8602
 
                 // Assign to bin
-                PitchBox bin = Pitches[(xBin.Value * ys.Count) + yBin.Value];
+                PitchBox bin = PitchBoxes[yBin.Value][xBin.Value];
 
                 bin.NumPitches++;
                 bin.ExpValue += (float)pitchModelOutput.expValue;
@@ -224,11 +215,8 @@ namespace UI
                 #pragma warning restore CS8629
             }
 
-            // Filter out bins without enough data
-            Pitches = Pitches.Where(f => f.NumPitches >= 10).ToList();
-
             // Normalize values to per 1000 pitches on value, per pitch on info
-            Pitches.ForEach(f =>
+            PitchBoxes.ForEach(g => g.ForEach(f =>
             {
                 f.ActValue = f.ActValue / f.NumPitches * 1000;
                 f.ExpValue = f.ExpValue / f.NumPitches * 1000;
@@ -238,7 +226,164 @@ namespace UI
                 f.Vel /= f.NumPitches;
                 f.BreakHoriz /= f.NumPitches;
                 f.BreakVert /= f.NumPitches;
-            });
+            }));
+        }
+
+        private static List<List<PitchBox>> GetPitchBoxes(
+            PitchGridType gridType,
+            float zoneTop,
+            float zoneBot,
+            float zoneLeft,
+            float zoneRight
+        )
+        {
+            const float SHADOW_SIZE = 0.40f;
+            const float SHADOW_SIZE_3X3 = 0.25f;
+            const float HALF_SHADOW = SHADOW_SIZE / 2;
+            const float OUTER_ZONE_LOC = 0.9f;
+            List<float> ys = gridType switch
+            {
+                PitchGridType._3x3 => [
+                                    zoneBot - OUTER_ZONE_LOC,
+                                    zoneBot - HALF_SHADOW,
+                                    ((1.0f / 6.0f) * zoneTop) + ((5.0f / 6.0f) * zoneBot),
+                                    0.5f * (zoneTop + zoneBot),
+                                    ((1.0f / 6.0f) * zoneBot) + ((5.0f / 6.0f) * zoneTop),
+                                    zoneTop + HALF_SHADOW,
+                                    zoneTop + OUTER_ZONE_LOC
+                                    ],
+                PitchGridType._3x3_Shadow => [
+                                    zoneBot - OUTER_ZONE_LOC,
+                                    zoneBot - SHADOW_SIZE_3X3,
+                                    zoneBot + SHADOW_SIZE_3X3,
+                                    0.5f * (zoneTop + zoneBot),
+                                    zoneTop - SHADOW_SIZE_3X3,
+                                    zoneTop + SHADOW_SIZE_3X3,
+                                    zoneTop + OUTER_ZONE_LOC
+                                    ],
+                PitchGridType._5x5 => [
+                                    zoneBot - (2 * SHADOW_SIZE),
+                                    zoneBot - SHADOW_SIZE,
+                                    zoneBot,
+                                    ((1.0f / 6.0f) * (zoneTop - HALF_SHADOW)) + ((5.0f / 6.0f) * (zoneBot + HALF_SHADOW)),
+                                    0.5f * (zoneTop + zoneBot),
+                                    ((5.0f / 6.0f) * (zoneTop - HALF_SHADOW)) + ((1.0f / 6.0f) * (zoneBot + HALF_SHADOW)),
+                                    zoneTop,
+                                    zoneTop + SHADOW_SIZE,
+                                    zoneTop + (2 * SHADOW_SIZE)
+                                    ],
+                _ => throw new Exception("Unhandled PitchGridType")
+            };
+            List<float> xs = gridType switch
+            {
+                PitchGridType._3x3 => [
+                                    zoneLeft - OUTER_ZONE_LOC,
+                                    zoneLeft - HALF_SHADOW,
+                                    ((1.0f / 6.0f) * zoneRight) + ((5.0f / 6.0f) * zoneLeft),
+                                    0.5f * (zoneRight + zoneLeft),
+                                    ((1.0f / 6.0f) * zoneLeft) + ((5.0f / 6.0f) * zoneRight),
+                                    zoneRight + HALF_SHADOW,
+                                    zoneRight + OUTER_ZONE_LOC
+                                    ],
+                PitchGridType._3x3_Shadow => [
+                                    zoneLeft - OUTER_ZONE_LOC,
+                                    zoneLeft - SHADOW_SIZE_3X3,
+                                    zoneLeft + SHADOW_SIZE_3X3,
+                                    0.5f * (zoneRight + zoneLeft),
+                                    zoneRight - SHADOW_SIZE_3X3,
+                                    zoneRight + SHADOW_SIZE_3X3,
+                                    zoneRight + OUTER_ZONE_LOC
+                                    ],
+                PitchGridType._5x5 => [
+                                    zoneLeft - OUTER_ZONE_LOC,
+                                    zoneLeft - SHADOW_SIZE,
+                                    zoneLeft,
+                                    ((1.0f / 6.0f) * (zoneRight - HALF_SHADOW)) + ((5.0f / 6) * (zoneLeft + HALF_SHADOW)),
+                                    0.5f * (zoneRight + zoneLeft),
+                                    ((5.0f / 6) * (zoneRight - HALF_SHADOW)) + ((1.0f / 6.0f) * (zoneLeft + HALF_SHADOW)),
+                                    zoneRight,
+                                    zoneRight + SHADOW_SIZE,
+                                    zoneRight + OUTER_ZONE_LOC
+                ],
+                _ => throw new Exception("Unhandled PitchGridType")
+            };
+            List<float?> FixedZones = gridType switch
+            {
+                PitchGridType._3x3 => [null, SHADOW_SIZE, null, null, null, SHADOW_SIZE, null],
+                PitchGridType._3x3_Shadow => [null, 2 * SHADOW_SIZE_3X3, 2 * SHADOW_SIZE_3X3, null, 2 * SHADOW_SIZE_3X3, 2 * SHADOW_SIZE_3X3, null],
+                PitchGridType._5x5 => [null, SHADOW_SIZE, SHADOW_SIZE, null, null, null, SHADOW_SIZE, SHADOW_SIZE, null],
+                _ => throw new Exception("Unhandled PitchGridType")
+            };
+
+
+
+            List<float> rowHeights = ComputeZoneSizes(ys, FixedZones);
+            List<float> columnWidths = ComputeZoneSizes(xs, FixedZones);
+
+            List<List<PitchBox>> pitches = [];
+            for (int j = 0; j < ys.Count; j++)
+            {
+                List<PitchBox> pitchRow = [];
+                for (int i = 0; i < xs.Count; i++) 
+                {
+                    PitchBox pb = new()
+                    {
+                        NumPitches = 0,
+                        ActValue = 0,
+                        StuffValue = 0,
+                        LocValue = 0,
+                        ExpValue = 0,
+                        X = xs[i],
+                        Y = ys[j],
+                        Height = rowHeights[j],
+                        Width = columnWidths[i],
+                        FixedDeltaXZone = FixedZones[i],
+                        FixedDeltaYZone = FixedZones[j],
+                        BreakHoriz = 0,
+                        BreakVert = 0,
+                        Vel = 0,
+                    };
+
+                    pitchRow.Add(pb);
+                }
+
+                pitches.Add(pitchRow);
+            }
+            return pitches;
+        }
+
+        private static List<float> ComputeZoneSizes(List<float> centers, List<float?> fixedFlags)
+        {
+            List<float> sizes = new();
+            for (int i = 0; i < centers.Count; i++)
+            {
+                if (fixedFlags[i].HasValue)
+                    sizes.Add(fixedFlags[i].Value);
+                else
+                {
+                    if (i == 0)
+                    {
+                        if (fixedFlags[i + 1].HasValue)
+                            sizes.Add(2 * (centers[1] - centers[0] - (0.5f * fixedFlags[i + 1].Value)));
+                        else
+                            sizes.Add(centers[1] - centers[0]);
+                    }
+                    else if (i == centers.Count - 1)
+                    {
+                        if (fixedFlags[i - 1].HasValue)
+                            sizes.Add(2 * (centers[i] - centers[i - 1] - (0.5f * fixedFlags[i - 1].Value)));
+                        else
+                            sizes.Add(centers[i] - centers[i - 1]);
+                    }
+                    else if (fixedFlags[i - 1].HasValue && fixedFlags[i + 1].HasValue)
+                        sizes.Add(centers[i + 1] - centers[i - 1] - (0.5f * (fixedFlags[i - 1].Value + fixedFlags[i + 1].Value)));
+                    else if (fixedFlags[i - 1].HasValue)
+                        sizes.Add(centers[i + 1] - centers[i]);
+                    else
+                        sizes.Add(centers[i] - centers[i - 1]);
+                }
+            }
+            return sizes;
         }
 
         public void DrawPitches(Graphics graphics)
@@ -251,42 +396,48 @@ namespace UI
                 Font font = new Font("Arial", 0.05f);
                 SolidBrush fontBrush = new SolidBrush(Color.Black);
 
-                foreach (var pitch in Pitches)
+                foreach (var pitchRow in PitchBoxes)
                 {
-                    Color color = pitch.GetColor(PitchValueType, -Scale, Scale);
-                    SolidBrush brush = new(color);
-
-                    graphics.FillRectangle(
-                        brush,
-                        pitch.X - (GridSize / 2),
-                        pitch.Y - (GridSize / 2),
-                        GridSize,
-                        GridSize
-                    );
-
-                    GraphicsState graphicsState = graphics.Save();
-                    graphics.ScaleTransform(1f, -1f);
-                    graphics.TranslateTransform(0, -2 * pitch.Y);
-
-                    float pitchValue = PitchValueType switch
+                    foreach (var pitch in pitchRow)
                     {
-                        PitchValueType.Actual => pitch.ActValue,
-                        PitchValueType.Stuff => pitch.StuffValue,
-                        PitchValueType.Location => pitch.LocValue,
-                        PitchValueType.Exp => pitch.ExpValue,
-                        _ => pitch.ActValue
-                    };
+                        if (pitch.NumPitches < FilterSize)
+                            continue;
+                    
+                        Color color = pitch.GetColor(PitchValueType, -Scale, Scale);
+                        SolidBrush brush = new(color);
 
-                    graphics.DrawString(
-                        Math.Round(pitchValue, 1).ToString() + "\n" + pitch.NumPitches, 
-                        font, 
-                        fontBrush, 
-                        pitch.X, 
-                        pitch.Y,
-                        format
-                    );
+                        graphics.FillRectangle(
+                            brush,
+                            pitch.X - (pitch.Width / 2),
+                            pitch.Y - (pitch.Height / 2),
+                            pitch.Width,
+                            pitch.Height
+                        );
 
-                    graphics.Restore(graphicsState);
+                        GraphicsState graphicsState = graphics.Save();
+                        graphics.ScaleTransform(1f, -1f);
+                        graphics.TranslateTransform(0, -2 * pitch.Y);
+
+                        float pitchValue = PitchValueType switch
+                        {
+                            PitchValueType.Actual => pitch.ActValue,
+                            PitchValueType.Stuff => pitch.StuffValue,
+                            PitchValueType.Location => pitch.LocValue,
+                            PitchValueType.Exp => pitch.ExpValue,
+                            _ => pitch.ActValue
+                        };
+
+                        graphics.DrawString(
+                            Math.Round(pitchValue, 1).ToString() + "\n" + pitch.NumPitches,
+                            font,
+                            fontBrush,
+                            pitch.X,
+                            pitch.Y,
+                            format
+                        );
+
+                        graphics.Restore(graphicsState);
+                    }
                 }
             }
         }

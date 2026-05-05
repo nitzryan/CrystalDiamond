@@ -31,6 +31,24 @@ namespace UI
                 cbSituations.Items.Add(situation);
             }
             cbSituations.SelectedIndex = 0;
+
+            List<ComboBoxItem<PitchGridType>> gridTypes = [
+                new ComboBoxItem<PitchGridType>{
+                    Text = "5x5",
+                    Value = PitchGridType._5x5
+                },
+                new ComboBoxItem<PitchGridType>{
+                    Text = "3x3",
+                    Value = PitchGridType._3x3
+                },
+                new ComboBoxItem<PitchGridType>{
+                    Text = "3x3 Shadow",
+                    Value = PitchGridType._3x3_Shadow
+                },
+            ];
+            foreach (var gt in gridTypes)
+                cbBinSizes.Items.Add(gt);
+            cbBinSizes.SelectedIndex = 0;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -136,7 +154,8 @@ namespace UI
             if (cbPitchSelector.SelectedItem is PitchType pitchType &&
                 cbSituations.SelectedItem is PitchScenario scenario &&
                 cbModel.SelectedItem is ComboBoxItem<int> modelComboBox &&
-                cbOutput.SelectedItem is ComboBoxItem<PitchValueType> pitchValueComboBox)
+                cbOutput.SelectedItem is ComboBoxItem<PitchValueType> pitchValueComboBox &&
+                cbBinSizes.SelectedItem is ComboBoxItem<PitchGridType> pitchGridTypeComboBox)
             {
                 var pitches = PlayerPitches
                     .Where(f => f.Year >= minYear
@@ -151,7 +170,13 @@ namespace UI
                     }
                 }
 
-                pitchPanel.ShowPitches(pitches, modelComboBox.Value, pitchValueComboBox.Value, scale);
+                pitchPanel.ShowPitches(
+                    pitches, 
+                    modelComboBox.Value, 
+                    pitchValueComboBox.Value,
+                    pitchGridTypeComboBox.Value,
+                    scale,
+                    (int)nudMinPitches.Value);
             }
         }
     }
