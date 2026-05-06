@@ -55,6 +55,8 @@ namespace UI
             SetPitchGrid(null);
         }
 
+        public event EventHandler<PitchStats?> PitchStatsUpdate;
+
         private void SetPitchGrid(PitchGrid? pg)
         {
             pitchGrid = pg;
@@ -93,7 +95,7 @@ namespace UI
 
             
             float tx2 = logicalWidth / 2f;
-            float ty2 = -(ZoneTop + (2.5f * ZONE_OFFSET));
+            float ty2 = -(ZoneTop + (1.5f * ZONE_OFFSET));
 
             // Undo TranslateTransform
             p.X -= offsetX;
@@ -138,7 +140,7 @@ namespace UI
             g.ResetTransform();
             g.TranslateTransform(offsetX, offsetY);
             g.ScaleTransform(scale, -scale);
-            g.TranslateTransform(logicalWidth / 2, -(ZoneTop + (2.5f * ZONE_OFFSET)));
+            g.TranslateTransform(logicalWidth / 2, -(ZoneTop + (1.5f * ZONE_OFFSET)));
             
             // Pitches
             if (pitchGrid != null)
@@ -157,6 +159,12 @@ namespace UI
                 );
                 g.DrawRectangle(pen, zoneRect);
             }
+
+            // Send event for pitchStats
+            if (pitchGrid == null)
+                PitchStatsUpdate?.Invoke(this, null);
+            else
+                PitchStatsUpdate?.Invoke(this, pitchGrid.GetPitchStats());
         }
 
         protected override void OnMouseClick(MouseEventArgs e)

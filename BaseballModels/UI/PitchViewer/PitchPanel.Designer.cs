@@ -35,6 +35,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             Name = "PitchPanel";
+            Size = new Size(591, 641);
             Load += PitchPanel_Load;
             ResumeLayout(false);
         }

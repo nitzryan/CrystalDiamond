@@ -1,6 +1,7 @@
 ﻿using Db;
 using System.Drawing.Drawing2D;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace UI
 {
@@ -17,6 +18,62 @@ namespace UI
         _3x3_Shadow,
         _3x3,
         _5x5
+    }
+
+    public class PitchStats
+    {
+        public int PA { get; set; } = 0;
+        public int AB { get; set; } = 0;
+        public int Hit1B { get; set; } = 0;
+        public int Hit2B { get; set; } = 0;
+        public int Hit3B { get; set; } = 0;
+        public int HitHR { get; set; } = 0;
+        public int BB { get; set; } = 0;
+        public int HBP { get; set; } = 0;
+        public int K { get; set; } = 0;
+
+        public float AVG { get; private set; } = 0;
+        public float OBP { get; private set; } = 0;
+        public float SLG { get; private set; } = 0;
+        public float OPS { get; private set; } = 0;
+
+        public int Pitches { get; set; } = 0;
+        public int Swings { get; set; } = 0;
+        public int Whiffs { get; set; } = 0;
+        public int Fouls { get; set; } = 0;
+        public int InPlay { get; set; } = 0;
+        public int CalledStrikes { get; set; } = 0;
+        public int Balls { get; set; } = 0;
+        public int Other { get; set; } = 0;
+
+        public float WhiffRate { get; private set; } = 0;
+        public float CSWRate { get; private set; } = 0;
+
+        public float Vel { get; set; } = 0;
+        public float BreakHoriz { get; set; } = 0;
+        public float BreakVert { get; set; } = 0;
+
+        public void CalculateStats()
+        {
+            // Triple Slash
+            if (AB > 0)
+            {
+                AVG = (float)(Hit1B + Hit2B + Hit3B + HitHR) / AB;
+                SLG = (float)(Hit1B + (2 * Hit2B) + (3 * Hit3B) + (4 * HitHR)) / AB;
+            }
+
+            if (PA > 0)
+                OBP = (float)(Hit1B + Hit2B + Hit3B + HitHR + BB + HBP) / PA;
+
+            OPS = OBP + SLG;
+
+            // Pitch Stats
+            if (Swings > 0)
+                WhiffRate = (float)Whiffs / Swings;
+
+            if (Pitches > 0)
+                CSWRate = (float)(Whiffs + CalledStrikes) / Pitches;
+        }
     }
 
     public class PitchBox
@@ -36,9 +93,7 @@ namespace UI
         public required float? FixedDeltaXZone { get; set; }
         public required float? FixedDeltaYZone { get; set; }
 
-        public required float Vel { get; set; }
-        public required float BreakHoriz { get; set; }
-        public required float BreakVert { get; set; }
+        public PitchStats Stats { get; set; } = new();
 
         public Color GetColor(PitchValueType valueType, float min, float max)
         {
@@ -117,6 +172,7 @@ namespace UI
         public int FilterSize;
         private static float BALL_RADIUS = 0.12f;
         PitchBox? HighlightedBox;
+        PitchStats OverallStats = new();
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches,
@@ -221,10 +277,107 @@ namespace UI
                 bin.LocValue += (float)pitchModelOutput.locationValue;
 
                 #pragma warning disable CS8629 // Any values here will have these values
-                bin.Vel += pitch.VStart.Value;
-                bin.BreakHoriz += pitch.BreakHorizontal.Value;
-                bin.BreakVert += pitch.BreakInduced.Value;
+                bin.Stats.Vel += pitch.VStart.Value;
+                bin.Stats.BreakHoriz += pitch.BreakHorizontal.Value;
+                bin.Stats.BreakVert += pitch.BreakInduced.Value;
                 #pragma warning restore CS8629
+
+                // Update stats from Pitch
+                bin.Stats.Pitches++;
+                switch(pitch.Result)
+                {
+                    case DbEnums.PitchResult.CalledStrike:
+                        bin.Stats.CalledStrikes++;
+
+                        if (pitch.CountStrike == 2)
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.PA++;
+                            bin.Stats.K++;
+                        }
+                        break;
+                    case DbEnums.PitchResult.SwingingStrike:
+                        bin.Stats.Swings++;
+                        bin.Stats.Whiffs++;
+
+                        if (pitch.CountStrike == 2)
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.PA++;
+                            bin.Stats.K++;
+                        }
+                        break;
+                    case DbEnums.PitchResult.Foul:
+                        bin.Stats.Swings++;
+                        bin.Stats.Fouls++;
+                        break;
+                    case DbEnums.PitchResult.Ball:
+                        bin.Stats.Balls++;
+
+                        if (pitch.CountBalls == 3)
+                        {
+                            bin.Stats.PA++;
+                            bin.Stats.BB++;
+                        }
+                        break;
+                    case DbEnums.PitchResult.HBP:
+                        bin.Stats.Balls++;
+                        bin.Stats.PA++;
+                        bin.Stats.HBP++;
+                        break;
+                    case DbEnums.PitchResult.InPlay:
+                        bin.Stats.Swings++;
+                        bin.Stats.PA++;
+                        bin.Stats.InPlay++;
+                        var pa = pitch.PaResult;
+
+                        // Strikeout / BB / HBP should never be here
+                        if (pa.HasFlag(DbEnums.PitchPaResult.Strikeout) ||
+                            pa.HasFlag(DbEnums.PitchPaResult.BB) ||
+                            pa.HasFlag(DbEnums.PitchPaResult.HBP))
+                        {
+                            throw new Exception($"Unexpected PaResult on InPlay pitch: {pa}");
+                        }
+
+                        // AB logic
+                        if (pa.HasFlag(DbEnums.PitchPaResult.Error) ||
+                            pa.HasFlag(DbEnums.PitchPaResult.Out) ||
+                            pa.HasFlag(DbEnums.PitchPaResult.Groundout) ||
+                            pa.HasFlag(DbEnums.PitchPaResult.GIDP))
+                        {
+                            bin.Stats.AB++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.Flyout))
+                        {
+                            if (pitch.PaResultDirectRuns == 0) // Not a sacrifice fly
+                                bin.Stats.AB++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.Hit1B))
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.Hit1B++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.Hit2B))
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.Hit2B++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.Hit3B))
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.Hit3B++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.HitHR))
+                        {
+                            bin.Stats.AB++;
+                            bin.Stats.HitHR++;
+                        }
+                        else if (pa.HasFlag(DbEnums.PitchPaResult.Other))
+                        {
+                            bin.Stats.Other++;
+                        }
+                    break;
+                }
             }
 
             // Normalize values to per 1000 pitches on value, per pitch on info
@@ -235,10 +388,51 @@ namespace UI
                 f.StuffValue = f.StuffValue / f.NumPitches * 1000;
                 f.LocValue = f.LocValue / f.NumPitches * 1000;
 
-                f.Vel /= f.NumPitches;
-                f.BreakHoriz /= f.NumPitches;
-                f.BreakVert /= f.NumPitches;
+                OverallStats.Vel += f.Stats.Vel;
+                OverallStats.BreakHoriz += f.Stats.BreakHoriz;
+                OverallStats.BreakVert += f.Stats.BreakVert;
+
+                f.Stats.Vel /= f.NumPitches;
+                f.Stats.BreakHoriz /= f.NumPitches;
+                f.Stats.BreakVert /= f.NumPitches;
+
+                // Update Stats
+                f.Stats.CalculateStats();
+                // Append to overall stats
+                OverallStats.PA += f.Stats.PA;
+                OverallStats.AB += f.Stats.AB;
+                OverallStats.Hit1B += f.Stats.Hit1B;
+                OverallStats.Hit2B += f.Stats.Hit2B;
+                OverallStats.Hit3B += f.Stats.Hit3B;
+                OverallStats.HitHR += f.Stats.HitHR;
+                OverallStats.BB += f.Stats.BB;
+                OverallStats.HBP += f.Stats.HBP;
+                OverallStats.K += f.Stats.K;
+
+                OverallStats.Pitches += f.Stats.Pitches;
+                OverallStats.Swings += f.Stats.Swings;
+                OverallStats.Whiffs += f.Stats.Whiffs;
+                OverallStats.Fouls += f.Stats.Fouls;
+                OverallStats.InPlay += f.Stats.InPlay;
+                OverallStats.CalledStrikes += f.Stats.CalledStrikes;
+                OverallStats.Balls += f.Stats.Balls;
+                OverallStats.Other += f.Stats.Other;
             }));
+
+            if (OverallStats.Pitches > 0)
+            {
+                OverallStats.Vel /= OverallStats.Pitches;
+                OverallStats.BreakHoriz /= OverallStats.Pitches;
+                OverallStats.BreakVert /= OverallStats.Pitches;
+            }
+            OverallStats.CalculateStats();
+        }
+
+        public PitchStats GetPitchStats()
+        {
+            if (HighlightedBox != null)
+                return HighlightedBox.Stats;
+            return OverallStats;
         }
 
         private static List<List<PitchBox>> GetPitchBoxes(
@@ -272,9 +466,6 @@ namespace UI
                         Width = columnWidths[i],
                         FixedDeltaXZone = fixedZones[i],
                         FixedDeltaYZone = fixedZones[j],
-                        BreakHoriz = 0,
-                        BreakVert = 0,
-                        Vel = 0,
                     };
 
                     pitchRow.Add(pb);
@@ -420,27 +611,6 @@ namespace UI
 
                 Font font = new Font("Arial", 0.05f);
                 SolidBrush fontBrush = new SolidBrush(Color.Black);
-                Pen highlightedPen = new Pen(Color.Yellow, 0.05f);
-
-                if (HighlightedBox != null)
-                {
-                    const float TEXT_Y = 5;
-                    Font overviewFont = new Font("Arial", 0.15f);
-                    GraphicsState graphicsState = graphics.Save();
-                    graphics.ScaleTransform(1f, -1f);
-                    graphics.TranslateTransform(0, -2 * TEXT_Y);
-
-                    graphics.DrawString(
-                        $"Vel: {Math.Round(HighlightedBox.Vel, 1)}mph\nΔX: {Math.Round(HighlightedBox.BreakHoriz, 1)}in\nΔY: {Math.Round(HighlightedBox.BreakVert, 1)}in",
-                        overviewFont,
-                        fontBrush,
-                        0,
-                        TEXT_Y,
-                        format
-                    );
-
-                    graphics.Restore(graphicsState);
-                }
 
                 foreach (var pitchRow in PitchBoxes)
                 {
@@ -488,6 +658,7 @@ namespace UI
 
                 if (HighlightedBox != null)
                 {
+                    Pen highlightedPen = new Pen(Color.Yellow, 0.05f);
                     graphics.DrawRectangle(
                                     highlightedPen,
                                     HighlightedBox.X - (HighlightedBox.Width / 2),
@@ -521,17 +692,21 @@ namespace UI
 
         public void OnClick(PointF p)
         {
-            HighlightedBox = null;
             foreach (var pitchRow in PitchBoxes)
                 foreach (var pitchBox in pitchRow)
                 {
                     if ((Math.Abs(p.X - pitchBox.X) < pitchBox.Width / 2) &&
                         (Math.Abs(p.Y - pitchBox.Y) < pitchBox.Height / 2))
                     {
-                        HighlightedBox = pitchBox;
+                        if (HighlightedBox == pitchBox)
+                            HighlightedBox = null;
+                        else
+                            HighlightedBox = pitchBox;
                         return;
                     }
                 }
+
+            HighlightedBox = null;
         }
     }
 }

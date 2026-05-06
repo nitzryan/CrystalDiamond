@@ -34,6 +34,10 @@ namespace UI
 
             List<ComboBoxItem<PitchGridType>> gridTypes = [
                 new ComboBoxItem<PitchGridType>{
+                    Text = "3x3 Heart",
+                    Value = PitchGridType._3x3_Shadow
+                },
+                new ComboBoxItem<PitchGridType>{
                     Text = "5x5",
                     Value = PitchGridType._5x5
                 },
@@ -41,14 +45,12 @@ namespace UI
                     Text = "3x3",
                     Value = PitchGridType._3x3
                 },
-                new ComboBoxItem<PitchGridType>{
-                    Text = "3x3 Shadow",
-                    Value = PitchGridType._3x3_Shadow
-                },
             ];
             foreach (var gt in gridTypes)
                 cbBinSizes.Items.Add(gt);
             cbBinSizes.SelectedIndex = 0;
+
+            pitchPanel.PitchStatsUpdate += PitchStatsUpdate;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -104,6 +106,7 @@ namespace UI
             }
 
             playerLinkLabel.Text = player.UseFirstName + " " + player.UseLastName;
+            labelName.Text = playerLinkLabel.Text;
 
             PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == PlayerId && f.ModelOutput != "").ToList();
 
@@ -121,7 +124,8 @@ namespace UI
                 groupBoxFilters.Hide();
                 this.PlayerPitches = [];
                 return;
-            } else
+            }
+            else
             {
                 groupBoxFilters.Show();
             }
@@ -139,7 +143,7 @@ namespace UI
             foreach (var pt in pitchTypes)
                 cbPitchSelector.Items.Add(pt);
             cbPitchSelector.SelectedIndex = 0;
-            
+
 
 
             Invalidate();
@@ -171,13 +175,35 @@ namespace UI
                 }
 
                 pitchPanel.ShowPitches(
-                    pitches, 
-                    modelComboBox.Value, 
+                    pitches,
+                    modelComboBox.Value,
                     pitchValueComboBox.Value,
                     pitchGridTypeComboBox.Value,
                     scale,
                     (int)nudMinPitches.Value);
             }
+        }
+
+        private void PitchStatsUpdate(object sender, PitchStats? pitchStats)
+        {
+            if (pitchStats == null)
+            {
+                panelPitchStats.Hide();
+                return;
+            }
+
+            panelPitchStats.Show();
+            labelABPA.Text = $"{pitchStats.AB}/{pitchStats.PA}";
+            labelAVG.Text = $"{pitchStats.AVG.ToString("F3")}";
+            labelOBP.Text = $"{pitchStats.OBP.ToString("F3")}";
+            labelSLG.Text = $"{pitchStats.SLG.ToString("F3")}";
+
+            labelWhiff.Text = $"{Math.Round(100 * pitchStats.WhiffRate, 1)}%";
+            labelCSW.Text = $"{Math.Round(100 * pitchStats.CSWRate, 1)}%";
+
+            labelVel.Text = $"{Math.Round(pitchStats.Vel, 1)}";
+            labelMoveX.Text = $"{Math.Round(pitchStats.BreakHoriz, 1)}";
+            labelMoveZ.Text = $"{Math.Round(pitchStats.BreakVert, 1)}";
         }
     }
 }
