@@ -66,6 +66,50 @@ namespace UI
 
         }
 
+        private PointF ClientToLogical(Point clientPoint)
+        {
+            PointF p = new PointF(clientPoint.X, clientPoint.Y);
+
+            float logicalWidth = ZONE_RIGHT - ZONE_LEFT + (2 * ZONE_OFFSET);
+            float logicalHeight = ZoneTop - ZoneBot + (2 * ZONE_OFFSET);
+
+            if (pitchGrid != null)
+            {
+                logicalWidth = pitchGrid.GetLogicalWidth();
+                logicalHeight = pitchGrid.GetLogicalHeight();
+            }
+
+            float scaleX = this.ClientSize.Width / logicalWidth;
+            float scaleY = this.ClientSize.Height / logicalHeight;
+            float scale = Math.Min(scaleX, scaleY);
+
+            if (scale <= 0) return new PointF(0, 0);
+
+            float drawWidth = logicalWidth * scale;
+            float drawHeight = logicalHeight * scale;
+
+            float offsetX = (this.ClientSize.Width - drawWidth) / 2f;
+            float offsetY = (this.ClientSize.Height - drawHeight) / 2f;
+
+            
+            float tx2 = logicalWidth / 2f;
+            float ty2 = -(ZoneTop + (1.5f * ZONE_OFFSET));
+
+            // Undo TranslateTransform
+            p.X -= offsetX;
+            p.Y -= offsetY;
+
+            //Undo ScaleTransform
+            p.X /= scale;
+            p.Y /= -scale;
+
+            //TranslateTransform
+            p.X -= tx2;
+            p.Y -= ty2;
+
+            return p;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -113,6 +157,19 @@ namespace UI
                 );
                 g.DrawRectangle(pen, zoneRect);
             }
+        }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+
+            if (pitchGrid != null)
+            {
+                PointF logicalPoint = ClientToLogical(e.Location);
+                pitchGrid.OnClick(logicalPoint);
+            }
+
+            Invalidate();
         }
     }
 }

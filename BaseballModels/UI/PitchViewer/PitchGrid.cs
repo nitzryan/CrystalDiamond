@@ -116,6 +116,7 @@ namespace UI
         public float Scale;
         public int FilterSize;
         private static float BALL_RADIUS = 0.12f;
+        PitchBox? HighlightedBox;
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches,
@@ -135,6 +136,7 @@ namespace UI
             PitchGridType = pitchGridType;
             Scale = (float)scale;
             FilterSize = filterSize;
+            HighlightedBox = null;
 
             pitches = pitches.Where(f => f.PX != null && f.PZ != null);
             PitchBoxes = PitchGrid.GetPitchBoxes(pitchGridType, zoneTop, zoneBot, zoneLeft, zoneRight);
@@ -418,6 +420,27 @@ namespace UI
 
                 Font font = new Font("Arial", 0.05f);
                 SolidBrush fontBrush = new SolidBrush(Color.Black);
+                Pen highlightedPen = new Pen(Color.Yellow, 0.05f);
+
+                if (HighlightedBox != null)
+                {
+                    const float TEXT_Y = 5;
+                    Font overviewFont = new Font("Arial", 0.15f);
+                    GraphicsState graphicsState = graphics.Save();
+                    graphics.ScaleTransform(1f, -1f);
+                    graphics.TranslateTransform(0, -2 * TEXT_Y);
+
+                    graphics.DrawString(
+                        $"Vel: {Math.Round(HighlightedBox.Vel, 1)}mph\nΔX: {Math.Round(HighlightedBox.BreakHoriz, 1)}in\nΔY: {Math.Round(HighlightedBox.BreakVert, 1)}in",
+                        overviewFont,
+                        fontBrush,
+                        0,
+                        TEXT_Y,
+                        format
+                    );
+
+                    graphics.Restore(graphicsState);
+                }
 
                 foreach (var pitchRow in PitchBoxes)
                 {
@@ -462,6 +485,17 @@ namespace UI
                         graphics.Restore(graphicsState);
                     }
                 }
+
+                if (HighlightedBox != null)
+                {
+                    graphics.DrawRectangle(
+                                    highlightedPen,
+                                    HighlightedBox.X - (HighlightedBox.Width / 2),
+                                    HighlightedBox.Y - (HighlightedBox.Height / 2),
+                                    HighlightedBox.Width,
+                                    HighlightedBox.Height
+                                );
+                }
             }
         }
 
@@ -483,6 +517,21 @@ namespace UI
             return topBox.Y + (0.5f * topBox.Height) -
                 botBox.Y + (0.5f * botBox.Height) +
                 0.25f;
+        }
+
+        public void OnClick(PointF p)
+        {
+            HighlightedBox = null;
+            foreach (var pitchRow in PitchBoxes)
+                foreach (var pitchBox in pitchRow)
+                {
+                    if ((Math.Abs(p.X - pitchBox.X) < pitchBox.Width / 2) &&
+                        (Math.Abs(p.Y - pitchBox.Y) < pitchBox.Height / 2))
+                    {
+                        HighlightedBox = pitchBox;
+                        return;
+                    }
+                }
         }
     }
 }
