@@ -27,8 +27,8 @@ class Prep_Map:
 
     
 __map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.vStart, p.BreakAngle, p.BreakInduced, p.BreakHorizontal, p.Extension, p.x0, p.z0, p.SpinRate, p.SpinDirection, p.aX, p.aY, p.aZ]
-__size_stuff = 12
+    lambda p : [p.vStart, p.BreakAngle, p.BreakInduced, p.BreakHorizontal, p.Extension, p.x0, p.z0, p.SpinRate, p.SpinDirection]
+__size_stuff = 9
     
 __map_pitch_loc : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [p.pX, p.pZ, p.ZoneTop, p.ZoneBot]
