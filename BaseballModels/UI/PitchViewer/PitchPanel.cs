@@ -4,10 +4,11 @@ namespace UI
 {
     public partial class PitchPanel : UserControl
     {
+        private const float BALL_SIZE = 0.24f;
         private float ZoneBot = 1.4f, ZoneTop = 3.15f;
         private const float ZONE_OFFSET = 0.75f;
-        private const float ZONE_LEFT = -10.0f / 12.0f, ZONE_RIGHT = 10.0f / 12.0f;
-        private const float BALL_SIZE = 0.24f;
+        private const float ZONE_LEFT = -0.83f, ZONE_RIGHT = 0.83f;
+        
 
         public float GridSize = (ZONE_RIGHT - ZONE_LEFT) / 4;
 
@@ -73,6 +74,13 @@ namespace UI
             // Get scale to transform pitch space to screen space
             float logicalWidth = ZONE_RIGHT - ZONE_LEFT + (2 * ZONE_OFFSET);
             float logicalHeight = ZoneTop - ZoneBot + (2 * ZONE_OFFSET);
+
+            if (pitchGrid != null)
+            {
+                logicalWidth = pitchGrid.GetLogicalWidth();
+                logicalHeight = pitchGrid.GetLogicalHeight();
+            }
+
             float scaleX = this.ClientSize.Width / logicalWidth;
             float scaleY = this.ClientSize.Height / logicalHeight;
             float scale = Math.Min(scaleX, scaleY);
@@ -86,7 +94,7 @@ namespace UI
             g.ResetTransform();
             g.TranslateTransform(offsetX, offsetY);
             g.ScaleTransform(scale, -scale);
-            g.TranslateTransform(-(ZONE_LEFT - ZONE_OFFSET), -(ZoneTop + ZONE_OFFSET));
+            g.TranslateTransform(logicalWidth / 2, -(ZoneTop + (1.5f * ZONE_OFFSET)));
             
             // Pitches
             if (pitchGrid != null)

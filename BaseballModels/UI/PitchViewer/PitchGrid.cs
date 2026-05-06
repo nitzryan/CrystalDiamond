@@ -115,6 +115,7 @@ namespace UI
         public PitchGridType PitchGridType;
         public float Scale;
         public int FilterSize;
+        private static float BALL_RADIUS = 0.12f;
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches,
@@ -163,8 +164,10 @@ namespace UI
                 }
 
                 // Calculate heights of y bins
-                float pitchZoneTop = pitch.ZoneTop.Value;
-                float pitchZoneBot = pitch.ZoneBot.Value;
+                #pragma warning disable CS8629 // Will not be null
+                float pitchZoneTop = pitch.ZoneTop.Value + BALL_RADIUS;
+                float pitchZoneBot = pitch.ZoneBot.Value - BALL_RADIUS;
+                #pragma warning restore CS8629
 
                 var (pitchYs, _, pitchFixedY) = GetGridCenters(PitchGridType, pitchZoneTop, pitchZoneBot, zoneLeft, zoneRight);
                 List<float> pitchHeights = ComputeZoneSizes(pitchYs, pitchFixedY);
@@ -372,6 +375,7 @@ namespace UI
 
         private static List<float> ComputeZoneSizes(List<float> centers, List<float?> fixedFlags)
         {
+            #pragma warning disable CS8629 // Checks are properly made
             List<float> sizes = new();
             for (int i = 0; i < centers.Count; i++)
             {
@@ -402,6 +406,7 @@ namespace UI
                 }
             }
             return sizes;
+            #pragma warning restore CS8629
         }
 
         public void DrawPitches(Graphics graphics)
@@ -458,6 +463,26 @@ namespace UI
                     }
                 }
             }
+        }
+
+        public float GetLogicalWidth()
+        {
+            var rightBox = PitchBoxes[0].Last();
+            var leftBox = PitchBoxes[0].First();
+
+            return rightBox.X + (0.5f * rightBox.Width) -
+                leftBox.X + (0.5f * leftBox.Width) +
+                0.25f;
+        }
+
+        public float GetLogicalHeight()
+        {
+            var topBox = PitchBoxes.Last().First();
+            var botBox = PitchBoxes.First().First();
+
+            return topBox.Y + (0.5f * topBox.Height) -
+                botBox.Y + (0.5f * botBox.Height) +
+                0.25f;
         }
     }
 }
