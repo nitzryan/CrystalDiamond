@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace PitchAnalysis
 {
-    public record PitchModelOutput(double absValue, double stuffValue, double locationValue, double expValue);
+    public record PitchModelOutput(double absValue, double stuffValue, double locationValue, double expValue, double stuffPlus, double locPlus, double pitchPlus);
 
     internal class PitchAggregation
     {
@@ -24,6 +24,11 @@ namespace PitchAnalysis
             int count = pitchOutputs.Count();
 
             int pitchCount = 0;
+
+            // Pre-load Year deviations
+            Dictionary<(int, int), YearLeagueDeviations> devDict = pitchDb.YearLeagueDeviations.ToDictionary(
+                f => (f.Year, f.ModelId),
+                f => f);
 
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitch Model Results"))
             {
@@ -49,7 +54,12 @@ namespace PitchAnalysis
                             combinedValue += p.Combined / size;
                         }
 
-                        modelValues[mp.Key] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3));
+                        var yld = devDict[(mp.First().Year, mp.First().Model)];
+                        double stuffPlus = 100 - (10 * stuffValue / yld.StuffDev);
+                        double locPlus = 100 - (10 * locValue / yld.LocDev);
+                        double pitchPlus = 100 - (10 * combinedValue / yld.PitchDev);
+
+                        modelValues[mp.Key] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3), Math.Round(stuffPlus, 1), Math.Round(locPlus, 1), Math.Round(pitchPlus, 1));
                     }
 
                     // Write to JSON 

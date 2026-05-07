@@ -204,6 +204,15 @@ namespace UI
             labelVel.Text = $"{Math.Round(pitchStats.Vel, 1)}";
             labelMoveX.Text = $"{Math.Round(pitchStats.BreakHoriz, 1)}";
             labelMoveZ.Text = $"{Math.Round(pitchStats.BreakVert, 1)}";
+
+            labelLocation.Text = $"{Math.Round(pitchStats.LocPlus, 1)}";
+            labelStuff.Text = $"{Math.Round(pitchStats.StuffPlus, 1)}";
+            labelPitch.Text = $"{Math.Round(pitchStats.PitchPlus, 1)}";
+        }
+
+        private void label10_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

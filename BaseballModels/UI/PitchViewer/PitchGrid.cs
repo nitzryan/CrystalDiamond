@@ -53,6 +53,10 @@ namespace UI
         public float BreakHoriz { get; set; } = 0;
         public float BreakVert { get; set; } = 0;
 
+        public float StuffPlus { get; set; } = 0;
+        public float LocPlus { get; set; } = 0;
+        public float PitchPlus { get; set; } = 0;
+
         public void CalculateStats()
         {
             // Triple Slash
@@ -276,6 +280,10 @@ namespace UI
                 bin.StuffValue += (float)pitchModelOutput.stuffValue;
                 bin.LocValue += (float)pitchModelOutput.locationValue;
 
+                bin.Stats.LocPlus += (float)pitchModelOutput.locPlus;
+                bin.Stats.StuffPlus += (float)pitchModelOutput.stuffPlus;
+                bin.Stats.PitchPlus += (float)pitchModelOutput.pitchPlus;
+
                 #pragma warning disable CS8629 // Any values here will have these values
                 bin.Stats.Vel += pitch.VStart.Value;
                 bin.Stats.BreakHoriz += pitch.BreakHorizontal.Value;
@@ -388,6 +396,14 @@ namespace UI
                 f.StuffValue = f.StuffValue / f.NumPitches * 1000;
                 f.LocValue = f.LocValue / f.NumPitches * 1000;
 
+                OverallStats.LocPlus += f.Stats.LocPlus;
+                OverallStats.StuffPlus += f.Stats.StuffPlus;
+                OverallStats.PitchPlus += f.Stats.PitchPlus;
+
+                f.Stats.LocPlus /= f.NumPitches;
+                f.Stats.StuffPlus /= f.NumPitches;
+                f.Stats.PitchPlus /= f.NumPitches;
+
                 OverallStats.Vel += f.Stats.Vel;
                 OverallStats.BreakHoriz += f.Stats.BreakHoriz;
                 OverallStats.BreakVert += f.Stats.BreakVert;
@@ -424,6 +440,10 @@ namespace UI
                 OverallStats.Vel /= OverallStats.Pitches;
                 OverallStats.BreakHoriz /= OverallStats.Pitches;
                 OverallStats.BreakVert /= OverallStats.Pitches;
+
+                OverallStats.StuffPlus /= OverallStats.Pitches;
+                OverallStats.LocPlus /= OverallStats.Pitches;
+                OverallStats.PitchPlus /= OverallStats.Pitches;
             }
             OverallStats.CalculateStats();
         }

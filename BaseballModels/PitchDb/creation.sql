@@ -41,6 +41,19 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	PRIMARY KEY("ModelId", "ModelRun")
 );
 
+CREATE TABLE YearLeagueDeviations
+(
+	"ModelId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+
+	"ActDev" REAL NOT NULL,
+	"StuffDev" REAL NOT NULL,
+	"LocDev" REAL NOT NULL,
+	"PitchDev" REAL NOT NULL,
+
+	PRIMARY KEY("ModelId", "Year")
+);
+
 -- Pitcher/Game Model Runs
 CREATE TABLE PitcherStuff
 (
