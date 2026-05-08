@@ -8,12 +8,6 @@ class PitcherPredLayers(nn.Module):
                 block_size_value : int = 50,
                 num_layers_value : int = 2,
                 
-                block_size_runs : int = 30,
-                num_layers_runs : int = 2,
-                
-                block_size_outs : int = 20,
-                num_layers_outs : int = 2,
-                
                 block_size_swung : int = 20,
                 num_layers_swung : int = 2,
                 
@@ -30,18 +24,6 @@ class PitcherPredLayers(nn.Module):
             [nn.Linear(input_size, block_size_value)] +
             [ResnetBlock(dim=block_size_value) for _ in range(num_layers_value)] +
             [nn.Linear(block_size_value, BUCKET_PITCHVALUE.size(0) + 1)]
-        )
-        
-        self.runs_modules = nn.ModuleList(
-            [nn.Linear(input_size, block_size_runs)] +
-            [ResnetBlock(dim=block_size_runs) for _ in range(num_layers_runs)] +
-            [nn.Linear(block_size_runs, 5)]
-        )
-        
-        self.outs_modules = nn.ModuleList(
-            [nn.Linear(input_size, block_size_outs)] +
-            [ResnetBlock(dim=block_size_outs) for _ in range(num_layers_outs)] +
-            [nn.Linear(block_size_outs, 3)]
         )
         
         self.swung_modules = nn.ModuleList(
@@ -67,14 +49,6 @@ class PitcherPredLayers(nn.Module):
         for module in self.value_modules:
             value = module(value)
             
-        runs = x
-        for module in self.runs_modules:
-            runs = module(runs)
-            
-        outs = x
-        for module in self.outs_modules:
-            outs = module(outs)
-            
         swung = x
         for module in self.swung_modules:
             swung = module(swung)
@@ -87,4 +61,4 @@ class PitcherPredLayers(nn.Module):
         for module in self.inplay_modules:
             inplay = module(inplay)
             
-        return value, runs, outs, swung, contact, inplay
+        return value, swung, contact, inplay

@@ -35,8 +35,8 @@ __map_pitch_loc : Callable[[DB_PitchStatcast], list[float]] = \
 __size_loc = 4
     
 __map_pitch_overview : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.PitchType, p.CountBalls, p.CountStrike, p.Outs, p.BaseOccupancy, p.HitIsR, p.PitIsR]
-__size_overview = 7
+    lambda p : [p.PitchType, p.CountBalls, p.CountStrike, p.HitIsR, p.PitIsR]
+__size_overview = 5
 
 __map_league_baseline : Callable[[DB_PitchDateAverages], list[float]] = \
     lambda p : [p.Extension, \

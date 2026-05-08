@@ -18,8 +18,6 @@ class PitchIO:
         
         # Output for model
         output_value : int,
-        output_runs : int,
-        output_outs : int,
         output_swung : int,
         output_contact : int,
         output_inplay : int,
@@ -34,8 +32,6 @@ class PitchIO:
         self.data_league_avg = data_league_avg
         
         self.output_value = output_value
-        self.output_runs = output_runs
-        self.output_outs = output_outs
         self.output_swung = output_swung
         self.output_contact = output_contact
         self.output_inplay = output_inplay
@@ -52,8 +48,6 @@ class PitchDataset(torch.utils.data.Dataset):
                 data_league_avg : torch.Tensor,
                 
                 output_value : torch.Tensor,
-                output_runs : torch.Tensor,
-                output_outs : torch.Tensor,
                 output_swung : torch.Tensor,
                 output_contact : torch.Tensor,
                 output_inplay : torch.Tensor,
@@ -71,8 +65,6 @@ class PitchDataset(torch.utils.data.Dataset):
         self.data_league_avg = data_league_avg.t().to(device=dataset_device, non_blocking=True)
         
         self.output_value = output_value.to(device=dataset_device, non_blocking=True)
-        self.output_runs = output_runs.to(device=dataset_device, non_blocking=True)
-        self.output_outs = output_outs.to(device=dataset_device, non_blocking=True)
         self.output_swung = output_swung.to(device=dataset_device, non_blocking=True)
         self.output_contact = output_contact.to(device=dataset_device, non_blocking=True)
         self.output_inplay = output_inplay.to(device=dataset_device, non_blocking=True)
@@ -99,8 +91,6 @@ class PitchDataset(torch.utils.data.Dataset):
         # Data used to evaluate model
         targets = (
             self.output_value[batch_indices],
-            self.output_runs[batch_indices],
-            self.output_outs[batch_indices],
             self.output_swung[batch_indices],
             self.output_contact[batch_indices],
             self.output_inplay[batch_indices]
@@ -143,15 +133,11 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
     # ==================== TARGETS / OUTPUTS ====================
 
     output_value_train      = torch.tensor([io.output_value     for io in io_train])
-    output_runs_train       = torch.tensor([io.output_runs      for io in io_train])
-    output_outs_train       = torch.tensor([io.output_outs      for io in io_train])
     output_swung_train      = torch.tensor([io.output_swung     for io in io_train])
     output_contact_train    = torch.tensor([io.output_contact   for io in io_train])
     output_inplay_train     = torch.tensor([io.output_inplay    for io in io_train])
 
     output_value_test       = torch.tensor([io.output_value     for io in io_test])
-    output_runs_test        = torch.tensor([io.output_runs      for io in io_test])
-    output_outs_test        = torch.tensor([io.output_outs      for io in io_test])
     output_swung_test       = torch.tensor([io.output_swung     for io in io_test])
     output_contact_test     = torch.tensor([io.output_contact   for io in io_test])
     output_inplay_test      = torch.tensor([io.output_inplay    for io in io_test])
@@ -167,8 +153,6 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_league_avg_train,
         
         output_value_train,
-        output_runs_train,
-        output_outs_train,
         output_swung_train,
         output_contact_train,
         output_inplay_train,
@@ -187,8 +171,6 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_league_avg_test,
         
         output_value_test,
-        output_runs_test,
-        output_outs_test,
         output_swung_test,
         output_contact_test,
         output_inplay_test,

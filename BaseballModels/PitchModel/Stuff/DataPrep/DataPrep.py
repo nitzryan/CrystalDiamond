@@ -201,9 +201,7 @@ class DataPrep:
                             data_stuff=data_stuff[i],
                             data_pitcher_game=data_pitcher_game[i],
                             data_league_avg=data_pitch_averages,
-                            output_value=torch.bucketize(torch.tensor([pitch.RunValueHitter]), BUCKET_PITCHVALUE).item(),
-                            output_runs=pitch.PaResultDirectRuns,
-                            output_outs=min(pitch.PaResultOuts, 2),
+                            output_value=torch.bucketize(torch.tensor([pitch.RunValueSmoothedHitter]), BUCKET_PITCHVALUE).item(),
                             output_swung=pitch.HadSwing,
                             output_contact=pitch.HadContact,
                             output_inplay=pitch.IsInPlay

@@ -9,7 +9,7 @@ from Stuff.Model.LossFunctions import *
 from Constants import profiler
 
 _MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
-_MODEL_OUTPUTS = ["Value", "Runs", "Outs", "Swung", "Contact", "InPlay"]
+_MODEL_OUTPUTS = ["Value", "Swung", "Contact", "InPlay"]
 _TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
 
 SHOULD_PROFILE = False
@@ -23,7 +23,7 @@ def TrainAndGraph(
     num_epochs : int = 1001,
     logging_interval : int = 50,
     early_stopping_cutoff : int = 20,
-    base_element : int = 12,
+    base_element : int = 2 * len(_MODEL_OUTPUTS),
     should_output : bool = True,
     model_name : str = "no_name",
 ) -> list[float]:
