@@ -58,6 +58,7 @@ namespace Db
 		public float? HitCoordX {get; set;}
 		public float? HitCoordY {get; set;}
 		public required float RunValueHitter {get; set;}
+		public required float RunValueSmoothedHitter {get; set;}
 		public required DbEnums.PitchScenario Scenario {get; set;}
 		public required string ModelOutput {get; set;}
 
@@ -121,6 +122,7 @@ namespace Db
 				HitCoordX = this.HitCoordX,
 				HitCoordY = this.HitCoordY,
 				RunValueHitter = this.RunValueHitter,
+				RunValueSmoothedHitter = this.RunValueSmoothedHitter,
 				Scenario = this.Scenario,
 				ModelOutput = this.ModelOutput,
 			};

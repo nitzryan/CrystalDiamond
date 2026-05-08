@@ -7,6 +7,8 @@ namespace PitchAnalysis
 {
     internal class YearDeviations
     {
+        const float PITCH_CAP = 0.1f;
+
         public static void Update(int endYear, bool forceRefresh)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
@@ -29,9 +31,27 @@ namespace PitchAnalysis
 
                     foreach (int modelId in models)
                     {
-                        double locationDev = Math.Sqrt(pitchDb.Output_PitchValue.Where(f => f.Year == year && f.Model == modelId).Select(f => f.LocationOnly * f.LocationOnly).Average());
-                        double stuffDev = Math.Sqrt(pitchDb.Output_PitchValue.Where(f => f.Year == year && f.Model == modelId).Select(f => f.StuffOnly * f.StuffOnly).Average());
-                        double pitchDev = Math.Sqrt(pitchDb.Output_PitchValue.Where(f => f.Year == year && f.Model == modelId).Select(f => f.Combined * f.Combined).Average());
+                        double locationDev = Math.Sqrt(pitchDb.Output_PitchValue
+                            .Where(f => f.Year == year && f.Model == modelId)
+                            .Select(f => f.LocationOnly)
+                            .AsEnumerable()
+                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                            .Select(v => v * v)
+                            .Average());
+                        double stuffDev = Math.Sqrt(pitchDb.Output_PitchValue
+                            .Where(f => f.Year == year && f.Model == modelId)
+                            .Select(f => f.StuffOnly)
+                            .AsEnumerable()
+                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                            .Select(v => v * v)
+                            .Average());
+                        double pitchDev = Math.Sqrt(pitchDb.Output_PitchValue
+                            .Where(f => f.Year == year && f.Model == modelId)
+                            .Select(f => f.Combined)
+                            .AsEnumerable()
+                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                            .Select(v => v * v)
+                            .Average());
 
                         pitchDb.YearLeagueDeviations.Add(new YearLeagueDeviations
                         {

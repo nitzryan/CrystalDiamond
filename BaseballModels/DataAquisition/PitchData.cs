@@ -579,6 +579,7 @@ namespace DataAquisition
                             HitCoordX = hitCoordX,
                             HitCoordY = hitCoordY,
                             RunValueHitter = -100000, // Will be modified later
+                            RunValueSmoothedHitter = -100000, // Will be modified later
                             Scenario = scenario,
                             ModelOutput = ""
                         });

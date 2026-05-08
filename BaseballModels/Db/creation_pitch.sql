@@ -72,6 +72,7 @@ CREATE TABLE PitchStatcast
     "HitCoordY" REAL,
 
     "RunValueHitter" REAL NOT NULL,
+    "RunValueSmoothedHitter" REAL NOT NULL,
 
     "Scenario" INTEGER NOT NULL,
     "ModelOutput" TEXT NOT NULL,
