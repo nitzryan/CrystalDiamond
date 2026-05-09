@@ -7,19 +7,25 @@ from Stuff.Model.LayerArch import LayerArch
 from Stuff.Model.PitcherPredLayers import PitcherPredLayers
 from Stuff.Model.Utilities import *
         
+def GetParameters(layers):
+    parameters = []
+    for l in layers:
+        parameters.extend(l.parameters())
+    return parameters
+        
 class PitchModel(nn.Module):
     def __init__(self,
                 data_prep : DataPrep,
                 location_branch_size : int = 55,
                 stuff_branch_size : int = 55,
                 
-                combined_pred_size_value : int = 70,
+                combined_pred_size_value : int = 50,
                 combined_pred_blocks_value : int = 8,
                 
                 location_pred_size_value : int = 50,
                 location_pred_blocks_value : int = 8,
                 
-                stuff_pred_size_value : int = 70,
+                stuff_pred_size_value : int = 30,
                 stuff_pred_blocks_value : int = 8,
                 
                 location_init_size : int = 50,
@@ -73,6 +79,17 @@ class PitchModel(nn.Module):
             block_size_value=combined_pred_size_value,
             num_layers_value=combined_pred_blocks_value,
         )
+        
+        # Set parameter groups to allow for sub-parts of network to set learning rates independently
+        stuff_parameters = GetParameters([self.stuff_block, self.stuff_pred])
+        location_parameters = GetParameters([self.location_block, self.location_pred])
+        combined_parameters = GetParameters([self.combined_pred])
+        
+        self.optimizer = torch.optim.Adam([
+            {'params': location_parameters, 'lr': 0.005},
+            {'params' : stuff_parameters, 'lr': 0.005},
+            {'params': combined_parameters, 'lr': 0.005}
+        ])
         
     def forward(self, data : tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
         overview, location, stuff, game, league_avg = data

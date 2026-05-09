@@ -16,8 +16,8 @@ pitch_io_list = data_prep.GenerateIOPitches()
 train_dataset, test_dataset = CreateTestTrainDatasets(pitch_io_list, test_size=0.25, random_state=0)
 pitch_io_list = None # Clear Memory
 
-num_blocks_range = range(0, 11, 2)
-block_size_range = range(30, 111, 20)
+num_blocks_range = range(2, 11, 2)
+block_size_range = range(10, 111, 20)
 
 xs = []
 ys = []

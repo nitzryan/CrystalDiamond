@@ -5,6 +5,7 @@ from Constants import device
 from Stuff.Model.PitchModel import PitchModel
 from Stuff.DataPrep.PitchDataset import PitchDataset
 from Stuff.Model.LossFunctions import *
+from Stuff.Model.ModelScheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 from Constants import profiler
 
@@ -19,7 +20,6 @@ def TrainAndGraph(
     train_dataset : PitchDataset,
     test_dataset : PitchDataset,
     batch_size : int = 30000,
-    learning_rate : float = 0.005,
     num_epochs : int = 1001,
     logging_interval : int = 50,
     early_stopping_cutoff : int = 20,
@@ -38,10 +38,15 @@ def TrainAndGraph(
     best_loss = 99999999
     best_epoch = 0
     epochs_since_improve = 0
+
     
-    optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
-    
-    # TODO : Need a custom scheduler for this
+    scheduler = Scheduler(
+        optimizer=network.optimizer,
+        parameter_map=[[0], [1], [2]],
+        verbose=False,
+        factor=0.5,
+        patience=5,
+        cooldown=5)
     
     iterable = range(num_epochs)
     if not should_output:
@@ -49,7 +54,7 @@ def TrainAndGraph(
     for epoch in iterable:
         train_losses = TrainTest(network=network, 
             dataset=train_dataset, 
-            optimizer=optimizer, 
+            optimizer=network.optimizer, 
             batch_size=batch_size,
             total_size=len(train_dataset),
             is_train=True)
@@ -61,6 +66,7 @@ def TrainAndGraph(
             is_train=False)
         
         LogResults(epoch, num_epochs, train_losses[base_element], test_losses[base_element], logging_interval, should_output)
+        scheduler.step([test_losses[0], test_losses[len(_MODEL_OUTPUTS)], test_losses[2 * len(_MODEL_OUTPUTS)]])
         
         for n in range(len(_TOTAL_OUTPUTS)):
             train_loss_history[n].append(train_losses[n])
