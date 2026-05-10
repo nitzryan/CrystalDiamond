@@ -69,6 +69,7 @@ if __name__ == "__main__":
             num_layers=mth_list[0].ProNumLayers,
             hidden_size=mth_list[0].ProHiddenSize,
             is_hitter=True,
+            use_resnet=model_id == 2
         )
         col_network = ColModel(
             input_size=dataset.GetColInputSize(),
@@ -78,6 +79,7 @@ if __name__ == "__main__":
             output_num_layers=pro_network.GetNumLayers(),
             num_layers=mth_list[0].ColNumLayers,
             hidden_size=mth_list[0].ColHiddenSize,
+            use_resnet=model_id == 2
         )
         
         # Set Model weights from training runs

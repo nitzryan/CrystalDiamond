@@ -4,7 +4,7 @@ import torch.nn.init as init
 import torch.nn.functional as F
 from Pro.DataPrep.Data_Prep import Data_Prep
 from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
-
+from Pro.Model.ResnetBlock import ResnetBlock
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
 def GetParameters(layers):
@@ -41,11 +41,20 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 45
-DEFAULT_PRO_NUM_LAYERS = 10
+DEFAULT_PRO_HIDDEN_SIZE = 25
+DEFAULT_PRO_NUM_LAYERS = 5
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_DROPOUT = 0
+
+DEFAULT_RESNET_WARCLASS_BLOCKS = 5
+DEFAULT_RESNET_STATS_BLOCKS = 3
+DEFAULT_RESNET_PT_BLOCKS = 3
+DEFAULT_RESNET_POS_BLOCKS = 3
+DEFAULT_RESNET_LVL_BLOCKS = 3
+DEFAULT_RESNET_PA_BLOCKS = 3
+DEFAULT_RESNET_VALUE_BLOCKS = 3
+DEFAULT_RESNET_MLBSTAT_BLOCKS = 3
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -72,11 +81,23 @@ class RNN_Model(nn.Module):
                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                 pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
-                mlbstat_arch_p : LayerArch = DEFAULT_MLBSTAT_ARCH_P,):
+                mlbstat_arch_p : LayerArch = DEFAULT_MLBSTAT_ARCH_P,
+                
+                use_resnet : bool = False,
+                warclass_blocks : int = DEFAULT_RESNET_WARCLASS_BLOCKS,
+                stats_blocks : int = DEFAULT_RESNET_STATS_BLOCKS,
+                pt_blocks : int = DEFAULT_RESNET_PT_BLOCKS,
+                pos_blocks : int = DEFAULT_RESNET_POS_BLOCKS,
+                lvl_blocks : int = DEFAULT_RESNET_LVL_BLOCKS,
+                pa_blocks : int = DEFAULT_RESNET_PA_BLOCKS,
+                value_blocks : int = DEFAULT_RESNET_VALUE_BLOCKS,
+                mlbstat_blocks : int = DEFAULT_RESNET_MLBSTAT_BLOCKS,
+                ):
         super().__init__()
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.use_resnet = use_resnet
         
         if not is_hitter:
             stats_arch = stats_arch_p
@@ -96,13 +117,58 @@ class RNN_Model(nn.Module):
         self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
         
         # Individual prediction layers
-        self.war_layers = warclass_arch.GetArchitecture(hidden_size, len(output_map.buckets_hitter_war))
-        self.level_layers = lvl_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS))
-        self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
-        self.yearStats_layers = stats_arch.GetArchitecture(hidden_size, NUM_LEVELS * stats_size)
-        self.pos_layers = pos_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
-        self.pt_layers = pt_arch.GetArchitecture(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
-        self.value_layers = val_arch.GetArchitecture(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
+        if use_resnet:
+            self.war_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(warclass_blocks)] +
+                [nn.Linear(hidden_size, len(output_map.buckets_hitter_war))]
+            )
+
+            self.level_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(lvl_blocks)] +
+                [nn.Linear(hidden_size, len(HITTER_LEVEL_BUCKETS))]
+            )
+
+            self.pa_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(pa_blocks)] +
+                [nn.Linear(hidden_size, len(HITTER_PA_BUCKETS))]
+            )
+
+            self.yearStats_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(stats_blocks)] +
+                [nn.Linear(hidden_size, NUM_LEVELS * stats_size)]
+            )
+
+            self.pos_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(pos_blocks)] +
+                [nn.Linear(
+                    hidden_size,
+                    len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size)
+                )]
+            )
+
+            self.pt_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size + len(HITTER_LEVEL_BUCKETS)) for _ in range(pt_blocks)] +
+                [nn.Linear(
+                    hidden_size + len(HITTER_LEVEL_BUCKETS),
+                    NUM_LEVELS * (output_map.hitter_pt_size if is_hitter else output_map.pitcher_pt_size)
+                )]
+            )
+
+            self.value_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(value_blocks)] +
+                [nn.Linear(
+                    hidden_size,
+                    (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size)
+                )]
+            )
+        else:
+            self.war_layers = warclass_arch.GetArchitecture(hidden_size, len(output_map.buckets_hitter_war))
+            self.level_layers = lvl_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS))
+            self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
+            self.yearStats_layers = stats_arch.GetArchitecture(hidden_size, NUM_LEVELS * stats_size)
+            self.pos_layers = pos_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+            self.pt_layers = pt_arch.GetArchitecture(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
+            self.value_layers = val_arch.GetArchitecture(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         if is_hitter:
             self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
@@ -145,14 +211,16 @@ class RNN_Model(nn.Module):
         # Set softmax-regression layers
         pt_mean = -self.pt_offset.mean()
         for layer in [self.pt_layers[-1]]:
-            init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
+            if isinstance(layer, nn.Linear):
+                init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
                 
         init.constant_(self.yearStats_layers[-1].bias, 0)
         init.constant_(self.pt_layers[-1].bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
         for vf in self.value_layers:
-            init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
+            if isinstance(vf, nn.Linear):
+                init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
         shared_params = GetParameters([self.recurrent])
@@ -197,10 +265,10 @@ class RNN_Model(nn.Module):
     def GetNumLayers(self) -> int:
         return self.num_layers
     
-    def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
+    def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList, use_resnet : bool) -> torch.Tensor:
         for layer in moduleList:
             output = layer(output)
-            if layer != moduleList[-1]:
+            if layer != moduleList[-1] and not use_resnet:
                 output = self.nonlin(output)
                 
         return output
@@ -221,13 +289,13 @@ class RNN_Model(nn.Module):
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
-        output_war = self.GetModuleOutput(output, self.war_layers)
-        output_level = self.GetModuleOutput(output, self.level_layers)
-        output_pa = self.GetModuleOutput(output, self.pa_layers)
-        output_yearStats = self.GetModuleOutput(output, self.yearStats_layers)
-        output_yearPositions = self.GetModuleOutput(output, self.pos_layers)
-        output_mlbValue = self.GetModuleOutput(output, self.value_layers)
-        output_mlbStat = self.GetModuleOutput(output, self.mlbstat_layers)
+        output_war = self.GetModuleOutput(output, self.war_layers, self.use_resnet)
+        output_level = self.GetModuleOutput(output, self.level_layers, self.use_resnet)
+        output_pa = self.GetModuleOutput(output, self.pa_layers, self.use_resnet)
+        output_yearStats = self.GetModuleOutput(output, self.yearStats_layers, self.use_resnet)
+        output_yearPositions = self.GetModuleOutput(output, self.pos_layers, self.use_resnet)
+        output_mlbValue = self.GetModuleOutput(output, self.value_layers, self.use_resnet)
+        output_mlbStat = self.GetModuleOutput(output, self.mlbstat_layers, self.use_resnet)
         
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
@@ -247,9 +315,12 @@ class RNN_Model(nn.Module):
         # Generate PT Predictions
         pt_levelYearGames = pt_levelYearGames[:, :output.size(1), :]
         output_pt = torch.cat((output, pt_levelYearGames), dim=-1)
-        for layer in self.pt_layers[:-1]:
-            output_pt = F.tanh(layer(output_pt))
-        output_pt = self.softplus(self.pt_layers[-1](output_pt)) + self.pt_offset
+        if self.use_resnet:
+            output_pt = self.softplus(self.GetModuleOutput(output_pt, self.pt_layers, self.use_resnet))
+        else:
+            for layer in self.pt_layers[:-1]:
+                output_pt = F.tanh(layer(output_pt))
+            output_pt = self.softplus(self.pt_layers[-1](output_pt)) + self.pt_offset
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
     

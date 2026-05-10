@@ -3,16 +3,17 @@ from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Pro.DataPrep import Prep_Map, Output_Map
 from College.DataPrep import Prep_Map as C_Prep_Map, Output_Map as C_Output_Map
 from tqdm import tqdm
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
 from College.Model.College_Model import RNN_Model as College_Model
 from Combined.Model.Model_Train import TrainAndGraph
+from Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST
+from Pro.Model.Player_Model import DEFAULT_WARCLASS_ARCH, DEFAULT_STATS_ARCH, DEFAULT_PT_ARCH, DEFAULT_POS_ARCH, DEFAULT_LVL_ARCH, DEFAULT_PA_ARCH, DEFAULT_VALUE_ARCH, DEFAULT_MLBSTAT_ARCH
 import torch
-import gc
 from Constants import device
 
 if __name__ == "__main__":
-    pro_hidden_sizes = range(15, 106, 10)
-    pro_num_layers = range(3, 12, 2)
+    hidden_size_list = range(5, 56, 5)
+    num_blocks_list = range(1, 8)
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -27,24 +28,29 @@ if __name__ == "__main__":
     xs = []
     ys = []
     zs = []
-
-    for num_layers in tqdm(reversed(pro_num_layers), desc="Num Layers", total=len(pro_num_layers)):
-        for hidden_size in tqdm(reversed(pro_hidden_sizes), desc="Hidden Sizes", leave=False, total=len(pro_hidden_sizes)):
+    for num_blocks in tqdm(num_blocks_list, desc="Num Blocks", leave=False):
+        for hidden_size in tqdm(hidden_size_list, desc="Hidden Sizes", leave=False):
+            pro_model = Pro_Model(
+                input_size=train_dataset.GetProInputSize(),
+                mutators=torch.empty(0),
+                data_prep=data_prep.pro_data_prep,
+                is_hitter=True,
+                hidden_size=hidden_size,
+                warclass_blocks = num_blocks,
+                stats_blocks = num_blocks,
+                pt_blocks = num_blocks,
+                pos_blocks = num_blocks,
+                lvl_blocks = num_blocks,
+                pa_blocks = num_blocks,
+                value_blocks = num_blocks,
+                use_resnet=True
+            ).to(device)
             col_model = College_Model(
                 input_size=train_dataset.GetColInputSize(),
                 data_prep=data_prep.college_data_prep,
                 is_hitter=True,
-                output_hidden_size=hidden_size,
-                output_num_layers=num_layers,
-                use_resnet=True,
-            ).to(device)
-            pro_model = Pro_Model(
-                input_size=train_dataset.GetProInputSize(),
-                num_layers=num_layers,
-                hidden_size=hidden_size,
-                mutators=torch.empty(0),
-                data_prep=data_prep.pro_data_prep,
-                is_hitter=True,
+                output_hidden_size=pro_model.GetHiddenSize(),
+                output_num_layers=pro_model.GetNumLayers(),
                 use_resnet=True
             ).to(device)
             
@@ -57,35 +63,30 @@ if __name__ == "__main__":
                 col_model_name="Models/test_col_hit",
                 is_hitter=True,
                 should_output=False,
-                batch_size=1000,
             )
-
-            del col_model
-            del pro_model       
-            torch.cuda.empty_cache()
-            gc.collect()     
             
             xs.append(hidden_size)
-            ys.append(num_layers)
+            ys.append(num_blocks)
             zs.append(best_loss)
-            
+        
     import pandas as pd
     import seaborn as sns
     import matplotlib.pyplot as plt
-
+    
     df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
     pivot_table = df.pivot(index='y', columns='x', values='z')
-    plt.figure(figsize=(1 * len(pro_hidden_sizes), .75 * len(pro_num_layers) + 2))
+    plt.figure(figsize=(1 * len(hidden_size_list), .75 * len(num_blocks_list) + 2))
     sns.heatmap(
         pivot_table, 
         annot=True,
         fmt='.3f',
         cmap='viridis',
         linewidths=0.5,
-        xticklabels=[round(x) for x in pro_hidden_sizes],
-        yticklabels=[round(y) for y in pro_num_layers],
+        xticklabels=hidden_size_list,
+        yticklabels=num_blocks_list,
     )
     plt.xlabel('Hidden Size')
-    plt.ylabel('Num Layers')
-    plt.title('Test Loss vs Pro RNN Architecture')
-    plt.savefig(f'Combined/Experiments/Results/Hitters_ProRecurrent_HiddenSizeNumLayers.png', dpi=400)
+    plt.ylabel('Num Blocks')
+    plt.title(f'Test Loss for Pro Model')
+    plt.savefig(f'Combined/Experiments/Results/Resnet/Hitters_ResBlocksHiddenSize.png', dpi=400)
+    plt.clf()

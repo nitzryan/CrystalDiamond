@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
 from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
 from Pro.Model.Player_Model import LayerArch
+from Pro.Model.ResnetBlock import ResnetBlock
 
 DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=3)
 DEFAULT_POS_ARCH = LayerArch(layer_size=50, num_layers=2)
@@ -44,12 +45,15 @@ class RNN_Model(nn.Module):
                 output_hidden_size : int = -1,
                 output_num_layers : int = -1,
                 output_hidden_arch : LayerArch = DEFAULT_HITTER_HIDDEN_ARCH,
-                output_hidden_arch_p : LayerArch = DEFAULT_PITCHER_HIDDEN_ARCH):
+                output_hidden_arch_p : LayerArch = DEFAULT_PITCHER_HIDDEN_ARCH,
+                
+                use_resnet : bool = False):
         
         super().__init__()
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.use_resnet = use_resnet
         
         if is_hitter:
             pos_output_len = data_prep.output_map.len_pos_h
@@ -75,17 +79,50 @@ class RNN_Model(nn.Module):
                                 dropout=dropout,
                                 )
         
-        self.draft_layers = stats_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
-        self.pos_layers = stats_arch_pos.GetArchitecture(hidden_size, pos_output_len)
-        self.war_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS))
-        
-        self.hidden_layers = output_hidden_arch.GetArchitecture(hidden_size, output_hidden_size * output_num_layers)
-        
-        if self.is_hitter:
-            self.off_layers = off_arch.GetArchitecture(hidden_size, len(OFF_RATE_BUCKETS) + 1)
-            self.def_layers = def_arch.GetArchitecture(hidden_size, len(DEF_RATE_BUCKETS) + 1)
-            self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
-        
+        if use_resnet:
+            self.draft_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(7)] +
+                [nn.Linear(hidden_size, len(DRAFT_BUCKETS))]
+            )
+            self.pos_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(6)] +
+                [nn.Linear(hidden_size, pos_output_len)]
+            )
+            self.war_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(6)] +
+                [nn.Linear(hidden_size, len(TOTAL_WAR_BUCKETS))]
+            )
+            
+            self.hidden_layers = nn.ModuleList(
+                [ResnetBlock(hidden_size) for _ in range(6)] +
+                [nn.Linear(hidden_size, output_hidden_size * output_num_layers)]
+            )
+            
+            if self.is_hitter:
+                self.off_layers = nn.ModuleList(
+                    [ResnetBlock(hidden_size) for _ in range(6)] +
+                    [nn.Linear(hidden_size, len(OFF_RATE_BUCKETS) + 1)]
+                )
+                self.def_layers = nn.ModuleList(
+                    [ResnetBlock(hidden_size) for _ in range(6)] +
+                    [nn.Linear(hidden_size, len(DEF_RATE_BUCKETS) + 1)]
+                )
+                self.pa_layers = nn.ModuleList(
+                    [ResnetBlock(hidden_size) for _ in range(6)] +
+                    [nn.Linear(hidden_size, len(HITTER_PA_BUCKETS))]
+                )
+        else:
+            self.draft_layers = stats_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
+            self.pos_layers = stats_arch_pos.GetArchitecture(hidden_size, pos_output_len)
+            self.war_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS))
+            
+            self.hidden_layers = output_hidden_arch.GetArchitecture(hidden_size, output_hidden_size * output_num_layers)
+            
+            if self.is_hitter:
+                self.off_layers = off_arch.GetArchitecture(hidden_size, len(OFF_RATE_BUCKETS) + 1)
+                self.def_layers = def_arch.GetArchitecture(hidden_size, len(DEF_RATE_BUCKETS) + 1)
+                self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
+            
         self.nonlin = F.leaky_relu
         
         # Initialize weights
@@ -104,7 +141,7 @@ class RNN_Model(nn.Module):
     def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
         for layer in moduleList:
             output = layer(output)
-            if layer != moduleList[-1]:
+            if layer != moduleList[-1] and not self.use_resnet:
                 output = self.nonlin(output)
                 
         return output

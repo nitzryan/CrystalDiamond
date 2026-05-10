@@ -47,17 +47,20 @@ if __name__ == "__main__":
             train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, i + 1, True)
             
             model_name_pt = f"{model_name}_{i}"
+            use_resnet = model_id == 2
             pro_network = ProModel(
                 input_size=train_dataset.GetProInputSize(),
                 mutators=torch.empty(0),
                 data_prep=data_prep.pro_data_prep,
-                is_hitter=True,).to(device)
+                is_hitter=True,
+                use_resnet=use_resnet).to(device)
             col_network = ColModel(
                 input_size=train_dataset.GetColInputSize(),
                 data_prep=data_prep.college_data_prep,
                 is_hitter=True,
                 output_hidden_size=pro_network.GetHiddenSize(),
                 output_num_layers=pro_network.GetNumLayers(),
+                use_resnet=use_resnet
             ).to(device)
             
             best_loss, best_loss_college, best_epoch = TrainAndGraph(

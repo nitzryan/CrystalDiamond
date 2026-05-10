@@ -25,7 +25,7 @@ def TrainAndGraph(
     test_dataset : Combined_Player_Dataset,
     is_hitter : bool,
     num_epochs : int = 201,
-    batch_size : int = 1600,
+    batch_size : int = 1200,
     logging_interval : int = 10,
     should_output : bool = True,
     pro_model_name : str = "no_name_pro",
@@ -33,7 +33,7 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 10,
-) -> float:
+) -> tuple[float, float, int]:
     if SHOULD_PROFILE:
         profiler.enable()
     
