@@ -13,6 +13,7 @@ class PitchIO:
         data_overview : torch.Tensor,
         data_loc : torch.Tensor,
         data_stuff : torch.Tensor,
+        data_combined : torch.Tensor,
         data_pitcher_game : torch.Tensor,
         data_league_avg : torch.Tensor,
         
@@ -29,6 +30,7 @@ class PitchIO:
         self.data_overview = data_overview
         self.data_loc = data_loc
         self.data_stuff = data_stuff
+        self.data_combined = data_combined
         self.data_pitcher_game = data_pitcher_game
         self.data_league_avg = data_league_avg
         
@@ -45,6 +47,7 @@ class PitchDataset(torch.utils.data.Dataset):
                 data_overview : torch.Tensor,
                 data_loc : torch.Tensor,
                 data_stuff : torch.Tensor,
+                data_combined : torch.Tensor,
                 data_pitcher_game : torch.Tensor,
                 data_league_avg : torch.Tensor,
                 
@@ -62,6 +65,7 @@ class PitchDataset(torch.utils.data.Dataset):
         self.data_overview = data_overview.t().to(device=dataset_device, non_blocking=True)
         self.data_loc = data_loc.t().to(device=dataset_device, non_blocking=True)
         self.data_stuff = data_stuff.t().to(device=dataset_device, non_blocking=True)
+        self.data_combined = data_combined.t().to(device=dataset_device, non_blocking=True)
         self.data_pitcher_game = data_pitcher_game.t().to(device=dataset_device, non_blocking=True)
         self.data_league_avg = data_league_avg.t().to(device=dataset_device, non_blocking=True)
         
@@ -85,6 +89,7 @@ class PitchDataset(torch.utils.data.Dataset):
             self.data_overview[batch_indices],
             self.data_loc[batch_indices],
             self.data_stuff[batch_indices],
+            self.data_combined[batch_indices],
             self.data_pitcher_game[batch_indices],
             self.data_league_avg[batch_indices]
         )
@@ -125,12 +130,14 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
     data_overview_train     = torch.stack([io.data_overview     for io in io_train], dim=1)
     data_loc_train          = torch.stack([io.data_loc          for io in io_train], dim=1)
     data_stuff_train        = torch.stack([io.data_stuff        for io in io_train], dim=1)
+    data_combined_train     = torch.stack([io.data_combined     for io in io_train], dim=1)
     data_pitcher_game_train = torch.stack([io.data_pitcher_game for io in io_train], dim=1)
     data_league_avg_train   = torch.stack([io.data_league_avg   for io in io_train], dim=1)
 
     data_overview_test      = torch.stack([io.data_overview     for io in io_test], dim=1)
     data_loc_test           = torch.stack([io.data_loc          for io in io_test], dim=1)
     data_stuff_test         = torch.stack([io.data_stuff        for io in io_test], dim=1)
+    data_combined_test      = torch.stack([io.data_combined     for io in io_test], dim=1)
     data_pitcher_game_test  = torch.stack([io.data_pitcher_game for io in io_test], dim=1)
     data_league_avg_test    = torch.stack([io.data_league_avg   for io in io_test], dim=1)
 
@@ -153,6 +160,7 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_overview_train,
         data_loc_train,
         data_stuff_train,
+        data_combined_train,
         data_pitcher_game_train,
         data_league_avg_train,
         
@@ -171,6 +179,7 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_overview_test,
         data_loc_test,
         data_stuff_test,
+        data_combined_test,
         data_pitcher_game_test,
         data_league_avg_test,
         

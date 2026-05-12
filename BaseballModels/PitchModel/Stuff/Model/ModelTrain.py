@@ -42,7 +42,7 @@ def TrainAndGraph(
     
     scheduler = Scheduler(
         optimizer=network.optimizer,
-        parameter_map=[[0], [1], [2]],
+        parameter_map=[[0], [1], [2], [3], [4], [5]],
         verbose=False,
         factor=0.5,
         patience=5,
@@ -66,7 +66,7 @@ def TrainAndGraph(
             is_train=False)
         
         LogResults(epoch, num_epochs, train_losses[base_element], test_losses[base_element], logging_interval, should_output)
-        scheduler.step([test_losses[0], test_losses[len(_MODEL_OUTPUTS)], test_losses[2 * len(_MODEL_OUTPUTS)]])
+        scheduler.step(test_losses)
         
         for n in range(len(_TOTAL_OUTPUTS)):
             train_loss_history[n].append(train_losses[n])
@@ -151,15 +151,18 @@ def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : t
     if len(outputs) / len(targets) != len(_MODEL_VARIANTS):
         raise RuntimeError(f"Not the same number of outputs ({len(outputs)}) and targets ({len(targets)})")
     
-    losses = []
-    counts = []
+    losses : list[torch.Tensor] = []
+    counts : list[int] = []
     for i in range(len(outputs)):
         loss, count = Classification_Loss(outputs[i], targets[i % len(_MODEL_OUTPUTS)], masks[i % len(_MODEL_OUTPUTS)])
         losses.append(loss)
         counts.append(count)
         
     if should_backprop:
-        torch.autograd.backward(losses)
+        weighted_loss = sum(
+            w * loss for w, loss in zip(network.loss_backprop_weights, losses)
+        )
+        weighted_loss.backward()
         
     return losses, counts
 

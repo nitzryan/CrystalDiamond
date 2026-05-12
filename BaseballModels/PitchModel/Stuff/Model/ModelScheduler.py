@@ -2,9 +2,18 @@ from torch.optim import Optimizer
 from torch import inf
 
 class Model_Scheduler_ReduceOnPlateauGroups:
-    def __init__(self, optimizer, parameter_map : list[list[int]], mode='min', factor=0.5, patience=10,
-                 threshold=1e-4, threshold_mode='rel', cooldown=0,
-                 min_lr=0, eps=1e-8, verbose=False):
+    def __init__(self, 
+                optimizer, 
+                parameter_map : list[list[int]],
+                mode='min', 
+                factor=0.5, 
+                patience=10,
+                threshold=1e-4, 
+                threshold_mode='rel', 
+                cooldown=0,
+                min_lr=0, 
+                eps=1e-8, 
+                verbose=False):
 
         if factor >= 1.0:
             raise ValueError('Factor should be < 1.0.')

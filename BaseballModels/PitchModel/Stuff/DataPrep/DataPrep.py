@@ -14,6 +14,7 @@ _LOC_STRING = "loc"
 _STUFF_STRING = "stuff"
 _GAME_STRING = "game"
 _AVG_STRING = "avg"
+_COMB_STRING = "combined"
         
 SHOULD_PROFILE = False
    
@@ -60,6 +61,7 @@ class DataPrep:
         self.__Create_PCA_Norms(self.prep_map.pitch_overview_map, pitches, _OVERVIEW_STRING, self.prep_map.pitch_overview_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_loc_map, pitches, _LOC_STRING, self.prep_map.pitch_loc_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
+        self.__Create_PCA_Norms(self.prep_map.pitch_combined_map, pitches, _COMB_STRING, self.prep_map.pitch_combined_size)
        
         # Get average result for each bucket
         num_buckets = BUCKET_INPLAY_VALUE.size(0) + 1
@@ -120,12 +122,14 @@ class DataPrep:
         overview_stats = torch.tensor([self.prep_map.pitch_overview_map(x) for x in stats], dtype=DTYPE)
         loc_stats = torch.tensor([self.prep_map.pitch_loc_map(x) for x in stats], dtype=DTYPE)
         stuff_stats = torch.tensor([self.prep_map.pitch_stuff_map(x) for x in stats], dtype=DTYPE)
+        combined_stats = torch.tensor([self.prep_map.pitch_combined_map(x) for x in stats], dtype=DTYPE)
 
         overview_pca = self.Get_PCA_Transform(overview_stats, _OVERVIEW_STRING)
         loc_pca = self.Get_PCA_Transform(loc_stats, _LOC_STRING)
         stuff_pca = self.Get_PCA_Transform(stuff_stats, _STUFF_STRING)
+        combined_pca = self.Get_PCA_Transform(combined_stats, _COMB_STRING)
         
-        return overview_pca, loc_pca, stuff_pca
+        return overview_pca, loc_pca, stuff_pca, combined_pca
     
     def Transform_PitchGameData(self, games_dict : dict[(int, int), DB_PitcherStatcastGame], pitch_data : list[DB_PitchStatcast]) -> torch.Tensor:
         pitch_gamedata = torch.tensor([self.prep_map.pitcher_game_map(games_dict[p.GameId, p.PitcherId]) for p in pitch_data], dtype=DTYPE)
@@ -199,7 +203,7 @@ class DataPrep:
                 # Iterate through players
                 for id, pitch_data in player_pitch_dict.items():
                     data_pitcher_game = self.Transform_PitchGameData(pitcher_games_dict, pitch_data)
-                    data_overview, data_loc, data_stuff = self.Transform_PitchStats(pitch_data)
+                    data_overview, data_loc, data_stuff, data_combined = self.Transform_PitchStats(pitch_data)
 
                     # Iterate through pitches
                     io_list : list[PitchIO] = []
@@ -211,6 +215,7 @@ class DataPrep:
                             data_overview=data_overview[i],
                             data_loc=data_loc[i],
                             data_stuff=data_stuff[i],
+                            data_combined=data_combined[i],
                             data_pitcher_game=data_pitcher_game[i],
                             data_league_avg=data_pitch_averages,
                             output_type=DataPrep.GetOutputType(pitch),
