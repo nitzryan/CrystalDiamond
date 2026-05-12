@@ -19,3 +19,11 @@ pitch_db = sqlite3.connect(__PITCH_DB_PATH)
 DTYPE = torch.float32
 
 profiler = LineProfiler()
+
+# Pitch Results
+PITCH_RESULT_CALLEDSTRIKE = 0
+PITCH_RESULT_SWINGSTRIKE = 1
+PITCH_RESULT_FOUL = 2
+PITCH_RESULT_BALL = 3
+PITCH_RESULT_INPLAY = 4
+PITCH_RESULT_HBP = 5

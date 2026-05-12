@@ -10,7 +10,7 @@ from Stuff.Model.ModelScheduler import Model_Scheduler_ReduceOnPlateauGroups as 
 from Constants import profiler
 
 _MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
-_MODEL_OUTPUTS = ["Value", "Swung", "Contact", "InPlay"]
+_MODEL_OUTPUTS = ["Result", "InPlay"]
 _TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
 
 SHOULD_PROFILE = False
@@ -117,45 +117,51 @@ def TrainTest(network : PitchModel,
         indices = torch.arange(total_size, device='cpu')
         
     avg_losses = [0] * len(_TOTAL_OUTPUTS)
+    sizes = [0] * len(_TOTAL_OUTPUTS)
     for i in range(0, total_size, batch_size):
         # Fetch Data
         batch_idx = indices[i:i + batch_size]
-        _, data, targets = dataset.GetEntries(batch_idx)
+        _, data, targets, masks = dataset.GetEntries(batch_idx)
         
         data = tuple(d.to(device, non_blocking=True) for d in data)
         targets = tuple(t.to(device, non_blocking=True) for t in targets)
+        masks = tuple(m.to(device, non_blocking=True) for m in masks)
         
         # Run through model, get losses
         if is_train:
             optimizer.zero_grad()
-        losses = GetLosses(network, data, targets, is_train)
+        losses, counts = GetLosses(network, data, targets, masks, is_train)
         
         if is_train:
             torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
             optimizer.step()
         
         for i in range(len(_TOTAL_OUTPUTS)):
-            avg_losses[i] += losses[i].item()
+            avg_losses[i] += losses[i].item() * counts[i]
+            sizes[i] += counts[i]
             
     for i in range(len(_TOTAL_OUTPUTS)):
-        avg_losses[i] /= total_size
+        avg_losses[i] /= sizes[i]
     return avg_losses
         
 @profiler
-def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], should_backprop : bool) -> list[torch.Tensor]:
+def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], masks : tuple[torch.Tensor, ...], should_backprop : bool) -> tuple[list[torch.Tensor], list[int]]:
     outputs = network(data)
     
     if len(outputs) / len(targets) != len(_MODEL_VARIANTS):
         raise RuntimeError(f"Not the same number of outputs ({len(outputs)}) and targets ({len(targets)})")
     
     losses = []
+    counts = []
     for i in range(len(outputs)):
-        losses.append(Classification_Loss(outputs[i], targets[i % len(_MODEL_OUTPUTS)]))
+        loss, count = Classification_Loss(outputs[i], targets[i % len(_MODEL_OUTPUTS)], masks[i % len(_MODEL_OUTPUTS)])
+        losses.append(loss)
+        counts.append(count)
         
     if should_backprop:
         torch.autograd.backward(losses)
         
-    return losses
+    return losses, counts
 
 def LogResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, should_output=True):
     if should_output and (epoch%print_interval == 0):  

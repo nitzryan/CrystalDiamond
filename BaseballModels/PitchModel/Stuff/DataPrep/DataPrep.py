@@ -48,7 +48,8 @@ class DataPrep:
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
         
-        self.conditional_statement = self.conditional_statement[:-4]
+        self.conditional_statement += "PitchType=1 "
+        #self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
             cursor=cursor,
@@ -61,14 +62,14 @@ class DataPrep:
         self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
        
         # Get average result for each bucket
-        num_buckets = BUCKET_PITCHVALUE.size(0) + 1
+        num_buckets = BUCKET_INPLAY_VALUE.size(0) + 1
         entries_in_bucket = torch.zeros(num_buckets, dtype=torch.long)
         value_in_bucket = torch.zeros_like(entries_in_bucket, dtype=torch.float64)
-        buckets = torch.bucketize(torch.tensor([p.RunValueHitter for p in pitches]), BUCKET_PITCHVALUE)
-        for i, pitch in enumerate(pitches):
-            bucket = buckets[i].item()
-            entries_in_bucket[bucket] += 1
-            value_in_bucket[bucket] += pitch.RunValueHitter
+        for pitch in pitches:
+            bucket, isinplay = DataPrep.GetInPlayBucket(pitch)
+            if isinplay == 1:
+                entries_in_bucket[bucket] += 1
+                value_in_bucket[bucket] += pitch.RunValueSmoothedHitter
         self.bucket_value = value_in_bucket / entries_in_bucket
        
         # Get pitcher game averages
@@ -136,6 +137,16 @@ class DataPrep:
         avg_pca = self.Get_PCA_Transform(data_avg, _AVG_STRING).squeeze()
         return avg_pca
     
+    @staticmethod
+    def GetOutputType(pitch : DB_PitchStatcast) -> int:
+        return pitch.Result - 1
+    
+    @staticmethod
+    def GetInPlayBucket(pitch : DB_PitchStatcast) -> tuple[int, int]:
+        if pitch.Result == 5:
+            return torch.bucketize(torch.tensor([pitch.RunValueSmoothedHitter]), BUCKET_INPLAY_VALUE), 1
+        return 0, 0
+    
     @profiler
     def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2023, end_month : int = 13, mlb_only : bool = True) -> list[list[PitchIO]]:
         cursor = db.cursor()
@@ -193,6 +204,7 @@ class DataPrep:
                     # Iterate through pitches
                     io_list : list[PitchIO] = []
                     for i, pitch in enumerate(pitch_data):
+                        inplay_bucket, inplay_mask = DataPrep.GetInPlayBucket(pitch)
                         io_list.append(PitchIO(
                             game_id=pitch.GameId,
                             pitch_num=pitch.PitchId,
@@ -201,10 +213,9 @@ class DataPrep:
                             data_stuff=data_stuff[i],
                             data_pitcher_game=data_pitcher_game[i],
                             data_league_avg=data_pitch_averages,
-                            output_value=torch.bucketize(torch.tensor([pitch.RunValueSmoothedHitter]), BUCKET_PITCHVALUE).item(),
-                            output_swung=pitch.HadSwing,
-                            output_contact=pitch.HadContact,
-                            output_inplay=pitch.IsInPlay
+                            output_type=DataPrep.GetOutputType(pitch),
+                            output_inplay=inplay_bucket,
+                            mask_inplay = inplay_mask
                         ))
                     
                     if not id in pitcher_dict:

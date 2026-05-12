@@ -19,14 +19,14 @@ class PitchModel(nn.Module):
                 location_branch_size : int = 55,
                 stuff_branch_size : int = 55,
                 
-                combined_pred_size_value : int = 50,
-                combined_pred_blocks_value : int = 8,
+                combined_pred_size_result : int = 10,
+                combined_pred_blocks_result : int = 8,
                 
-                location_pred_size_value : int = 50,
-                location_pred_blocks_value : int = 8,
+                location_pred_size_result : int = 10,
+                location_pred_blocks_result : int = 8,
                 
-                stuff_pred_size_value : int = 30,
-                stuff_pred_blocks_value : int = 8,
+                stuff_pred_size_result : int = 10,
+                stuff_pred_blocks_result : int = 8,
                 
                 location_init_size : int = 50,
                 location_init_layers : int = 4,
@@ -60,24 +60,24 @@ class PitchModel(nn.Module):
         self.location_pred = PitcherPredLayers(
             input_size=location_branch_size,
             
-            block_size_value=location_pred_size_value,
-            num_layers_value=location_pred_blocks_value,
+            block_size_result=location_pred_size_result,
+            num_layers_result=location_pred_blocks_result,
         )
             
         # Prediction layers for stuff only
         self.stuff_pred = PitcherPredLayers(
             input_size=stuff_branch_size,
             
-            block_size_value=stuff_pred_size_value,
-            num_layers_value=stuff_pred_blocks_value,
+            block_size_result=stuff_pred_size_result,
+            num_layers_result=stuff_pred_blocks_result,
         )
         
         # Prediction layers for location + stuff
         self.combined_pred = PitcherPredLayers(
             input_size=location_branch_size + stuff_branch_size,
             
-            block_size_value=combined_pred_size_value,
-            num_layers_value=combined_pred_blocks_value,
+            block_size_result=combined_pred_size_result,
+            num_layers_result=combined_pred_blocks_result,
         )
         
         # Set parameter groups to allow for sub-parts of network to set learning rates independently
