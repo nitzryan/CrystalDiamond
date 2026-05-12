@@ -7,22 +7,24 @@ class PitcherPredLayers(nn.Module):
                 input_size : int,
                 block_size_result : int = 50,
                 num_layers_result : int = 2,
+                dropout_result : float = 0.2,
                 
-                block_size_inplay : int = 5,
+                block_size_inplay : int = 30,
                 num_layers_inplay : int = 2,
+                dropout_inplay : float = 0.4,
                 
                 ):
         super().__init__()
         
         self.result_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_result)] +
-            [ResnetBlock(dim=block_size_result) for _ in range(num_layers_result)] +
+            [ResnetBlock(dim=block_size_result, dropout=dropout_result) for _ in range(num_layers_result)] +
             [nn.Linear(block_size_result, 6)]
         )
         
         self.inplay_modules = nn.ModuleList(
             [nn.Linear(input_size, block_size_inplay)] +
-            [ResnetBlock(dim=block_size_inplay) for _ in range(num_layers_inplay)] +
+            [ResnetBlock(dim=block_size_inplay, dropout=dropout_inplay) for _ in range(num_layers_inplay)] +
             [nn.Linear(block_size_inplay, BUCKET_INPLAY_VALUE.size(0) + 1)]
         )
         
