@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
 from Constants import device
@@ -10,7 +11,7 @@ from Stuff.Model.ModelScheduler import Model_Scheduler_ReduceOnPlateauGroups as 
 from Constants import profiler
 
 _MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
-_MODEL_OUTPUTS = ["Result", "InPlay"]
+_MODEL_OUTPUTS = ["Result", "SwingResults", "InPlay"]
 _TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
 
 SHOULD_PROFILE = False
@@ -42,7 +43,7 @@ def TrainAndGraph(
     
     scheduler = Scheduler(
         optimizer=network.optimizer,
-        parameter_map=[[0], [1], [2], [3], [4], [5]],
+        parameter_map=[[0], [1], [2], [3], [4], [5], [6], [7], [8]],
         verbose=False,
         factor=0.5,
         patience=5,
@@ -123,9 +124,9 @@ def TrainTest(network : PitchModel,
         batch_idx = indices[i:i + batch_size]
         _, data, targets, masks = dataset.GetEntries(batch_idx)
         
-        data = tuple(d.to(device, non_blocking=True) for d in data)
-        targets = tuple(t.to(device, non_blocking=True) for t in targets)
-        masks = tuple(m.to(device, non_blocking=True) for m in masks)
+        data = tuple(d.to(device, non_blocking=False) for d in data)
+        targets = tuple(t.to(device, non_blocking=False) for t in targets)
+        masks = tuple(m.to(device, non_blocking=False) for m in masks)
         
         # Run through model, get losses
         if is_train:
@@ -159,10 +160,7 @@ def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : t
         counts.append(count)
         
     if should_backprop:
-        weighted_loss = sum(
-            w * loss for w, loss in zip(network.loss_backprop_weights, losses)
-        )
-        weighted_loss.backward()
+        torch.autograd.backward(losses)
         
     return losses, counts
 
@@ -170,7 +168,7 @@ def LogResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, sh
     if should_output and (epoch%print_interval == 0):  
         print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch+1, num_epochs, train_loss, test_loss))
         
-def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 2, graph_y_range=None, title=""):
+def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 0, graph_y_range=None, title=""):
     plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
     plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')
     plt.title(title)
@@ -179,5 +177,10 @@ def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
     plt.xlabel('#Epochs')
     plt.ylabel(loss_name)
+    plt.yscale('log')
+    plt.gca().yaxis.set_major_formatter(mticker.ScalarFormatter())
+    plt.gca().yaxis.get_major_formatter().set_scientific(False)
+    plt.gca().yaxis.get_major_formatter().set_useOffset(False)
+    plt.gca().yaxis.set_minor_formatter(mticker.ScalarFormatter())
     plt.show()
     plt.clf()

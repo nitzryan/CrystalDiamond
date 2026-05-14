@@ -19,9 +19,11 @@ class PitchIO:
         
         # Output for model
         output_type : int,
+        output_swing : int,
         output_inplay : int,
         
         # Masks for model
+        mask_swing : float,
         mask_inplay : float
     ):
         self.game_id = game_id
@@ -35,8 +37,10 @@ class PitchIO:
         self.data_league_avg = data_league_avg
         
         self.output_type = output_type
+        self.output_swing = output_swing
         self.output_inplay = output_inplay
         
+        self.mask_swing = mask_swing
         self.mask_inplay = mask_inplay
 
 class PitchDataset(torch.utils.data.Dataset):
@@ -52,8 +56,10 @@ class PitchDataset(torch.utils.data.Dataset):
                 data_league_avg : torch.Tensor,
                 
                 output_type : torch.Tensor,
+                output_swing : torch.Tensor,
                 output_inplay : torch.Tensor,
                 
+                mask_swing : torch.Tensor,
                 mask_inplay : torch.Tensor,
                 
                 dataset_device = device
@@ -70,14 +76,16 @@ class PitchDataset(torch.utils.data.Dataset):
         self.data_league_avg = data_league_avg.t().to(device=dataset_device, non_blocking=True)
         
         self.output_type = output_type.to(device=dataset_device, non_blocking=True)
+        self.output_swing = output_swing.to(device=dataset_device, non_blocking=True)
         self.output_inplay = output_inplay.to(device=dataset_device, non_blocking=True)
         
+        self.mask_swing = mask_swing.to(device=dataset_device, non_blocking=True)
         self.mask_inplay = mask_inplay.to(device=dataset_device, non_blocking=True)
         
     def __len__(self):
         return self.data_overview.size(dim=0)
     
-    def GetEntries(self, batch_indices : torch.Tensor) -> tuple[tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...]]:
+    def GetEntries(self, batch_indices : torch.Tensor) -> tuple[tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...]]:
         # Mappings used to connect data to specific pitch
         mappings = (
             self.mapping_game_ids[batch_indices],
@@ -97,12 +105,14 @@ class PitchDataset(torch.utils.data.Dataset):
         # Data used to evaluate model
         targets = (
             self.output_type[batch_indices],
+            self.output_swing[batch_indices],
             self.output_inplay[batch_indices],
         )
         
         # Masks to turn parts of model on/off
         masks = (
             torch.ones(batch_indices.shape[0], dtype=torch.float, device=self.mask_inplay.device),
+            self.mask_swing[batch_indices],
             self.mask_inplay[batch_indices],
         )
         
@@ -145,13 +155,18 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
     # ==================== TARGETS / OUTPUTS ====================
 
     output_type_train       = torch.tensor([io.output_type     for io in io_train])
+    output_swing_train      = torch.tensor([io.output_swing    for io in io_train])
     output_inplay_train     = torch.tensor([io.output_inplay     for io in io_train])
 
     output_type_test        = torch.tensor([io.output_type     for io in io_test])
+    output_swing_test       = torch.tensor([io.output_swing    for io in io_test])
     output_inplay_test      = torch.tensor([io.output_inplay     for io in io_test])
     
     mask_inplay_train       = torch.tensor([io.mask_inplay     for io in io_train])
+    mask_swing_train        = torch.tensor([io.mask_swing      for io in io_train])
+    
     mask_inplay_test       = torch.tensor([io.mask_inplay     for io in io_test])
+    mask_swing_test        = torch.tensor([io.mask_swing      for io in io_test])
     
     train_dataset = PitchDataset(
         mapping_game_ids_train,
@@ -165,8 +180,10 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_league_avg_train,
         
         output_type_train,
+        output_swing_train,
         output_inplay_train,
         
+        mask_swing_train,
         mask_inplay_train,
         
         dataset_device=dataset_device,
@@ -184,8 +201,10 @@ def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, rando
         data_league_avg_test,
         
         output_type_test,
+        output_swing_test,
         output_inplay_test,
         
+        mask_swing_test,
         mask_inplay_test,
         
         dataset_device=dataset_device,

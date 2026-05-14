@@ -17,54 +17,47 @@ class PitchModel(nn.Module):
     def __init__(self,
                 data_prep : DataPrep,
                 
-                loss_backprop_weights : list[float] = [1, 0.1, 1, 0.1, 1, 0.1],
+                loss_backprop_weights : list[float] = [1, 1, 0.1, 1, 1, 0.1, 1, 1, 0.1],
                 
                 ########## PRED BLOCKS ##########
                 ## Combined ##
                 combined_pred_size_result : int = 256,
                 combined_pred_blocks_result : int = 2,
-                combined_pred_dropout_result : float = 0.4,
+                combined_pred_dropout_result : float = 0.3,
+                
+                combined_pred_size_swing : int = 16,
+                combined_pred_blocks_swing : int = 2,
+                combined_pred_dropout_swing : float = 0.3,
                 
                 combined_pred_size_inplay : int = 128,
                 combined_pred_blocks_inplay : int = 2,
-                combined_pred_dropout_inplay : float = 0.4,
+                combined_pred_dropout_inplay : float = 0.3,
                 
                 ## Location ##
                 location_pred_size_result : int = 256,
                 location_pred_blocks_result : int = 4,
-                location_pred_dropout_result = 0.2,
+                location_pred_dropout_result = 0.3,
+                
+                location_pred_size_swing : int = 16,
+                location_pred_blocks_swing : int = 4,
+                location_pred_dropout_swing : float = 0.3,
                 
                 location_pred_size_inplay : int = 128,
                 location_pred_blocks_inplay : int = 2,
-                location_pred_dropout_inplay : float = 0.4,
+                location_pred_dropout_inplay : float = 0.3,
                 
                 ## Stuff ##
                 stuff_pred_size_result : int = 128,
                 stuff_pred_blocks_result : int = 2,
-                stuff_pred_dropout_result : float = 0.4,
+                stuff_pred_dropout_result : float = 0.3,
+                
+                stuff_pred_size_swing : int = 16,
+                stuff_pred_blocks_swing : int = 2,
+                stuff_pred_dropout_swing : float = 0.3,
                 
                 stuff_pred_size_inplay : int = 128,
                 stuff_pred_blocks_inplay : int = 2,
-                stuff_pred_dropout_inplay : float = 0.4,
-                
-                ########## INIT BLOCKS ##########
-                ## Location ##
-                location_init_size : int = 256,
-                location_init_layers : int = 4,
-                location_branch_size : int = 512,
-                location_init_dropout : float = 0.1,
-                
-                ## Stuff ##
-                stuff_init_size : int = 256,
-                stuff_init_layers : int = 4,
-                stuff_branch_size : int = 512,
-                stuff_init_dropout : float = 0.1,
-                
-                ## Combined
-                combined_init_size : int = 256,
-                combined_init_layers : int = 4,
-                combined_branch_size : int = 512,
-                combined_init_dropout : float = 0.1
+                stuff_pred_dropout_inplay : float = 0.3,
     ):
         super().__init__()
         
@@ -72,40 +65,17 @@ class PitchModel(nn.Module):
         self.loss_backprop_weights = loss_backprop_weights
         self.nonlin = F.leaky_relu
         
-        # Location and pitch overview
-        self.location_block = LayerArch(
-            input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size,
-            num_blocks=location_init_layers,
-            block_dim=location_init_size,
-            output_size=location_branch_size,
-            dropout=location_init_dropout
-        )
-        
-        # Stuff and Pitch Overview
-        self.stuff_block = LayerArch(
-            input_size=prep_map.pitch_stuff_size + prep_map.pitch_overview_size + prep_map.pitcher_game_size + prep_map.league_baseline_size,
-            num_blocks=stuff_init_layers,
-            block_dim=stuff_init_size,
-            output_size=location_branch_size,
-            dropout=stuff_init_dropout
-        )
-        
-        # Data only for pitch model (combines movement and location)
-        self.combined_block = LayerArch(
-            input_size=prep_map.pitch_combined_size,
-            num_blocks=combined_init_layers,
-            block_dim=combined_init_size,
-            output_size=combined_branch_size,
-            dropout=combined_init_dropout,
-        )
-        
         # Prediction layers for Location only
         self.location_pred = PitcherPredLayers(
-            input_size=location_branch_size,
+            input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size,
             
             block_size_result=location_pred_size_result,
             num_layers_result=location_pred_blocks_result,
             dropout_result=location_pred_dropout_result,
+            
+            block_size_swing=location_pred_size_swing,
+            num_layers_swing=location_pred_blocks_swing,
+            dropout_swing=location_pred_dropout_swing,
             
             block_size_inplay=location_pred_size_inplay,
             num_layers_inplay=location_pred_blocks_inplay,
@@ -114,11 +84,15 @@ class PitchModel(nn.Module):
             
         # Prediction layers for stuff only
         self.stuff_pred = PitcherPredLayers(
-            input_size=stuff_branch_size,
+            input_size=prep_map.pitch_stuff_size + prep_map.pitch_overview_size + prep_map.league_baseline_size,
             
             block_size_result=stuff_pred_size_result,
             num_layers_result=stuff_pred_blocks_result,
             dropout_result=stuff_pred_dropout_result,
+            
+            block_size_swing=stuff_pred_size_swing,
+            num_layers_swing=stuff_pred_blocks_swing,
+            dropout_swing=stuff_pred_dropout_swing,
             
             block_size_inplay=stuff_pred_size_inplay,
             num_layers_inplay=stuff_pred_blocks_inplay,
@@ -127,11 +101,17 @@ class PitchModel(nn.Module):
         
         # Prediction layers for location + stuff
         self.combined_pred = PitcherPredLayers(
-            input_size=location_branch_size + stuff_branch_size + combined_branch_size,
+            input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size + \
+                prep_map.pitch_stuff_size + prep_map.league_baseline_size + \
+                    prep_map.pitch_combined_size,
             
             block_size_result=combined_pred_size_result,
             num_layers_result=combined_pred_blocks_result,
             dropout_result=combined_pred_dropout_result,
+            
+            block_size_swing=combined_pred_size_swing,
+            num_layers_swing=combined_pred_blocks_swing,
+            dropout_swing=combined_pred_dropout_swing,
             
             block_size_inplay=combined_pred_size_inplay,
             num_layers_inplay=combined_pred_blocks_inplay,
@@ -139,9 +119,13 @@ class PitchModel(nn.Module):
         )
         
         # Set parameter groups to allow for sub-parts of network to set learning rates independently
-        stuff_result_parameters = GetParameters([self.stuff_block, self.stuff_pred.result_modules])
-        location_result_parameters = GetParameters([self.location_block, self.location_pred.result_modules])
-        combined_result_parameters = GetParameters([self.combined_block, self.combined_pred.result_modules])
+        stuff_result_parameters = GetParameters(self.stuff_pred.result_modules)
+        location_result_parameters = GetParameters(self.location_pred.result_modules)
+        combined_result_parameters = GetParameters(self.combined_pred.result_modules)
+        
+        stuff_swing_parameters = GetParameters(self.stuff_pred.swing_modules)
+        location_swing_parameters = GetParameters(self.location_pred.swing_modules)
+        combined_swing_parameters = GetParameters(self.combined_pred.swing_modules)
         
         stuff_inplay_parameters = GetParameters(self.stuff_pred.inplay_modules)
         location_inplay_parameters = GetParameters(self.location_pred.inplay_modules)
@@ -149,12 +133,15 @@ class PitchModel(nn.Module):
         
         self.optimizer = torch.optim.AdamW([
             {'params': location_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
+            {'params': location_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
             {'params': location_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4},
             
             {'params' : stuff_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
+            {'params' : stuff_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
             {'params' : stuff_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4},
             
             {'params': combined_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
+            {'params': combined_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
             {'params': combined_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4}
         ])
         
@@ -162,20 +149,15 @@ class PitchModel(nn.Module):
         overview, location, stuff, combined, game, league_avg = data
         # Location
         data_location = torch.cat((overview, location), dim=-1)
-        inter_location = self.location_block(data_location)
+        output_location = self.location_pred(data_location)
         
         # Stuff
-        data_stuff = torch.cat((overview, stuff, game, league_avg), dim=-1)
-        inter_stuff = self.stuff_block(data_stuff)
+        data_stuff = torch.cat((overview, stuff, league_avg), dim=-1)
+        output_stuff = self.stuff_pred(data_stuff)
         
         # Combined
-        inter_combined = self.combined_block(combined)
-        inter_comb = torch.cat((inter_combined, inter_location, inter_stuff), dim=-1)
-        
-        # Location only ouput layers
-        output_location = self.location_pred(inter_location)
-        output_stuff = self.stuff_pred(inter_stuff)
-        output_combined = self.combined_pred(inter_comb)
+        data_combined = torch.cat((overview, location, stuff, league_avg, combined), dim=-1)
+        output_combined = self.combined_pred(data_combined)
         
         return output_location + output_stuff + output_combined
             

@@ -11,4 +11,5 @@ def Classification_Loss(pred : torch.Tensor, actual : torch.Tensor, mask : torch
     loss = nn.CrossEntropyLoss(reduction='none')
     l = loss(pred, actual)
     l *= mask
+    
     return l.sum() / mask.sum(), mask.sum().item()

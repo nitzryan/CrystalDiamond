@@ -47,11 +47,8 @@ __map_pitch_combined : Callable[[DB_PitchStatcast], list[float]] = \
 __size_combined = 6
 
 __map_league_baseline : Callable[[DB_PitchDateAverages], list[float]] = \
-    lambda p : [p.Extension, \
-        p.FastballVelo, p.Fastball4SeamVert, p.Fastball4SeamHoriz, \
-        p.SinkerVelo, p.SinkerVert, p.SinkerHoriz, \
-        p.CurveballVelo, p.CurveballVert, p.CurveballHoriz]
-__size_baseline = 10
+    lambda p : [p.FastballVelo, p.Fastball4SeamVert]
+__size_baseline = 2
 
 __map_pitcher_game : Callable[[DB_PitcherStatcastGame], list[float]] = \
     lambda g: [

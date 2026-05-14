@@ -49,7 +49,7 @@ class DataPrep:
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
         
-        self.conditional_statement += "PitchType=1 "
+        self.conditional_statement += "PitchType=1 AND Year=2023 "
         #self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
@@ -141,14 +141,33 @@ class DataPrep:
         avg_pca = self.Get_PCA_Transform(data_avg, _AVG_STRING).squeeze()
         return avg_pca
     
+    # Map to <Called Strike, Ball, HBP, Swung>
     @staticmethod
     def GetOutputType(pitch : DB_PitchStatcast) -> int:
-        return pitch.Result - 1
+        if pitch.Result == 1:
+            return 0
+        if pitch.Result == 4:
+            return 1
+        if pitch.Result == 6:
+            return 2
+        return 3
     
+    # Map balls hit in play to expected runs bucket
     @staticmethod
     def GetInPlayBucket(pitch : DB_PitchStatcast) -> tuple[int, int]:
         if pitch.Result == 5:
             return torch.bucketize(torch.tensor([pitch.RunValueSmoothedHitter]), BUCKET_INPLAY_VALUE), 1
+        return 0, 0
+    
+    # Map swung balls to <Whiff, Foul, InPlay>
+    @staticmethod
+    def GetSwingBucket(pitch : DB_PitchStatcast) -> tuple[int, int]:
+        if pitch.Result == 2:
+            return 0, 1
+        if pitch.Result == 3:
+            return 1, 1
+        if pitch.Result == 5:
+            return 2, 1
         return 0, 0
     
     @profiler
@@ -209,6 +228,8 @@ class DataPrep:
                     io_list : list[PitchIO] = []
                     for i, pitch in enumerate(pitch_data):
                         inplay_bucket, inplay_mask = DataPrep.GetInPlayBucket(pitch)
+                        swing_bucket, swing_mask = DataPrep.GetSwingBucket(pitch)
+                        
                         io_list.append(PitchIO(
                             game_id=pitch.GameId,
                             pitch_num=pitch.PitchId,
@@ -219,7 +240,9 @@ class DataPrep:
                             data_pitcher_game=data_pitcher_game[i],
                             data_league_avg=data_pitch_averages,
                             output_type=DataPrep.GetOutputType(pitch),
+                            output_swing=swing_bucket,
                             output_inplay=inplay_bucket,
+                            mask_swing=swing_mask,
                             mask_inplay = inplay_mask
                         ))
                     
