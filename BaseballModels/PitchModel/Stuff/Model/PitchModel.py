@@ -21,42 +21,42 @@ class PitchModel(nn.Module):
                 
                 ########## PRED BLOCKS ##########
                 ## Combined ##
-                combined_pred_size_result : int = 256,
-                combined_pred_blocks_result : int = 2,
-                combined_pred_dropout_result : float = 0.3,
+                combined_pred_size_result : int = 64,
+                combined_pred_blocks_result : int = 8,
+                combined_pred_dropout_result : float = 0.1,
                 
-                combined_pred_size_swing : int = 16,
+                combined_pred_size_swing : int = 64,
                 combined_pred_blocks_swing : int = 2,
-                combined_pred_dropout_swing : float = 0.3,
+                combined_pred_dropout_swing : float = 0.1,
                 
-                combined_pred_size_inplay : int = 128,
-                combined_pred_blocks_inplay : int = 2,
+                combined_pred_size_inplay : int = 64,
+                combined_pred_blocks_inplay : int = 8,
                 combined_pred_dropout_inplay : float = 0.3,
                 
                 ## Location ##
-                location_pred_size_result : int = 256,
-                location_pred_blocks_result : int = 4,
-                location_pred_dropout_result = 0.3,
+                location_pred_size_result : int = 128,
+                location_pred_blocks_result : int = 8,
+                location_pred_dropout_result = 0.1,
                 
-                location_pred_size_swing : int = 16,
+                location_pred_size_swing : int = 128,
                 location_pred_blocks_swing : int = 4,
-                location_pred_dropout_swing : float = 0.3,
+                location_pred_dropout_swing : float = 0.1,
                 
-                location_pred_size_inplay : int = 128,
-                location_pred_blocks_inplay : int = 2,
+                location_pred_size_inplay : int = 64,
+                location_pred_blocks_inplay : int = 8,
                 location_pred_dropout_inplay : float = 0.3,
                 
                 ## Stuff ##
-                stuff_pred_size_result : int = 128,
+                stuff_pred_size_result : int = 64,
                 stuff_pred_blocks_result : int = 2,
                 stuff_pred_dropout_result : float = 0.3,
                 
-                stuff_pred_size_swing : int = 16,
+                stuff_pred_size_swing : int = 64,
                 stuff_pred_blocks_swing : int = 2,
-                stuff_pred_dropout_swing : float = 0.3,
+                stuff_pred_dropout_swing : float = 0.1,
                 
-                stuff_pred_size_inplay : int = 128,
-                stuff_pred_blocks_inplay : int = 2,
+                stuff_pred_size_inplay : int = 64,
+                stuff_pred_blocks_inplay : int = 8,
                 stuff_pred_dropout_inplay : float = 0.3,
     ):
         super().__init__()

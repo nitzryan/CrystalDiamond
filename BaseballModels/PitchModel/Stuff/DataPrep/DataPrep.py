@@ -49,7 +49,7 @@ class DataPrep:
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
         
-        self.conditional_statement += "PitchType=1 AND Year=2023 "
+        self.conditional_statement += "(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16) "
         #self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
@@ -90,7 +90,7 @@ class DataPrep:
         )
         self.__Create_PCA_Norms(self.prep_map.league_baseline_map, date_avg, _AVG_STRING, self.prep_map.league_baseline_size)
        
-    __CutoffYear = 2023
+    __CutoffYear = 2024
         
     def Get_ZScore(self, stats : torch.Tensor, name : str) -> torch.Tensor:
         means : torch.Tensor = getattr(self, f"__{name}_means")
@@ -171,7 +171,7 @@ class DataPrep:
         return 0, 0
     
     @profiler
-    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2023, end_month : int = 13, mlb_only : bool = True) -> list[list[PitchIO]]:
+    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2024, end_month : int = 13, mlb_only : bool = True) -> list[list[PitchIO]]:
         cursor = db.cursor()
         pitcher_dict : dict[int, list[PitchIO]] = {}
         
