@@ -11,8 +11,8 @@ import gc
 from Constants import device
 
 if __name__ == "__main__":
-    pro_hidden_sizes = range(15, 106, 10)
-    pro_num_layers = range(3, 12, 2)
+    pro_hidden_sizes = [16, 32, 64, 128, 256, 512]
+    pro_num_layers = [1, 2, 4, 8, 16]
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 is_hitter=True,
                 output_hidden_size=hidden_size,
                 output_num_layers=num_layers,
-                use_resnet=True,
+                use_resnet=False,
             ).to(device)
             pro_model = Pro_Model(
                 input_size=train_dataset.GetProInputSize(),
@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 mutators=torch.empty(0),
                 data_prep=data_prep.pro_data_prep,
                 is_hitter=True,
-                use_resnet=True
+                use_resnet=False
             ).to(device)
             
             best_loss, _, _ = TrainAndGraph(
@@ -82,8 +82,6 @@ if __name__ == "__main__":
         fmt='.3f',
         cmap='viridis',
         linewidths=0.5,
-        xticklabels=[round(x) for x in pro_hidden_sizes],
-        yticklabels=[round(y) for y in pro_num_layers],
     )
     plt.xlabel('Hidden Size')
     plt.ylabel('Num Layers')
