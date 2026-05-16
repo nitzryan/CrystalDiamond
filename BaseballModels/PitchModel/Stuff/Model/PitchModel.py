@@ -19,45 +19,55 @@ class PitchModel(nn.Module):
                 
                 loss_backprop_weights : list[float] = [1, 1, 0.1, 1, 1, 0.1, 1, 1, 0.1],
                 
+                
                 ########## PRED BLOCKS ##########
                 ## Combined ##
                 combined_pred_size_result : int = 64,
                 combined_pred_blocks_result : int = 8,
                 combined_pred_dropout_result : float = 0.1,
+                combined_result_weight_decay : float = 1e-4,
                 
                 combined_pred_size_swing : int = 64,
                 combined_pred_blocks_swing : int = 2,
                 combined_pred_dropout_swing : float = 0.1,
+                combined_swing_weight_decay : float = 1e-4,
                 
                 combined_pred_size_inplay : int = 64,
                 combined_pred_blocks_inplay : int = 8,
                 combined_pred_dropout_inplay : float = 0.3,
+                combined_inplay_weight_decay : float = 1e-4,
                 
                 ## Location ##
                 location_pred_size_result : int = 128,
                 location_pred_blocks_result : int = 8,
                 location_pred_dropout_result = 0.1,
+                location_result_weight_decay : float = 1e-4,
                 
                 location_pred_size_swing : int = 128,
                 location_pred_blocks_swing : int = 4,
                 location_pred_dropout_swing : float = 0.1,
+                location_swing_weight_decay : float = 1e-4,
                 
                 location_pred_size_inplay : int = 64,
                 location_pred_blocks_inplay : int = 8,
                 location_pred_dropout_inplay : float = 0.3,
+                location_inplay_weight_decay : float = 1e-4,
                 
                 ## Stuff ##
                 stuff_pred_size_result : int = 64,
                 stuff_pred_blocks_result : int = 2,
                 stuff_pred_dropout_result : float = 0.3,
+                stuff_result_weight_decay : float = 1e-4,
                 
                 stuff_pred_size_swing : int = 64,
                 stuff_pred_blocks_swing : int = 2,
                 stuff_pred_dropout_swing : float = 0.1,
+                stuff_swing_weight_decay : float = 1e-4,
                 
                 stuff_pred_size_inplay : int = 64,
                 stuff_pred_blocks_inplay : int = 8,
                 stuff_pred_dropout_inplay : float = 0.3,
+                stuff_inplay_weight_decay : float = 1e-4,
     ):
         super().__init__()
         
@@ -132,17 +142,17 @@ class PitchModel(nn.Module):
         combined_inplay_parameters = GetParameters(self.combined_pred.inplay_modules)
         
         self.optimizer = torch.optim.AdamW([
-            {'params': location_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
-            {'params': location_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
-            {'params': location_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4},
+            {'params': location_result_parameters, 'lr': 0.005, 'weight_decay': location_result_weight_decay},
+            {'params': location_swing_parameters, 'lr': 0.005, 'weight_decay': location_swing_weight_decay},
+            {'params': location_inplay_parameters, 'lr': 0.001, 'weight_decay': location_inplay_weight_decay},
             
-            {'params' : stuff_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
-            {'params' : stuff_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
-            {'params' : stuff_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4},
+            {'params' : stuff_result_parameters, 'lr': 0.005, 'weight_decay': stuff_result_weight_decay},
+            {'params' : stuff_swing_parameters, 'lr': 0.001, 'weight_decay': stuff_swing_weight_decay},
+            {'params' : stuff_inplay_parameters, 'lr': 0.001, 'weight_decay': stuff_inplay_weight_decay},
             
-            {'params': combined_result_parameters, 'lr': 0.005, 'weight_decay': 1e-4},
-            {'params': combined_swing_parameters, 'lr': 0.005, 'weight_decay': 3e-4},
-            {'params': combined_inplay_parameters, 'lr': 0.001, 'weight_decay': 3e-4}
+            {'params': combined_result_parameters, 'lr': 0.005, 'weight_decay': combined_result_weight_decay},
+            {'params': combined_swing_parameters, 'lr': 0.001, 'weight_decay': combined_swing_weight_decay},
+            {'params': combined_inplay_parameters, 'lr': 0.001, 'weight_decay': combined_inplay_weight_decay}
         ])
         
     def forward(self, data : tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
