@@ -54,15 +54,15 @@ __map_pitcher_game : Callable[[DB_PitcherStatcastGame], list[float]] = \
     lambda g: [
         # Fastball group
         1 if g.FastballVelo is not None else 0,
-        g.FastballVelo if g.FastballVelo is not None else 0,
-        g.FastballBreakHoriz if g.FastballVelo is not None else 0,
-        g.FastballBreakInduced if g.FastballVelo is not None else 0,
+        g.FastballVelo if g.FastballVelo is not None else 90,
+        g.FastballBreakHoriz if g.FastballVelo is not None else 5,
+        g.FastballBreakInduced if g.FastballVelo is not None else 10,
         
         # Sinker group
         1 if g.SinkerVelo is not None else 0,
-        g.SinkerVelo if g.SinkerVelo is not None else 0,
-        g.SinkerBreakHoriz if g.SinkerVelo is not None else 0,
-        g.SinkerBreakInduced if g.SinkerVelo is not None else 0,
+        g.SinkerVelo if g.SinkerVelo is not None else 90,
+        g.SinkerBreakHoriz if g.SinkerVelo is not None else 5,
+        g.SinkerBreakInduced if g.SinkerVelo is not None else 10,
     ]
 __size_game = 8
     

@@ -21,11 +21,18 @@ SHOULD_PROFILE = False
 if SHOULD_PROFILE:
     profiler.enable()
         
+from enum import Enum
+class PitchType(Enum):
+    Fastball = 1,
+    Curveball = 2,
+    Changeup = 3,
+        
 _T = TypeVar('T')
 class DataPrep:
     @profiler
     def __init__(self,
         prep_map : Prep_Map,
+        pitch_type : PitchType
     ):
         
         self.prep_map = prep_map
@@ -49,7 +56,15 @@ class DataPrep:
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
         
-        self.conditional_statement += "(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16) "
+        if pitch_type == PitchType.Fastball:
+            self.conditional_statement += "(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16) "
+            # For fastball, knowing fastball velo/movement will only lead to overfitting
+            prep_map.pitcher_game_map = lambda g : [1 if g.FastballVelo is not None else 0]
+            prep_map.pitcher_game_size = 1
+        elif pitch_type == PitchType.Changeup:
+            self.conditional_statement += "(PitchType=3 OR PitchType=4 OR PitchType=12) "
+        elif pitch_type == PitchType.Curveball:
+            self.conditional_statement += "(PitchType=5 OR PitchType=6 OR PitchType=7 OR PitchType=8 OR PitchType=9 OR PitchType=11 OR PitchType=15) "
         #self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
@@ -72,7 +87,7 @@ class DataPrep:
             if isinplay == 1:
                 entries_in_bucket[bucket] += 1
                 value_in_bucket[bucket] += pitch.RunValueSmoothedHitter
-        self.bucket_value = value_in_bucket / entries_in_bucket
+        self.ip_bucket_value = value_in_bucket / entries_in_bucket
        
         # Get pitcher game averages
         pitcher_games = DB_PitcherStatcastGame.Select_From_DB(

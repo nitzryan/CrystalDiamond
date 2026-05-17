@@ -1,5 +1,4 @@
 import torch
-from sklearn.model_selection import train_test_split
 from Constants import device
 from DBTypes import *
 
@@ -42,6 +41,24 @@ class PitchIO:
         
         self.mask_swing = mask_swing
         self.mask_inplay = mask_inplay
+
+def split_sublist(
+    sublist: list,  # list[DATA_CLASS] for one class
+    N: int,         # train points per test point
+    M: int,         # total number of training runs
+    C: int,         # current iteration
+) -> tuple[list, list]:
+    train = []
+    test = []
+    N = N + 1
+    for i, item in enumerate(sublist):
+        g = i % M
+        if (g % N) == (C % N):
+            test.append(item)
+        else:
+            train.append(item)
+    
+    return train, test
 
 class PitchDataset(torch.utils.data.Dataset):
     def __init__(self,
@@ -118,10 +135,18 @@ class PitchDataset(torch.utils.data.Dataset):
         
         return mappings, data, targets, masks
             
-def CreateTestTrainDatasets(data : list[list[PitchIO]], test_size : float, random_state : int, dataset_device = device) -> tuple[PitchDataset, PitchDataset]:
+def CreateTestTrainDatasets(
+    data : list[list[PitchIO]], 
+    dataset_device = device,
+    eval_mode : bool = False,
+    train_test_ratio : int = 3,
+    total_training_runs : int = 4,
+    train_idx : int = 0) -> tuple[PitchDataset, PitchDataset]:
+    
+    
     # Create Test/Train keeping a player entirely inside of 1 dataset
-    if test_size > 0:
-        io_train, io_test = train_test_split(data, test_size=test_size, random_state=random_state)
+    if not eval_mode:
+        io_train, io_test = split_sublist(data, train_test_ratio, total_training_runs, train_idx)
     else:
         io_train = data
         io_test = [data[0]] # Allow for test code to run without breaking, will discard later

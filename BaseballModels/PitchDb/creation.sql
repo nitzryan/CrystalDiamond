@@ -6,10 +6,41 @@ CREATE TABLE Output_PitchValue (
 	"ModelRun"	INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	
-	"absValue" REAL NOT NULL,
-	"stuffOnly" REAL NOT NULL,
-	"locationOnly" REAL NOT NULL,
-	"combined" REAL NOT NULL,
+	-- Location
+	"locationCalledStrike" REAL NOT NULL,
+	"locationBall" REAL NOT NULL,
+	"locationHBP" REAL NOT NULL,
+	"locationSwing" REAL NOT NULL,
+
+	"locationWhiff" REAL NOT NULL,
+	"locationFoul" REAL NOT NULL,
+	"locationInPlay" REAL NOT NULL,
+
+	"locationInPlayExpected" REAL NOT NULL,
+
+	-- Stuff
+	"stuffCalledStrike" REAL NOT NULL,
+	"stuffBall" REAL NOT NULL,
+	"stuffHBP" REAL NOT NULL,
+	"stuffSwing" REAL NOT NULL,
+
+	"stuffWhiff" REAL NOT NULL,
+	"stuffFoul" REAL NOT NULL,
+	"stuffInPlay" REAL NOT NULL,
+
+	"stuffInPlayExpected" REAL NOT NULL,
+
+	-- Combined
+	"combinedCalledStrike" REAL NOT NULL,
+	"combinedBall" REAL NOT NULL,
+	"combinedHBP" REAL NOT NULL,
+	"combinedSwing" REAL NOT NULL,
+
+	"combinedWhiff" REAL NOT NULL,
+	"combinedFoul" REAL NOT NULL,
+	"combinedInPlay" REAL NOT NULL,
+
+	"combinedInPlayExpected" REAL NOT NULL,
 
 	PRIMARY KEY("model", "gameId", "pitchId", "ModelRun")
 );
@@ -32,13 +63,21 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"ModelId" INTEGER NOT NULL,
 	"ModelRun" INTEGER NOT NULL,
 	
-	"LossLocation" REAL NOT NULL,
-	"LossStuff" REAL NOT NULL,
-	"LossCombined" REAL NOT NULL,
+	"PitchType" INTEGER NOT NULL,
+	
+	"LossLocationResult" REAL NOT NULL,
+	"LossLocationSwing" REAL NOT NULL,
+	"LossLocationInplay" REAL NOT NULL,
+	"LossStuffResult" REAL NOT NULL,
+	"LossStuffSwing" REAL NOT NULL,
+	"LossStuffInplay" REAL NOT NULL,
+	"LossCombinedResult" REAL NOT NULL,
+	"LossCombinedSwing" REAL NOT NULL,
+	"LossCombinedInplay" REAL NOT NULL,
 	
 	"Arch" TEXT NOT NULL,
 
-	PRIMARY KEY("ModelId", "ModelRun")
+	PRIMARY KEY("ModelId", "ModelRun", "PitchType")
 );
 
 CREATE TABLE YearLeagueDeviations
