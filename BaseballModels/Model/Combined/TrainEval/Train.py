@@ -1,4 +1,8 @@
 from Constants import model_db
+from Combined.TrainEval.Train_Hitters import Train_Hitters
+from Combined.TrainEval.Train_Pitchers import Train_Pitchers
+from Combined.TrainEval.Eval_Hitters import Eval_Hitters
+from Combined.TrainEval.Eval_Pitchers import Eval_Pitchers
 
 cursor = model_db.cursor()
 cursor.execute("DELETE FROM ModelIdx")
@@ -14,7 +18,11 @@ day_str = f"{day}{months[month]}{year}"
 
 cursor = model_db.cursor()
 cursor.execute(f"INSERT INTO ModelIdx VALUES(1,'Base_{day_str}')")
-cursor.execute(f"INSERT INTO ModelIdx VALUES(2,'ResNet_{day_str}')")
-# cursor.execute(f"INSERT INTO ModelIdx VALUES(2,'NoDraftPos_{day_str}')")
-# cursor.execute(f"INSERT INTO ModelIdx VALUES(3,'MeanRevert_{day_str}')")
 model_db.commit()
+
+num_models = 12
+
+Train_Hitters(num_models)
+Train_Pitchers(num_models)
+Eval_Hitters()
+Eval_Pitchers()

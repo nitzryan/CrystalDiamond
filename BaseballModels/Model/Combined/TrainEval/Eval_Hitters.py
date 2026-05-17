@@ -15,7 +15,7 @@ from EvalStats import getOutputHitterStats
 from ModelDBTypes import *
 
 
-if __name__ == "__main__":
+def Eval_Hitters():
     BATCH_SIZE = 4000
     
     cursor = model_db.cursor()
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     cursor = model_db.cursor()
     model_idxs = cursor.execute("SELECT modelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
-    for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
+    for model_name, model_id in tqdm(model_idxs, desc="Evaluating Hitting Architectures"):
         # Get data for model
         pro_prep_map, pro_output_map, col_prep_map, col_output_map = GetModelMaps(model_id)
         
@@ -40,30 +40,20 @@ if __name__ == "__main__":
         hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE isHitter=?", pro_player_values=(1,), pro_use_cutoff=False,
                 col_player_condition="WHERE isHitter=?", col_player_values=(1,), col_use_cutoff=False)
         
-        dataset : Combined_Player_Dataset
-        dataset, _ = Create_Test_Train_Datasets(hitter_io_list, 0, 0, is_hitter=True, device='cpu')
-        del hitter_io_list
-        
-        n_samples = len(dataset)
-        num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
-        indices = torch.arange(n_samples)
-        
         # Data to unnormalize values from model
-        pro_mlb_value_mean : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hittervalues_means').to(device)
-        pro_mlb_value_stds : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hittervalues_devs').to(device)
         pro_pt_mean : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hitlvlpt_means').to(device)
         pro_pt_devs : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hitlvlpt_devs').to(device)
         pro_lvlstat_mean : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hitlvlstat_means').to(device)
         pro_lvlstat_devs : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__hitlvlstat_devs').to(device)
-        pro_war_means : torch.Tensor = getattr(data_prep.pro_data_prep, "__hit_prospect_value_means").to(device)
-        pro_war_devs : torch.Tensor = getattr(data_prep.pro_data_prep, "__hit_prospect_value_devs").to(device)
         
         # Get Models
         cursor = model_db.cursor()
         mth_list = DB_Model_TrainingHistory.Select_From_DB(cursor, "WHERE ModelName=? AND IsHitter=1", (model_name,))
         
+        tmp_dataset : Combined_Player_Dataset
+        tmp_dataset, _, = Create_Test_Train_Datasets(player_list=[hitter_io_list[0]], is_hitter=True, device='cpu', eval_mode=True)
         pro_network = ProModel(
-            input_size=dataset.GetProInputSize(),
+            input_size=tmp_dataset.GetProInputSize(),
             mutators=torch.empty(0),
             data_prep=data_prep.pro_data_prep,
             num_layers=mth_list[0].ProNumLayers,
@@ -72,7 +62,7 @@ if __name__ == "__main__":
             use_resnet=model_id == 2
         )
         col_network = ColModel(
-            input_size=dataset.GetColInputSize(),
+            input_size=tmp_dataset.GetColInputSize(),
             data_prep=data_prep.college_data_prep,
             is_hitter=True,
             output_hidden_size=pro_network.GetHiddenSize(),
@@ -94,6 +84,24 @@ if __name__ == "__main__":
             col_network.eval()
             pro_network = pro_network.to(device)
             col_network = col_network.to(device)
+            
+            # Load players, ignoring any in training
+            mlb_ids_set = set(x[0] for x in cursor.execute("SELECT mlbId FROM PlayersInTrainingData WHERE mlbId!=-1 AND isHitter=1 AND modelIdx=? AND modelRun=? AND isTrain=1", (model_id, model_idx)).fetchall())
+            tbc_ids_set = set(x[0] for x in cursor.execute("SELECT tbcId FROM PlayersInTrainingData WHERE tbcId!=-1 AND isHitter=1 AND modelIdx=? AND modelRun=? AND isTrain=1", (model_id, model_idx)).fetchall())
+            
+            run_hitter_io_list = []
+            for io in hitter_io_list:
+                if io.pro_io.player is not None and not io.pro_io.player.mlbId in mlb_ids_set:
+                    run_hitter_io_list.append(io)
+                elif io.college_io.player is not None and not io.college_io.player.TBCId in tbc_ids_set:
+                    run_hitter_io_list.append(io)
+            
+            dataset : Combined_Player_Dataset
+            dataset, _ = Create_Test_Train_Datasets(player_list=run_hitter_io_list, is_hitter=True, device='cpu', eval_mode=True)
+            
+            n_samples = len(dataset)
+            num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
+            indices = torch.arange(n_samples)
             
             # Iterate through players
             for batch_i in tqdm(range(num_batches), desc='Batches', leave=False):
@@ -198,11 +206,12 @@ if __name__ == "__main__":
                 
                 stats_tensor = getOutputHitterStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_idx)
                 cursor.executemany("INSERT INTO Output_HitterStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
+            del dataset
         
         # Force VRAM to get cleared before allocating next iteration
+        del hitter_io_list
         del pro_network
         del col_network
-        del dataset
         torch.cuda.empty_cache()
         gc.collect()
         

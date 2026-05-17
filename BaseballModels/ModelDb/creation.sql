@@ -231,7 +231,10 @@ CREATE TABLE "PlayersInTrainingData" (
 	"mlbId" INTEGER NOT NULL,
 	"tbcId" INTEGER NOT NULL,
 	"modelIdx" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "tbcId", "modelIdx")
+	"modelRun" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"isTrain" INTEGER NOT NULL,
+	PRIMARY KEY ("mlbId", "tbcId", "isHitter", "modelIdx", "modelRun")
 );
 
 CREATE TABLE "ModelIdx" (

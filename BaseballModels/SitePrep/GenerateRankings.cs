@@ -52,7 +52,7 @@ namespace SitePrep
                     pwa.hitterStats = hitterStats;
                     pwa.pitcherStats = pitcherStats;
                     List<PlayerWar> pw = [];
-                    var opwas = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && f.IsHitter == (pwa.isHitter ? 1 : 0))
+                    var opwas = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && (f.IsHitter == pwa.isHitter))
                             .OrderBy(f => f.Year).ThenBy(f => f.Month)
                             .Select(f => new PlayerWar
                             {
@@ -332,7 +332,7 @@ namespace SitePrep
                                 War = o.War,
                                 Month = p.SigningMonth.Value,
                                 Year = p.SigningYear.Value,
-                                isHitter = o.IsHitter == 1,
+                                isHitter = o.IsHitter,
                                 pyps = new(),
                                 poms = new(),
                                 hitterStats = new(),

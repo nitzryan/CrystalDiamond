@@ -3,7 +3,7 @@ namespace ModelDb
 	public class Model_TrainingHistory
 	{
 		public required string ModelName {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsHitter {get; set;}
 		public required float TestLoss {get; set;}
 		public required float TestLossCollege {get; set;}
 		public required int ModelIdx {get; set;}

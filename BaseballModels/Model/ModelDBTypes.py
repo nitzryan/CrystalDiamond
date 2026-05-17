@@ -233,12 +233,15 @@ class DB_PlayersInTrainingData:
 		self.mlbId = values[0]
 		self.tbcId = values[1]
 		self.modelIdx = values[2]
+		self.modelRun = values[3]
+		self.isHitter = values[4]
+		self.isTrain = values[5]
 
-	NUM_ELEMENTS = 3
+	NUM_ELEMENTS = 6
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.tbcId,self.modelIdx)
+		return (self.mlbId,self.tbcId,self.modelIdx,self.modelRun,self.isHitter,self.isTrain)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PlayersInTrainingData']:

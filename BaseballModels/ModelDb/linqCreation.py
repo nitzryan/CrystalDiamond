@@ -13,6 +13,14 @@ tables = cursor.fetchall()
 # Allows for not being required to create column, but not being nullable
 autoincrement_pairs = []
 
+boolean_types = [
+                ("PlayersInTrainingData", ["IsHitter", "IsTrain"]),
+                ("Model_TrainingHistory", ["IsHitter"]),
+                ("Output_PlayerWar", ["IsHitter"]),
+                ("Output_PlayerWarAggregation", ["IsHitter"]),]
+
+
+
 for table, in tables:
     # Get table data
     cursor.execute(f"PRAGMA table_info({table})")
@@ -42,6 +50,13 @@ for table, in tables:
                 csharp_type = "string"
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
+        
+            for (tbl, cols) in boolean_types:
+                if tbl == table:
+                    for col in cols:
+                        if col == name:
+                            csharp_type = "bool"
+                            break
         
             if notnull == 0:
                 csharp_type += '?'

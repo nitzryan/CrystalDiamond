@@ -12,15 +12,14 @@ from College.Model.College_Model import RNN_Model as ColModel
 from Constants import device, model_db
 from Utilities import GetModelMaps
 
-if __name__ == "__main__":
-    num_models = int(sys.argv[1])
+def Train_Pitchers(num_models : int):
     if num_models < 0:
         exit(1)
         
     model_cursor = model_db.cursor()
     model_idxs = model_cursor.execute("SELECT modelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
     
-    for model_name, model_id in tqdm(model_idxs, desc="Training Architectures"):
+    for model_name, model_id in tqdm(model_idxs, desc="Training Pitching Architectures"):
         pro_prep_map, pro_output_map, col_prep_map, col_output_map = GetModelMaps(model_id)
         
         data_prep = Combined_Data_Prep(
@@ -40,7 +39,7 @@ if __name__ == "__main__":
         for i in tqdm(range(num_models), desc="Training Pitcher Models", leave=False):
             train_dataset : Combined_Player_Dataset
             test_dataset : Combined_Player_Dataset
-            train_dataset, test_dataset = Create_Test_Train_Datasets(pitcher_io_list, 0.25, i + 1, False)
+            train_dataset, test_dataset = Create_Test_Train_Datasets(player_list=pitcher_io_list, is_hitter=False, train_idx=i)
             
             model_name_pt = f"{model_name}_{i}"
             use_resnet = model_id == 2
@@ -72,6 +71,24 @@ if __name__ == "__main__":
             
             model_cursor = model_db.cursor()
             model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?,?)", (model_name, 0, best_loss, best_loss_college, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
+            
+            # Insert pitchers that were trained on so that they can be marked on the site
+            model_cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?,?,?,?,?)", [(
+                ids[0],
+                ids[1],
+                model_id,
+                i,
+                0,
+                1
+                ) for ids in train_dataset.ids])
+            model_cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?,?,?,?,?)", [(
+                ids[0],
+                ids[1],
+                model_id,
+                i,
+                0,
+                0
+                ) for ids in test_dataset.ids])
             model_db.commit()
             
             # Force VRAM to get cleared before allocating next iteration
@@ -82,16 +99,3 @@ if __name__ == "__main__":
             torch.cuda.empty_cache()
             gc.collect()
             
-            
-        # Insert hitters that were trained on so that they can be marked on the site
-        model_cursor = model_db.cursor()
-        for io in pitcher_io_list:
-            if model_cursor.execute("SELECT COUNT(*) FROM PlayersInTrainingData WHERE mlbId=? AND tbcId=? AND modelIdx=?", (
-                    io.pro_io.player.mlbId if io.pro_io.player is not None else -1,
-                    io.college_io.player.TBCId if io.college_io.player is not None else -1, model_id)).fetchone()[0] == 0:
-                
-                model_cursor.execute("INSERT INTO PlayersInTrainingData VALUES(?,?,?)", (
-                        io.pro_io.player.mlbId if io.pro_io.player is not None else -1,
-                        io.college_io.player.TBCId if io.college_io.player is not None else -1,
-                        model_id))
-        model_db.commit()

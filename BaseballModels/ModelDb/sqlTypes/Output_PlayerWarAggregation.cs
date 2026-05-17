@@ -4,7 +4,7 @@ namespace ModelDb
 	{
 		public required int MlbId {get; set;}
 		public required int Model {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsHitter {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float War0 {get; set;}

@@ -1,9 +1,10 @@
 import torch
 from Combined.DataPrep.Data_Prep import Combined_IO
-from sklearn.model_selection import train_test_split # type: ignore
+from Constants import TOTAL_WAR_BUCKETS
 
 class Combined_Player_Dataset(torch.utils.data.Dataset):
-    def __init__(self, 
+    def __init__(self,
+                ids : list[tuple[int, int]],
                 pro_dates,
                 pro_data,
                 pro_lengths, 
@@ -38,6 +39,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 device):
         
         self.is_hitter = is_hitter
+        self.ids = ids
         
         self.pro_dates = pro_dates.to(device, non_blocking=True).transpose(0, 1)
         self.col_dates = col_dates.to(device, non_blocking=True).transpose(0, 1)
@@ -170,12 +172,68 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
 
         return pro_input, pro_targets, pro_masks, col_input, col_targets, col_masks
     
-def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : float, random_state : int, is_hitter : bool, device = 'cuda') -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
-    io_train : list[Combined_IO]
-    io_test : list[Combined_IO]
+def split_sublist(
+    sublist: list,  # list[DATA_CLASS] for one class
+    N: int,         # train points per test point
+    M: int,         # total number of training runs
+    C: int,         # current iteration
+) -> tuple[list, list]:
+    train = []
+    test = []
+    N = N + 1
+    for i, item in enumerate(sublist):
+        g = i % M
+        if (g % N) == (C % N):
+            test.append(item)
+        else:
+            train.append(item)
     
-    if test_size > 0:
-        io_train, io_test = train_test_split(player_list, test_size=test_size, random_state=random_state)
+    return train, test
+    
+def Create_Test_Train_Datasets(
+    player_list : list[Combined_IO], 
+    is_hitter : bool, 
+    device = 'cuda',
+    eval_mode : bool = False,
+    train_test_ratio : int = 3,
+    total_training_runs : int = 12,
+    train_idx : int = 0) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
+    
+    
+    io_train : list[Combined_IO] = []
+    io_test : list[Combined_IO] = []
+    
+    if not eval_mode:
+        # Get College, HS, INTL players
+        college_players : list[int] = []
+        hs_players : list[int] = []
+        intl_players : list[int] = []
+        for idx, player in enumerate(player_list):
+            if player.college_io.player is not None:
+                college_players.append(idx)
+            elif player.pro_io.player.draftPick is not None:
+                hs_players.append(idx)
+            else:
+                intl_players.append(idx)
+                
+        # Group players by bucket
+        # Will combine 3 classes of players, but in order so split will evenly distribute them
+        player_buckets_list : list[list[int]] = [[] for _ in range(TOTAL_WAR_BUCKETS.shape[0])]
+        for pl in [college_players, hs_players, intl_players]:
+            for idx in pl:
+                player = player_list[idx]
+                output_class : int = player.college_io.output_war.item() if player.college_io.player is not None else player.pro_io.output[0].item()
+                player_buckets_list[output_class].append(player)
+               
+        if total_training_runs % train_test_ratio != 0:
+            raise ValueError("M must be divisible by N (as specified)")
+        if not (0 <= train_idx < total_training_runs):
+            raise ValueError("C must satisfy 0 <= C < M")
+                
+        for sublist in player_buckets_list:
+            train_part, test_part = split_sublist(sublist, train_test_ratio, total_training_runs, train_idx)
+            io_train.extend(train_part)
+            io_test.extend(test_part)
     else:
         io_train = player_list
         io_test = [player_list[0]] # Needs to have something so test variants don't fail, will discard later
@@ -264,6 +322,17 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
     col_mask_pos_train = torch.tensor([io.college_io.mask_pos for io in io_train])
     col_mask_pos_test = torch.tensor([io.college_io.mask_pos for io in io_test])
 
+    train_ids = []
+    test_ids = []
+    for io in io_train:
+        mlb_id = io.pro_io.player.mlbId if io.pro_io.player is not None else -1
+        tbc_id = io.college_io.player.TBCId if io.college_io.player is not None else -1
+        train_ids.append((mlb_id, tbc_id))
+    for io in io_test:
+        mlb_id = io.pro_io.player.mlbId if io.pro_io.player is not None else -1
+        tbc_id = io.college_io.player.TBCId if io.college_io.player is not None else -1
+        test_ids.append((mlb_id, tbc_id))
+
     train_dataset = Combined_Player_Dataset(
         pro_dates= pro_dates_train,
         pro_data = pro_data_train, 
@@ -297,9 +366,11 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         col_mask_pos=col_mask_pos_train,
         is_hitter=is_hitter,
         
+        ids=train_ids,
+        
         device=device,)
     
-    if test_size == 0:
+    if eval_mode:
         return train_dataset, None
     
     test_dataset = Combined_Player_Dataset(
@@ -334,6 +405,8 @@ def Create_Test_Train_Datasets(player_list : list[Combined_IO], test_size : floa
         col_output_pos=col_output_pos_test,
         col_mask_pos=col_mask_pos_test,
         is_hitter=is_hitter,
+        
+        ids=test_ids,
         
         device=device,)
     
