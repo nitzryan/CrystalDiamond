@@ -12,7 +12,6 @@ namespace PitchAnalysis
         public static void Update(int endYear, bool forceRefresh)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             if (forceRefresh)
                 pitchDb.YearLeagueDeviations.ExecuteDelete();
@@ -21,33 +20,31 @@ namespace PitchAnalysis
 
                 var years = pitchDb.Output_PitchValue.Select(f => f.Year).Distinct();
             years = years.Where(f => !pitchDb.YearLeagueDeviations.Select(f => f.Year).Contains(f));
-            var models = pitchDb.Output_PitchValue.Select(f => f.Model).Distinct();
+            var models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct();
 
             using (ProgressBar progressBar = new ProgressBar(years.Count(), "Calculating Year Deviations"))
             {
                 foreach (int year in years)
                 {
-                    double actualDev = Math.Sqrt(db.PitchStatcast.Where(f => f.Year == year && f.LevelId == 1).Select(f => f.RunValueHitter * f.RunValueHitter).Average());
-
                     foreach (int modelId in models)
                     {
-                        double locationDev = Math.Sqrt(pitchDb.Output_PitchValue
+                        double locationDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
                             .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.LocationOnly)
+                            .Select(f => f.LocationRuns)
                             .AsEnumerable()
                             .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
                             .Select(v => v * v)
                             .Average());
-                        double stuffDev = Math.Sqrt(pitchDb.Output_PitchValue
+                        double stuffDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
                             .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.StuffOnly)
+                            .Select(f => f.StuffRuns)
                             .AsEnumerable()
                             .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
                             .Select(v => v * v)
                             .Average());
-                        double pitchDev = Math.Sqrt(pitchDb.Output_PitchValue
+                        double pitchDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
                             .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.Combined)
+                            .Select(f => f.CombinedRuns)
                             .AsEnumerable()
                             .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
                             .Select(v => v * v)
@@ -57,7 +54,7 @@ namespace PitchAnalysis
                         {
                             Year = year,
                             ModelId = modelId,
-                            ActDev = (float)actualDev,
+                            ActDev = 0, // TODO : Remove from DB
                             LocDev = (float)locationDev,
                             StuffDev = (float)stuffDev,
                             PitchDev = (float)pitchDev

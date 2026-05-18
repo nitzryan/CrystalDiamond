@@ -120,7 +120,7 @@ namespace PitchAnalysis
             List<int> modelIds = pitchDb.Output_PitchValue.Select(f => f.Model).Distinct().ToList();
 
             // Get year stats
-            var pitches = db.PitchStatcast.Where(f => f.ModelOutput != "");
+            var pitches = db.PitchStatcast.Where(f => f.ModelOutput != "").AsNoTracking();
             var pitchDataYears = pitches.GroupBy(f => f.Year);
             using (ProgressBar progressBar = new ProgressBar(pitchDataYears.Count(), "Creating Pitcher Pitch Stats"))
             {

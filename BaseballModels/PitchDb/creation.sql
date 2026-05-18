@@ -50,6 +50,60 @@ CREATE INDEX idx_Output_PitchValue ON Output_PitchValue
 	"gameId", "pitchId", "model"
 );
 
+CREATE TABLE Output_PitchValueAggregation (
+	"model" INTEGER NOT NULL,
+	"gameId" INTEGER NOT NULL,
+	"pitchId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	
+	-- Location
+	"locationCalledStrike" REAL NOT NULL,
+	"locationBall" REAL NOT NULL,
+	"locationHBP" REAL NOT NULL,
+	"locationSwing" REAL NOT NULL,
+
+	"locationWhiff" REAL NOT NULL,
+	"locationFoul" REAL NOT NULL,
+	"locationInPlay" REAL NOT NULL,
+
+	"locationInPlayExpected" REAL NOT NULL,
+
+	-- Stuff
+	"stuffCalledStrike" REAL NOT NULL,
+	"stuffBall" REAL NOT NULL,
+	"stuffHBP" REAL NOT NULL,
+	"stuffSwing" REAL NOT NULL,
+
+	"stuffWhiff" REAL NOT NULL,
+	"stuffFoul" REAL NOT NULL,
+	"stuffInPlay" REAL NOT NULL,
+
+	"stuffInPlayExpected" REAL NOT NULL,
+
+	-- Combined
+	"combinedCalledStrike" REAL NOT NULL,
+	"combinedBall" REAL NOT NULL,
+	"combinedHBP" REAL NOT NULL,
+	"combinedSwing" REAL NOT NULL,
+
+	"combinedWhiff" REAL NOT NULL,
+	"combinedFoul" REAL NOT NULL,
+	"combinedInPlay" REAL NOT NULL,
+
+	"combinedInPlayExpected" REAL NOT NULL,
+
+	"locationRuns" REAL NOT NULL,
+	"stuffRuns" REAL NOT NULL,
+	"combinedRuns" REAL NOT NULL,
+
+	PRIMARY KEY("model", "gameId", "pitchId")
+);
+
+CREATE INDEX idx_Output_PitchValueAggregation ON Output_PitchValueAggregation
+(
+	"gameId", "pitchId", "model"
+);
+
 CREATE TABLE Models_PitchValue
 (
 	"Id" INTEGER NOT NULL,
