@@ -140,10 +140,11 @@ namespace DataAquisition
             {
                 foreach (var year in years)
                 {
-                    while (!await PitchData.Update(year, year == years.Last()))
+                    //while (!await PitchData.Update(year, year == years.Last()))
                     { }
 
-                    PitchValues.Update(year, year == years.Last() || FULL_REFRESH);
+                    PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
 
                     PitchAggregation.CreatePitcherGameBaselines(year);
 

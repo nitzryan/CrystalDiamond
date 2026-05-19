@@ -7,6 +7,7 @@ bin/
 
 # SQLite Databases
 *.db
+*.db-journal
 
 # Log Files
 Logs/

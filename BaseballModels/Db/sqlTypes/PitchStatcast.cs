@@ -4,6 +4,7 @@ namespace Db
 	{
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
+		public required int PaId {get; set;}
 		public required int PitcherId {get; set;}
 		public required int HitterId {get; set;}
 		public required int LeagueId {get; set;}
@@ -68,6 +69,7 @@ namespace Db
 			{
 				GameId = this.GameId,
 				PitchId = this.PitchId,
+				PaId = this.PaId,
 				PitcherId = this.PitcherId,
 				HitterId = this.HitterId,
 				LeagueId = this.LeagueId,

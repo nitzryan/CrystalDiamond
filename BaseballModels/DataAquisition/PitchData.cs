@@ -384,6 +384,7 @@ namespace DataAquisition
             int currentInning = 0;
             bool currentInningTop = false;
             int runsScoredInning = -1;
+            int paId = 0;
             foreach (var play in allPlaysArray)
             {
                 // Check to see if new half-inning
@@ -523,6 +524,7 @@ namespace DataAquisition
                         {
                             GameId = gameId,
                             PitchId = gamePitchIndex,
+                            PaId = paId,
                             PitcherId = pitcherId,
                             HitterId = hitterId,
                             LeagueId = (date.LeagueId == 103 || date.LeagueId == 104) ? 1 : date.LeagueId,
@@ -622,6 +624,9 @@ namespace DataAquisition
 
                 for (int i = 0; i < 3; i++)
                     baseOccupancy[i] = endBaseOccupancy[i];
+
+                paId++;
+                currentOuts = play.GetProperty("count").GetProperty("outs").GetInt32();
             }
 
             return (statcastPitches, nonStatcastPitches);
@@ -645,7 +650,7 @@ namespace DataAquisition
                 if (updateIndices)
                 {
                     // Drop indexes to speedup insertion
-                    List<string> indexNames = ["idx_PitchStatcastPitcher", "idx_PitchStatcastHitter", "idx_PitchStatcastYearMonth", "idx_PitchNonStatcastPitcher", "idx_PitchNonStatcastHitter", "idx_PitchNonStatcastYearMonth"];
+                    List<string> indexNames = ["idx_PitchStatcastPitcher", "idx_PitchStatcastHitter", "idx_PitchStatcastYearMonth", "idx_PitchNonStatcastPitcher", "idx_PitchNonStatcastHitter", "idx_PitchNonStatcastYearMonth", "idx_PitchStatcastGamePa"];
                     foreach (var name in indexNames)
                     {
                         try
@@ -734,6 +739,7 @@ namespace DataAquisition
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastPitcher ON PitchNonStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastHitter ON PitchNonStatcast(HitterId, Year, Month, LevelId, LeagueId);");
                         db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastYearMonth ON PitchNonStatcast(Year, Month, LevelId, LeagueId);");
+                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastGamePa ON PitchStatcast(GameId, PaId);");
                     }
                     catch (Exception)
                     {

@@ -2,6 +2,7 @@ CREATE TABLE PitchStatcast
 (
     "GameId" INTEGER NOT NULL,
     "PitchId" INTEGER NOT NULL,
+    "PaId" INTEGER NOT NULL,
     "PitcherId" INTEGER NOT NULL,
     "HitterId" INTEGER NOT NULL,
     "LeagueId" INTEGER NOT NULL,

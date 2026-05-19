@@ -1,6 +1,5 @@
 ﻿using Db;
 using ShellProgressBar;
-using SQLitePCL;
 using static Db.DbEnums;
 
 namespace DataAquisition
@@ -124,31 +123,12 @@ namespace DataAquisition
             // Get runs for each out/basepath/count
             Dictionary<GamePitchSituation, float> pitchRunExpectancy = new();
 
-            var pitchGroupings = pitches.GroupBy(f => new GamePitchSituation(f.Outs, f.BaseOccupancy, f.CountBalls, f.CountStrike));
+            var pitchGroupings = pitches
+                .Where(f => f.CountStrike != 2 || f.Result != PitchResult.Foul).GroupBy(f => new GamePitchSituation(f.Outs, f.BaseOccupancy, f.CountBalls, f.CountStrike));
             foreach (var situation in pitchGroupings)
             {
-                // Get total Runs scored
-                int numOpportunities = situation.Count();
-                int numRuns = situation.Sum(f => f.PaResultDirectRuns);
-
-                // Get expected runs after PA
-                float expectedRunsAfter = 0;
-                foreach (var pitch in situation)
-                {
-                    int outs = pitch.Outs + pitch.PaResultOuts;
-                    BaseOccupancy occupancy = pitch.PaResultOccupancy;
-                    if (outs >= 3)
-                    {
-                        occupancy = BaseOccupancy.Empty;
-                        outs = 3;
-                    }
-                        
-                    GameSituation gs = new GameSituation(outs, occupancy);
-
-                    expectedRunsAfter += runExpectancyMatrix[gs];
-                }
-
-                pitchRunExpectancy[situation.Key] = (numRuns + expectedRunsAfter) / numOpportunities;
+                double expRuns = situation.Average(f => f.PaResultDirectRuns + f.RunsAfterPa);
+                pitchRunExpectancy[situation.Key] = (float)expRuns;
             }
 
             return (runExpectancyMatrix, pitchRunExpectancy);
@@ -208,7 +188,7 @@ namespace DataAquisition
         private static Dictionary<(int, int), float> GetCountBallInPlayExpectancyMatrix(IEnumerable<PitchStatcast> pitches, Dictionary<(ExitVeloBucket, LaunchAngleBucket), float> bipMatrix)
         {
             Dictionary<(int, int), float> runDict = new();
-            pitches = pitches.Where(f => f.Result == PitchResult.InPlay && f.LaunchAngle != null && f.LaunchSpeed != null);
+            pitches = pitches.Where(f => f.Result == PitchResult.InPlay);
 
             List<int> balls = [0, 1, 2, 3];
             List<int> strikes = [0, 1, 2];
@@ -234,12 +214,12 @@ namespace DataAquisition
             return pitches.Where(f => f.Result == PitchResult.HBP).Select(f => f.RunValueHitter).Average();
         }
 
-        public static void Update(int year, bool forceRefresh)
+        public static void UpdateUnsmoothed(int year, bool forceRefresh)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             // Check if there are pitches with run values, don't redo if they exist
             var pitches = db.PitchStatcast.Where(f => f.Year == year);
-            if (!forceRefresh && pitches.Any(f => f.RunValueHitter > -100 & f.RunValueSmoothedHitter > -100))
+            if (!forceRefresh && pitches.Any(f => f.RunValueHitter > -100))
                 return;
 
             var leaguePitches = pitches.GroupBy(f => f.LeagueId);
@@ -248,11 +228,6 @@ namespace DataAquisition
                 foreach (var lp in leaguePitches)
                 {
                     (var runExpectancyMatrix, var pitchRunExpectancyMatrix) = GetRunExpectancyMatrices(lp);
-
-                    var countBallStrikeRunExpectancyMatrix = GetCountRunExpectancyMatrix(lp);
-                    var bipRunExpectancyMatrix = GetBallInPlayRunExpectancyMatrix(lp);
-                    var countBIPRunExpectancyMatrix = GetCountBallInPlayExpectancyMatrix(lp, bipRunExpectancyMatrix);
-                    float hbpValue = GetHBPValue(lp);
 
                     using (ChildProgressBar topChild = progressBar.Spawn(lp.Count(), $"Getting Pitch Run Values for {lp.Key}"))
                     {
@@ -303,6 +278,42 @@ namespace DataAquisition
 
                             pitch.RunValueHitter = endRunOccupancy - startRunExpectancy;
 
+                            
+
+                            topChild.Tick();
+                        }
+                    }
+
+                    progressBar.Tick();
+                }
+            }
+
+            db.SaveChanges();
+        }
+
+        public static void UpdateSmoothed(int year, bool forceRefresh)
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            // Check if there are pitches with run values, don't redo if they exist
+            var pitches = db.PitchStatcast.Where(f => f.Year == year);
+            if (!forceRefresh && pitches.Any(f => f.RunValueSmoothedHitter > -100))
+                return;
+
+            var leaguePitches = pitches.GroupBy(f => f.LeagueId);
+            using (ProgressBar progressBar = new(leaguePitches.Count(), $"Generating Statcast Smoothed Pitch Values for {year}"))
+            {
+                foreach (var lp in leaguePitches)
+                {
+                    var countBallStrikeRunExpectancyMatrix = GetCountRunExpectancyMatrix(lp);
+                    var bipRunExpectancyMatrix = GetBallInPlayRunExpectancyMatrix(lp);
+                    var countBIPRunExpectancyMatrix = GetCountBallInPlayExpectancyMatrix(lp, bipRunExpectancyMatrix);
+                    float hbpValue = GetHBPValue(lp);
+                    float avgIpValue = lp.Where(f => f.Result == PitchResult.InPlay).Average(f => f.RunValueHitter);
+
+                    using (ChildProgressBar topChild = progressBar.Spawn(lp.Count(), $"Getting Pitch Run Values for {lp.Key}"))
+                    {
+                        foreach (var pitch in lp)
+                        {
                             // Smoothed run values
                             if (pitch.CountStrike == 2 && pitch.Result == PitchResult.Foul)
                                 pitch.RunValueSmoothedHitter = 0;
@@ -314,7 +325,7 @@ namespace DataAquisition
                                 float bipExpectedRuns = bipRunExpectancyMatrix[(exitVeloBucket, launchAngleBucket)];
                                 float countBipExpectedRuns = countBIPRunExpectancyMatrix[(pitch.CountBalls, pitch.CountStrike)];
 
-                                pitch.RunValueSmoothedHitter = bipExpectedRuns - countBipExpectedRuns;
+                                pitch.RunValueSmoothedHitter = bipExpectedRuns - countBipExpectedRuns + avgIpValue;
                             }
                             else
                             {
