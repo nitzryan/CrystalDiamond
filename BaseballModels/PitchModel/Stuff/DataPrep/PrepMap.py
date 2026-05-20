@@ -1,5 +1,6 @@
 from DBTypes import *
 from typing import Callable
+import torch
 
 class Prep_Map:
     def __init__(self,
@@ -9,6 +10,9 @@ class Prep_Map:
                 pitch_overview_map : Callable[[DB_PitchStatcast], list[float]], pitch_overview_size : int,
                 league_baseline_map : Callable[[DB_PitchDateAverages], list[float]], league_baseline_size : int,
                 pitcher_game_map : Callable[[DB_PitcherStatcastGame], list[float]], pitcher_game_size : int,
+                
+                noise_stuff : torch.Tensor,
+                noise_location : torch.Tensor,
     ):
         self.pitch_overview_map = pitch_overview_map
         self.pitch_overview_size = pitch_overview_size
@@ -28,15 +32,87 @@ class Prep_Map:
         self.pitcher_game_map = pitcher_game_map
         self.pitcher_game_size = pitcher_game_size
         
-
+        self.noise_stuff = noise_stuff
+        self.noise_location = noise_location
+        
+def clamp(value : float, minimum : float, maximum : float) -> float:
+    return min(max(value, minimum), maximum)
     
-__map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.vStart, p.BreakAngle, p.BreakInduced, p.BreakHorizontal, p.Extension, p.x0, p.z0, p.SpinRate, p.SpinDirection]
+map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
+    lambda p : [
+        max(p.vStart, 65), 
+        clamp(p.BreakAngle if p.BreakAngle < 180 else p.BreakAngle - 360, 0, 50),
+        clamp(p.BreakInduced, -22, 25), 
+        clamp(p.BreakHorizontal, -25, 25), 
+        clamp(p.Extension, 4.5, 7.75), 
+        clamp(p.x0, -4, 4), 
+        clamp(p.z0, 1, 7), 
+        clamp(p.SpinRate, 500, 3500), 
+        clamp(p.SpinDirection, 50, 310)]
+map_pitch_stuff_fastball : Callable[[DB_PitchStatcast], list[float]] = \
+    lambda p : [
+        max(p.vStart, 80), 
+        clamp(p.BreakAngle if p.BreakAngle < 180 else p.BreakAngle - 360, 0, 60),
+        clamp(p.BreakInduced, -5, 25), 
+        clamp(p.BreakHorizontal, -25, 25), 
+        clamp(p.Extension, 4.5, 7.75), 
+        clamp(p.x0, -4, 4), 
+        clamp(p.z0, 1, 7), 
+        clamp(p.SpinRate, 1500, 3000), 
+        clamp(p.SpinDirection, 50, 310)]
+map_pitch_stuff_curveball : Callable[[DB_PitchStatcast], list[float]] = \
+    lambda p : [
+        clamp(p.vStart, 65, 100), 
+        clamp(p.BreakAngle if p.BreakAngle < 180 else p.BreakAngle - 360, 0, 30),
+        clamp(p.BreakInduced, -22, 20), 
+        clamp(p.BreakHorizontal, -25, 25), 
+        clamp(p.Extension, 4.5, 7.75), 
+        clamp(p.x0, -4, 4), 
+        clamp(p.z0, 1, 7), 
+        clamp(p.SpinRate, 1500, 3500), 
+        p.SpinDirection]
+map_pitch_stuff_changeup : Callable[[DB_PitchStatcast], list[float]] = \
+    lambda p : [
+        clamp(p.vStart, 70, 100), 
+        clamp(p.BreakAngle, 0, 50), 
+        clamp(p.BreakInduced, -10, 20), 
+        clamp(p.BreakHorizontal, -25, 25), 
+        clamp(p.Extension, 4.5, 7.75), 
+        clamp(p.x0, -4, 4), 
+        clamp(p.z0, 1, 7), 
+        clamp(p.SpinRate, 500, 3000), 
+        clamp(p.SpinDirection, 50, 310)]
 __size_stuff = 9
+    
+__noise_stuff = torch.tensor([
+    0.2,
+    1,
+    0.2,
+    0.2,
+    0.05,
+    0.02,
+    0.02,
+    10,
+    1
+])
     
 __map_pitch_loc : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [p.pX, p.pZ, p.ZoneTop, p.ZoneBot]
 __size_loc = 4
+
+__map_pitch_loc_clamped : Callable[[DB_PitchStatcast], list[float]] = \
+    lambda p : [
+        clamp(p.pX, -4, 4), 
+        clamp(p.pZ, -1, 6), 
+        clamp(p.ZoneTop, 2, 4.5), 
+        clamp(p.ZoneBot, 1, 2.5)]
+    
+__noise_loc = torch.tensor([
+    0.02,
+    0.02,
+    0.01,
+    0.01,
+])
     
 __map_pitch_overview : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [p.CountBalls, p.CountStrike, p.HitIsR, p.PitIsR]
@@ -67,10 +143,13 @@ __map_pitcher_game : Callable[[DB_PitcherStatcastGame], list[float]] = \
 __size_game = 8
     
 standard_prep_map = Prep_Map(
-    pitch_stuff_map=__map_pitch_stuff, pitch_stuff_size=__size_stuff,
-    pitch_loc_map=__map_pitch_loc, pitch_loc_size=__size_loc,
+    pitch_stuff_map=map_pitch_stuff, pitch_stuff_size=__size_stuff,
+    pitch_loc_map=__map_pitch_loc_clamped, pitch_loc_size=__size_loc,
     pitch_combined_map=__map_pitch_combined, pitch_combined_size=__size_combined,
     pitch_overview_map=__map_pitch_overview, pitch_overview_size=__size_overview,
     league_baseline_map=__map_league_baseline, league_baseline_size=__size_baseline,
-    pitcher_game_map=__map_pitcher_game, pitcher_game_size=__size_game
+    pitcher_game_map=__map_pitcher_game, pitcher_game_size=__size_game,
+    
+    noise_location=__noise_loc,
+    noise_stuff=__noise_stuff
 )

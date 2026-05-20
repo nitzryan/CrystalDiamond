@@ -10,6 +10,9 @@ from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
 from Stuff.Model.PitchModel import PitchModel
 from Stuff.Model.ModelTrain import TrainAndGraph
 
+__Seperate_Pitch_Types = [PitchType.Changeup, PitchType.Curveball, PitchType.All]
+__Shared_Pitch_Types = [PitchType.Fastball]
+
 def Train_Pitches(num_models : int):
     if num_models < 0:
         exit(1)
@@ -20,7 +23,8 @@ def Train_Pitches(num_models : int):
     pitch_db.commit()
     
     for model_id, model_name in tqdm(model_ids, desc="Training Pitch Architectures"):
-        for pitch_type in tqdm([PitchType.Fastball, PitchType.Changeup, PitchType.Curveball], desc="Pitch Types", leave=False):
+        pitch_type_list = __Seperate_Pitch_Types if model_id == 1 else __Shared_Pitch_Types
+        for pitch_type in tqdm(pitch_type_list, desc="Pitch Types", leave=False):
             # Generatate IO data
             prep_map = GetModelMaps(model_id)
             data_prep = DataPrep(prep_map=prep_map, pitch_type=pitch_type)

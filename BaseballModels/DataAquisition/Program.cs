@@ -140,7 +140,7 @@ namespace DataAquisition
             {
                 foreach (var year in years)
                 {
-                    //while (!await PitchData.Update(year, year == years.Last()))
+                    while (!await PitchData.Update(year, year == years.Last()))
                     { }
 
                     PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);

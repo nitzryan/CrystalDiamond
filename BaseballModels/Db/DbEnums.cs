@@ -175,12 +175,13 @@ namespace Db
             Sinker = 2,
             Fastball = 14,
             Twoseam = 16,
+            Cutter = 5,
 
             Splitter = 3,
             Changeup = 4,
             Forkball = 12,
 
-            Cutter = 5,
+            
             Slider = 6,
             Sweeper = 7,
             Slurve = 8,

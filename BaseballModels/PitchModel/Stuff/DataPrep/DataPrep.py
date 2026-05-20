@@ -1,5 +1,5 @@
 from DBTypes import *
-from Stuff.DataPrep.PrepMap import Prep_Map
+from Stuff.DataPrep.PrepMap import Prep_Map, map_pitch_stuff, map_pitch_stuff_changeup, map_pitch_stuff_curveball, map_pitch_stuff_fastball
 import torch
 from sklearn.decomposition import PCA
 from typing import TypeVar, Callable
@@ -26,6 +26,7 @@ class PitchType(Enum):
     Fastball = 1,
     Curveball = 2,
     Changeup = 3,
+    All = 4,
         
 _T = TypeVar('T')
 class DataPrep:
@@ -56,16 +57,24 @@ class DataPrep:
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
         
+        CUTTER_VELO_CUTTOFF = 90
+        
         if pitch_type == PitchType.Fastball:
-            self.conditional_statement += "(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16) "
+            self.conditional_statement += f"(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16 OR (PitchType=5 AND vStart>={CUTTER_VELO_CUTTOFF})) "
             # For fastball, knowing fastball velo/movement will only lead to overfitting
-            prep_map.pitcher_game_map = lambda g : [1 if g.FastballVelo is not None else 0]
-            prep_map.pitcher_game_size = 1
+            self.prep_map.pitch_stuff_map = map_pitch_stuff_fastball
+            self.prep_map.pitcher_game_map = lambda g : [1 if g.FastballVelo is not None else 0]
+            self.prep_map.pitcher_game_size = 1
         elif pitch_type == PitchType.Changeup:
+            self.prep_map.pitch_stuff_map = map_pitch_stuff_changeup
             self.conditional_statement += "(PitchType=3 OR PitchType=4 OR PitchType=12) "
         elif pitch_type == PitchType.Curveball:
-            self.conditional_statement += "(PitchType=5 OR PitchType=6 OR PitchType=7 OR PitchType=8 OR PitchType=9 OR PitchType=11 OR PitchType=15) "
-        #self.conditional_statement = self.conditional_statement[:-4]
+            self.prep_map.pitch_stuff_map = map_pitch_stuff_curveball
+            self.conditional_statement += f"(PitchType=6 OR PitchType=7 OR PitchType=8 OR PitchType=9 OR PitchType=11 OR PitchType=15 OR (PitchType=5 AND vStart<{CUTTER_VELO_CUTTOFF})) "
+        elif pitch_type == PitchType.All:
+            self.prep_map.pitch_stuff_map = map_pitch_stuff
+            self.conditional_statement = self.conditional_statement[:-4]
+            pass
         
         pitches = DB_PitchStatcast.Select_From_DB(
             cursor=cursor,
@@ -117,6 +126,20 @@ class DataPrep:
         pca = getattr(self, f"__{name}_pca")
         
         return torch.from_numpy(pca.transform(z_score)).float()
+    
+    def Get_PCA_Noise_Stuff(self, length : int) -> torch.Tensor:
+        return self.__Get_PCA_Noise(self.prep_map.noise_stuff, length, _STUFF_STRING)
+    
+    def Get_PCA_Noise_Location(self, length : int) -> torch.Tensor:
+        return self.__Get_PCA_Noise(self.prep_map.noise_location, length, _LOC_STRING)
+    
+    def __Get_PCA_Noise(self, dev_tensor : torch.Tensor, length : int, name : str) -> torch.Tensor:
+        devs : torch.Tensor = getattr(self, f"__{name}_devs")
+        pca = getattr(self, f"__{name}_pca")
+        
+        noise = torch.randn(size=(length, dev_tensor.shape[0]), dtype=DTYPE) * dev_tensor
+        stat_devs = noise / devs
+        return torch.from_numpy(pca.transform(stat_devs)).float()
     
     def __Create_PCA_Norms(self, map : Callable[[_T], list[float]], stats : list[_T], name : str, num_pca : int) -> None:
         # Get means, deviation of stats

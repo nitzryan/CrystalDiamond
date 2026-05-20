@@ -71,6 +71,7 @@ class PitchModel(nn.Module):
     ):
         super().__init__()
         
+        self.data_prep = data_prep
         prep_map = data_prep.prep_map
         self.loss_backprop_weights = loss_backprop_weights
         self.nonlin = F.leaky_relu
@@ -157,6 +158,18 @@ class PitchModel(nn.Module):
         
     def forward(self, data : tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
         overview, location, stuff, combined, game, league_avg = data
+        
+        # Code for adding noise, commented out because it currently makes the model worse
+        # if self.eval:
+        #     with torch.no_grad():
+        #         batch_size = location.size(0)
+        #         location_noise = self.data_prep.Get_PCA_Noise_Location(batch_size).to(location.device, non_blocking=True)
+        #         stuff_noise = self.data_prep.Get_PCA_Noise_Stuff(batch_size).to(stuff.device, non_blocking=True)
+        #         print(stuff_noise[0])
+        #         exit(1)
+        #         location += location_noise
+        #         stuff += stuff_noise
+        
         # Location
         data_location = torch.cat((overview, location), dim=-1)
         output_location = self.location_pred(data_location)

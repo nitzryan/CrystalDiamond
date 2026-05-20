@@ -19,6 +19,9 @@ _SHOULD_PROFILE = True
 from Buckets import *
 import matplotlib.pyplot as plt
 
+__Seperate_Pitch_Types = [PitchType.Changeup, PitchType.Curveball, PitchType.All]
+__Shared_Pitch_Types = [PitchType.Fastball]
+
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum
     if abs(s) < 1:
@@ -46,7 +49,8 @@ def Eval_Pitches():
     last_year = db_cursor.execute("SELECT Year FROM PitchStatcast ORDER BY Year DESC LIMIT 1").fetchone()[0]
     
     for model_id, model_name in tqdm(model_ids, desc="Evaluating Pitch Architectures"):
-        for pitch_type in tqdm([PitchType.Fastball, PitchType.Changeup, PitchType.Curveball], desc="Pitch Types", leave=False):
+        pitch_type_list = __Seperate_Pitch_Types if model_id == 1 else __Shared_Pitch_Types
+        for pitch_type in tqdm(pitch_type_list, desc="Pitch Types", leave=False):
             # Generate Data
             prep_map = GetModelMaps(model_id)
             data_prep = DataPrep(prep_map=prep_map, pitch_type=pitch_type)
