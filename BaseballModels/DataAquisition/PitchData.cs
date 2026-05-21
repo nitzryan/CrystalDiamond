@@ -642,108 +642,112 @@ namespace DataAquisition
                 var alreadyLoggedNonStatcast = db.PitchNonStatcast.Where(f => f.Year == year).Select(f => f.GameId).Distinct().ToList().Order();
                 var gameIds = db.Player_Hitter_GameLog.Where(f => f.Year == year && !alreadyLoggedStatcast.Contains(f.GameId) && !alreadyLoggedNonStatcast.Contains(f.GameId)).Select(f => f.GameId).Distinct().ToList();
 
-                if (!gameIds.Any())
-                    return true;
-
-                // Drop indexes to speed up inserts
-                bool updateIndices = gameIds.Count() > GAMES_TO_DROP_INDEXES;
-                if (updateIndices)
+                if (gameIds.Any())
                 {
-                    // Drop indexes to speedup insertion
-                    List<string> indexNames = ["idx_PitchStatcastPitcher", "idx_PitchStatcastHitter", "idx_PitchStatcastYearMonth", "idx_PitchNonStatcastPitcher", "idx_PitchNonStatcastHitter", "idx_PitchNonStatcastYearMonth", "idx_PitchStatcastGamePa"];
-                    foreach (var name in indexNames)
+                    // Drop indexes to speed up inserts
+                    bool updateIndices = gameIds.Count() > GAMES_TO_DROP_INDEXES;
+                    if (updateIndices)
+                    {
+                        // Drop indexes to speedup insertion
+                        List<string> indexNames = ["idx_PitchStatcastPitcher", "idx_PitchStatcastHitter", "idx_PitchStatcastYearMonth", "idx_PitchNonStatcastPitcher", "idx_PitchNonStatcastHitter", "idx_PitchNonStatcastYearMonth", "idx_PitchStatcastGamePa"];
+                        foreach (var name in indexNames)
+                        {
+                            try
+                            {
+                                #pragma warning disable EF1002 // No possible SQL injection, name is compile-time
+                                db.Database.ExecuteSqlRaw($"DROP INDEX {name};");
+                                #pragma warning restore EF1002
+                            }
+                            catch (Exception)
+                            {
+                                // Index doesn't exist, so fine
+                            }
+                        }
+                    }
+
+                    // Split ids into groups for tasks
+                    int j = 0;
+                    IEnumerable<IEnumerable<int>> id_partitions = from item in gameIds
+                                                                  group item by j++ % NUM_THREADS into part
+                                                                  select part.AsEnumerable();
+
+                    progress_bar_thread = 0;
+                    thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+                    List<Task<(List<PitchStatcast>, List<PitchNonStatcast>)>> tasks = new(NUM_THREADS);
+
+                    // Use transaction to speed up insert
+                    await using var transaction = await db.Database.BeginTransactionAsync();
                     {
                         try
                         {
-                            #pragma warning disable EF1002 // No possible SQL injection, name is compile-time
-                            db.Database.ExecuteSqlRaw($"DROP INDEX {name};");
-                            #pragma warning restore EF1002
+                            // Get data
+                            using (ProgressBar progressBar = new(gameIds.Count(), $"Generating Statcast Data for {year}"))
+                            {
+                                // Send out gameIds for threads to collect data
+                                for (int i = 0; i < NUM_THREADS; i++)
+                                {
+                                    if (i >= id_partitions.Count())
+                                        break;
+                                    int idx = i;
+                                    Task<(List<PitchStatcast>, List<PitchNonStatcast>)> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
+                                    tasks.Add(task);
+                                }
+
+                                // Collect data from threads, insert to db
+                                List<List<PitchStatcast>> gamesStatcast = new();
+                                List<List<PitchNonStatcast>> gamesNonStatcast = new();
+                                foreach (var task in tasks)
+                                {
+                                    (var pbpList, var subList) = await task;
+                                    gamesStatcast.Add(pbpList);
+                                    gamesNonStatcast.Add(subList);
+
+                                    progress_bar_thread++;
+                                }
+
+                                // Need to wait until all threads are done to start inserting to prevent locking the db
+                                foreach (var games in gamesStatcast)
+                                {
+                                    await db.BulkInsertAsync(games);
+                                }
+                                foreach (var games in gamesNonStatcast)
+                                {
+                                    await db.BulkInsertAsync(games);
+                                }
+
+                                progressBar.Tick(gameIds.Count());
+                            }
+
+                            await transaction.CommitAsync();
                         }
                         catch (Exception)
                         {
-                            // Index doesn't exist, so fine
+                            await transaction.RollbackAsync();
+                            throw;
                         }
                     }
                 }
 
-                // Split ids into groups for tasks
-                int j = 0;
-                IEnumerable<IEnumerable<int>> id_partitions = from item in gameIds
-                                                              group item by j++ % NUM_THREADS into part
-                                                              select part.AsEnumerable();
-
-                progress_bar_thread = 0;
-                thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
-                List<Task<(List<PitchStatcast>, List<PitchNonStatcast>)>> tasks = new(NUM_THREADS);
-
-                // Use transaction to speed up insert
-                await using var transaction = await db.Database.BeginTransactionAsync();
+                if (createIndex)
                 {
-                    try
+                    int count = db.Database.SqlQueryRaw<int>("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_PitchStatcastPitcher'").ToArray()[0];
+                    if (count == 0)
                     {
-                        // Get data
-                        using (ProgressBar progressBar = new(gameIds.Count(), $"Generating Statcast Data for {year}"))
+                        try
                         {
-                            // Send out gameIds for threads to collect data
-                            for (int i = 0; i < NUM_THREADS; i++)
-                            {
-                                if (i >= id_partitions.Count())
-                                    break;
-                                int idx = i;
-                                Task<(List<PitchStatcast>, List<PitchNonStatcast>)> task = GetPBPThreadFunction(id_partitions.ElementAt(i), idx, progressBar, gameIds.Count());
-                                tasks.Add(task);
-                            }
-
-                            // Collect data from threads, insert to db
-                            List<List<PitchStatcast>> gamesStatcast = new();
-                            List<List<PitchNonStatcast>> gamesNonStatcast = new();
-                            foreach (var task in tasks)
-                            {
-                                (var pbpList, var subList) = await task;
-                                gamesStatcast.Add(pbpList);
-                                gamesNonStatcast.Add(subList);
-
-                                progress_bar_thread++;
-                            }
-
-                            // Need to wait until all threads are done to start inserting to prevent locking the db
-                            foreach (var games in gamesStatcast)
-                            {
-                                await db.BulkInsertAsync(games);
-                            }
-                            foreach (var games in gamesNonStatcast)
-                            {
-                                await db.BulkInsertAsync(games);
-                            }
-
-                            progressBar.Tick(gameIds.Count());
+                            // Restore indexes
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastPitcher ON PitchStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastHitter ON PitchStatcast(HitterId, Year, Month, LevelId, LeagueId);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastYearMonth ON PitchStatcast(Year, Month, LevelId, vStart, BreakAngle, BreakInduced, BreakHorizontal, Extension, pX, pZ, ZoneTop, ZoneBot);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastPitcher ON PitchNonStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastHitter ON PitchNonStatcast(HitterId, Year, Month, LevelId, LeagueId);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastYearMonth ON PitchNonStatcast(Year, Month, LevelId, LeagueId);");
+                            db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastGamePa ON PitchStatcast(GameId, PaId);");
                         }
-
-                        await transaction.CommitAsync();
-                    }
-                    catch (Exception)
-                    {
-                        await transaction.RollbackAsync();
-                        throw;
-                    }
-                }
-
-                if (updateIndices && createIndex)
-                {
-                    try
-                    {
-                        // Restore indexes
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastPitcher ON PitchStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastHitter ON PitchStatcast(HitterId, Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastYearMonth ON PitchStatcast(Year, Month, LevelId, vStart, BreakAngle, BreakInduced, BreakHorizontal, Extension, pX, pZ, ZoneTop, ZoneBot);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastPitcher ON PitchNonStatcast(PitcherId, Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastHitter ON PitchNonStatcast(HitterId, Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchNonStatcastYearMonth ON PitchNonStatcast(Year, Month, LevelId, LeagueId);");
-                        db.Database.ExecuteSql($"CREATE INDEX idx_PitchStatcastGamePa ON PitchStatcast(GameId, PaId);");
-                    }
-                    catch (Exception)
-                    {
-                        // Fails if they already exist, which means they don't need to be created
+                        catch (Exception)
+                        {
+                            // Fails if they already exist, which means they don't need to be created
+                        }
                     }
                 }
 

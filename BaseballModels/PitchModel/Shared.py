@@ -1,6 +1,6 @@
 from Stuff.DataPrep.PrepMap import *
 
 def GetModelMaps(model_id : int) -> Prep_Map:
-    if model_id == 1:
+    if model_id == 1 or model_id == 2:
         return standard_prep_map
     raise ValueError("Invalid model_id for GetModelMaps")

@@ -17,10 +17,9 @@ eval_profiler = LineProfiler()
 _SHOULD_PROFILE = True
 
 from Buckets import *
-import matplotlib.pyplot as plt
 
-__Seperate_Pitch_Types = [PitchType.Changeup, PitchType.Curveball, PitchType.All]
-__Shared_Pitch_Types = [PitchType.Fastball]
+__Seperate_Pitch_Types = [PitchType.Fastball, PitchType.Changeup, PitchType.Curveball]
+__Shared_Pitch_Types = [PitchType.All]
 
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum

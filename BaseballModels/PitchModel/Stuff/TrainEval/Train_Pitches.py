@@ -1,4 +1,3 @@
-import sys
 from tqdm import tqdm
 import torch
 import gc
@@ -10,8 +9,8 @@ from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
 from Stuff.Model.PitchModel import PitchModel
 from Stuff.Model.ModelTrain import TrainAndGraph
 
-__Seperate_Pitch_Types = [PitchType.Changeup, PitchType.Curveball, PitchType.All]
-__Shared_Pitch_Types = [PitchType.Fastball]
+__Seperate_Pitch_Types = [PitchType.Fastball, PitchType.Changeup, PitchType.Curveball]
+__Shared_Pitch_Types = [PitchType.All]
 
 def Train_Pitches(num_models : int):
     if num_models < 0:

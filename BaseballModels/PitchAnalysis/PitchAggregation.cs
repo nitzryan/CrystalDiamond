@@ -78,7 +78,7 @@ namespace PitchAnalysis
             }
 
             // Create pitch aggregations
-            var pitchGroups = pitchDb.Output_PitchValue.GroupBy(f => new { f.GameId, f.PitchId }).AsNoTracking();
+            var pitchGroups = pitchDb.Output_PitchValue.GroupBy(f => new { f.GameId, f.PitchId, f.Model }).AsNoTracking();
             List<Output_PitchValueAggregation> pvaList = new(pitchGroups.Count());
             Dictionary<(int, int), PitchScenario> pitchScenarioDict = db.PitchStatcast
                 .Where(f => f.LevelId == 1)
@@ -177,6 +177,10 @@ namespace PitchAnalysis
                         GameId = first.GameId,
                         PitchId = first.PitchId,
                         Year = first.Year,
+
+                        CountBalls = pitchScenario.balls,
+                        CountStrikes = pitchScenario.strikes,
+
                         LocationCalledStrike = probCSLocation,
                         LocationBall = probBallLocation,
                         LocationHBP = probHBPLocation,

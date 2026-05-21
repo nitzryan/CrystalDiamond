@@ -1,5 +1,4 @@
-﻿using Db;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
 
@@ -22,46 +21,68 @@ namespace PitchAnalysis
             years = years.Where(f => !pitchDb.YearLeagueDeviations.Select(f => f.Year).Contains(f));
             var models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct();
 
-            using (ProgressBar progressBar = new ProgressBar(years.Count(), "Calculating Year Deviations"))
+            List<int> balls = [0, 1, 2, 3];
+            List<int> strikes = [0, 1, 2];
+
+            using (ProgressBar progressBar = new ProgressBar(years.Count() * models.Count() * balls.Count * strikes.Count, "Calculating Year Deviations"))
             {
                 foreach (int year in years)
                 {
                     foreach (int modelId in models)
                     {
-                        double locationDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
+                        var yearModelPitches = pitchDb.Output_PitchValueAggregation
                             .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.LocationRuns)
-                            .AsEnumerable()
-                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-                            .Select(v => v * v)
-                            .Average());
-                        double stuffDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
-                            .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.StuffRuns)
-                            .AsEnumerable()
-                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-                            .Select(v => v * v)
-                            .Average());
-                        double pitchDev = Math.Sqrt(pitchDb.Output_PitchValueAggregation
-                            .Where(f => f.Year == year && f.Model == modelId)
-                            .Select(f => f.CombinedRuns)
-                            .AsEnumerable()
-                            .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-                            .Select(v => v * v)
-                            .Average());
-
-                        pitchDb.YearLeagueDeviations.Add(new YearLeagueDeviations
+                            .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes })
+                            .ToList();
+                        foreach (int ball in balls)
                         {
-                            Year = year,
-                            ModelId = modelId,
-                            ActDev = 0, // TODO : Remove from DB
-                            LocDev = (float)locationDev,
-                            StuffDev = (float)stuffDev,
-                            PitchDev = (float)pitchDev
-                        });
-                    }
+                            var yearModelBallPitches = yearModelPitches
+                                .Where(f => f.CountBalls == ball)
+                                .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns, f.CountStrikes })
+                                .ToList();
 
-                    progressBar.Tick();
+                            foreach (int strike in strikes)
+                            {
+                                var yearModelCountPitches = yearModelPitches
+                                    .Where(f => f.CountStrikes == strike)
+                                    .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns })
+                                    .ToArray();
+
+                                double locationDev = Math.Sqrt(yearModelCountPitches
+                                    .Select(f => f.LocationRuns)
+                                    .AsEnumerable()
+                                    .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                                    .Select(v => v * v)
+                                    .Average());
+                                double stuffDev = Math.Sqrt(yearModelCountPitches
+                                    .Select(f => f.StuffRuns)
+                                    .AsEnumerable()
+                                    .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                                    .Select(v => v * v)
+                                    .Average());
+                                double pitchDev = Math.Sqrt(yearModelCountPitches
+                                    .Select(f => f.CombinedRuns)
+                                    .AsEnumerable()
+                                    .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
+                                    .Select(v => v * v)
+                                    .Average());
+
+                                pitchDb.YearLeagueDeviations.Add(new YearLeagueDeviations
+                                {
+                                    Year = year,
+                                    ModelId = modelId,
+                                    Balls=ball,
+                                    Strikes=strike,
+                                    LocDev = (float)locationDev,
+                                    StuffDev = (float)stuffDev,
+                                    PitchDev = (float)pitchDev
+                                });
+
+                                progressBar.Tick();
+                            }
+                        }
+                        
+                    }
                 }
             }
 

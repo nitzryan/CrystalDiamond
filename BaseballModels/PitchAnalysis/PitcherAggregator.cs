@@ -35,6 +35,7 @@ namespace PitchAnalysis
                         Month = isSingleGame ? -1 :
                             isFullYear ? 13 : firstPitch.Month,
                         GameId = isSingleGame ? firstPitch.GameId : -1,
+                        Model = model,
 
                         PitchType = firstPitch.PitchType,
                         Scenario = s,
@@ -56,8 +57,8 @@ namespace PitchAnalysis
                     if (modelOutput == null)
                         throw new Exception($"Failed to deserialize modelOutput for PitchId={p.PitchId}");
 
-                    if (!modelOutput.ContainsKey(model))
-                        throw new Exception($"Couldn't find model={model} for PitchId={p.PitchId}");
+                    if (!modelOutput.ContainsKey(model)) // Some pitches may be in all model but in none of the specific pitch models
+                        continue;
 
                     (double absValue, double location, double stuff, double combined) = modelOutput[model];
 

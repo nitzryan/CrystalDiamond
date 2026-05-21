@@ -8,6 +8,7 @@ from Buckets import *
 from Stuff.DataPrep.PitchDataset import PitchIO
 from tqdm import tqdm
 from Constants import profiler
+import gc
         
 _OVERVIEW_STRING = "overview"
 _LOC_STRING = "loc"
@@ -288,6 +289,15 @@ class DataPrep:
                         pitcher_dict[id] = io_list
                     else:
                         pitcher_dict[id] += io_list
+        
+                # Ensure that garbage collector removes old data before new data is obtained
+                del pitch_avg
+                del data_pitch_averages
+                del pitcher_games
+                del pitcher_games_dict
+                del pitches
+                del player_pitch_dict
+                gc.collect()
         
         if SHOULD_PROFILE:
             profiler.disable()

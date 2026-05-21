@@ -1,5 +1,4 @@
 ﻿using Db;
-using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
@@ -20,14 +19,14 @@ namespace PitchAnalysis
 
             var pitchOutputs = pitchDb.Output_PitchValueAggregation
                 .AsNoTracking()
-                .GroupBy(f => new { f.GameId, f.PitchId });
+                .GroupBy(f => new { f.GameId, f.PitchId});
             int count = pitchOutputs.Count();
 
             int pitchCount = 0;
 
             // Pre-load Year deviations
-            Dictionary<(int, int), YearLeagueDeviations> devDict = pitchDb.YearLeagueDeviations.ToDictionary(
-                f => (f.Year, f.ModelId),
+            var devDict = pitchDb.YearLeagueDeviations.ToDictionary(
+                f => new { f.Year, f.ModelId, f.Balls, f.Strikes},
                 f => f);
 
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitch Model Results"))
@@ -36,7 +35,7 @@ namespace PitchAnalysis
                 {
                     Dictionary<int, PitchModelOutput> modelValues = new();
 
-                    var modelPitches = pitch.GroupBy(f => f.Model);
+                    var modelPitches = pitch.GroupBy(f => new { f.Model, f.CountBalls, f.CountStrikes });
                     foreach (var mp in modelPitches)
                     {
                         int size = mp.Count();
@@ -47,12 +46,21 @@ namespace PitchAnalysis
                         double locValue = opva.LocationRuns;
                         double combinedValue = opva.CombinedRuns;
 
-                        var yld = devDict[(mp.First().Year, mp.First().Model)];
-                        double stuffPlus = 100 - (10 * stuffValue / yld.StuffDev);
-                        double locPlus = 100 - (10 * locValue / yld.LocDev);
-                        double pitchPlus = 100 - (10 * combinedValue / yld.PitchDev);
+                        var yld = devDict[
+                            new { 
+                                mp.First().Year, 
+                                ModelId=mp.First().Model, 
+                                Balls=mp.First().CountBalls, 
+                                Strikes=mp.First().CountStrikes 
+                                }
+                            ];
 
-                        modelValues[mp.Key] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3), Math.Round(stuffPlus, 1), Math.Round(locPlus, 1), Math.Round(pitchPlus, 1));
+                        // TODO: Not sure whether they should all use the stuff deviation or their individual deviations
+                        double stuffPlus = 100 - (10 * stuffValue / yld.StuffDev);
+                        double locPlus = 100 - (10 * locValue / yld.StuffDev);
+                        double pitchPlus = 100 - (10 * combinedValue / yld.StuffDev);
+
+                        modelValues[mp.Key.Model] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3), Math.Round(stuffPlus, 1), Math.Round(locPlus, 1), Math.Round(pitchPlus, 1));
                     }
 
                     // Write to JSON 
