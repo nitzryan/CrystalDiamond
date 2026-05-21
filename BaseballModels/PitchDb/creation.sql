@@ -164,9 +164,15 @@ CREATE TABLE PitcherStuff
 	"Scenario" INTEGER NOT NULL,
 
 	"NumPitches" INTEGER NOT NULL,
+	"ValueActual" REAL NOT NULL,
 	"ValueStuff" REAL NOT NULL,
 	"ValueLoc" REAL NOT NULL,
 	"ValueCombined" REAL NOT NULL,
+
+	"ActualPlus" REAL NOT NULL,
+	"StuffPlus" REAL NOT NULL,
+	"LocationPlus" REAL NOT NULL,
+	"PitchPlus" REAL NOT NULL,
 
 	"Vel" REAL NOT NULL,
 	"BreakHoriz" REAL NOT NULL,

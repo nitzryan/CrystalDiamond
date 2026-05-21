@@ -10,6 +10,10 @@ namespace PitchAnalysis
 {
     internal class PitcherAggregator
     {
+        private record YearLeagueDevationKey(int modelId, int year, int balls, int strikes);
+
+        private static Dictionary<YearLeagueDevationKey, YearLeagueDeviations> yldDict = new();
+
         private static List<PitcherStuff> GetPitcherYearMonthStuffByScenarios(
             IEnumerable<PitchStatcast> pitches,
             int model,
@@ -28,74 +32,104 @@ namespace PitchAnalysis
 
                 var scenarioStats = scenarios.ToDictionary(
                     s => s,
-                    s => new PitcherStuff
-                    {
-                        MlbId = firstPitch.PitcherId,
-                        Year = isSingleGame ? -1 : firstPitch.Year,
-                        Month = isSingleGame ? -1 :
-                            isFullYear ? 13 : firstPitch.Month,
-                        GameId = isSingleGame ? firstPitch.GameId : -1,
-                        Model = model,
+                    s => (
+                        0f,
+                        new PitcherStuff
+                        {
+                            MlbId = firstPitch.PitcherId,
+                            Year = isSingleGame ? -1 : firstPitch.Year,
+                            Month = isSingleGame ? -1 :
+                                isFullYear ? 13 : firstPitch.Month,
+                            GameId = isSingleGame ? firstPitch.GameId : -1,
+                            Model = model,
 
-                        PitchType = firstPitch.PitchType,
-                        Scenario = s,
+                            PitchType = firstPitch.PitchType,
+                            Scenario = s,
 
-                        NumPitches = 0,
-                        ValueStuff = 0f,
-                        ValueLoc = 0f,
-                        ValueCombined = 0f,
+                            NumPitches = 0,
+                            ValueActual = 0f,
+                            ValueStuff = 0f,
+                            ValueLoc = 0f,
+                            ValueCombined = 0f,
 
-                        Vel = 0,
-                        BreakHoriz = 0,
-                        BreakVert = 0,
-                    });
+                            ActualPlus = 0f,
+                            StuffPlus = 0f,
+                            LocationPlus = 0f,
+                            PitchPlus = 0f,
+
+                            Vel = 0,
+                            BreakHoriz = 0,
+                            BreakVert = 0,
+                        })
+                );
 
                 // Accumulate values
                 foreach (var p in pitchGroup)
                 {
-                    var modelOutput = JsonSerializer.Deserialize<Dictionary<int, (double, double, double, double)>>(p.ModelOutput);
+                    var modelOutput = JsonSerializer.Deserialize<Dictionary<int, PitchModelOutput>>(p.ModelOutput);
                     if (modelOutput == null)
                         throw new Exception($"Failed to deserialize modelOutput for PitchId={p.PitchId}");
 
                     if (!modelOutput.ContainsKey(model)) // Some pitches may be in all model but in none of the specific pitch models
                         continue;
 
-                    (double absValue, double location, double stuff, double combined) = modelOutput[model];
+                    PitchModelOutput pmo = modelOutput[model];
+                    YearLeagueDevationKey yldKey = new(model, p.Year, p.CountBalls, p.CountStrike);
+                    YearLeagueDeviations yld = yldDict[yldKey];
 
                     foreach (var scen in scenarios)
                     {
                         if (p.Scenario.HasFlag(scen) || scen == PitchScenario.All)
                         {
-                            var pointer = scenarioStats[scen];
+                            var (count, stats) = scenarioStats[scen];
 
-                            pointer.NumPitches++;
-                            pointer.ValueStuff += (float)stuff;
-                            pointer.ValueLoc += (float)location;
-                            pointer.ValueCombined += (float)combined;
+                            count += yld.StuffDev;
+
+                            stats.NumPitches++;
+                            stats.ValueActual += p.RunValueSmoothedHitter;
+                            stats.ValueStuff += (float)pmo.stuffValue;
+                            stats.ValueLoc += (float)pmo.locationValue;
+                            stats.ValueCombined += (float)pmo.expValue;
 
                             #pragma warning disable CS8629 // Will be not null if put through model
-                            pointer.Vel += (float)p.VStart;
-                            pointer.BreakHoriz += (float)p.BreakHorizontal;
-                            pointer.BreakVert += (float)p.BreakInduced;
+                            stats.Vel += (float)p.VStart;
+                            stats.BreakHoriz += (float)p.BreakHorizontal;
+                            stats.BreakVert += (float)p.BreakInduced;
                             #pragma warning restore CS8629
+
+                            scenarioStats[scen] = (count, stats);
                         }
                     }
                 }
 
                 // Convert sums to per-pitch averages
-                foreach (var stats in scenarioStats.Values)
+                foreach (var s in scenarioStats.Values)
                 {
+                    var stats = s.Item2;
+                    
                     if (stats.NumPitches > 0)
                     {
+                        float avgDev = s.Item1 / stats.NumPitches;
+
+                        // Value Per Pitch
+                        stats.ValueActual /= stats.NumPitches;
                         stats.ValueStuff /= stats.NumPitches;
                         stats.ValueLoc /= stats.NumPitches;
                         stats.ValueCombined /= stats.NumPitches;
 
+                        // Pitch Metrics
                         stats.Vel /= stats.NumPitches;
                         stats.BreakHoriz /= stats.NumPitches;
                         stats.BreakVert /= stats.NumPitches;
+
+                        // Normalize to Pitch+
+                        stats.ActualPlus = 100 - (10 * stats.ValueActual / avgDev);
+                        stats.StuffPlus = 100 - (10 * stats.ValueStuff / avgDev);
+                        stats.LocationPlus = 100 - (10 * stats.ValueLoc / avgDev);
+                        stats.PitchPlus = 100 - (10 * stats.ValueCombined / avgDev);
+
+                        pitchSideBreakdowns.Add(stats);
                     }
-                    pitchSideBreakdowns.Add(stats);
                 }
             }
 
@@ -108,6 +142,12 @@ namespace PitchAnalysis
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             pitchDb.PitcherStuff.ExecuteDelete();
+
+            yldDict = pitchDb.YearLeagueDeviations
+                .ToDictionary(
+                    f => new YearLeagueDevationKey(f.ModelId, f.Year, f.Balls, f.Strikes),
+                    f => f
+                );
 
             List<PitcherStuff> stuffList = new();
 

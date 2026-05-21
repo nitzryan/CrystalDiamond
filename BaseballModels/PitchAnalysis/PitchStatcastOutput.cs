@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace PitchAnalysis
 {
-    public record PitchModelOutput(double absValue, double stuffValue, double locationValue, double expValue, double stuffPlus, double locPlus, double pitchPlus);
+    public record PitchModelOutput(double stuffValue, double locationValue, double expValue, double stuffPlus, double locPlus, double pitchPlus);
 
     internal class PitchStatcastOutput
     {
@@ -41,7 +41,6 @@ namespace PitchAnalysis
                         int size = mp.Count();
                         var opva = mp.Single();
 
-                        double absValue = 0;
                         double stuffValue = opva.StuffRuns;
                         double locValue = opva.LocationRuns;
                         double combinedValue = opva.CombinedRuns;
@@ -60,7 +59,7 @@ namespace PitchAnalysis
                         double locPlus = 100 - (10 * locValue / yld.StuffDev);
                         double pitchPlus = 100 - (10 * combinedValue / yld.StuffDev);
 
-                        modelValues[mp.Key.Model] = new PitchModelOutput(Math.Round(absValue, 3), Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3), Math.Round(stuffPlus, 1), Math.Round(locPlus, 1), Math.Round(pitchPlus, 1));
+                        modelValues[mp.Key.Model] = new PitchModelOutput(Math.Round(stuffValue, 3), Math.Round(locValue, 3), Math.Round(combinedValue, 3), Math.Round(stuffPlus, 1), Math.Round(locPlus, 1), Math.Round(pitchPlus, 1));
                     }
 
                     // Write to JSON 

@@ -10,9 +10,14 @@ namespace PitchDb
 		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchScenario Scenario {get; set;}
 		public required int NumPitches {get; set;}
+		public required float ValueActual {get; set;}
 		public required float ValueStuff {get; set;}
 		public required float ValueLoc {get; set;}
 		public required float ValueCombined {get; set;}
+		public required float ActualPlus {get; set;}
+		public required float StuffPlus {get; set;}
+		public required float LocationPlus {get; set;}
+		public required float PitchPlus {get; set;}
 		public required float Vel {get; set;}
 		public required float BreakHoriz {get; set;}
 		public required float BreakVert {get; set;}
@@ -29,9 +34,14 @@ namespace PitchDb
 				PitchType = this.PitchType,
 				Scenario = this.Scenario,
 				NumPitches = this.NumPitches,
+				ValueActual = this.ValueActual,
 				ValueStuff = this.ValueStuff,
 				ValueLoc = this.ValueLoc,
 				ValueCombined = this.ValueCombined,
+				ActualPlus = this.ActualPlus,
+				StuffPlus = this.StuffPlus,
+				LocationPlus = this.LocationPlus,
+				PitchPlus = this.PitchPlus,
 				Vel = this.Vel,
 				BreakHoriz = this.BreakHoriz,
 				BreakVert = this.BreakVert,
