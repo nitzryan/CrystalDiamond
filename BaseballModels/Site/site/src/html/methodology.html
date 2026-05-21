@@ -21,15 +21,35 @@
                 </figure>
             </div>
             <div class="section">
+                <h1>Data</h1>
+                <h2>Eligible Players</h2>
+                <p>The model is trained on MLB and MiLB data going back to 2005, and college data going back to 2002.  Any player who had played
+                    in MLB or MiLB before 2005 is excluded from the list of players, although players who don't have full college data are included due
+                    to (A) relatively few players missing data that aren't missing MiLB data and (B) difficulty in determining who these players are.
+                    In order to allow for players to have enough time to actually accumulate WAR if they are successful, players who signed
+                    after 2015 are not included in the training dataset. In addition, any players who signed an MLB contract from a professional league
+                    (typically the NPB) are not included in training either, as the model does not have other league data.
+                </p>
+                <p>
+                    For predictions on next-year statistics, players with data before 2005 are not eligible, but all other players are.  No data after
+                    2024 was used in training statistics, position, or playing time predictions.  Stat predictions do not stop once a player has stopped
+                    being a prospect in the model.
+                </p>
                 <h2>Inputs (X)</h2>
                 <p>For a player, a stats input is generated each month, as well as one upon player signing.
                     When a player plays at multiple levels in a given year, the stats are combined, with the level
                     being the weighted average of the levels for the month.  All stats are normalized to the league
                     at which the player is at, so rather than having a player's AVG, it instead has their AVG as a multiple
-                    of the average AVG at that league for that period.
+                    of the average AVG at that league for that period.  If a player has no stats for a month, empty stats will be added if
+                    their previous level played 20% or more of their max monthly games that month, otherwise no update is applied.
+                    This ends up resulting in some abnormalities around the 2020 season, where player in the low minors who played in 2019 have
+                    absolutely no input data until they are 2021, where they are suddenly over a year older.
+                    Any games played before April are merged into April, and any games played after September are merged into September.
                 </p>
                 <details>
-                    <summary class="paragraph">The following stats are used to create the inputs</summary>
+                    <summary class="paragraph">The following stats (click to expand) are used to create pro inputs at each time step.  BSR, OFF, DEF, WAR
+                        are custom stats for MiLB and obtained from Fangraphs for MLB
+                    </summary>
                         Both<ul>
                             <li>Age at signing</li>
                             <li>Draft Pick</li>
@@ -44,16 +64,20 @@
                             <li>Park HR Factor</li>
                         </ul>
                         Hitters<ul>
-                            <li>AVG</li>
-                            <li>OBP</li>
-                            <li>ISO</li>
-                            <li>wOBA</li>
-                            <li>HR%</li>
-                            <li>BB%</li>
-                            <li>K%</li>
-                            <li>SB%</li>
-                            <li>SB attempts per PA</li>
+                            <li>1B</li>
+                            <li>2B</li>
+                            <li>3B</li>
+                            <li>HR</li>
+                            <li>BB</li>
+                            <li>HBP</li>
+                            <li>K</li>
+                            <li>SB</li>
+                            <li>CS</li>
                             <li>% of games started at each position</li>
+                            <li>BSR</li>
+                            <li>OFF</li>
+                            <li>DEF</li>
+                            <li>WAR</li>
                         </ul>
                         Pitchers<ul>
                             <li>ERA</li>
@@ -63,10 +87,69 @@
                             <li>BB%</li>
                             <li>K%</li>
                             <li>Groundout%</li>
+                            <li>WAR</li>
                         </ul>
                 </details>
+                <p>
+                    For players that first played in college, the player is run through a seperate college model, which has its results fed into
+                    the pro model when the player begins their pro career.  Empty data is fed in for any gap years in eligiblity.
+                </p>
+                <details>
+                    <summary class="paragraph">The following stats are used to create college inputs at each time step.
+                    </summary>
+                    Both<ul>
+                        <li>Year of Eligibility</li>
+                        <li>Age</li>
+                        <li>Park Run Factor</li>
+                        <li>Average Conference RPI</li>
+                    </ul>
+                    Hitters<ul>
+                        <li>PA</li>
+                        <li>1B</li>
+                        <li>2B</li>
+                        <li>3B</li>
+                        <li>HR</li>
+                        <li>BB</li>
+                        <li>HBP</li>
+                        <li>K</li>
+                        <li>SB</li>
+                        <li>CS</li>
+                    </ul>
+                    Pitchers<ul>
+                        <li>IP</li>
+                        <li>ERA</li>
+                        <li>FIP</li>
+                        <li>WHIP</li>
+                        <li>H9</li>
+                        <li>HR9</li>
+                        <li>BB9</li>
+                        <li>K9</li>
+                        <li>GS</li>
+                        <li>G</li>
+                    </ul>
+                </details>
+                <h2>Output (Y)</h2>
+                <p>To evaluate each player, an attempt was made to determine their total output WAR through team control.  This is not an
+                    easy point to determine exactly where it begins and ends for each player: options, waivers, Rule 5 Draft eligibility, how a player was aquired, 
+                    and minor league free agency make it more complicated than just looking at the total WAR accululated until the player
+                    has enough service time to reach free agency.  To determine the cutoff point, the following approach was used.  The model will
+                    only cut off at the end of a season.
+                </p>
+                <ol id="methodology_list">
+                    <li>If a player reaches their age 27 season without making their MLB debut, the model cuts off, resulting in 0 WAR</li>
+                    <li>If a player reaches the MLB and then does not play in MLB for 2 years, the model cuts off (the player was likely waived)</li>
+                    <li>If a player reaches age 34, the model cuts off (a player would not be under team control at this point)</li>
+                    <li>If a player reaches their free agency eligibility, the model cuts off</li>
+                </ol>
+                <p>For statictics predictions, all of the input stats for a hitter/pitcher are predicted individually, with the exception of those
+                    that are derived from other predicted statictics (WAR, FIP) on a per-PA basis, and then scaled by the playing time prediction.
+                    For training, levels that do not meet 50PA/50BF are not considered for training to reduce noise.  While input data is done on a per-month basis,
+                    output data is done on a rolling calendar year basis; a prediction after the model has been run on May data would be predicting the rest of the current
+                    year in addition to April and May of the next year.
+                </p>
             </div>
             <div class="section">
+                <h1>Model</h1>
                 <h2>RNN</h2>
                 <p>The main portion of the model lies in a Stacked RNN, label as RNN in the high level view.
                     The RNN takes in two inputs, the input state and the previous hidden state, and returns an updated 
@@ -113,16 +196,20 @@
                     a few superstars would generate a large model loss.  Instead, WAR is put into a number of different buckets and
                     the model generates a probability that the player ended up in each bucket.
                 </p>
-                <p>The model currently generates 4 different outputs: WAR through control, peak seasonal WAR during control,
-                    the total PA/outs for a hitter/pitcher, and the highest level that a player achieved.  Noteably, all of these
-                    are predicted during the same model run, and since all predictions converge at the player state to propogate their
-                    loss through the model, this results in errors in level prediction affecting the model for WAR prediction and vica versa.
+                <p>The model currently generates a number of different outputs: WAR through control, peak seasonal WAR during control,
+                    the total PA/outs for a hitter/pitcher in MLB, and the highest level that a player achieved, their stats during the next
+                    calendar year at each level, their positions played in the next calendar year at each level, their OFF/DEF/BSR value
+                    during MLB control, and their playing time at each level.  All of these are predicted during the same model run, 
+                    allowing for the model to learn much more detailed information about why prospects are succeeding or failing.
                     Somewhat surprisingly, predicting the player's level and the player's WAR generates a better WAR
-                    prediction than just predicting their WAR.  The likely reason for this is that it allows for the model
-                    to better differentiate between players in the lower buckets; for the lowest&mdash;&le;0 WAR&mdash;the player could have
-                    made the majors and had a few hundred PAs but not made it work, or they could have flamed out after hitting
-                    .150 in the DSL.  While they both are in the same bucket, the MLB player was much closer to providing positive WAR
-                    than the DSL one, so this gives the model that insight between them.
+                    prediction than just predicting their WAR, and this being true for all of the predicted values and prospect WAR.
+                </p>
+                <p>
+                    While the model makes good predictions for prospect value, the predictions about MLB stats do not seem to be up to par
+                    compared with other public models and team evaluations on players.  The stat predictions tend to over-regress values towards the mean,
+                    meaning that players who are outliers on a statistic (such as Aaron Judge on HRs) tend to get underrated, while players who have clear
+                    flaws tend to get overrated as the model believes their weakness will significantly improve.  That stat predictions do tend to agree
+                    with most players on their relative ranking, its values for top players is significantly lower than public models.
                 </p>
             </div>
         </div>

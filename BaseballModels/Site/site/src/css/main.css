@@ -164,11 +164,17 @@ p, details {
     line-height: 1.5;
 }
 
-.section p, details {
+.section p, details, .section ol {
     text-indent: 2em;
     font-size: 1.2em;
+}
+
+.section ol {
+    padding-left: 0;
+    margin-left: 6em;
 }
 
 #error_msg {
     font-size: 1.4em;
 }
+
