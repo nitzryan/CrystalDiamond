@@ -14,7 +14,7 @@ day_str = f"{day}{months[month]}{year}"
 cursor = pitch_db.cursor()
 
 cursor.execute("DELETE FROM Models_PitchValue")
-cursor.execute(f"INSERT INTO Models_PitchValue VALUES(1,'Seperate_{day_str}')")
+#cursor.execute(f"INSERT INTO Models_PitchValue VALUES(1,'Seperate_{day_str}')")
 cursor.execute(f"INSERT INTO Models_PitchValue VALUES(2,'Combined_{day_str}')")
 pitch_db.commit()
 

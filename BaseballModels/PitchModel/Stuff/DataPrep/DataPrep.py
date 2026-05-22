@@ -227,15 +227,21 @@ class DataPrep:
                     values=(year,month)
                 )
                 
-                if len(pitch_avg) == 0:
-                    raise Exception(f"No data found for PitchDataAverages for {year}-{month}")
+                if len(pitch_avg) == 0: # Some years won't have March/Oct games
+                    continue
+
                 pitch_avg = pitch_avg[0]
                 data_pitch_averages = self.Transform_PitchAverage(pitch_avg)
                 
                 # Pitcher Games
+                month_cond_string = "Month=?"
+                if month == 4:
+                    month_cond_string = "Month<=?"
+                elif month == 9:
+                    month_cond_string = "Month>=?"
                 pitcher_games = DB_PitcherStatcastGame.Select_From_DB(
                     cursor=cursor,
-                    conditional="WHERE Year=? AND Month=?",
+                    conditional=f"WHERE Year=? AND {month_cond_string}",
                     values=(year, month)
                 )
                 
@@ -247,7 +253,7 @@ class DataPrep:
                 level_cond = "AND LevelId=1" if mlb_only else ""
                 pitches = DB_PitchStatcast.Select_From_DB(
                     cursor=cursor,
-                    conditional=self.conditional_statement + f"AND Year=? AND Month=? {level_cond}",
+                    conditional=self.conditional_statement + f"AND Year=? AND {month_cond_string} {level_cond}",
                     values=(year, month)
                 )
                 

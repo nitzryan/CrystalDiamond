@@ -6,7 +6,7 @@ import gc
 
 from Constants import device, pitch_db, db
 from Shared import GetModelMaps
-from Stuff.DataPrep.DataPrep import DataPrep, PitchType
+from Stuff.DataPrep.DataPrep import DataPrep
 from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
 from Stuff.Model.PitchModel import PitchModel
 from Stuff.Model.ModelTrain import _MODEL_OUTPUTS
@@ -17,9 +17,6 @@ eval_profiler = LineProfiler()
 _SHOULD_PROFILE = True
 
 from Buckets import *
-
-__Seperate_Pitch_Types = [PitchType.Fastball, PitchType.Changeup, PitchType.Curveball]
-__Shared_Pitch_Types = [PitchType.All]
 
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum
@@ -48,10 +45,9 @@ def Eval_Pitches():
     last_year = db_cursor.execute("SELECT Year FROM PitchStatcast ORDER BY Year DESC LIMIT 1").fetchone()[0]
     
     for model_id, model_name in tqdm(model_ids, desc="Evaluating Pitch Architectures"):
-        pitch_type_list = __Seperate_Pitch_Types if model_id == 1 else __Shared_Pitch_Types
+        prep_map, pitch_type_list = GetModelMaps(model_id)
         for pitch_type in tqdm(pitch_type_list, desc="Pitch Types", leave=False):
             # Generate Data
-            prep_map = GetModelMaps(model_id)
             data_prep = DataPrep(prep_map=prep_map, pitch_type=pitch_type)
             
             mth_list = DB_ModelTrainingHistory_PitchValue.Select_From_DB(cursor, "WHERE ModelId=? AND PitchType=?", (model_id,pitch_type.value[0]))
