@@ -6,15 +6,21 @@ from tqdm import tqdm
 from Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
 from College.Model.College_Model import RNN_Model as College_Model
 from Combined.Model.Model_Train import TrainAndGraph
-from Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST
-from Pro.Model.Player_Model import DEFAULT_WARCLASS_ARCH, DEFAULT_STATS_ARCH, DEFAULT_PT_ARCH, DEFAULT_POS_ARCH, DEFAULT_LVL_ARCH, DEFAULT_PA_ARCH, DEFAULT_VALUE_ARCH, DEFAULT_MLBSTAT_ARCH
+from Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST, DEFAULT_PRO_ELEMENT_LOSS_SCALES
 import torch
 import gc
 from Constants import device
 
+def sci(n):
+    if n == 0: return "0e0"
+    s = f"{n:.0e}"
+    mant, exp = s.split('e')
+    exp = exp.lstrip('+').lstrip('0') or '0'
+    return f"{mant}e{exp}"
+
 if __name__ == "__main__":
-    layer_sizes = [8, 16, 32, 64, 128, 256]
-    num_layers_list = [1,2,4,8]
+    prospect_scales = [1e-4, 1e-3, 1e-2, 1e-1, 1, 1e1]
+    branch_scales = [1e-4, 1e-3, 1e-2, 1e-1, 1, 1e1]
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -28,38 +34,20 @@ if __name__ == "__main__":
         player_list=hitter_io_list, 
         is_hitter=True)
 
-    for i in tqdm(range(NUM_ELEMENTS), desc="Branches"):
+    for i in tqdm(range(1, NUM_ELEMENTS), desc="Branches"):
         xs = []
         ys = []
         zs = []
-        for num_layers in tqdm(num_layers_list, desc="Num Layers", leave=False):
-            for layer_size in tqdm(layer_sizes, desc="Layer Sizes", leave=False):
-                
-                layer_arch = LayerArch(layer_size=layer_size, num_layers=num_layers)
-                
-                # Assign modified layer to specific branch
-                warclass_arch : LayerArch = DEFAULT_WARCLASS_ARCH if i != 0 else layer_arch
-                lvl_arch : LayerArch = DEFAULT_LVL_ARCH if i != 1 else layer_arch
-                pa_arch : LayerArch = DEFAULT_PA_ARCH if i != 2 else layer_arch
-                stats_arch : LayerArch = DEFAULT_STATS_ARCH if i != 3 else layer_arch
-                pos_arch : LayerArch = DEFAULT_POS_ARCH if i != 4 else layer_arch
-                val_arch : LayerArch = DEFAULT_VALUE_ARCH if i != 5 else layer_arch
-                pt_arch : LayerArch = DEFAULT_PT_ARCH if i != 6 else layer_arch
-                mlbstat_arch : LayerArch = DEFAULT_MLBSTAT_ARCH if i != 7 else layer_arch
-                
+        for ps in tqdm(prospect_scales, desc="Prospect Scale", leave=False):
+            for bs in tqdm(branch_scales, desc="Branch Scale", leave=False):
+                pro_element_loss_scales = DEFAULT_PRO_ELEMENT_LOSS_SCALES
+                pro_element_loss_scales[0] = ps
+                pro_element_loss_scales[i] = bs
                 pro_model = Pro_Model(
                     input_size=train_dataset.GetProInputSize(),
                     mutators=torch.empty(0),
                     data_prep=data_prep.pro_data_prep,
                     is_hitter=True,
-                    warclass_arch=warclass_arch,
-                    lvl_arch=lvl_arch,
-                    pa_arch=pa_arch,
-                    stats_arch=stats_arch,
-                    pos_arch=pos_arch,
-                    val_arch=val_arch,
-                    pt_arch=pt_arch,
-                    mlbstat_arch=mlbstat_arch,
                 ).to(device)
                 col_model = College_Model(
                     input_size=train_dataset.GetColInputSize(),
@@ -78,7 +66,8 @@ if __name__ == "__main__":
                     col_model_name="Models/test_col_hit",
                     is_hitter=True,
                     should_output=False,
-                    element_to_save=i,
+                    num_epochs=101,
+                    pro_element_loss_scales=pro_element_loss_scales
                 )
                 
                 del pro_model
@@ -86,8 +75,8 @@ if __name__ == "__main__":
                 torch.cuda.empty_cache()
                 gc.collect()   
                 
-                xs.append(layer_size)
-                ys.append(num_layers)
+                xs.append(ps)
+                ys.append(bs)
                 zs.append(best_loss)
             
         import pandas as pd
@@ -96,18 +85,18 @@ if __name__ == "__main__":
 
         df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
         pivot_table = df.pivot(index='y', columns='x', values='z')
-        plt.figure(figsize=(1 * len(layer_sizes), .75 * len(num_layers_list) + 2))
+        plt.figure(figsize=(1 * len(prospect_scales), .75 * len(branch_scales) + 2))
         sns.heatmap(
             pivot_table, 
             annot=True,
             fmt='.3f',
             cmap='viridis',
             linewidths=0.5,
-            xticklabels=[round(x) for x in layer_sizes],
-            yticklabels=[round(y) for y in num_layers_list],
+            xticklabels=[sci(x) for x in prospect_scales],
+            yticklabels=[sci(y) for y in branch_scales],
         )
-        plt.xlabel('Hidden Size')
-        plt.ylabel('Num Layers')
+        plt.xlabel('Prospect Scale')
+        plt.ylabel('Branch Scale')
         plt.title(f'Test Loss for {ELEMENT_LIST[i]}')
-        plt.savefig(f'Combined/Experiments/Results/BranchLayerArch/Hitters_LayerArch_{ELEMENT_LIST[i]}.png', dpi=400)
+        plt.savefig(f'Combined/Experiments/Results/BranchLearningScales/Hitter_{ELEMENT_LIST[i]}.png', dpi=400)
         plt.clf()

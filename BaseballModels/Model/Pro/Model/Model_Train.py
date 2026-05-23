@@ -9,10 +9,21 @@ from Utilities import profiler
 
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
-ELEMENT_LOSS_SCALES = [1] * NUM_ELEMENTS
+
+DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1, 1, 1, 1e-2, 1, 1, 1, 1]
 
 @profiler
-def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.Tensor, shouldBackprop : bool, is_hitter: bool) -> tuple:
+def GetLosses(
+  network, 
+  data : tuple, 
+  targets : tuple, 
+  masks : tuple, 
+  h0 : torch.Tensor, 
+  shouldBackprop : bool, 
+  is_hitter: bool,
+  pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES) -> tuple:
+  
+  
   # Get Model Output
   data, length, pt_levelYearGames = data
   mask_valid = length > 0
@@ -52,7 +63,7 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
   # Scale how much each loss should effect the model
   losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]
   for i in range(NUM_ELEMENTS):
-    els = ELEMENT_LOSS_SCALES[i]
+    els = pro_element_loss_scales[i]
     if els != 1:
       losses[i] *= els
   
@@ -60,7 +71,7 @@ def GetLosses(network, data : tuple, targets : tuple, masks : tuple, h0 : torch.
     torch.autograd.backward(losses)
   
   for i in range(NUM_ELEMENTS):
-    els = ELEMENT_LOSS_SCALES[i]
+    els = pro_element_loss_scales[i]
     if els != 1:
       losses[i] /= els
   

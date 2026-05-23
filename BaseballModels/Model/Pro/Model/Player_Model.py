@@ -23,13 +23,13 @@ class LayerArch:
                             [nn.Linear(self.layer_size, self.layer_size) for _ in range(self.num_layers - 2)] +\
                             [nn.Linear(self.layer_size, output_size)])
 
-DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=150, num_layers=2)
-DEFAULT_STATS_ARCH = LayerArch(layer_size=70, num_layers=2)
-DEFAULT_PT_ARCH = LayerArch(layer_size=130, num_layers=3)
-DEFAULT_POS_ARCH = LayerArch(layer_size=90, num_layers=2)
-DEFAULT_LVL_ARCH = LayerArch(layer_size=60, num_layers=3)
-DEFAULT_PA_ARCH = LayerArch(layer_size=70, num_layers=2)
-DEFAULT_VALUE_ARCH = LayerArch(layer_size=80, num_layers=3)
+DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=256, num_layers=2)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
+DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
+DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=128, num_layers=2)
+DEFAULT_PA_ARCH = LayerArch(layer_size=256, num_layers=2)
+DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
 DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
@@ -114,7 +114,7 @@ class RNN_Model(nn.Module):
         
         self.input_noise = input_noise
         
-        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
+        self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
         
         # Individual prediction layers
         if use_resnet:
@@ -278,6 +278,12 @@ class RNN_Model(nn.Module):
         if self.training and self.input_noise > 0:
             noise = torch.rand_like(x, requires_grad=False) * self.input_noise
             x += noise
+        
+        # Append sequence index
+        timesteps = torch.arange(x.size(1), dtype=x.dtype, device=x.device)
+        timesteps = timesteps.reshape(1, x.size(1), 1)
+        timesteps = timesteps.expand(x.size(0), x.size(1), 1)
+        x = torch.cat((x, timesteps), dim=-1)
         
         # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()

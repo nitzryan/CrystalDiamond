@@ -33,6 +33,7 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 10,
+    pro_element_loss_scales : list[int] = [1,1,1,1,1,1,1,1]
 ) -> tuple[float, float, int]:
     if SHOULD_PROFILE:
         profiler.enable()
@@ -74,7 +75,8 @@ def TrainAndGraph(
             is_hitter=is_hitter,
             pro_elements=num_pro_elements,
             col_elements=num_col_elements,
-            batch_size=batch_size)
+            batch_size=batch_size,
+            pro_element_loss_scales=pro_element_loss_scales)
         test_loss = Test(
             pro_network=pro_network,
             col_network=col_network,
@@ -139,6 +141,7 @@ def Train(
     pro_elements : int,
     col_elements : int,
     batch_size : int,
+    pro_element_loss_scales : list[int]
 ) -> list[float]:
     
     pro_network.train()
@@ -163,7 +166,15 @@ def Train(
         else:
             col_losses, h0 = GetLossesPitcher(col_network, col_data, col_targets, col_masks, shouldBackprop=True)
         
-        pro_losses = GetLosses(pro_network, pro_data, pro_targets, pro_masks, h0, shouldBackprop=True, is_hitter=is_hitter)
+        pro_losses = GetLosses(
+            pro_network, 
+            pro_data, 
+            pro_targets, 
+            pro_masks, 
+            h0, 
+            shouldBackprop=True, 
+            is_hitter=is_hitter,
+            pro_element_loss_scales=pro_element_loss_scales)
         
         torch.nn.utils.clip_grad_norm_(col_network.parameters(), max_norm=0.05)
         col_optimizer.step()
