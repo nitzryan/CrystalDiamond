@@ -16,13 +16,14 @@ namespace UI
 
         private SqliteDbContext? db = null;
         private PitchDbContext? pitchDb = null;
-        private int PlayerId = 0;
+        private Player? player = null;
         private List<PitchStatcast> PlayerPitches = [];
 
         public PitchViewer()
         {
             InitializeComponent();
 
+            playerSearchBar.PlayerSelected += PlayerSelected;
             yearSelector.Update(2010, 2025, "Year");
 
             // Situations
@@ -58,6 +59,8 @@ namespace UI
             db = new(Db.Connection.DB_READONLY_OPTIONS);
             pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
 
+            playerSearchBar.SetPlayerList(db.Player.Where(f => f.Position != "H").ToList());
+
             // Models
             cbModel.Items.Clear();
             var pitchModels = pitchDb.Models_PitchValue.OrderBy(f => f.Id).ToList();
@@ -90,25 +93,13 @@ namespace UI
             cbOutput.SelectedIndex = 0;
         }
 
-        private void pbSearchPlayer_Click(object sender, EventArgs e)
+        public void PlayerSelected(object senser, Player p)
         {
             if (db == null || pitchDb == null)
                 throw new Exception("Failed to load db");
 
-            PlayerId = (int)playerIdEntry.Value;
-
-            // Player Name
-            Player? player = db.Player.Where(f => f.MlbId == PlayerId).SingleOrDefault();
-            if (player == null)
-            {
-                playerLinkLabel.Text = "No Player";
-                return;
-            }
-
-            playerLinkLabel.Text = player.UseFirstName + " " + player.UseLastName;
-            labelName.Text = playerLinkLabel.Text;
-
-            PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == PlayerId && f.ModelOutput != "").ToList();
+            player = p;
+            PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == player.MlbId && f.ModelOutput != "").ToList();
 
             // Player Years
             List<int> years = PlayerPitches

@@ -30,9 +30,6 @@
         {
             pitchPanel = new PitchPanel();
             groupBoxPlayer = new GroupBox();
-            playerLinkLabel = new LinkLabel();
-            playerIdEntry = new NumericUpDown();
-            pbSearchPlayer = new Button();
             groupBoxFilters = new GroupBox();
             label2 = new Label();
             label1 = new Label();
@@ -85,14 +82,14 @@
             labelOBP = new Label();
             groupBox4 = new GroupBox();
             tableLayoutPanel6 = new TableLayoutPanel();
+            labelPitch = new Label();
+            label14 = new Label();
             label10 = new Label();
             labelLocation = new Label();
             label12 = new Label();
             labelStuff = new Label();
-            label14 = new Label();
-            labelPitch = new Label();
+            playerSearchBar = new UI.Controls.PlayerSearchBar();
             groupBoxPlayer.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)playerIdEntry).BeginInit();
             groupBoxFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).BeginInit();
             groupBoxPostProcessing.SuspendLayout();
@@ -123,46 +120,13 @@
             // 
             // groupBoxPlayer
             // 
-            groupBoxPlayer.Controls.Add(playerLinkLabel);
-            groupBoxPlayer.Controls.Add(playerIdEntry);
-            groupBoxPlayer.Controls.Add(pbSearchPlayer);
+            groupBoxPlayer.Controls.Add(playerSearchBar);
             groupBoxPlayer.Location = new Point(3, 3);
             groupBoxPlayer.Name = "groupBoxPlayer";
-            groupBoxPlayer.Size = new Size(317, 98);
+            groupBoxPlayer.Size = new Size(317, 205);
             groupBoxPlayer.TabIndex = 1;
             groupBoxPlayer.TabStop = false;
             groupBoxPlayer.Text = "Player";
-            // 
-            // playerLinkLabel
-            // 
-            playerLinkLabel.AutoSize = true;
-            playerLinkLabel.LinkColor = Color.Black;
-            playerLinkLabel.Location = new Point(6, 62);
-            playerLinkLabel.Name = "playerLinkLabel";
-            playerLinkLabel.Size = new Size(60, 15);
-            playerLinkLabel.TabIndex = 2;
-            playerLinkLabel.TabStop = true;
-            playerLinkLabel.Text = "linkLabel1";
-            playerLinkLabel.VisitedLinkColor = Color.Black;
-            // 
-            // playerIdEntry
-            // 
-            playerIdEntry.InterceptArrowKeys = false;
-            playerIdEntry.Location = new Point(6, 24);
-            playerIdEntry.Maximum = new decimal(new int[] { 1000000000, 0, 0, 0 });
-            playerIdEntry.Name = "playerIdEntry";
-            playerIdEntry.Size = new Size(120, 23);
-            playerIdEntry.TabIndex = 1;
-            // 
-            // pbSearchPlayer
-            // 
-            pbSearchPlayer.Location = new Point(208, 22);
-            pbSearchPlayer.Name = "pbSearchPlayer";
-            pbSearchPlayer.Size = new Size(75, 23);
-            pbSearchPlayer.TabIndex = 0;
-            pbSearchPlayer.Text = "Search";
-            pbSearchPlayer.UseVisualStyleBackColor = true;
-            pbSearchPlayer.Click += pbSearchPlayer_Click;
             // 
             // groupBoxFilters
             // 
@@ -172,7 +136,7 @@
             groupBoxFilters.Controls.Add(cbSituations);
             groupBoxFilters.Controls.Add(cbPitchSelector);
             groupBoxFilters.Controls.Add(yearSelector);
-            groupBoxFilters.Location = new Point(9, 107);
+            groupBoxFilters.Location = new Point(6, 214);
             groupBoxFilters.Name = "groupBoxFilters";
             groupBoxFilters.Size = new Size(311, 137);
             groupBoxFilters.TabIndex = 2;
@@ -231,7 +195,7 @@
             // 
             // pbPitchSearch
             // 
-            pbPitchSearch.Location = new Point(9, 518);
+            pbPitchSearch.Location = new Point(3, 631);
             pbPitchSearch.Name = "pbPitchSearch";
             pbPitchSearch.Size = new Size(305, 23);
             pbPitchSearch.TabIndex = 3;
@@ -292,7 +256,7 @@
             groupBoxPostProcessing.Controls.Add(label3);
             groupBoxPostProcessing.Controls.Add(labelKernel);
             groupBoxPostProcessing.Controls.Add(label4);
-            groupBoxPostProcessing.Location = new Point(9, 361);
+            groupBoxPostProcessing.Location = new Point(6, 474);
             groupBoxPostProcessing.Name = "groupBoxPostProcessing";
             groupBoxPostProcessing.Size = new Size(305, 151);
             groupBoxPostProcessing.TabIndex = 3;
@@ -323,7 +287,7 @@
             groupBoxOutput.Controls.Add(cbOutput);
             groupBoxOutput.Controls.Add(label5);
             groupBoxOutput.Controls.Add(cbModel);
-            groupBoxOutput.Location = new Point(9, 244);
+            groupBoxOutput.Location = new Point(6, 357);
             groupBoxOutput.Name = "groupBoxOutput";
             groupBoxOutput.Size = new Size(305, 111);
             groupBoxOutput.TabIndex = 4;
@@ -809,6 +773,30 @@
             tableLayoutPanel6.Size = new Size(150, 120);
             tableLayoutPanel6.TabIndex = 1;
             // 
+            // labelPitch
+            // 
+            labelPitch.AutoSize = true;
+            labelPitch.Dock = DockStyle.Fill;
+            labelPitch.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelPitch.Location = new Point(78, 80);
+            labelPitch.Name = "labelPitch";
+            labelPitch.Size = new Size(69, 40);
+            labelPitch.TabIndex = 2;
+            labelPitch.Text = "XXX.X";
+            labelPitch.TextAlign = ContentAlignment.BottomRight;
+            // 
+            // label14
+            // 
+            label14.AutoSize = true;
+            label14.Dock = DockStyle.Fill;
+            label14.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label14.Location = new Point(3, 80);
+            label14.Name = "label14";
+            label14.Size = new Size(69, 40);
+            label14.TabIndex = 1;
+            label14.Text = "Pitch";
+            label14.TextAlign = ContentAlignment.BottomLeft;
+            // 
             // label10
             // 
             label10.AutoSize = true;
@@ -858,29 +846,13 @@
             labelStuff.Text = "XXX.X";
             labelStuff.TextAlign = ContentAlignment.BottomRight;
             // 
-            // label14
+            // playerSearchBar
             // 
-            label14.AutoSize = true;
-            label14.Dock = DockStyle.Fill;
-            label14.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label14.Location = new Point(3, 80);
-            label14.Name = "label14";
-            label14.Size = new Size(69, 40);
-            label14.TabIndex = 1;
-            label14.Text = "Pitch";
-            label14.TextAlign = ContentAlignment.BottomLeft;
-            // 
-            // labelPitch
-            // 
-            labelPitch.AutoSize = true;
-            labelPitch.Dock = DockStyle.Fill;
-            labelPitch.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelPitch.Location = new Point(78, 80);
-            labelPitch.Name = "labelPitch";
-            labelPitch.Size = new Size(69, 40);
-            labelPitch.TabIndex = 2;
-            labelPitch.Text = "XXX.X";
-            labelPitch.TextAlign = ContentAlignment.BottomRight;
+            playerSearchBar.Dock = DockStyle.Fill;
+            playerSearchBar.Location = new Point(3, 19);
+            playerSearchBar.Name = "playerSearchBar";
+            playerSearchBar.Size = new Size(311, 183);
+            playerSearchBar.TabIndex = 0;
             // 
             // PitchViewer
             // 
@@ -892,8 +864,6 @@
             Text = "Form1";
             Load += Form1_Load;
             groupBoxPlayer.ResumeLayout(false);
-            groupBoxPlayer.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)playerIdEntry).EndInit();
             groupBoxFilters.ResumeLayout(false);
             groupBoxFilters.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).EndInit();
@@ -935,9 +905,6 @@
         private Panel pitchDrawingPanel;
         private PitchPanel pitchPanel;
         private GroupBox groupBoxPlayer;
-        private Button pbSearchPlayer;
-        private NumericUpDown playerIdEntry;
-        private LinkLabel playerLinkLabel;
         private GroupBox groupBoxFilters;
         private RangeSelector yearSelector;
         private Label label1;
@@ -996,5 +963,6 @@
         private Label labelStuff;
         private Label labelPitch;
         private Label label14;
+        private Controls.PlayerSearchBar playerSearchBar;
     }
 }
