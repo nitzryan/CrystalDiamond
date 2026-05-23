@@ -60,6 +60,11 @@ namespace UI
             pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
 
             playerSearchBar.SetPlayerList(db.Player.Where(f => f.Position != "H").ToList());
+            PitchGrid.YldDict = pitchDb.YearLeagueDeviations
+                .ToDictionary(
+                    f => new YearLeagueDevKey(f.ModelId, f.Year, f.Balls, f.Strikes),
+                    f => f
+                );
 
             // Models
             cbModel.Items.Clear();
@@ -199,6 +204,7 @@ namespace UI
             labelLocation.Text = $"{Math.Round(pitchStats.LocPlus, 1)}";
             labelStuff.Text = $"{Math.Round(pitchStats.StuffPlus, 1)}";
             labelPitch.Text = $"{Math.Round(pitchStats.PitchPlus, 1)}";
+            labelActual.Text = $"{Math.Round(pitchStats.ActualPlus, 1)}";
         }
 
         private void label10_Click(object sender, EventArgs e)

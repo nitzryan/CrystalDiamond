@@ -87,9 +87,9 @@ namespace PitchAnalysis
 
                             stats.NumPitches++;
                             stats.ValueActual += p.RunValueSmoothedHitter;
-                            stats.ValueStuff += (float)pmo.stuffValue;
-                            stats.ValueLoc += (float)pmo.locationValue;
-                            stats.ValueCombined += (float)pmo.expValue;
+                            stats.ValueStuff += (float)pmo.sv;
+                            stats.ValueLoc += (float)pmo.lv;
+                            stats.ValueCombined += (float)pmo.cv;
 
                             #pragma warning disable CS8629 // Will be not null if put through model
                             stats.Vel += (float)p.VStart;

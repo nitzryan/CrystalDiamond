@@ -1,7 +1,7 @@
 ﻿using Db;
+using PitchDb;
 using System.Drawing.Drawing2D;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace UI
 {
@@ -56,6 +56,7 @@ namespace UI
         public float StuffPlus { get; set; } = 0;
         public float LocPlus { get; set; } = 0;
         public float PitchPlus { get; set; } = 0;
+        public float ActualPlus { get; set; } = 0;
 
         public void CalculateStats()
         {
@@ -87,6 +88,7 @@ namespace UI
         public required float LocValue { get; set; }
         public required float ExpValue { get; set; }
         public required float ActValue { get; set; }
+        public required float Dev { get; set; }
 
         public required float X { get; set; }
         public required float Y { get; set; }
@@ -166,6 +168,7 @@ namespace UI
         }
     }
 
+    public record YearLeagueDevKey(int modelId, int year, int balls, int strikes);
 
     public class PitchGrid
     {
@@ -174,9 +177,12 @@ namespace UI
         public PitchGridType PitchGridType;
         public float Scale;
         public int FilterSize;
+        public int ModelId;
         private static float BALL_RADIUS = 0.12f;
         PitchBox? HighlightedBox;
         PitchStats OverallStats = new();
+
+        public static Dictionary<YearLeagueDevKey, YearLeagueDeviations> YldDict = new();
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches,
@@ -194,6 +200,7 @@ namespace UI
             PitchBoxes = new();
             PitchValueType = pitchValueType;
             PitchGridType = pitchGridType;
+            ModelId = modelId;
             Scale = (float)scale;
             FilterSize = filterSize;
             HighlightedBox = null;
@@ -275,14 +282,11 @@ namespace UI
                 PitchBox bin = PitchBoxes[yBin.Value][xBin.Value];
 
                 bin.NumPitches++;
-                bin.ExpValue += (float)pitchModelOutput.expValue;
-                bin.ActValue += pitch.RunValueHitter;
-                bin.StuffValue += (float)pitchModelOutput.stuffValue;
-                bin.LocValue += (float)pitchModelOutput.locationValue;
-
-                bin.Stats.LocPlus += (float)pitchModelOutput.locPlus;
-                bin.Stats.StuffPlus += (float)pitchModelOutput.stuffPlus;
-                bin.Stats.PitchPlus += (float)pitchModelOutput.pitchPlus;
+                bin.ExpValue += (float)pitchModelOutput.cv;
+                bin.ActValue += pitch.RunValueSmoothedHitter;
+                bin.StuffValue += (float)pitchModelOutput.sv;
+                bin.LocValue += (float)pitchModelOutput.lv;
+                bin.Dev += YldDict[new YearLeagueDevKey(ModelId, pitch.Year, pitch.CountBalls, pitch.CountStrike)].StuffDev;
 
                 #pragma warning disable CS8629 // Any values here will have these values
                 bin.Stats.Vel += pitch.VStart.Value;
@@ -388,21 +392,25 @@ namespace UI
                 }
             }
 
-            // Normalize values to per 1000 pitches on value, per pitch on info
+            // Get per-pitch values (or per 1000 for value)
+            float actValue = PitchBoxes.Sum((List<PitchBox>f) => f.Sum((PitchBox g) => g.ActValue));
+            float stuffValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.StuffValue));
+            float locValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.LocValue));
+            float pitchValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.ExpValue));
+            float devValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.Dev));
+
             PitchBoxes.ForEach(g => g.ForEach(f =>
             {
                 f.ActValue = f.ActValue / f.NumPitches * 1000;
                 f.ExpValue = f.ExpValue / f.NumPitches * 1000;
                 f.StuffValue = f.StuffValue / f.NumPitches * 1000;
                 f.LocValue = f.LocValue / f.NumPitches * 1000;
+                f.Dev = f.Dev / f.NumPitches * 1000;
 
-                OverallStats.LocPlus += f.Stats.LocPlus;
-                OverallStats.StuffPlus += f.Stats.StuffPlus;
-                OverallStats.PitchPlus += f.Stats.PitchPlus;
-
-                f.Stats.LocPlus /= f.NumPitches;
-                f.Stats.StuffPlus /= f.NumPitches;
-                f.Stats.PitchPlus /= f.NumPitches;
+                f.Stats.StuffPlus = 100 - (10 * f.StuffValue / f.Dev);
+                f.Stats.LocPlus = 100 - (10 * f.LocValue / f.Dev);
+                f.Stats.PitchPlus = 100 - (10 * f.ExpValue / f.Dev);
+                f.Stats.ActualPlus = 100 - (10 * f.ActValue / f.Dev);
 
                 OverallStats.Vel += f.Stats.Vel;
                 OverallStats.BreakHoriz += f.Stats.BreakHoriz;
@@ -414,6 +422,7 @@ namespace UI
 
                 // Update Stats
                 f.Stats.CalculateStats();
+
                 // Append to overall stats
                 OverallStats.PA += f.Stats.PA;
                 OverallStats.AB += f.Stats.AB;
@@ -441,9 +450,10 @@ namespace UI
                 OverallStats.BreakHoriz /= OverallStats.Pitches;
                 OverallStats.BreakVert /= OverallStats.Pitches;
 
-                OverallStats.StuffPlus /= OverallStats.Pitches;
-                OverallStats.LocPlus /= OverallStats.Pitches;
-                OverallStats.PitchPlus /= OverallStats.Pitches;
+                OverallStats.StuffPlus = 100 - (10 * stuffValue / devValue);
+                OverallStats.LocPlus = 100 - (10 * locValue / devValue);
+                OverallStats.PitchPlus = 100 - (10 * pitchValue / devValue);
+                OverallStats.ActualPlus = 100 - (10 * actValue / devValue);
             }
             OverallStats.CalculateStats();
         }
@@ -480,6 +490,7 @@ namespace UI
                         StuffValue = 0,
                         LocValue = 0,
                         ExpValue = 0,
+                        Dev=0,
                         X = xs[i],
                         Y = ys[j],
                         Height = rowHeights[j],

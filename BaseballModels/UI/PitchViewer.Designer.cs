@@ -30,6 +30,7 @@
         {
             pitchPanel = new PitchPanel();
             groupBoxPlayer = new GroupBox();
+            playerSearchBar = new UI.Controls.PlayerSearchBar();
             groupBoxFilters = new GroupBox();
             label2 = new Label();
             label1 = new Label();
@@ -88,7 +89,8 @@
             labelLocation = new Label();
             label12 = new Label();
             labelStuff = new Label();
-            playerSearchBar = new UI.Controls.PlayerSearchBar();
+            label11 = new Label();
+            labelActual = new Label();
             groupBoxPlayer.SuspendLayout();
             groupBoxFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).BeginInit();
@@ -127,6 +129,14 @@
             groupBoxPlayer.TabIndex = 1;
             groupBoxPlayer.TabStop = false;
             groupBoxPlayer.Text = "Player";
+            // 
+            // playerSearchBar
+            // 
+            playerSearchBar.Dock = DockStyle.Fill;
+            playerSearchBar.Location = new Point(3, 19);
+            playerSearchBar.Name = "playerSearchBar";
+            playerSearchBar.Size = new Size(311, 183);
+            playerSearchBar.TabIndex = 0;
             // 
             // groupBoxFilters
             // 
@@ -745,7 +755,7 @@
             groupBox4.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             groupBox4.Location = new Point(486, 33);
             groupBox4.Name = "groupBox4";
-            groupBox4.Size = new Size(156, 154);
+            groupBox4.Size = new Size(156, 194);
             groupBox4.TabIndex = 5;
             groupBox4.TabStop = false;
             groupBox4.Text = "Modeling";
@@ -757,6 +767,8 @@
             tableLayoutPanel6.ColumnCount = 2;
             tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel6.Controls.Add(labelActual, 1, 3);
+            tableLayoutPanel6.Controls.Add(label11, 0, 3);
             tableLayoutPanel6.Controls.Add(labelPitch, 1, 2);
             tableLayoutPanel6.Controls.Add(label14, 0, 2);
             tableLayoutPanel6.Controls.Add(label10, 0, 0);
@@ -766,11 +778,12 @@
             tableLayoutPanel6.Dock = DockStyle.Fill;
             tableLayoutPanel6.Location = new Point(3, 31);
             tableLayoutPanel6.Name = "tableLayoutPanel6";
-            tableLayoutPanel6.RowCount = 3;
+            tableLayoutPanel6.RowCount = 4;
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel6.Size = new Size(150, 120);
+            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            tableLayoutPanel6.Size = new Size(150, 160);
             tableLayoutPanel6.TabIndex = 1;
             // 
             // labelPitch
@@ -846,13 +859,29 @@
             labelStuff.Text = "XXX.X";
             labelStuff.TextAlign = ContentAlignment.BottomRight;
             // 
-            // playerSearchBar
+            // label11
             // 
-            playerSearchBar.Dock = DockStyle.Fill;
-            playerSearchBar.Location = new Point(3, 19);
-            playerSearchBar.Name = "playerSearchBar";
-            playerSearchBar.Size = new Size(311, 183);
-            playerSearchBar.TabIndex = 0;
+            label11.AutoSize = true;
+            label11.Dock = DockStyle.Fill;
+            label11.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label11.Location = new Point(3, 120);
+            label11.Name = "label11";
+            label11.Size = new Size(69, 40);
+            label11.TabIndex = 3;
+            label11.Text = "Actual";
+            label11.TextAlign = ContentAlignment.BottomLeft;
+            // 
+            // labelActual
+            // 
+            labelActual.AutoSize = true;
+            labelActual.Dock = DockStyle.Fill;
+            labelActual.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelActual.Location = new Point(78, 120);
+            labelActual.Name = "labelActual";
+            labelActual.Size = new Size(69, 40);
+            labelActual.TabIndex = 4;
+            labelActual.Text = "XXX.X";
+            labelActual.TextAlign = ContentAlignment.BottomRight;
             // 
             // PitchViewer
             // 
@@ -964,5 +993,7 @@
         private Label labelPitch;
         private Label label14;
         private Controls.PlayerSearchBar playerSearchBar;
+        private Label labelActual;
+        private Label label11;
     }
 }
