@@ -10,8 +10,6 @@ from Utilities import profiler
 ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
-DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1, 1, 1, 1e-2, 1, 1, 1, 1]
-
 @profiler
 def GetLosses(
   network, 
@@ -21,7 +19,7 @@ def GetLosses(
   h0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
-  pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES) -> tuple:
+  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> tuple:
   
   
   # Get Model Output

@@ -216,3 +216,6 @@ def Eval_Hitters():
         gc.collect()
         
         model_db.commit()
+        
+if __name__ == "__main__":
+    Eval_Hitters()

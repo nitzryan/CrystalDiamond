@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from Utilities import profiler
 
 SHOULD_PROFILE = False
+DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1, 1, 1, 1e-2, 1, 1, 1, 1]
 
 def TrainAndGraph(
     pro_network : Pro_Model,
@@ -33,7 +34,7 @@ def TrainAndGraph(
     get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 10,
-    pro_element_loss_scales : list[int] = [1,1,1,1,1,1,1,1]
+    pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES
 ) -> tuple[float, float, int]:
     if SHOULD_PROFILE:
         profiler.enable()
