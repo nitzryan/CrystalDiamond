@@ -1,9 +1,13 @@
 from Stuff.DataPrep.PrepMap import *
-from Stuff.DataPrep.DataPrep import PitchType
+from Stuff.DataPrep.DataPrep import PitchType, DataPrep
+from Constants import DATA_PREP_BINARY_ALL_FILE
 
 def GetModelMaps(model_id : int) -> tuple[Prep_Map, list[PitchType]]:
-    if model_id == 2:
-        return standard_prep_map, [PitchType.All]
-    elif model_id == 1:
+    if model_id == 1:
         return standard_prep_map, [PitchType.Fastball, PitchType.Changeup, PitchType.Curveball]
     raise ValueError("Invalid model_id for GetModelMaps")
+
+def GetDataPrep(model_id : int) -> DataPrep:
+    if model_id == 1:
+        return DataPrep.Load_From_File(DATA_PREP_BINARY_ALL_FILE)
+    raise ValueError("Invalid model_id for GetDataPrep")

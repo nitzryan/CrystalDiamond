@@ -1,5 +1,5 @@
 import torch
-from Constants import device
+from Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
 from DBTypes import *
 
 class PitchIO:
@@ -7,6 +7,7 @@ class PitchIO:
         # Data needed to identify in DB
         game_id : int,
         pitch_num : int,
+        pitcher_id : int,
                  
         # Data for model
         data_overview : torch.Tensor,
@@ -27,6 +28,7 @@ class PitchIO:
     ):
         self.game_id = game_id
         self.pitch_num = pitch_num
+        self.pitcher_id = pitcher_id
         
         self.data_overview = data_overview
         self.data_loc = data_loc
@@ -62,6 +64,8 @@ def split_sublist(
 
 class PitchDataset(torch.utils.data.Dataset):
     def __init__(self,
+                ids : list[int],
+                
                 mapping_game_ids : torch.Tensor,
                 mapping_pitch_nums : torch.Tensor,
                  
@@ -81,6 +85,8 @@ class PitchDataset(torch.utils.data.Dataset):
                 
                 dataset_device = device
                 ):
+        
+        self.ids = list(set(ids)) # Unique players
         
         self.mapping_game_ids = mapping_game_ids
         self.mapping_pitch_nums = mapping_pitch_nums
@@ -139,8 +145,8 @@ def CreateTestTrainDatasets(
     data : list[list[PitchIO]], 
     dataset_device = device,
     eval_mode : bool = False,
-    train_test_ratio : int = 3,
-    total_training_runs : int = 4,
+    train_test_ratio : int = TRAIN_TEST_RATIO,
+    total_training_runs : int = NUM_TRAINING_VARIANTS,
     train_idx : int = 0) -> tuple[PitchDataset, PitchDataset]:
     
     
@@ -152,6 +158,10 @@ def CreateTestTrainDatasets(
         io_test = [data[0]] # Allow for test code to run without breaking, will discard later
     io_train : list[PitchIO] = [item for sublist in io_train for item in sublist]
     io_test : list[PitchIO] = [item for sublist in io_test for item in sublist]
+
+    # =================== PLAYER IDS =========================
+    ids_train = [io.pitcher_id for io in io_train]
+    ids_test = [io.pitcher_id for io in io_test]
 
     # =================== MAPPING FEATURES ===================
     mapping_game_ids_train = torch.tensor([io.game_id for io in io_train], dtype=torch.long)
@@ -194,6 +204,8 @@ def CreateTestTrainDatasets(
     mask_swing_test        = torch.tensor([io.mask_swing      for io in io_test])
     
     train_dataset = PitchDataset(
+        ids_train,
+        
         mapping_game_ids_train,
         mapping_pitch_num_train,
         
@@ -215,6 +227,8 @@ def CreateTestTrainDatasets(
     )
     
     test_dataset = PitchDataset(
+        ids_test,
+        
         mapping_game_ids_test,
         mapping_pitch_num_test,
         

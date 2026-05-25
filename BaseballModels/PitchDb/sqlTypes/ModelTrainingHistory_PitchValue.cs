@@ -4,7 +4,6 @@ namespace PitchDb
 	{
 		public required int ModelId {get; set;}
 		public required int ModelRun {get; set;}
-		public required int PitchType {get; set;}
 		public required float LossLocationResult {get; set;}
 		public required float LossLocationSwing {get; set;}
 		public required float LossLocationInplay {get; set;}
@@ -22,7 +21,6 @@ namespace PitchDb
 			{
 				ModelId = this.ModelId,
 				ModelRun = this.ModelRun,
-				PitchType = this.PitchType,
 				LossLocationResult = this.LossLocationResult,
 				LossLocationSwing = this.LossLocationSwing,
 				LossLocationInplay = this.LossLocationInplay,

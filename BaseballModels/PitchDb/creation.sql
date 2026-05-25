@@ -120,8 +120,6 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"ModelId" INTEGER NOT NULL,
 	"ModelRun" INTEGER NOT NULL,
 	
-	"PitchType" INTEGER NOT NULL,
-	
 	"LossLocationResult" REAL NOT NULL,
 	"LossLocationSwing" REAL NOT NULL,
 	"LossLocationInplay" REAL NOT NULL,
@@ -134,7 +132,15 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	
 	"Arch" TEXT NOT NULL,
 
-	PRIMARY KEY("ModelId", "ModelRun", "PitchType")
+	PRIMARY KEY("ModelId", "ModelRun")
+);
+
+CREATE TABLE "PlayersInTrainingData" (
+	"mlbId" INTEGER NOT NULL,
+	"modelId" INTEGER NOT NULL,
+	"modelRun" INTEGER NOT NULL,
+	"isTrain" INTEGER NOT NULL,
+	PRIMARY KEY ("mlbId", "modelId", "modelRun")
 );
 
 CREATE TABLE YearLeagueDeviations

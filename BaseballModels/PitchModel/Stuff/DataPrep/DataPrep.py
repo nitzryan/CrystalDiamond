@@ -1,3 +1,4 @@
+from __future__ import annotations
 from DBTypes import *
 from Stuff.DataPrep.PrepMap import Prep_Map, map_pitch_stuff, map_pitch_stuff_changeup, map_pitch_stuff_curveball, map_pitch_stuff_fastball
 import torch
@@ -9,6 +10,7 @@ from Stuff.DataPrep.PitchDataset import PitchIO
 from tqdm import tqdm
 from Constants import profiler
 import gc
+import dill
         
 _OVERVIEW_STRING = "overview"
 _LOC_STRING = "loc"
@@ -34,7 +36,8 @@ class DataPrep:
     @profiler
     def __init__(self,
         prep_map : Prep_Map,
-        pitch_type : PitchType
+        pitch_type : PitchType,
+        save_name : str | None = None
     ):
         
         self.prep_map = prep_map
@@ -114,6 +117,15 @@ class DataPrep:
             values=(DataPrep.__CutoffYear,)
         )
         self.__Create_PCA_Norms(self.prep_map.league_baseline_map, date_avg, _AVG_STRING, self.prep_map.league_baseline_size)
+       
+        if save_name is not None:
+           with open(save_name, 'wb') as file:
+               dill.dump(self, file)
+       
+    @staticmethod
+    def Load_From_File(filename : str) -> DataPrep:
+        with open(filename, 'rb') as file:
+            return dill.load(file)
        
     __CutoffYear = 2024
         
@@ -276,6 +288,7 @@ class DataPrep:
                         swing_bucket, swing_mask = DataPrep.GetSwingBucket(pitch)
                         
                         io_list.append(PitchIO(
+                            pitcher_id=id,
                             game_id=pitch.GameId,
                             pitch_num=pitch.PitchId,
                             data_overview=data_overview[i],
