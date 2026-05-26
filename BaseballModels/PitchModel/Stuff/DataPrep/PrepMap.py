@@ -49,39 +49,6 @@ map_pitch_stuff : Callable[[DB_PitchStatcast], list[float]] = \
         clamp(p.z0, 1, 7), 
         clamp(p.SpinRate, 500, 3500), 
         clamp(p.SpinDirection, 50, 310)]
-map_pitch_stuff_fastball : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [
-        max(p.vStart, 80), 
-        clamp(p.BreakAngle if p.BreakAngle < 180 else p.BreakAngle - 360, 0, 60),
-        clamp(p.BreakInduced, -5, 25), 
-        clamp(p.BreakHorizontal, -25, 25), 
-        clamp(p.Extension, 4.5, 7.75), 
-        clamp(p.x0, -4, 4), 
-        clamp(p.z0, 1, 7), 
-        clamp(p.SpinRate, 1500, 3000), 
-        clamp(p.SpinDirection, 50, 310)]
-map_pitch_stuff_curveball : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [
-        clamp(p.vStart, 65, 100), 
-        clamp(p.BreakAngle if p.BreakAngle < 180 else p.BreakAngle - 360, 0, 30),
-        clamp(p.BreakInduced, -22, 20), 
-        clamp(p.BreakHorizontal, -25, 25), 
-        clamp(p.Extension, 4.5, 7.75), 
-        clamp(p.x0, -4, 4), 
-        clamp(p.z0, 1, 7), 
-        clamp(p.SpinRate, 1500, 3500), 
-        p.SpinDirection]
-map_pitch_stuff_changeup : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [
-        clamp(p.vStart, 70, 100), 
-        clamp(p.BreakAngle, 0, 50), 
-        clamp(p.BreakInduced, -10, 20), 
-        clamp(p.BreakHorizontal, -25, 25), 
-        clamp(p.Extension, 4.5, 7.75), 
-        clamp(p.x0, -4, 4), 
-        clamp(p.z0, 1, 7), 
-        clamp(p.SpinRate, 500, 3000), 
-        clamp(p.SpinDirection, 50, 310)]
 __size_stuff = 9
     
 __noise_stuff = torch.tensor([
@@ -131,14 +98,14 @@ __map_pitcher_game : Callable[[DB_PitcherStatcastGame], list[float]] = \
         # Fastball group
         1 if g.FastballVelo is not None else 0,
         g.FastballVelo if g.FastballVelo is not None else 90,
-        g.FastballBreakHoriz if g.FastballVelo is not None else 5,
-        g.FastballBreakInduced if g.FastballVelo is not None else 10,
+        g.FastballBreakHoriz if g.FastballBreakHoriz is not None else 5,
+        g.FastballBreakInduced if g.FastballBreakInduced is not None else 10,
         
         # Sinker group
         1 if g.SinkerVelo is not None else 0,
         g.SinkerVelo if g.SinkerVelo is not None else 90,
-        g.SinkerBreakHoriz if g.SinkerVelo is not None else 5,
-        g.SinkerBreakInduced if g.SinkerVelo is not None else 10,
+        g.SinkerBreakHoriz if g.SinkerBreakHoriz is not None else 5,
+        g.SinkerBreakInduced if g.SinkerBreakInduced is not None else 10,
     ]
 __size_game = 8
     

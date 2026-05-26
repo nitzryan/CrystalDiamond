@@ -19,7 +19,7 @@ type_overrides = [("PitcherStuff", "Scenario", "Db.DbEnums.PitchScenario"),
                   ]
 
 boolean_types = [
-    
+                    ("PlayersInTrainingData", ["IsTrain"]),
                 ]
 
 for table, in tables:

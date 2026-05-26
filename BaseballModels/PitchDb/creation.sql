@@ -5,6 +5,8 @@ CREATE TABLE Output_PitchValue (
 	"pitchId" INTEGER NOT NULL,
 	"ModelRun"	INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"mlbId" INTEGER NOT NULL,
 	
 	-- Location
 	"locationCalledStrike" REAL NOT NULL,
@@ -55,6 +57,8 @@ CREATE TABLE Output_PitchValueAggregation (
 	"gameId" INTEGER NOT NULL,
 	"pitchId" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
+	"LevelId" INTEGER NOT NULL,
+	"mlbId" INTEGER NOT NULL,
 
 	"CountBalls" INTEGER NOT NULL,
 	"CountStrikes" INTEGER NOT NULL,

@@ -8,6 +8,7 @@ class PitchIO:
         game_id : int,
         pitch_num : int,
         pitcher_id : int,
+        level_id : int,
                  
         # Data for model
         data_overview : torch.Tensor,
@@ -29,6 +30,7 @@ class PitchIO:
         self.game_id = game_id
         self.pitch_num = pitch_num
         self.pitcher_id = pitcher_id
+        self.level_id = level_id
         
         self.data_overview = data_overview
         self.data_loc = data_loc
@@ -68,6 +70,8 @@ class PitchDataset(torch.utils.data.Dataset):
                 
                 mapping_game_ids : torch.Tensor,
                 mapping_pitch_nums : torch.Tensor,
+                mapping_pitcher_ids : torch.Tensor,
+                mapping_level_ids : torch.Tensor,
                  
                 data_overview : torch.Tensor,
                 data_loc : torch.Tensor,
@@ -90,6 +94,8 @@ class PitchDataset(torch.utils.data.Dataset):
         
         self.mapping_game_ids = mapping_game_ids
         self.mapping_pitch_nums = mapping_pitch_nums
+        self.mapping_pitcher_ids = mapping_pitcher_ids
+        self.mapping_level_ids = mapping_level_ids
         
         self.data_overview = data_overview.t().to(device=dataset_device, non_blocking=True)
         self.data_loc = data_loc.t().to(device=dataset_device, non_blocking=True)
@@ -113,6 +119,8 @@ class PitchDataset(torch.utils.data.Dataset):
         mappings = (
             self.mapping_game_ids[batch_indices],
             self.mapping_pitch_nums[batch_indices],
+            self.mapping_pitcher_ids[batch_indices],
+            self.mapping_level_ids[batch_indices],
         )
         
         # Data used to feed into model
@@ -166,9 +174,13 @@ def CreateTestTrainDatasets(
     # =================== MAPPING FEATURES ===================
     mapping_game_ids_train = torch.tensor([io.game_id for io in io_train], dtype=torch.long)
     mapping_pitch_num_train = torch.tensor([io.pitch_num for io in io_train], dtype=torch.long)
+    mapping_pitcher_ids_train     = torch.tensor([io.pitcher_id for io in io_train], dtype=torch.long)
+    mapping_level_ids_train = torch.tensor([io.level_id for io in io_train], dtype=torch.long)
     
     mapping_game_ids_test = torch.tensor([io.game_id for io in io_test], dtype=torch.long)
     mapping_pitch_num_test = torch.tensor([io.pitch_num for io in io_test], dtype=torch.long)
+    mapping_pitcher_ids_test     = torch.tensor([io.pitcher_id for io in io_test], dtype=torch.long)
+    mapping_level_ids_test = torch.tensor([io.level_id for io in io_test], dtype=torch.long)
     
     # ==================== INPUT FEATURES ====================
 
@@ -208,6 +220,8 @@ def CreateTestTrainDatasets(
         
         mapping_game_ids_train,
         mapping_pitch_num_train,
+        mapping_pitcher_ids_train,
+        mapping_level_ids_train,
         
         data_overview_train,
         data_loc_train,
@@ -231,6 +245,8 @@ def CreateTestTrainDatasets(
         
         mapping_game_ids_test,
         mapping_pitch_num_test,
+        mapping_pitcher_ids_test,
+        mapping_level_ids_test,
         
         data_overview_test,
         data_loc_test,

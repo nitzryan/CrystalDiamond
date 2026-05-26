@@ -22,6 +22,7 @@ namespace PitchAnalysis
             Foul
         }
         private record PitchScenarioResult(PitchScenario scenario, PitchResult result);
+        private record PitDictKey(int model, int run, int mlbId);
 
         public static void Update()
         {
@@ -77,11 +78,17 @@ namespace PitchAnalysis
                 }
             }
 
+            // Create PIT dictionary
+            Dictionary<PitDictKey, bool> pitDictionary = pitchDb.PlayersInTrainingData
+                .ToDictionary(
+                    f => new PitDictKey(f.ModelId, f.ModelRun, f.MlbId),
+                    f => f.IsTrain
+                );
+
             // Create pitch aggregations
             var pitchGroups = pitchDb.Output_PitchValue.GroupBy(f => new { f.GameId, f.PitchId, f.Model }).AsNoTracking();
             List<Output_PitchValueAggregation> pvaList = new(pitchGroups.Count());
             Dictionary<(int, int), PitchScenario> pitchScenarioDict = db.PitchStatcast
-                .Where(f => f.LevelId == 1)
                 .AsNoTracking()
                 .Select(f => new
                 {
@@ -104,6 +111,15 @@ namespace PitchAnalysis
             {
                 foreach (var pg in pitchGroups)
                 {
+                    // Filter out any in training data
+                    List<Output_PitchValue> pitches = pg.ToList();
+                    List<PitDictKey> pitKeys = pitches.Select(f => new PitDictKey(f.Model, f.ModelRun, f.MlbId)).ToList();
+                    for (int i = pitches.Count - 1; i >= 0; i--)
+                    {
+                        if (pitDictionary.ContainsKey(pitKeys[i]) && pitDictionary[pitKeys[i]])
+                            pitches.RemoveAt(i);
+                    }
+
                     var first = pg.First();
                     // Get value of different results in this scenario
                     PitchScenario pitchScenario = pitchScenarioDict[(first.GameId, first.PitchId)];
@@ -114,42 +130,42 @@ namespace PitchAnalysis
                     float valueHBP = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.HBP)];
 
                     // Get probability of each event from individual model run pitches
-                    float probBallLocation = pg.Average(f => f.LocationBall);
-                    float probBallStuff = pg.Average(f => f.StuffBall);
-                    float probBallCombined = pg.Average(f => f.CombinedBall);
+                    float probBallLocation = pitches.Average(f => f.LocationBall);
+                    float probBallStuff = pitches.Average(f => f.StuffBall);
+                    float probBallCombined = pitches.Average(f => f.CombinedBall);
 
-                    float probCSLocation = pg.Average(f => f.LocationCalledStrike);
-                    float probCSStuff = pg.Average(f => f.StuffCalledStrike);
-                    float probCSCombined = pg.Average(f => f.CombinedCalledStrike);
+                    float probCSLocation = pitches.Average(f => f.LocationCalledStrike);
+                    float probCSStuff = pitches.Average(f => f.StuffCalledStrike);
+                    float probCSCombined = pitches.Average(f => f.CombinedCalledStrike);
 
-                    float probSwingLocation = pg.Average(f => f.LocationSwing);
-                    float probSwingStuff = pg.Average(f => f.StuffSwing);
-                    float probSwingCombined = pg.Average(f => f.CombinedSwing);
+                    float probSwingLocation = pitches.Average(f => f.LocationSwing);
+                    float probSwingStuff = pitches.Average(f => f.StuffSwing);
+                    float probSwingCombined = pitches.Average(f => f.CombinedSwing);
 
-                    float probHBPLocation = pg.Average(f => f.LocationHBP);
-                    float probHBPStuff = pg.Average(f => f.StuffHBP);
-                    float probHBPCombined = pg.Average(f => f.CombinedHBP);
+                    float probHBPLocation = pitches.Average(f => f.LocationHBP);
+                    float probHBPStuff = pitches.Average(f => f.StuffHBP);
+                    float probHBPCombined = pitches.Average(f => f.CombinedHBP);
 
-                    float probWhiffLocation = pg.Average(f => f.LocationWhiff);
-                    float probWhiffStuff = pg.Average(f => f.StuffWhiff);
-                    float probWhiffCombined = pg.Average(f => f.CombinedWhiff);
+                    float probWhiffLocation = pitches.Average(f => f.LocationWhiff);
+                    float probWhiffStuff = pitches.Average(f => f.StuffWhiff);
+                    float probWhiffCombined = pitches.Average(f => f.CombinedWhiff);
 
-                    float probFoulLocation = pg.Average(f => f.LocationFoul);
-                    float probFoulStuff = pg.Average(f => f.StuffFoul);
-                    float probFoulCombined = pg.Average(f => f.CombinedFoul);
+                    float probFoulLocation = pitches.Average(f => f.LocationFoul);
+                    float probFoulStuff = pitches.Average(f => f.StuffFoul);
+                    float probFoulCombined = pitches.Average(f => f.CombinedFoul);
 
-                    float probIPLocation = pg.Average(f => f.LocationInPlay);
-                    float probIPStuff = pg.Average(f => f.StuffInPlay);
-                    float probIPCombined = pg.Average(f => f.CombinedInPlay);
+                    float probIPLocation = pitches.Average(f => f.LocationInPlay);
+                    float probIPStuff = pitches.Average(f => f.StuffInPlay);
+                    float probIPCombined = pitches.Average(f => f.CombinedInPlay);
 
                     // Combine probabilities to expected values
                     float locationExpectedValue = 0;
                     float stuffExpectedValue = 0;
                     float combinedExpectedValue = 0;
 
-                    float valueIPLocation = pg.Average(f => f.LocationInPlayExpected);
-                    float valueIPStuff = pg.Average(f => f.StuffInPlayExpected);
-                    float valueIPCombined = pg.Average(f => f.CombinedInPlayExpected);
+                    float valueIPLocation = pitches.Average(f => f.LocationInPlayExpected);
+                    float valueIPStuff = pitches.Average(f => f.StuffInPlayExpected);
+                    float valueIPCombined = pitches.Average(f => f.CombinedInPlayExpected);
 
                     locationExpectedValue += valueBall * probBallLocation;
                     stuffExpectedValue += valueBall * probBallStuff;
@@ -177,6 +193,8 @@ namespace PitchAnalysis
                         GameId = first.GameId,
                         PitchId = first.PitchId,
                         Year = first.Year,
+                        MlbId = first.MlbId,
+                        LevelId = first.LevelId,
 
                         CountBalls = pitchScenario.balls,
                         CountStrikes = pitchScenario.strikes,

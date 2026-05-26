@@ -29,7 +29,7 @@ def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
 
 @eval_profiler
 def Eval_Pitches():
-    BATCH_SIZE = 80000
+    BATCH_SIZE = 200000
     
     # Delete old data
     cursor = pitch_db.cursor()
@@ -52,12 +52,11 @@ def Eval_Pitches():
         for year in tqdm(range(2017, last_year + 1), desc="Years", leave=False):
             if year == last_year:
                 last_month = db_cursor.execute("SELECT Max(Month) FROM PitchStatcast WHERE Year=?", (last_year,)).fetchone()[0]
-                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=last_month, mlb_only=True)
+                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=last_month, mlb_only=False)
             else:
-                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=13, mlb_only=True)
+                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=13, mlb_only=False)
             dataset, _ = CreateTestTrainDatasets(pitch_io_list, 
-                eval_mode=True,
-                dataset_device='cpu')
+                eval_mode=True)
             
             n_samples = len(dataset)
             num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
@@ -66,7 +65,7 @@ def Eval_Pitches():
             # TODO : Create the model through the arch stored in mth.  Will be the same for all runs for a model
             for mth in tqdm(mth_list, desc="Evaluating Model Copies", leave=False):
                 with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                    network.load_state_dict(torch.load(f"Models/_{model_name}_{mth.ModelRun}.pt"))
+                    network.load_state_dict(torch.load(f"Models/{model_name}_{mth.ModelRun}.pt"))
                 network.eval()
                 network = network.to(device)
                 
@@ -78,7 +77,8 @@ def Eval_Pitches():
                         end = min(start + BATCH_SIZE, n_samples)
                         batch_indices = indices[start:end]
                         mappings, data, _, _ = dataset.GetEntries(batch_indices)
-                        mapping_game_ids, mapping_pitch_nums = mappings
+                        mappings = tuple(m.to('cpu', non_blocking=True) for m in mappings)
+                        mapping_game_ids, mapping_pitch_nums, mapping_pitcher_ids, mapping_level_ids = mappings
                         data = tuple(d.to(device, non_blocking=True) for d in data)
                         
                         # Run through model
@@ -106,6 +106,8 @@ def Eval_Pitches():
                         db_data = [tuple(row.tolist()) for row in torch.cat((\
                             mapping_game_ids.unsqueeze(-1),
                             mapping_pitch_nums.unsqueeze(-1),
+                            mapping_level_ids.unsqueeze(-1),
+                            mapping_pitcher_ids.unsqueeze(-1),
                             result_location.cpu(),
                             swing_location.cpu(),
                             inplay_expected_location.cpu(),
@@ -117,7 +119,7 @@ def Eval_Pitches():
                             inplay_expected_combined.cpu(),), dim=-1)]
                         
                         
-                        cursor.executemany(f"INSERT INTO Output_PitchValue VALUES({model_id},?,?,{mth.ModelRun},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", db_data)
+                        cursor.executemany(f"INSERT INTO Output_PitchValue VALUES({model_id},?,?,{mth.ModelRun},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", db_data)
                         
                         # Clear Memory
                         del result_location
@@ -145,3 +147,6 @@ def Eval_Pitches():
         gc.collect()
         
     pitch_db.commit()
+    
+if __name__ == "__main__":
+    Eval_Pitches()

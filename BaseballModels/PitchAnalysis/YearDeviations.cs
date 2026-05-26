@@ -31,7 +31,7 @@ namespace PitchAnalysis
                     foreach (int modelId in models)
                     {
                         var yearModelPitches = pitchDb.Output_PitchValueAggregation
-                            .Where(f => f.Year == year && f.Model == modelId)
+                            .Where(f => f.Year == year && f.Model == modelId && f.LevelId == 1)
                             .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes })
                             .ToList();
                         foreach (int ball in balls)

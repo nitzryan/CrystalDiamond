@@ -5,7 +5,7 @@ namespace PitchDb
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}
 		public required int ModelRun {get; set;}
-		public required int IsTrain {get; set;}
+		public required bool IsTrain {get; set;}
 
 		public PlayersInTrainingData Clone()
 		{

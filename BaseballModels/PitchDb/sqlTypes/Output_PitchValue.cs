@@ -7,6 +7,8 @@ namespace PitchDb
 		public required int PitchId {get; set;}
 		public required int ModelRun {get; set;}
 		public required int Year {get; set;}
+		public required int LevelId {get; set;}
+		public required int MlbId {get; set;}
 		public required float LocationCalledStrike {get; set;}
 		public required float LocationBall {get; set;}
 		public required float LocationHBP {get; set;}
@@ -41,6 +43,8 @@ namespace PitchDb
 				PitchId = this.PitchId,
 				ModelRun = this.ModelRun,
 				Year = this.Year,
+				LevelId = this.LevelId,
+				MlbId = this.MlbId,
 				LocationCalledStrike = this.LocationCalledStrike,
 				LocationBall = this.LocationBall,
 				LocationHBP = this.LocationHBP,

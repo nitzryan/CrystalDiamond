@@ -1,6 +1,6 @@
 from __future__ import annotations
 from DBTypes import *
-from Stuff.DataPrep.PrepMap import Prep_Map, map_pitch_stuff, map_pitch_stuff_changeup, map_pitch_stuff_curveball, map_pitch_stuff_fastball
+from Stuff.DataPrep.PrepMap import Prep_Map, map_pitch_stuff
 import torch
 from sklearn.decomposition import PCA
 from typing import TypeVar, Callable
@@ -51,7 +51,9 @@ class DataPrep:
                         "BreakHorizontal", 
                         "Extension", 
                         "pX", 
-                        "pZ", 
+                        "pZ",
+                        "x0",
+                        "z0",
                         "ZoneTop", 
                         "ZoneBot",
                         "SpinRate",
@@ -60,25 +62,9 @@ class DataPrep:
         self.conditional_statement = "WHERE "
         for v in vars_to_check:
             self.conditional_statement += f"{v} IS NOT NULL AND "
-        
-        CUTTER_VELO_CUTTOFF = 90
-        
-        if pitch_type == PitchType.Fastball:
-            self.conditional_statement += f"(PitchType=1 OR PitchType=2 OR PitchType=14 OR PitchType=16 OR (PitchType=5 AND vStart>={CUTTER_VELO_CUTTOFF})) "
-            # For fastball, knowing fastball velo/movement will only lead to overfitting
-            self.prep_map.pitch_stuff_map = map_pitch_stuff_fastball
-            self.prep_map.pitcher_game_map = lambda g : [1 if g.FastballVelo is not None else 0]
-            self.prep_map.pitcher_game_size = 1
-        elif pitch_type == PitchType.Changeup:
-            self.prep_map.pitch_stuff_map = map_pitch_stuff_changeup
-            self.conditional_statement += "(PitchType=3 OR PitchType=4 OR PitchType=12) "
-        elif pitch_type == PitchType.Curveball:
-            self.prep_map.pitch_stuff_map = map_pitch_stuff_curveball
-            self.conditional_statement += f"(PitchType=6 OR PitchType=7 OR PitchType=8 OR PitchType=9 OR PitchType=11 OR PitchType=15 OR (PitchType=5 AND vStart<{CUTTER_VELO_CUTTOFF})) "
-        elif pitch_type == PitchType.All:
-            self.prep_map.pitch_stuff_map = map_pitch_stuff
-            self.conditional_statement = self.conditional_statement[:-4]
-            pass
+
+        self.prep_map.pitch_stuff_map = map_pitch_stuff
+        self.conditional_statement = self.conditional_statement[:-4]
         
         pitches = DB_PitchStatcast.Select_From_DB(
             cursor=cursor,
@@ -291,6 +277,7 @@ class DataPrep:
                             pitcher_id=id,
                             game_id=pitch.GameId,
                             pitch_num=pitch.PitchId,
+                            level_id=pitch.LevelId,
                             data_overview=data_overview[i],
                             data_loc=data_loc[i],
                             data_stuff=data_stuff[i],
