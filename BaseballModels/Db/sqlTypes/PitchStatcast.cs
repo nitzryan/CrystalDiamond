@@ -61,7 +61,9 @@ namespace Db
 		public required float RunValueHitter {get; set;}
 		public required float RunValueSmoothedHitter {get; set;}
 		public required DbEnums.PitchScenario Scenario {get; set;}
-		public required string ModelOutput {get; set;}
+		public float? ModelStuff {get; set;}
+		public float? ModelLocation {get; set;}
+		public float? ModelPitch {get; set;}
 
 		public PitchStatcast Clone()
 		{
@@ -126,7 +128,9 @@ namespace Db
 				RunValueHitter = this.RunValueHitter,
 				RunValueSmoothedHitter = this.RunValueSmoothedHitter,
 				Scenario = this.Scenario,
-				ModelOutput = this.ModelOutput,
+				ModelStuff = this.ModelStuff,
+				ModelLocation = this.ModelLocation,
+				ModelPitch = this.ModelPitch,
 			};
 		}
 	}

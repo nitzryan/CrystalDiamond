@@ -32,6 +32,8 @@
             groupBoxPlayer = new GroupBox();
             playerSearchBar = new UI.Controls.PlayerSearchBar();
             groupBoxFilters = new GroupBox();
+            label13 = new Label();
+            cbLevel = new ComboBox();
             label2 = new Label();
             label1 = new Label();
             cbSituations = new ComboBox();
@@ -54,11 +56,16 @@
             cbModel = new ComboBox();
             tableLayoutPanel1 = new TableLayoutPanel();
             panel1 = new Panel();
+            pitcherArsenal = new UI.Controls.PitcherArsenal();
             tableLayoutPanel2 = new TableLayoutPanel();
             panelPitchStats = new TableLayoutPanel();
             labelName = new Label();
             groupBox3 = new GroupBox();
             tableLayoutPanel5 = new TableLayoutPanel();
+            labelInPlay = new Label();
+            label17 = new Label();
+            labelFoul = new Label();
+            label15 = new Label();
             _labelWhiffRate = new Label();
             labelCSW = new Label();
             _labelCSW = new Label();
@@ -83,14 +90,14 @@
             labelOBP = new Label();
             groupBox4 = new GroupBox();
             tableLayoutPanel6 = new TableLayoutPanel();
+            labelActual = new Label();
+            label11 = new Label();
             labelPitch = new Label();
             label14 = new Label();
             label10 = new Label();
             labelLocation = new Label();
             label12 = new Label();
             labelStuff = new Label();
-            label11 = new Label();
-            labelActual = new Label();
             groupBoxPlayer.SuspendLayout();
             groupBoxFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).BeginInit();
@@ -117,7 +124,7 @@
             pitchPanel.Dock = DockStyle.Fill;
             pitchPanel.Location = new Point(3, 239);
             pitchPanel.Name = "pitchPanel";
-            pitchPanel.Size = new Size(645, 535);
+            pitchPanel.Size = new Size(840, 854);
             pitchPanel.TabIndex = 0;
             // 
             // groupBoxPlayer
@@ -141,6 +148,8 @@
             // groupBoxFilters
             // 
             groupBoxFilters.AutoSize = true;
+            groupBoxFilters.Controls.Add(label13);
+            groupBoxFilters.Controls.Add(cbLevel);
             groupBoxFilters.Controls.Add(label2);
             groupBoxFilters.Controls.Add(label1);
             groupBoxFilters.Controls.Add(cbSituations);
@@ -148,10 +157,27 @@
             groupBoxFilters.Controls.Add(yearSelector);
             groupBoxFilters.Location = new Point(6, 214);
             groupBoxFilters.Name = "groupBoxFilters";
-            groupBoxFilters.Size = new Size(311, 137);
+            groupBoxFilters.Size = new Size(311, 166);
             groupBoxFilters.TabIndex = 2;
             groupBoxFilters.TabStop = false;
             groupBoxFilters.Text = "Pitch Filters";
+            // 
+            // label13
+            // 
+            label13.AutoSize = true;
+            label13.Location = new Point(6, 124);
+            label13.Name = "label13";
+            label13.Size = new Size(34, 15);
+            label13.TabIndex = 4;
+            label13.Text = "Level";
+            // 
+            // cbLevel
+            // 
+            cbLevel.FormattingEnabled = true;
+            cbLevel.Location = new Point(129, 121);
+            cbLevel.Name = "cbLevel";
+            cbLevel.Size = new Size(170, 23);
+            cbLevel.TabIndex = 3;
             // 
             // label2
             // 
@@ -205,7 +231,7 @@
             // 
             // pbPitchSearch
             // 
-            pbPitchSearch.Location = new Point(3, 631);
+            pbPitchSearch.Location = new Point(3, 669);
             pbPitchSearch.Name = "pbPitchSearch";
             pbPitchSearch.Size = new Size(305, 23);
             pbPitchSearch.TabIndex = 3;
@@ -266,7 +292,7 @@
             groupBoxPostProcessing.Controls.Add(label3);
             groupBoxPostProcessing.Controls.Add(labelKernel);
             groupBoxPostProcessing.Controls.Add(label4);
-            groupBoxPostProcessing.Location = new Point(6, 474);
+            groupBoxPostProcessing.Location = new Point(6, 512);
             groupBoxPostProcessing.Name = "groupBoxPostProcessing";
             groupBoxPostProcessing.Size = new Size(305, 151);
             groupBoxPostProcessing.TabIndex = 3;
@@ -297,7 +323,7 @@
             groupBoxOutput.Controls.Add(cbOutput);
             groupBoxOutput.Controls.Add(label5);
             groupBoxOutput.Controls.Add(cbModel);
-            groupBoxOutput.Location = new Point(6, 357);
+            groupBoxOutput.Location = new Point(6, 395);
             groupBoxOutput.Name = "groupBoxOutput";
             groupBoxOutput.Size = new Size(305, 111);
             groupBoxOutput.TabIndex = 4;
@@ -343,7 +369,7 @@
             tableLayoutPanel1.AutoSize = true;
             tableLayoutPanel1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             tableLayoutPanel1.ColumnCount = 2;
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 500F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(panel1, 0, 0);
             tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 0);
@@ -352,13 +378,15 @@
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 1;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.Size = new Size(986, 783);
+            tableLayoutPanel1.Size = new Size(1352, 1102);
             tableLayoutPanel1.TabIndex = 5;
             // 
             // panel1
             // 
+            panel1.AutoScroll = true;
             panel1.AutoSize = true;
             panel1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            panel1.Controls.Add(pitcherArsenal);
             panel1.Controls.Add(groupBoxPlayer);
             panel1.Controls.Add(pbPitchSearch);
             panel1.Controls.Add(groupBoxOutput);
@@ -367,8 +395,18 @@
             panel1.Dock = DockStyle.Fill;
             panel1.Location = new Point(3, 3);
             panel1.Name = "panel1";
-            panel1.Size = new Size(323, 777);
+            panel1.Size = new Size(494, 1096);
             panel1.TabIndex = 1;
+            // 
+            // pitcherArsenal
+            // 
+            pitcherArsenal.AutoSize = true;
+            pitcherArsenal.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            pitcherArsenal.Dock = DockStyle.Bottom;
+            pitcherArsenal.Location = new Point(0, 942);
+            pitcherArsenal.Name = "pitcherArsenal";
+            pitcherArsenal.Size = new Size(494, 154);
+            pitcherArsenal.TabIndex = 7;
             // 
             // tableLayoutPanel2
             // 
@@ -378,12 +416,12 @@
             tableLayoutPanel2.Controls.Add(panelPitchStats, 0, 0);
             tableLayoutPanel2.Controls.Add(pitchPanel, 0, 1);
             tableLayoutPanel2.Dock = DockStyle.Fill;
-            tableLayoutPanel2.Location = new Point(332, 3);
+            tableLayoutPanel2.Location = new Point(503, 3);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
             tableLayoutPanel2.RowCount = 2;
             tableLayoutPanel2.RowStyles.Add(new RowStyle());
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.Size = new Size(651, 777);
+            tableLayoutPanel2.Size = new Size(846, 1096);
             tableLayoutPanel2.TabIndex = 2;
             // 
             // panelPitchStats
@@ -391,10 +429,11 @@
             panelPitchStats.AutoSize = true;
             panelPitchStats.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             panelPitchStats.ColumnCount = 4;
+            panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25.0000057F));
             panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
             panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
             panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-            panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            panelPitchStats.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
             panelPitchStats.Controls.Add(labelName, 1, 0);
             panelPitchStats.Controls.Add(groupBox3, 2, 1);
             panelPitchStats.Controls.Add(groupBox1, 0, 1);
@@ -406,7 +445,7 @@
             panelPitchStats.RowCount = 2;
             panelPitchStats.RowStyles.Add(new RowStyle());
             panelPitchStats.RowStyles.Add(new RowStyle());
-            panelPitchStats.Size = new Size(645, 230);
+            panelPitchStats.Size = new Size(840, 230);
             panelPitchStats.TabIndex = 5;
             // 
             // labelName
@@ -414,9 +453,9 @@
             labelName.AutoSize = true;
             labelName.Dock = DockStyle.Fill;
             labelName.Font = new Font("Segoe UI", 15.75F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            labelName.Location = new Point(164, 0);
+            labelName.Location = new Point(213, 0);
             labelName.Name = "labelName";
-            labelName.Size = new Size(155, 30);
+            labelName.Size = new Size(203, 30);
             labelName.TabIndex = 0;
             labelName.Text = "Player Name";
             labelName.TextAlign = ContentAlignment.TopCenter;
@@ -428,9 +467,9 @@
             groupBox3.Controls.Add(tableLayoutPanel5);
             groupBox3.Dock = DockStyle.Top;
             groupBox3.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            groupBox3.Location = new Point(325, 33);
+            groupBox3.Location = new Point(422, 33);
             groupBox3.Name = "groupBox3";
-            groupBox3.Size = new Size(155, 114);
+            groupBox3.Size = new Size(203, 194);
             groupBox3.TabIndex = 3;
             groupBox3.TabStop = false;
             groupBox3.Text = "Pitch Rates";
@@ -442,6 +481,10 @@
             tableLayoutPanel5.ColumnCount = 2;
             tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel5.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel5.Controls.Add(labelInPlay, 1, 3);
+            tableLayoutPanel5.Controls.Add(label17, 0, 3);
+            tableLayoutPanel5.Controls.Add(labelFoul, 1, 2);
+            tableLayoutPanel5.Controls.Add(label15, 0, 2);
             tableLayoutPanel5.Controls.Add(_labelWhiffRate, 0, 0);
             tableLayoutPanel5.Controls.Add(labelCSW, 1, 1);
             tableLayoutPanel5.Controls.Add(_labelCSW, 0, 1);
@@ -449,11 +492,61 @@
             tableLayoutPanel5.Dock = DockStyle.Fill;
             tableLayoutPanel5.Location = new Point(3, 31);
             tableLayoutPanel5.Name = "tableLayoutPanel5";
-            tableLayoutPanel5.RowCount = 2;
+            tableLayoutPanel5.RowCount = 4;
             tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel5.Size = new Size(149, 80);
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            tableLayoutPanel5.Size = new Size(197, 160);
             tableLayoutPanel5.TabIndex = 1;
+            // 
+            // labelInPlay
+            // 
+            labelInPlay.AutoSize = true;
+            labelInPlay.Dock = DockStyle.Fill;
+            labelInPlay.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelInPlay.Location = new Point(101, 120);
+            labelInPlay.Name = "labelInPlay";
+            labelInPlay.Size = new Size(93, 40);
+            labelInPlay.TabIndex = 4;
+            labelInPlay.Text = "XX.X%";
+            labelInPlay.TextAlign = ContentAlignment.BottomRight;
+            // 
+            // label17
+            // 
+            label17.AutoSize = true;
+            label17.Dock = DockStyle.Fill;
+            label17.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label17.Location = new Point(3, 120);
+            label17.Name = "label17";
+            label17.Size = new Size(92, 40);
+            label17.TabIndex = 3;
+            label17.Text = "IP%";
+            label17.TextAlign = ContentAlignment.BottomLeft;
+            // 
+            // labelFoul
+            // 
+            labelFoul.AutoSize = true;
+            labelFoul.Dock = DockStyle.Fill;
+            labelFoul.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelFoul.Location = new Point(101, 80);
+            labelFoul.Name = "labelFoul";
+            labelFoul.Size = new Size(93, 40);
+            labelFoul.TabIndex = 2;
+            labelFoul.Text = "XX.X%";
+            labelFoul.TextAlign = ContentAlignment.BottomRight;
+            // 
+            // label15
+            // 
+            label15.AutoSize = true;
+            label15.Dock = DockStyle.Fill;
+            label15.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label15.Location = new Point(3, 80);
+            label15.Name = "label15";
+            label15.Size = new Size(92, 40);
+            label15.TabIndex = 1;
+            label15.Text = "Foul%";
+            label15.TextAlign = ContentAlignment.BottomLeft;
             // 
             // _labelWhiffRate
             // 
@@ -462,7 +555,7 @@
             _labelWhiffRate.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelWhiffRate.Location = new Point(3, 0);
             _labelWhiffRate.Name = "_labelWhiffRate";
-            _labelWhiffRate.Size = new Size(68, 40);
+            _labelWhiffRate.Size = new Size(92, 40);
             _labelWhiffRate.TabIndex = 0;
             _labelWhiffRate.Text = "Whiff%";
             _labelWhiffRate.TextAlign = ContentAlignment.BottomLeft;
@@ -472,9 +565,9 @@
             labelCSW.AutoSize = true;
             labelCSW.Dock = DockStyle.Fill;
             labelCSW.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelCSW.Location = new Point(77, 40);
+            labelCSW.Location = new Point(101, 40);
             labelCSW.Name = "labelCSW";
-            labelCSW.Size = new Size(69, 40);
+            labelCSW.Size = new Size(93, 40);
             labelCSW.TabIndex = 0;
             labelCSW.Text = "XX.X%";
             labelCSW.TextAlign = ContentAlignment.BottomRight;
@@ -486,7 +579,7 @@
             _labelCSW.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelCSW.Location = new Point(3, 40);
             _labelCSW.Name = "_labelCSW";
-            _labelCSW.Size = new Size(68, 40);
+            _labelCSW.Size = new Size(92, 40);
             _labelCSW.TabIndex = 0;
             _labelCSW.Text = "CSW%";
             _labelCSW.TextAlign = ContentAlignment.BottomLeft;
@@ -496,9 +589,9 @@
             labelWhiff.AutoSize = true;
             labelWhiff.Dock = DockStyle.Fill;
             labelWhiff.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelWhiff.Location = new Point(77, 0);
+            labelWhiff.Location = new Point(101, 0);
             labelWhiff.Name = "labelWhiff";
-            labelWhiff.Size = new Size(69, 40);
+            labelWhiff.Size = new Size(93, 40);
             labelWhiff.TabIndex = 0;
             labelWhiff.Text = "XX.X%";
             labelWhiff.TextAlign = ContentAlignment.BottomRight;
@@ -512,7 +605,7 @@
             groupBox1.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             groupBox1.Location = new Point(3, 33);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new Size(155, 154);
+            groupBox1.Size = new Size(204, 154);
             groupBox1.TabIndex = 1;
             groupBox1.TabStop = false;
             groupBox1.Text = "Pitch Metrics";
@@ -536,7 +629,7 @@
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel3.Size = new Size(149, 120);
+            tableLayoutPanel3.Size = new Size(198, 120);
             tableLayoutPanel3.TabIndex = 1;
             // 
             // labelMoveZ
@@ -544,9 +637,9 @@
             labelMoveZ.AutoSize = true;
             labelMoveZ.Dock = DockStyle.Fill;
             labelMoveZ.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelMoveZ.Location = new Point(77, 80);
+            labelMoveZ.Location = new Point(102, 80);
             labelMoveZ.Name = "labelMoveZ";
-            labelMoveZ.Size = new Size(69, 40);
+            labelMoveZ.Size = new Size(93, 40);
             labelMoveZ.TabIndex = 0;
             labelMoveZ.Text = "XX.X";
             labelMoveZ.TextAlign = ContentAlignment.BottomRight;
@@ -558,7 +651,7 @@
             _labelVelocity.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelVelocity.Location = new Point(3, 0);
             _labelVelocity.Name = "_labelVelocity";
-            _labelVelocity.Size = new Size(68, 40);
+            _labelVelocity.Size = new Size(93, 40);
             _labelVelocity.TabIndex = 0;
             _labelVelocity.Text = "Velocity";
             _labelVelocity.TextAlign = ContentAlignment.BottomLeft;
@@ -570,7 +663,7 @@
             _labelMoveX.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelMoveX.Location = new Point(3, 40);
             _labelMoveX.Name = "_labelMoveX";
-            _labelMoveX.Size = new Size(68, 40);
+            _labelMoveX.Size = new Size(93, 40);
             _labelMoveX.TabIndex = 0;
             _labelMoveX.Text = "Move X";
             _labelMoveX.TextAlign = ContentAlignment.BottomLeft;
@@ -582,7 +675,7 @@
             _labelMoveZ.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelMoveZ.Location = new Point(3, 80);
             _labelMoveZ.Name = "_labelMoveZ";
-            _labelMoveZ.Size = new Size(68, 40);
+            _labelMoveZ.Size = new Size(93, 40);
             _labelMoveZ.TabIndex = 0;
             _labelMoveZ.Text = "Move Z";
             _labelMoveZ.TextAlign = ContentAlignment.BottomLeft;
@@ -592,9 +685,9 @@
             labelMoveX.AutoSize = true;
             labelMoveX.Dock = DockStyle.Fill;
             labelMoveX.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelMoveX.Location = new Point(77, 40);
+            labelMoveX.Location = new Point(102, 40);
             labelMoveX.Name = "labelMoveX";
-            labelMoveX.Size = new Size(69, 40);
+            labelMoveX.Size = new Size(93, 40);
             labelMoveX.TabIndex = 0;
             labelMoveX.Text = "XX.X";
             labelMoveX.TextAlign = ContentAlignment.BottomRight;
@@ -604,9 +697,9 @@
             labelVel.AutoSize = true;
             labelVel.Dock = DockStyle.Fill;
             labelVel.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelVel.Location = new Point(77, 0);
+            labelVel.Location = new Point(102, 0);
             labelVel.Name = "labelVel";
-            labelVel.Size = new Size(69, 40);
+            labelVel.Size = new Size(93, 40);
             labelVel.TabIndex = 0;
             labelVel.Text = "XX.X";
             labelVel.TextAlign = ContentAlignment.BottomRight;
@@ -618,9 +711,9 @@
             groupBox2.Controls.Add(tableLayoutPanel4);
             groupBox2.Dock = DockStyle.Top;
             groupBox2.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            groupBox2.Location = new Point(164, 33);
+            groupBox2.Location = new Point(213, 33);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new Size(155, 194);
+            groupBox2.Size = new Size(203, 194);
             groupBox2.TabIndex = 2;
             groupBox2.TabStop = false;
             groupBox2.Text = "Hit Stats";
@@ -647,7 +740,7 @@
             tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel4.Size = new Size(149, 160);
+            tableLayoutPanel4.Size = new Size(197, 160);
             tableLayoutPanel4.TabIndex = 1;
             // 
             // label8
@@ -657,7 +750,7 @@
             label8.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label8.Location = new Point(3, 120);
             label8.Name = "label8";
-            label8.Size = new Size(68, 40);
+            label8.Size = new Size(92, 40);
             label8.TabIndex = 0;
             label8.Text = "SLG";
             label8.TextAlign = ContentAlignment.BottomLeft;
@@ -667,9 +760,9 @@
             labelABPA.AutoSize = true;
             labelABPA.Dock = DockStyle.Fill;
             labelABPA.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelABPA.Location = new Point(77, 0);
+            labelABPA.Location = new Point(101, 0);
             labelABPA.Name = "labelABPA";
-            labelABPA.Size = new Size(69, 40);
+            labelABPA.Size = new Size(93, 40);
             labelABPA.TabIndex = 0;
             labelABPA.Text = "XX/YY";
             labelABPA.TextAlign = ContentAlignment.BottomRight;
@@ -681,7 +774,7 @@
             _labelABPA.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelABPA.Location = new Point(3, 0);
             _labelABPA.Name = "_labelABPA";
-            _labelABPA.Size = new Size(68, 40);
+            _labelABPA.Size = new Size(92, 40);
             _labelABPA.TabIndex = 0;
             _labelABPA.Text = "AB/PA";
             _labelABPA.TextAlign = ContentAlignment.BottomLeft;
@@ -693,7 +786,7 @@
             _labelAVG.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             _labelAVG.Location = new Point(3, 40);
             _labelAVG.Name = "_labelAVG";
-            _labelAVG.Size = new Size(68, 40);
+            _labelAVG.Size = new Size(92, 40);
             _labelAVG.TabIndex = 0;
             _labelAVG.Text = "AVG";
             _labelAVG.TextAlign = ContentAlignment.BottomLeft;
@@ -703,9 +796,9 @@
             labelAVG.AutoSize = true;
             labelAVG.Dock = DockStyle.Fill;
             labelAVG.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelAVG.Location = new Point(77, 40);
+            labelAVG.Location = new Point(101, 40);
             labelAVG.Name = "labelAVG";
-            labelAVG.Size = new Size(69, 40);
+            labelAVG.Size = new Size(93, 40);
             labelAVG.TabIndex = 0;
             labelAVG.Text = "XXX";
             labelAVG.TextAlign = ContentAlignment.BottomRight;
@@ -717,7 +810,7 @@
             label9.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label9.Location = new Point(3, 80);
             label9.Name = "label9";
-            label9.Size = new Size(68, 40);
+            label9.Size = new Size(92, 40);
             label9.TabIndex = 0;
             label9.Text = "OBP";
             label9.TextAlign = ContentAlignment.BottomLeft;
@@ -727,9 +820,9 @@
             labelSLG.AutoSize = true;
             labelSLG.Dock = DockStyle.Fill;
             labelSLG.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelSLG.Location = new Point(77, 120);
+            labelSLG.Location = new Point(101, 120);
             labelSLG.Name = "labelSLG";
-            labelSLG.Size = new Size(69, 40);
+            labelSLG.Size = new Size(93, 40);
             labelSLG.TabIndex = 0;
             labelSLG.Text = "XXX";
             labelSLG.TextAlign = ContentAlignment.BottomRight;
@@ -739,9 +832,9 @@
             labelOBP.AutoSize = true;
             labelOBP.Dock = DockStyle.Fill;
             labelOBP.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelOBP.Location = new Point(77, 80);
+            labelOBP.Location = new Point(101, 80);
             labelOBP.Name = "labelOBP";
-            labelOBP.Size = new Size(69, 40);
+            labelOBP.Size = new Size(93, 40);
             labelOBP.TabIndex = 0;
             labelOBP.Text = "XXX";
             labelOBP.TextAlign = ContentAlignment.BottomRight;
@@ -753,9 +846,9 @@
             groupBox4.Controls.Add(tableLayoutPanel6);
             groupBox4.Dock = DockStyle.Top;
             groupBox4.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            groupBox4.Location = new Point(486, 33);
+            groupBox4.Location = new Point(631, 33);
             groupBox4.Name = "groupBox4";
-            groupBox4.Size = new Size(156, 194);
+            groupBox4.Size = new Size(206, 194);
             groupBox4.TabIndex = 5;
             groupBox4.TabStop = false;
             groupBox4.Text = "Modeling";
@@ -783,17 +876,41 @@
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel6.Size = new Size(150, 160);
+            tableLayoutPanel6.Size = new Size(200, 160);
             tableLayoutPanel6.TabIndex = 1;
+            // 
+            // labelActual
+            // 
+            labelActual.AutoSize = true;
+            labelActual.Dock = DockStyle.Fill;
+            labelActual.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            labelActual.Location = new Point(103, 120);
+            labelActual.Name = "labelActual";
+            labelActual.Size = new Size(94, 40);
+            labelActual.TabIndex = 4;
+            labelActual.Text = "XXX.X";
+            labelActual.TextAlign = ContentAlignment.BottomRight;
+            // 
+            // label11
+            // 
+            label11.AutoSize = true;
+            label11.Dock = DockStyle.Fill;
+            label11.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label11.Location = new Point(3, 120);
+            label11.Name = "label11";
+            label11.Size = new Size(94, 40);
+            label11.TabIndex = 3;
+            label11.Text = "Actual";
+            label11.TextAlign = ContentAlignment.BottomLeft;
             // 
             // labelPitch
             // 
             labelPitch.AutoSize = true;
             labelPitch.Dock = DockStyle.Fill;
             labelPitch.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelPitch.Location = new Point(78, 80);
+            labelPitch.Location = new Point(103, 80);
             labelPitch.Name = "labelPitch";
-            labelPitch.Size = new Size(69, 40);
+            labelPitch.Size = new Size(94, 40);
             labelPitch.TabIndex = 2;
             labelPitch.Text = "XXX.X";
             labelPitch.TextAlign = ContentAlignment.BottomRight;
@@ -805,7 +922,7 @@
             label14.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label14.Location = new Point(3, 80);
             label14.Name = "label14";
-            label14.Size = new Size(69, 40);
+            label14.Size = new Size(94, 40);
             label14.TabIndex = 1;
             label14.Text = "Pitch";
             label14.TextAlign = ContentAlignment.BottomLeft;
@@ -817,20 +934,19 @@
             label10.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label10.Location = new Point(3, 0);
             label10.Name = "label10";
-            label10.Size = new Size(69, 40);
+            label10.Size = new Size(94, 40);
             label10.TabIndex = 0;
             label10.Text = "Stuff";
             label10.TextAlign = ContentAlignment.BottomLeft;
-            label10.Click += label10_Click;
             // 
             // labelLocation
             // 
             labelLocation.AutoSize = true;
             labelLocation.Dock = DockStyle.Fill;
             labelLocation.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelLocation.Location = new Point(78, 40);
+            labelLocation.Location = new Point(103, 40);
             labelLocation.Name = "labelLocation";
-            labelLocation.Size = new Size(69, 40);
+            labelLocation.Size = new Size(94, 40);
             labelLocation.TabIndex = 0;
             labelLocation.Text = "XXX.X";
             labelLocation.TextAlign = ContentAlignment.BottomRight;
@@ -842,7 +958,7 @@
             label12.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             label12.Location = new Point(3, 40);
             label12.Name = "label12";
-            label12.Size = new Size(69, 40);
+            label12.Size = new Size(94, 40);
             label12.TabIndex = 0;
             label12.Text = "Location";
             label12.TextAlign = ContentAlignment.BottomLeft;
@@ -852,42 +968,18 @@
             labelStuff.AutoSize = true;
             labelStuff.Dock = DockStyle.Fill;
             labelStuff.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelStuff.Location = new Point(78, 0);
+            labelStuff.Location = new Point(103, 0);
             labelStuff.Name = "labelStuff";
-            labelStuff.Size = new Size(69, 40);
+            labelStuff.Size = new Size(94, 40);
             labelStuff.TabIndex = 0;
             labelStuff.Text = "XXX.X";
             labelStuff.TextAlign = ContentAlignment.BottomRight;
-            // 
-            // label11
-            // 
-            label11.AutoSize = true;
-            label11.Dock = DockStyle.Fill;
-            label11.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label11.Location = new Point(3, 120);
-            label11.Name = "label11";
-            label11.Size = new Size(69, 40);
-            label11.TabIndex = 3;
-            label11.Text = "Actual";
-            label11.TextAlign = ContentAlignment.BottomLeft;
-            // 
-            // labelActual
-            // 
-            labelActual.AutoSize = true;
-            labelActual.Dock = DockStyle.Fill;
-            labelActual.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelActual.Location = new Point(78, 120);
-            labelActual.Name = "labelActual";
-            labelActual.Size = new Size(69, 40);
-            labelActual.TabIndex = 4;
-            labelActual.Text = "XXX.X";
-            labelActual.TextAlign = ContentAlignment.BottomRight;
             // 
             // PitchViewer
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(986, 783);
+            ClientSize = new Size(1352, 1102);
             Controls.Add(tableLayoutPanel1);
             Name = "PitchViewer";
             Text = "Form1";
@@ -995,5 +1087,12 @@
         private Controls.PlayerSearchBar playerSearchBar;
         private Label labelActual;
         private Label label11;
+        private Label label13;
+        private ComboBox cbLevel;
+        private Label labelInPlay;
+        private Label label17;
+        private Label labelFoul;
+        private Label label15;
+        private Controls.PitcherArsenal pitcherArsenal;
     }
 }

@@ -2,12 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
-using System.Text.Json;
 
 namespace PitchAnalysis
 {
-    public record PitchModelOutput(double sv, double lv, double cv);
-
     internal class PitchStatcastOutput
     {
         public static void Update()
@@ -15,7 +12,9 @@ namespace PitchAnalysis
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelOutput=''");
+            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelStuff=NULL");
+            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelLocation=NULL");
+            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelPitch=NULL");
 
             var pitchOutputs = pitchDb.Output_PitchValueAggregation
                 .AsNoTracking()
@@ -33,43 +32,15 @@ namespace PitchAnalysis
             {
                 foreach (var pitch in pitchOutputs)
                 {
-                    Dictionary<int, PitchModelOutput> modelValues = new();
+                    var opva = pitch.Single();
 
-                    var modelPitches = pitch.GroupBy(f => new { f.Model, f.CountBalls, f.CountStrikes });
-                    foreach (var mp in modelPitches)
-                    {
-                        int size = mp.Count();
-                        var opva = mp.Single();
-
-                        double stuffValue = opva.StuffRuns;
-                        double locValue = opva.LocationRuns;
-                        double combinedValue = opva.CombinedRuns;
-
-                        var yld = devDict[
-                            new { 
-                                mp.First().Year, 
-                                ModelId=mp.First().Model, 
-                                Balls=mp.First().CountBalls, 
-                                Strikes=mp.First().CountStrikes 
-                                }
-                            ];
-
-                        // TODO: Not sure whether they should all use the stuff deviation or their individual deviations
-                        double stuffPlus = 100 - (10 * stuffValue / yld.StuffDev);
-                        double locPlus = 100 - (10 * locValue / yld.StuffDev);
-                        double pitchPlus = 100 - (10 * combinedValue / yld.StuffDev);
-
-                        modelValues[mp.Key.Model] = new PitchModelOutput(Math.Round(stuffValue, 4), Math.Round(locValue, 4), Math.Round(combinedValue, 4));
-                    }
-
-                    // Write to JSON 
-                    string json = JsonSerializer.Serialize(modelValues, new JsonSerializerOptions
-                    {
-                        WriteIndented = false
-                    });
-                    db.PitchStatcast
+                    var pitchStatcast = db.PitchStatcast
                         .Where(f => f.PitchId == pitch.Key.PitchId && f.GameId == pitch.Key.GameId)
-                        .Single().ModelOutput = json;
+                        .Single();
+
+                    pitchStatcast.ModelStuff = opva.StuffRuns;
+                    pitchStatcast.ModelLocation = opva.LocationRuns;
+                    pitchStatcast.ModelPitch = opva.CombinedRuns;
 
                     // Make sure that too many pitches don't get logged to run out of memory
                     pitchCount++;

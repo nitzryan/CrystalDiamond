@@ -60,9 +60,9 @@ namespace UI
             pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
 
             playerSearchBar.SetPlayerList(db.Player.Where(f => f.Position != "H").ToList());
-            PitchGrid.YldDict = pitchDb.YearLeagueDeviations
+            Global.YldDict = pitchDb.YearLeagueDeviations
                 .ToDictionary(
-                    f => new YearLeagueDevKey(f.ModelId, f.Year, f.Balls, f.Strikes),
+                    f => new Global.YearLeagueDevKey(f.ModelId, f.Year, f.Balls, f.Strikes),
                     f => f
                 );
 
@@ -104,11 +104,15 @@ namespace UI
                 throw new Exception("Failed to load db");
 
             player = p;
-            PlayerPitches = db.PitchStatcast.Where(f => f.PitcherId == player.MlbId && f.ModelOutput != "").ToList();
+            PlayerPitches = db.PitchStatcast
+                .Where(
+                    f => f.PitcherId == player.MlbId && 
+                    f.ModelStuff != null &&
+                    f.PitchType != PitchType.Unknown)
+                .ToList();
 
             // Player Years
             List<int> years = PlayerPitches
-                .Where(f => f.PitcherId == player.MlbId)
                 .Select(f => f.Year)
                 .Distinct()
                 .OrderDescending()
@@ -128,6 +132,17 @@ namespace UI
 
             yearSelector.Update(years.Min(), years.Max(), "Year");
 
+            // Levels
+            List<int> levelIds = PlayerPitches
+                .Select(f => f.LevelId)
+                .Distinct()
+                .Order()
+                .ToList();
+            cbLevel.Items.Clear();
+            foreach (int level in levelIds)
+                cbLevel.Items.Add(level);
+            cbLevel.SelectedIndex = 0;
+
             // Pitch Types
             List<PitchType> pitchTypes = PlayerPitches
                 .Where(f => f.PitcherId == player.MlbId)
@@ -140,7 +155,8 @@ namespace UI
                 cbPitchSelector.Items.Add(pt);
             cbPitchSelector.SelectedIndex = 0;
 
-
+            // Pitch Arsenal Stats
+            pitcherArsenal.SetPitches(PlayerPitches);
 
             Invalidate();
         }
@@ -155,12 +171,14 @@ namespace UI
                 cbSituations.SelectedItem is PitchScenario scenario &&
                 cbModel.SelectedItem is ComboBoxItem<int> modelComboBox &&
                 cbOutput.SelectedItem is ComboBoxItem<PitchValueType> pitchValueComboBox &&
-                cbBinSizes.SelectedItem is ComboBoxItem<PitchGridType> pitchGridTypeComboBox)
+                cbBinSizes.SelectedItem is ComboBoxItem<PitchGridType> pitchGridTypeComboBox &&
+                cbLevel.SelectedItem is int levelId)
             {
                 var pitches = PlayerPitches
                     .Where(f => f.Year >= minYear
                         && f.Year <= maxYear
-                        && f.PitchType == pitchType);
+                        && f.PitchType == pitchType
+                        && f.LevelId == levelId);
 
                 foreach (PitchScenario ps in Enum.GetValues(typeof(PitchScenario)))
                 {
@@ -196,6 +214,8 @@ namespace UI
 
             labelWhiff.Text = $"{Math.Round(100 * pitchStats.WhiffRate, 1)}%";
             labelCSW.Text = $"{Math.Round(100 * pitchStats.CSWRate, 1)}%";
+            labelFoul.Text = $"{Math.Round(100 * pitchStats.FoulRate, 1)}%";
+            labelInPlay.Text = $"{Math.Round(100 * pitchStats.IPRate, 1)}%";
 
             labelVel.Text = $"{Math.Round(pitchStats.Vel, 1)}";
             labelMoveX.Text = $"{Math.Round(pitchStats.BreakHoriz, 1)}";
@@ -205,11 +225,6 @@ namespace UI
             labelStuff.Text = $"{Math.Round(pitchStats.StuffPlus, 1)}";
             labelPitch.Text = $"{Math.Round(pitchStats.PitchPlus, 1)}";
             labelActual.Text = $"{Math.Round(pitchStats.ActualPlus, 1)}";
-        }
-
-        private void label10_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }

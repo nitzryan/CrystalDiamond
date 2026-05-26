@@ -76,7 +76,9 @@ CREATE TABLE PitchStatcast
     "RunValueSmoothedHitter" REAL NOT NULL,
 
     "Scenario" INTEGER NOT NULL,
-    "ModelOutput" TEXT NOT NULL,
+    "ModelStuff" REAL,
+    "ModelLocation" REAL,
+    "ModelPitch" REAL,
 
     PRIMARY KEY("GameId", "PitchId")
 );

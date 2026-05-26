@@ -7,8 +7,8 @@
 
         static void Main(string[] args)
         {
-            PitchAggregation.Update();
-            YearDeviations.Update(END_YEAR, FORCE_REFRESH);
+            //PitchAggregation.Update();
+            //YearDeviations.Update(END_YEAR, FORCE_REFRESH);
             PitchStatcastOutput.Update();
             PitcherAggregator.CreateStats();
         }

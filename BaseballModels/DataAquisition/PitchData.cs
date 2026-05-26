@@ -583,7 +583,9 @@ namespace DataAquisition
                             RunValueHitter = -100000, // Will be modified later
                             RunValueSmoothedHitter = -100000, // Will be modified later
                             Scenario = scenario,
-                            ModelOutput = ""
+                            ModelStuff=null,
+                            ModelLocation=null,
+                            ModelPitch=null,
                         });
                     } else {
                         nonStatcastPitches.Add(new PitchNonStatcast

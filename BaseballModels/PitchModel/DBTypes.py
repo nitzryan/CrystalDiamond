@@ -1860,80 +1860,6 @@ class DB_Model_College_PitcherProStats:
 		items = cursor.execute("SELECT * FROM Model_College_PitcherProStats " + conditional, values).fetchall()
 		return [DB_Model_College_PitcherProStats(i) for i in items]
 
-class DB_PitchStatcast:
-	def __init__(self, values : tuple[any]):
-		self.GameId = values[0]
-		self.PitchId = values[1]
-		self.PaId = values[2]
-		self.PitcherId = values[3]
-		self.HitterId = values[4]
-		self.LeagueId = values[5]
-		self.LevelId = values[6]
-		self.Year = values[7]
-		self.Month = values[8]
-		self.PitcherPitchNum = values[9]
-		self.CountBalls = values[10]
-		self.CountStrike = values[11]
-		self.Outs = values[12]
-		self.BaseOccupancy = values[13]
-		self.PitchType = values[14]
-		self.PaResult = values[15]
-		self.PaResultOccupancy = values[16]
-		self.PaResultOuts = values[17]
-		self.PaResultDirectRuns = values[18]
-		self.RunsAfterPa = values[19]
-		self.Result = values[20]
-		self.HadSwing = values[21]
-		self.HadContact = values[22]
-		self.IsInPlay = values[23]
-		self.HitIsR = values[24]
-		self.PitIsR = values[25]
-		self.vX = values[26]
-		self.vY = values[27]
-		self.vZ = values[28]
-		self.vStart = values[29]
-		self.vEnd = values[30]
-		self.aX = values[31]
-		self.aY = values[32]
-		self.aZ = values[33]
-		self.pfxX = values[34]
-		self.pfxZ = values[35]
-		self.BreakAngle = values[36]
-		self.BreakVertical = values[37]
-		self.BreakInduced = values[38]
-		self.BreakHorizontal = values[39]
-		self.SpinRate = values[40]
-		self.SpinDirection = values[41]
-		self.pX = values[42]
-		self.pZ = values[43]
-		self.ZoneTop = values[44]
-		self.ZoneBot = values[45]
-		self.Extension = values[46]
-		self.x0 = values[47]
-		self.y0 = values[48]
-		self.z0 = values[49]
-		self.PlateTime = values[50]
-		self.LaunchSpeed = values[51]
-		self.LaunchAngle = values[52]
-		self.TotalDist = values[53]
-		self.HitCoordX = values[54]
-		self.HitCoordY = values[55]
-		self.RunValueHitter = values[56]
-		self.RunValueSmoothedHitter = values[57]
-		self.Scenario = values[58]
-		self.ModelOutput = values[59]
-
-	NUM_ELEMENTS = 60
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.PaId,self.PitcherId,self.HitterId,self.LeagueId,self.LevelId,self.Year,self.Month,self.PitcherPitchNum,self.CountBalls,self.CountStrike,self.Outs,self.BaseOccupancy,self.PitchType,self.PaResult,self.PaResultOccupancy,self.PaResultOuts,self.PaResultDirectRuns,self.RunsAfterPa,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.HitIsR,self.PitIsR,self.vX,self.vY,self.vZ,self.vStart,self.vEnd,self.aX,self.aY,self.aZ,self.pfxX,self.pfxZ,self.BreakAngle,self.BreakVertical,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinDirection,self.pX,self.pZ,self.ZoneTop,self.ZoneBot,self.Extension,self.x0,self.y0,self.z0,self.PlateTime,self.LaunchSpeed,self.LaunchAngle,self.TotalDist,self.HitCoordX,self.HitCoordY,self.RunValueHitter,self.RunValueSmoothedHitter,self.Scenario,self.ModelOutput)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchStatcast']:
-		items = cursor.execute("SELECT * FROM PitchStatcast " + conditional, values).fetchall()
-		return [DB_PitchStatcast(i) for i in items]
-
 class DB_PitchNonStatcast:
 	def __init__(self, values : tuple[any]):
 		self.GameId = values[0]
@@ -2025,6 +1951,82 @@ class DB_PitchDateAverages:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchDateAverages']:
 		items = cursor.execute("SELECT * FROM PitchDateAverages " + conditional, values).fetchall()
 		return [DB_PitchDateAverages(i) for i in items]
+
+class DB_PitchStatcast:
+	def __init__(self, values : tuple[any]):
+		self.GameId = values[0]
+		self.PitchId = values[1]
+		self.PaId = values[2]
+		self.PitcherId = values[3]
+		self.HitterId = values[4]
+		self.LeagueId = values[5]
+		self.LevelId = values[6]
+		self.Year = values[7]
+		self.Month = values[8]
+		self.PitcherPitchNum = values[9]
+		self.CountBalls = values[10]
+		self.CountStrike = values[11]
+		self.Outs = values[12]
+		self.BaseOccupancy = values[13]
+		self.PitchType = values[14]
+		self.PaResult = values[15]
+		self.PaResultOccupancy = values[16]
+		self.PaResultOuts = values[17]
+		self.PaResultDirectRuns = values[18]
+		self.RunsAfterPa = values[19]
+		self.Result = values[20]
+		self.HadSwing = values[21]
+		self.HadContact = values[22]
+		self.IsInPlay = values[23]
+		self.HitIsR = values[24]
+		self.PitIsR = values[25]
+		self.vX = values[26]
+		self.vY = values[27]
+		self.vZ = values[28]
+		self.vStart = values[29]
+		self.vEnd = values[30]
+		self.aX = values[31]
+		self.aY = values[32]
+		self.aZ = values[33]
+		self.pfxX = values[34]
+		self.pfxZ = values[35]
+		self.BreakAngle = values[36]
+		self.BreakVertical = values[37]
+		self.BreakInduced = values[38]
+		self.BreakHorizontal = values[39]
+		self.SpinRate = values[40]
+		self.SpinDirection = values[41]
+		self.pX = values[42]
+		self.pZ = values[43]
+		self.ZoneTop = values[44]
+		self.ZoneBot = values[45]
+		self.Extension = values[46]
+		self.x0 = values[47]
+		self.y0 = values[48]
+		self.z0 = values[49]
+		self.PlateTime = values[50]
+		self.LaunchSpeed = values[51]
+		self.LaunchAngle = values[52]
+		self.TotalDist = values[53]
+		self.HitCoordX = values[54]
+		self.HitCoordY = values[55]
+		self.RunValueHitter = values[56]
+		self.RunValueSmoothedHitter = values[57]
+		self.Scenario = values[58]
+		self.ModelStuff = values[59]
+		self.ModelLocation = values[60]
+		self.ModelPitch = values[61]
+
+	NUM_ELEMENTS = 62
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.GameId,self.PitchId,self.PaId,self.PitcherId,self.HitterId,self.LeagueId,self.LevelId,self.Year,self.Month,self.PitcherPitchNum,self.CountBalls,self.CountStrike,self.Outs,self.BaseOccupancy,self.PitchType,self.PaResult,self.PaResultOccupancy,self.PaResultOuts,self.PaResultDirectRuns,self.RunsAfterPa,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.HitIsR,self.PitIsR,self.vX,self.vY,self.vZ,self.vStart,self.vEnd,self.aX,self.aY,self.aZ,self.pfxX,self.pfxZ,self.BreakAngle,self.BreakVertical,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinDirection,self.pX,self.pZ,self.ZoneTop,self.ZoneBot,self.Extension,self.x0,self.y0,self.z0,self.PlateTime,self.LaunchSpeed,self.LaunchAngle,self.TotalDist,self.HitCoordX,self.HitCoordY,self.RunValueHitter,self.RunValueSmoothedHitter,self.Scenario,self.ModelStuff,self.ModelLocation,self.ModelPitch)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchStatcast']:
+		items = cursor.execute("SELECT * FROM PitchStatcast " + conditional, values).fetchall()
+		return [DB_PitchStatcast(i) for i in items]
 
 
 ##############################################################################################

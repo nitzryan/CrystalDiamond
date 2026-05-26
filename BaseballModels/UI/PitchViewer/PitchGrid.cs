@@ -1,7 +1,5 @@
 ﻿using Db;
-using PitchDb;
 using System.Drawing.Drawing2D;
-using System.Text.Json;
 
 namespace UI
 {
@@ -48,6 +46,8 @@ namespace UI
 
         public float WhiffRate { get; private set; } = 0;
         public float CSWRate { get; private set; } = 0;
+        public float FoulRate { get; private set; } = 0;
+        public float IPRate { get; private set; } = 0;
 
         public float Vel { get; set; } = 0;
         public float BreakHoriz { get; set; } = 0;
@@ -78,6 +78,12 @@ namespace UI
 
             if (Pitches > 0)
                 CSWRate = (float)(Whiffs + CalledStrikes) / Pitches;
+
+            if (Swings > 0)
+                FoulRate = (float)Fouls / Swings;
+
+            if (Swings > 0)
+                IPRate = (float)InPlay / Swings;
         }
     }
 
@@ -168,7 +174,7 @@ namespace UI
         }
     }
 
-    public record YearLeagueDevKey(int modelId, int year, int balls, int strikes);
+    
 
     public class PitchGrid
     {
@@ -182,7 +188,7 @@ namespace UI
         PitchBox? HighlightedBox;
         PitchStats OverallStats = new();
 
-        public static Dictionary<YearLeagueDevKey, YearLeagueDeviations> YldDict = new();
+        
 
         public PitchGrid(
             IEnumerable<PitchStatcast> pitches,
@@ -270,25 +276,17 @@ namespace UI
                         yBin = pitchYs.Count - 1;
                 }
 
-                // Get model output
-                #pragma warning disable CS8600, CS8602 // Non Null References, if wrong will except
-                Dictionary<int, PitchAnalysis.PitchModelOutput> modelJson =
-                    JsonSerializer.Deserialize<Dictionary<int, PitchAnalysis.PitchModelOutput>>(pitch.ModelOutput);
-
-                var pitchModelOutput = modelJson[modelId];
-                #pragma warning restore CS8600, CS8602
-
                 // Assign to bin
                 PitchBox bin = PitchBoxes[yBin.Value][xBin.Value];
 
+                #pragma warning disable CS8629 // Will not be null if reached this point
                 bin.NumPitches++;
-                bin.ExpValue += (float)pitchModelOutput.cv;
+                bin.ExpValue += pitch.ModelPitch.Value;
                 bin.ActValue += pitch.RunValueSmoothedHitter;
-                bin.StuffValue += (float)pitchModelOutput.sv;
-                bin.LocValue += (float)pitchModelOutput.lv;
-                bin.Dev += YldDict[new YearLeagueDevKey(ModelId, pitch.Year, pitch.CountBalls, pitch.CountStrike)].StuffDev;
+                bin.StuffValue += pitch.ModelStuff.Value;
+                bin.LocValue += pitch.ModelLocation.Value;
+                bin.Dev += Global.YldDict[new Global.YearLeagueDevKey(ModelId, pitch.Year, pitch.CountBalls, pitch.CountStrike)].StuffDev;
 
-                #pragma warning disable CS8629 // Any values here will have these values
                 bin.Stats.Vel += pitch.VStart.Value;
                 bin.Stats.BreakHoriz += pitch.BreakHorizontal.Value;
                 bin.Stats.BreakVert += pitch.BreakInduced.Value;

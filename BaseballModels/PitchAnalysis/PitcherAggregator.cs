@@ -66,14 +66,9 @@ namespace PitchAnalysis
                 // Accumulate values
                 foreach (var p in pitchGroup)
                 {
-                    var modelOutput = JsonSerializer.Deserialize<Dictionary<int, PitchModelOutput>>(p.ModelOutput);
-                    if (modelOutput == null)
-                        throw new Exception($"Failed to deserialize modelOutput for PitchId={p.PitchId}");
-
-                    if (!modelOutput.ContainsKey(model)) // Some pitches may be in all model but in none of the specific pitch models
+                    if (p.ModelStuff == null || p.ModelLocation == null || p.ModelPitch == null)
                         continue;
 
-                    PitchModelOutput pmo = modelOutput[model];
                     YearLeagueDevationKey yldKey = new(model, p.Year, p.CountBalls, p.CountStrike);
                     YearLeagueDeviations yld = yldDict[yldKey];
 
@@ -87,9 +82,9 @@ namespace PitchAnalysis
 
                             stats.NumPitches++;
                             stats.ValueActual += p.RunValueSmoothedHitter;
-                            stats.ValueStuff += (float)pmo.sv;
-                            stats.ValueLoc += (float)pmo.lv;
-                            stats.ValueCombined += (float)pmo.cv;
+                            stats.ValueStuff += p.ModelStuff.Value;
+                            stats.ValueLoc += p.ModelLocation.Value;
+                            stats.ValueCombined += p.ModelPitch.Value;
 
                             #pragma warning disable CS8629 // Will be not null if put through model
                             stats.Vel += (float)p.VStart;
@@ -161,7 +156,7 @@ namespace PitchAnalysis
             List<int> modelIds = pitchDb.Output_PitchValue.Select(f => f.Model).Distinct().ToList();
 
             // Get year stats
-            var pitches = db.PitchStatcast.Where(f => f.ModelOutput != "").AsNoTracking();
+            var pitches = db.PitchStatcast.Where(f => f.ModelStuff != null).AsNoTracking();
             var pitchDataYears = pitches.GroupBy(f => f.Year);
             using (ProgressBar progressBar = new ProgressBar(pitchDataYears.Count(), "Creating Pitcher Pitch Stats"))
             {
