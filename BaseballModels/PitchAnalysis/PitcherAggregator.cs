@@ -3,7 +3,6 @@ using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
-using System.Text.Json;
 using static Db.DbEnums;
 
 namespace PitchAnalysis

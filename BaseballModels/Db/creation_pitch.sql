@@ -165,4 +165,33 @@ CREATE TABLE PitchDateAverages
     "CurveballCount" INTEGER NOT NULL,
 
     PRIMARY KEY ("Year", "Month")
-)
+);
+
+CREATE TABLE PitcherStatcastMonth
+(
+    "MlbId" INTEGER NOT NULL,
+    "Year" INTEGER NOT NULL,
+    "Month" INTEGER NOT NULL,
+
+    "Stuff" REAL NOT NULL,
+    "Pitch" REAL NOT NULL,
+    "Actual" REAL NOT NULL,
+    "NumPitches" INTEGER NOT NULL,
+
+    "StuffFastball" REAL,
+    "PitchFastball" REAL,
+    "ActFastball" REAL,
+    "NumFastballs" INTEGER NOT NULL,
+
+    "StuffBreaking" REAL,
+    "PitchBreaking" REAL,
+    "ActBreaking" REAL,
+    "NumBreaking" INTEGER NOT NULL,
+
+    "StuffChangeup" REAL,
+    "PitchChangeup" REAL,
+    "ActChangeup" REAL,
+    "NumChangeup" INTEGER NOT NULL,
+
+    PRIMARY KEY("MlbId", "Year", "Month")
+);
