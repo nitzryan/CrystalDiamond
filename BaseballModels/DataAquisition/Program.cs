@@ -140,24 +140,21 @@ namespace DataAquisition
             {
                 foreach (var year in years)
                 {
-                    while (!await PitchData.Update(year, year == years.Last()))
-                    { }
+                    //while (!await PitchData.Update(year, year == years.Last()))
+                    //{ }
 
-                    PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
-                    PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    //PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    //PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
 
-                    PitchAggregation.CreatePitcherGameBaselines(year);
+                    //PitchAggregation.CreatePitcherGameBaselines(year);
 
-                    using (ProgressBar progressBar = new(months.Count(), $"Generating Statcast League Date Averages for {year}"))
+                    foreach (var month in months)
                     {
-                        foreach (var month in months)
-                        {
-                            if (year == END_YEAR && month > END_MONTH)
-                                break;
+                        //if (year == END_YEAR && month > END_MONTH)
+                        //    break;
 
-                            PitchAggregation.CreateLeagueDateAverages(year, month);
-                            progressBar.Tick();
-                        }
+                        //PitchAggregation.CreateLeagueDateAverages(year, month);
+                        HitterStatcastMonths.Update(month, year);
                     }
                 }
             }

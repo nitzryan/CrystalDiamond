@@ -195,3 +195,31 @@ CREATE TABLE PitcherStatcastMonth
 
     PRIMARY KEY("MlbId", "Year", "Month")
 );
+
+-- Perc/Exit velo are % of MLB average that month
+CREATE TABLE HitterStatcastMonth
+(
+    "MlbId" INTEGER NOT NULL,
+    "Year" INTEGER NOT NULL,
+    "Month" INTEGER NOT NULL,
+
+    "BattedBallEvents" INTEGER NOT NULL,
+    "AvgExitVelo" REAL NOT NULL,
+    "PeakExitVelo" REAL NOT NULL,
+
+    "NumPitches" INTEGER NOT NULL,
+    "NumSwings" INTEGER NOT NULL,
+    "ChasePerc" REAL NOT NULL,
+    "WhiffPerc" REAL NOT NULL,
+    "ZoneSwingPerc" REAL NOT NULL,
+    "ZoneContactPerc" REAL NOT NULL,
+
+    "NumFastballs" INTEGER NOT NULL,
+    "FastballContactPerc" REAL NOT NULL,
+    "NumBreaking" INTEGER NOT NULL,
+    "BreakingContactPerc" REAL NOT NULL,
+    "NumChangeup" INTEGER NOT NULL,
+    "ChangeupContactPerc" REAL NOT NULL,
+
+    PRIMARY KEY("MlbId", "Year", "Month")
+);
