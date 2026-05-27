@@ -7,7 +7,15 @@ def Select_LeftJoin(leftType : Type[_Left], rightType : Type[_Right], cursor : '
     items = cursor.execute(query, conditions)
     return [
         (leftType(i[:leftType.NUM_ELEMENTS]), 
-         rightType(
-             tuple(0 if x is None else x for x in i[leftType.NUM_ELEMENTS:])
-         )) for i in items
+        rightType(
+            tuple(0 if x is None else x for x in i[leftType.NUM_ELEMENTS:])
+        )) for i in items
+    ]
+
+def Select_InnerJoin(leftType : Type[_Left], rightType : Type[_Right], cursor : 'sqlite3.Cursor', query : str, conditions : tuple[any]) -> list[tuple[_Left, _Right]]:
+    items = cursor.execute(query, conditions)
+    return [
+        (leftType(i[:leftType.NUM_ELEMENTS]), 
+        rightType(i[leftType.NUM_ELEMENTS:])
+        ) for i in items
     ]
