@@ -3,10 +3,11 @@ using static Db.DbEnums;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using EFCore.BulkExtensions;
+using System.Collections.Generic;
 
 namespace DataAquisition
 {
-    internal class HitterStatcastMonths
+    public class HitterStatcastMonths
     {
         private record HitterPitchStatcastData(
             int mlbId, 
@@ -100,6 +101,7 @@ namespace DataAquisition
                 MlbId = data.First().mlbId,
                 Year = year,
                 Month = month,
+                IsValid=true,
                 BattedBallEvents = inPlayEvents.Count,
                 AvgExitVelo = inPlayEvents.Average(f => f.launchSpeed) ?? 70.0f,
                 PeakExitVelo = inPlayEvents.Max(f => f.launchSpeed) ?? 100.0f,
@@ -162,79 +164,118 @@ namespace DataAquisition
                 )).ToList();
             #pragma warning restore CS8629
 
-            if (mlbHitterData.Count == 0)
-                return;
-
-            // Get avg for MLB
-            HitterStatcastMonth mlbAvgData = GetMonthData(mlbHitterData, year, month);
-
-            // Peak exit velocity will be 99th percentile to avoid a singular outlier event
-            #pragma warning disable CS8629 // Null values filtered out by previous query
-            List<float> mlbExitVelos = mlbHitterData
-                .Where(f => f.launchSpeed != null)
-                .Select(f => f.launchSpeed.Value)
-                .OrderDescending()
-                .ToList();
-            #pragma warning restore CS8629
-            mlbAvgData.PeakExitVelo = mlbExitVelos[(int)Math.Round(0.01f * mlbExitVelos.Count)];
-
-            // Get MLB and MiLB data
-            var hitterData = db.PitchStatcast
-                .Where(f => f.Year == year
-                    && f.PX != null && f.PZ != null
-                    && f.ZoneTop != null && f.ZoneBot != null);
-            if (month == 4)
-                hitterData = hitterData.Where(f => f.Month <= 4);
-            else if (month == 9)
-                hitterData = hitterData.Where(f => f.Month >= 9);
-            else
-                hitterData = hitterData.Where(f => f.Month == month);
-            
-            #pragma warning disable CS8629 // Null values filtered out by previous query
-            List<HitterPitchStatcastData> allHitterData =
-                hitterData
-                .Select(f => new HitterPitchStatcastData(
-                    f.HitterId,
-                    f.PitchType,
-                    f.HadSwing,
-                    f.HadContact,
-                    f.PX.Value,
-                    f.PZ.Value,
-                    f.ZoneTop.Value,
-                    f.ZoneBot.Value,
-                    f.LaunchSpeed
-                )).ToList();
-            #pragma warning restore CS8629
-
-            // Iterate through each player
-            var allHitterGroupings = allHitterData.GroupBy(f => f.mlbId);
-            int count = allHitterGroupings.Count();
-            List<HitterStatcastMonth> dbData = new(count);
-            using (ProgressBar progressBar = new(count, $"Generating Hitter Statcast Data for {month}-{year}"))
+            List<HitterStatcastMonth> dbData = [];
+            if (mlbHitterData.Any())
             {
-                foreach (var hitter in allHitterGroupings)
+
+                // Get avg for MLB
+                HitterStatcastMonth mlbAvgData = GetMonthData(mlbHitterData, year, month);
+
+                // Peak exit velocity will be 99th percentile to avoid a singular outlier event
+                #pragma warning disable CS8629 // Null values filtered out by previous query
+                List<float> mlbExitVelos = mlbHitterData
+                    .Where(f => f.launchSpeed != null)
+                    .Select(f => f.launchSpeed.Value)
+                    .OrderDescending()
+                    .ToList();
+                #pragma warning restore CS8629
+                mlbAvgData.PeakExitVelo = mlbExitVelos[(int)Math.Round(0.01f * mlbExitVelos.Count)];
+
+                // Get MLB and MiLB data
+                var hitterData = db.PitchStatcast
+                    .Where(f => f.Year == year
+                        && f.PX != null && f.PZ != null
+                        && f.ZoneTop != null && f.ZoneBot != null);
+                if (month == 4)
+                    hitterData = hitterData.Where(f => f.Month <= 4);
+                else if (month == 9)
+                    hitterData = hitterData.Where(f => f.Month >= 9);
+                else
+                    hitterData = hitterData.Where(f => f.Month == month);
+
+                #pragma warning disable CS8629 // Null values filtered out by previous query
+                List<HitterPitchStatcastData> allHitterData =
+                    hitterData
+                    .Select(f => new HitterPitchStatcastData(
+                        f.HitterId,
+                        f.PitchType,
+                        f.HadSwing,
+                        f.HadContact,
+                        f.PX.Value,
+                        f.PZ.Value,
+                        f.ZoneTop.Value,
+                        f.ZoneBot.Value,
+                        f.LaunchSpeed
+                    )).ToList();
+                #pragma warning restore CS8629
+
+                // Iterate through each player
+                var allHitterGroupings = allHitterData.GroupBy(f => f.mlbId);
+                int count = allHitterGroupings.Count();
+                dbData = new(count);
+                using (ProgressBar progressBar = new(count, $"Generating Hitter Statcast Data for {month}-{year}"))
                 {
-                    HitterStatcastMonth rawData = GetMonthData(hitter.ToList(), year, month);
+                    foreach (var hitter in allHitterGroupings)
+                    {
+                        HitterStatcastMonth rawData = GetMonthData(hitter.ToList(), year, month);
 
-                    // Normalize data
-                    rawData.AvgExitVelo = Utilities.SafeDivide(rawData.AvgExitVelo, mlbAvgData.AvgExitVelo);
-                    rawData.PeakExitVelo = Utilities.SafeDivide(rawData.PeakExitVelo, mlbAvgData.PeakExitVelo);
+                        // Normalize data
+                        rawData.AvgExitVelo = Utilities.SafeDivide(rawData.AvgExitVelo, mlbAvgData.AvgExitVelo);
+                        rawData.PeakExitVelo = Utilities.SafeDivide(rawData.PeakExitVelo, mlbAvgData.PeakExitVelo);
 
-                    rawData.ChasePerc = Utilities.SafeDivide(rawData.ChasePerc, mlbAvgData.ChasePerc);
-                    rawData.WhiffPerc = Utilities.SafeDivide(rawData.WhiffPerc, mlbAvgData.WhiffPerc);
-                    rawData.ZoneSwingPerc = Utilities.SafeDivide(rawData.ZoneSwingPerc, mlbAvgData.ZoneSwingPerc);
-                    rawData.ZoneContactPerc = Utilities.SafeDivide(rawData.ZoneContactPerc, mlbAvgData.ZoneContactPerc);
+                        rawData.ChasePerc = Utilities.SafeDivide(rawData.ChasePerc, mlbAvgData.ChasePerc);
+                        rawData.WhiffPerc = Utilities.SafeDivide(rawData.WhiffPerc, mlbAvgData.WhiffPerc);
+                        rawData.ZoneSwingPerc = Utilities.SafeDivide(rawData.ZoneSwingPerc, mlbAvgData.ZoneSwingPerc);
+                        rawData.ZoneContactPerc = Utilities.SafeDivide(rawData.ZoneContactPerc, mlbAvgData.ZoneContactPerc);
 
-                    rawData.FastballContactPerc = Utilities.SafeDivide(rawData.FastballContactPerc, mlbAvgData.FastballContactPerc);
-                    rawData.BreakingContactPerc = Utilities.SafeDivide(rawData.BreakingContactPerc, mlbAvgData.BreakingContactPerc);
-                    rawData.ChangeupContactPerc = Utilities.SafeDivide(rawData.ChangeupContactPerc, mlbAvgData.ChangeupContactPerc);
+                        rawData.FastballContactPerc = Utilities.SafeDivide(rawData.FastballContactPerc, mlbAvgData.FastballContactPerc);
+                        rawData.BreakingContactPerc = Utilities.SafeDivide(rawData.BreakingContactPerc, mlbAvgData.BreakingContactPerc);
+                        rawData.ChangeupContactPerc = Utilities.SafeDivide(rawData.ChangeupContactPerc, mlbAvgData.ChangeupContactPerc);
 
-                    dbData.Add(rawData);
-                    progressBar.Tick();
+                        dbData.Add(rawData);
+                        progressBar.Tick();
+                    }
                 }
+
+                db.BulkInsert(dbData);
             }
 
-            db.BulkInsert(dbData);
+
+            // Need to insert empty data for all non-statcast data
+            List<HitterStatcastMonth> emptyData = new();
+            var hitterStats = db.Model_HitterStats
+                .Where(f => f.Year == year && f.Month == month)
+                .Select(f => f.MlbId);
+            foreach (var hs in hitterStats)
+            {
+                if (dbData.Where(f => f.MlbId == hs).Any())
+                    continue;
+
+                emptyData.Add(new HitterStatcastMonth
+                {
+                    MlbId = hs,
+                    Year = year,
+                    Month = month,
+                    IsValid=false,
+                    BattedBallEvents = -1,
+                    AvgExitVelo = 1,
+                    PeakExitVelo = 1,
+                    NumPitches = -1,
+                    NumSwings = -1,
+                    ChasePerc = 1,
+                    WhiffPerc = 1,
+                    ZoneSwingPerc = 1,
+                    ZoneContactPerc = 1,
+                    NumFastballs = -1,
+                    FastballContactPerc = 1,
+                    NumBreaking = -1,
+                    BreakingContactPerc = 1,
+                    NumChangeup = -1,
+                    ChangeupContactPerc = 1,
+                });
+            }
+
+            db.BulkInsert(emptyData);
         }
     }
 }

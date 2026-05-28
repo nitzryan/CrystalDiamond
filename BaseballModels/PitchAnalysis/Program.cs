@@ -23,6 +23,8 @@
                     MonthStats.Update(month, year);
                 }
             }
+
+            NullMonthStats.Update();
         }
     }
 }

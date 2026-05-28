@@ -50,7 +50,9 @@ boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
                  ("GamePlayByPlay_GameFielders", ["IsHome"]),
                  ("College_Player", ["IsHitter", "IsPitcher"]),
                  ("PitchStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
-                 ("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),]
+                 ("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
+                 ("PitcherStatcastMonth", ["IsValid"]),
+                 ("HitterStatcastMonth", ["IsValid"])]
 
 for table, in tables:
     # Get table data

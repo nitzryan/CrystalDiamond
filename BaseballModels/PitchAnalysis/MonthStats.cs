@@ -110,6 +110,8 @@ namespace PitchAnalysis
                         Year = year,
                         Month = month,
 
+                        IsValid = true,
+
                         Stuff = allPitchOutput.stuff.Value,
                         Pitch = allPitchOutput.pitch.Value,
                         Actual = allPitchOutput.actual.Value,

@@ -5,6 +5,7 @@ namespace Db
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
+		public required bool IsValid {get; set;}
 		public required float Stuff {get; set;}
 		public required float Pitch {get; set;}
 		public required float Actual {get; set;}
@@ -29,6 +30,7 @@ namespace Db
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
+				IsValid = this.IsValid,
 				Stuff = this.Stuff,
 				Pitch = this.Pitch,
 				Actual = this.Actual,

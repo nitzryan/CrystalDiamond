@@ -173,6 +173,8 @@ CREATE TABLE PitcherStatcastMonth
     "Year" INTEGER NOT NULL,
     "Month" INTEGER NOT NULL,
 
+    "IsValid" INTEGER NOT NULL,
+
     "Stuff" REAL NOT NULL,
     "Pitch" REAL NOT NULL,
     "Actual" REAL NOT NULL,
@@ -202,6 +204,8 @@ CREATE TABLE HitterStatcastMonth
     "MlbId" INTEGER NOT NULL,
     "Year" INTEGER NOT NULL,
     "Month" INTEGER NOT NULL,
+
+    "IsValid" INTEGER NOT NULL,
 
     "BattedBallEvents" INTEGER NOT NULL,
     "AvgExitVelo" REAL NOT NULL,

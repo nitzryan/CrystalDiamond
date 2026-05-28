@@ -2033,28 +2033,29 @@ class DB_PitcherStatcastMonth:
 		self.MlbId = values[0]
 		self.Year = values[1]
 		self.Month = values[2]
-		self.Stuff = values[3]
-		self.Pitch = values[4]
-		self.Actual = values[5]
-		self.NumPitches = values[6]
-		self.StuffFastball = values[7]
-		self.PitchFastball = values[8]
-		self.ActFastball = values[9]
-		self.NumFastballs = values[10]
-		self.StuffBreaking = values[11]
-		self.PitchBreaking = values[12]
-		self.ActBreaking = values[13]
-		self.NumBreaking = values[14]
-		self.StuffChangeup = values[15]
-		self.PitchChangeup = values[16]
-		self.ActChangeup = values[17]
-		self.NumChangeup = values[18]
+		self.IsValid = values[3]
+		self.Stuff = values[4]
+		self.Pitch = values[5]
+		self.Actual = values[6]
+		self.NumPitches = values[7]
+		self.StuffFastball = values[8]
+		self.PitchFastball = values[9]
+		self.ActFastball = values[10]
+		self.NumFastballs = values[11]
+		self.StuffBreaking = values[12]
+		self.PitchBreaking = values[13]
+		self.ActBreaking = values[14]
+		self.NumBreaking = values[15]
+		self.StuffChangeup = values[16]
+		self.PitchChangeup = values[17]
+		self.ActChangeup = values[18]
+		self.NumChangeup = values[19]
 
-	NUM_ELEMENTS = 19
+	NUM_ELEMENTS = 20
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.MlbId,self.Year,self.Month,self.Stuff,self.Pitch,self.Actual,self.NumPitches,self.StuffFastball,self.PitchFastball,self.ActFastball,self.NumFastballs,self.StuffBreaking,self.PitchBreaking,self.ActBreaking,self.NumBreaking,self.StuffChangeup,self.PitchChangeup,self.ActChangeup,self.NumChangeup)
+		return (self.MlbId,self.Year,self.Month,self.IsValid,self.Stuff,self.Pitch,self.Actual,self.NumPitches,self.StuffFastball,self.PitchFastball,self.ActFastball,self.NumFastballs,self.StuffBreaking,self.PitchBreaking,self.ActBreaking,self.NumBreaking,self.StuffChangeup,self.PitchChangeup,self.ActChangeup,self.NumChangeup)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStatcastMonth']:
@@ -2066,27 +2067,28 @@ class DB_HitterStatcastMonth:
 		self.MlbId = values[0]
 		self.Year = values[1]
 		self.Month = values[2]
-		self.BattedBallEvents = values[3]
-		self.AvgExitVelo = values[4]
-		self.PeakExitVelo = values[5]
-		self.NumPitches = values[6]
-		self.NumSwings = values[7]
-		self.ChasePerc = values[8]
-		self.WhiffPerc = values[9]
-		self.ZoneSwingPerc = values[10]
-		self.ZoneContactPerc = values[11]
-		self.NumFastballs = values[12]
-		self.FastballContactPerc = values[13]
-		self.NumBreaking = values[14]
-		self.BreakingContactPerc = values[15]
-		self.NumChangeup = values[16]
-		self.ChangeupContactPerc = values[17]
+		self.IsValid = values[3]
+		self.BattedBallEvents = values[4]
+		self.AvgExitVelo = values[5]
+		self.PeakExitVelo = values[6]
+		self.NumPitches = values[7]
+		self.NumSwings = values[8]
+		self.ChasePerc = values[9]
+		self.WhiffPerc = values[10]
+		self.ZoneSwingPerc = values[11]
+		self.ZoneContactPerc = values[12]
+		self.NumFastballs = values[13]
+		self.FastballContactPerc = values[14]
+		self.NumBreaking = values[15]
+		self.BreakingContactPerc = values[16]
+		self.NumChangeup = values[17]
+		self.ChangeupContactPerc = values[18]
 
-	NUM_ELEMENTS = 18
+	NUM_ELEMENTS = 19
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.MlbId,self.Year,self.Month,self.BattedBallEvents,self.AvgExitVelo,self.PeakExitVelo,self.NumPitches,self.NumSwings,self.ChasePerc,self.WhiffPerc,self.ZoneSwingPerc,self.ZoneContactPerc,self.NumFastballs,self.FastballContactPerc,self.NumBreaking,self.BreakingContactPerc,self.NumChangeup,self.ChangeupContactPerc)
+		return (self.MlbId,self.Year,self.Month,self.IsValid,self.BattedBallEvents,self.AvgExitVelo,self.PeakExitVelo,self.NumPitches,self.NumSwings,self.ChasePerc,self.WhiffPerc,self.ZoneSwingPerc,self.ZoneContactPerc,self.NumFastballs,self.FastballContactPerc,self.NumBreaking,self.BreakingContactPerc,self.NumChangeup,self.ChangeupContactPerc)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_HitterStatcastMonth']:

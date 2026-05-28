@@ -1,6 +1,4 @@
-﻿using ShellProgressBar;
-
-namespace DataAquisition
+﻿namespace DataAquisition
 {
     internal class Program
     {
@@ -150,8 +148,8 @@ namespace DataAquisition
 
                     foreach (var month in months)
                     {
-                        //if (year == END_YEAR && month > END_MONTH)
-                        //    break;
+                        if (year == END_YEAR && month > END_MONTH)
+                            break;
 
                         //PitchAggregation.CreateLeagueDateAverages(year, month);
                         HitterStatcastMonths.Update(month, year);
