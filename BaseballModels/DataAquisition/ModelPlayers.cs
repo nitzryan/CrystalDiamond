@@ -159,6 +159,7 @@ namespace DataAquisition
                                 : 2000,
                             ProspectType = player.DraftPick != null ? 1 :
                                 lowestLevel < Constants.SPORT_IDS[Constants.SPORT_IDS.Count - 2] ? 2 : 3, // Above DSL or not
+                            IsEligible=Utilities.GetEligibilityMask(player),
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,
                             PeakWarHitter = peakHitterWar,

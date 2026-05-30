@@ -349,6 +349,11 @@ namespace DataAquisition
             return mask;
         }
 
+        public static bool GetEligibilityMask(Db.Player player)
+        {
+            return player.SigningYear < 2015;
+        }
+
         public static void LogException(Exception e)
         {
             Console.WriteLine(e.Message);

@@ -13,6 +13,7 @@ namespace Db
 		public required int DraftPick {get; set;}
 		public required int DraftSignRank {get; set;}
 		public required int ProspectType {get; set;}
+		public required bool IsEligible {get; set;}
 		public required int HighestLevelHitter {get; set;}
 		public required int HighestLevelPitcher {get; set;}
 		public required float WarHitter {get; set;}
@@ -43,6 +44,7 @@ namespace Db
 				DraftPick = this.DraftPick,
 				DraftSignRank = this.DraftSignRank,
 				ProspectType = this.ProspectType,
+				IsEligible = this.IsEligible,
 				HighestLevelHitter = this.HighestLevelHitter,
 				HighestLevelPitcher = this.HighestLevelPitcher,
 				WarHitter = this.WarHitter,

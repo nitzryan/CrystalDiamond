@@ -247,6 +247,7 @@ CREATE TABLE "Model_Players" (
 	"draftPick" INTEGER NOT NULL,
 	"draftSignRank" INTEGER NOT NULL,
 	"prospectType" INTEGER NOT NULL,
+	"IsEligible" INTEGER NOT NULL,
 	"highestLevelHitter" INTEGER NOT NULL,
 	"highestLevelPitcher" INTEGER NOT NULL,
 	"warHitter" REAL NOT NULL,
