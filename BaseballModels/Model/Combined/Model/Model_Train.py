@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from Utilities import profiler
 
 SHOULD_PROFILE = False
-DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1, 1, 1, 1e-2, 1, 1, 1, 1]
+DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1e-1, 1, 1e-1, 1e-3, 1, 1, 1, 1e-1]
 
 def TrainAndGraph(
     pro_network : Pro_Model,
