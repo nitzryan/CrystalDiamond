@@ -76,6 +76,7 @@
             lbPitches = new ListBox();
             tableLayoutPanel8 = new TableLayoutPanel();
             pbLocation = new Button();
+            pitchModelPanel = new PitchModelPanel();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
             tableLayoutPanel7.SuspendLayout();
@@ -115,6 +116,7 @@
             tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 0);
             tableLayoutPanel1.Controls.Add(lbPitches, 0, 1);
             tableLayoutPanel1.Controls.Add(tableLayoutPanel8, 0, 0);
+            tableLayoutPanel1.Controls.Add(pitchModelPanel, 1, 1);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -712,6 +714,16 @@
             pbLocation.TabIndex = 0;
             pbLocation.Text = "Location";
             pbLocation.UseVisualStyleBackColor = true;
+            pbLocation.Click += pbLocation_Click;
+            // 
+            // pitchModelPanel
+            // 
+            pitchModelPanel.BackColor = SystemColors.Control;
+            pitchModelPanel.Dock = DockStyle.Fill;
+            pitchModelPanel.Location = new Point(203, 203);
+            pitchModelPanel.Name = "pitchModelPanel";
+            pitchModelPanel.Size = new Size(765, 722);
+            pitchModelPanel.TabIndex = 3;
             // 
             // StuffModelViewer
             // 
@@ -807,5 +819,6 @@
         private ListBox lbPitches;
         private TableLayoutPanel tableLayoutPanel8;
         private Button pbLocation;
+        private PitchModelPanel pitchModelPanel;
     }
 }

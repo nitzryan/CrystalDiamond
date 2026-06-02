@@ -10,9 +10,9 @@ namespace UI.Controls
             public required PitchStatcast Pitch { get; set; }
             public override string ToString()
             {
-                #pragma warning disable CS8629 // Will be filtered at this point
-                return Pitch.PitchType.ToString() + $" {Math.Round(Pitch.VStart.Value, 1)}mph ({Math.Round(Pitch.BreakHorizontal.Value, 1)},{Pitch.BreakVertical.Value, 1})";
-                #pragma warning restore CS8629
+#pragma warning disable CS8629 // Will be filtered at this point
+                return Pitch.PitchType.ToString() + $" {Math.Round(Pitch.VStart.Value, 1)}mph ({Math.Round(Pitch.BreakHorizontal.Value, 1)},{Pitch.BreakVertical.Value,1})";
+#pragma warning restore CS8629
             }
         }
 
@@ -25,7 +25,8 @@ namespace UI.Controls
                 if (lbPitches.SelectedItem is ListBoxPitchItem item)
                 {
                     SelectPitch(item.Pitch);
-                } else 
+                }
+                else
                 {
                     throw new Exception("Unexpected Item in lbPitches List Box");
                 }
@@ -34,7 +35,7 @@ namespace UI.Controls
 
         private void SelectPitch(PitchStatcast pitch)
         {
-            #pragma warning disable CS8629 // Will be filtered out at this point
+#pragma warning disable CS8629 // Will be filtered out at this point
             nudVelocity.Value = (decimal)pitch.VStart.Value;
             nudBreakHoriz.Value = (decimal)pitch.BreakHorizontal.Value;
             nudBreakVert.Value = (decimal)pitch.BreakInduced.Value;
@@ -44,8 +45,8 @@ namespace UI.Controls
             nudX0.Value = (decimal)pitch.X0.Value;
             nudZ0.Value = (decimal)pitch.Z0.Value;
 
-            nudPX.Value = (decimal)pitch.PfxX.Value;
-            nudPZ.Value = (decimal)pitch.PfxZ.Value;
+            nudPX.Value = (decimal)pitch.PX.Value;
+            nudPZ.Value = (decimal)pitch.PZ.Value;
             nudZoneTop.Value = (decimal)pitch.ZoneTop.Value;
             nudZoneBot.Value = (decimal)pitch.ZoneBot.Value;
 
@@ -61,6 +62,8 @@ namespace UI.Controls
             nudAccelY.Value = (decimal)pitch.AY.Value;
             nudAccelZ.Value = (decimal)pitch.AZ.Value;
             #pragma warning restore CS8629
+
+            pitchModelPanel.SetPitch(pitch);
         }
 
         public void SetPitches(List<PitchStatcast> pitches)
@@ -77,6 +80,11 @@ namespace UI.Controls
             {
                 SelectPitch(Pitches.First());
             }
+        }
+
+        private void pbLocation_Click(object sender, EventArgs e)
+        {
+            pitchModelPanel.GenerateLocationGrid();
         }
     }
 }

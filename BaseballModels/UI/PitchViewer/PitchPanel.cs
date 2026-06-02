@@ -18,18 +18,13 @@ namespace UI
         {
             InitializeComponent();
 
+            // Properly draw background in a TabControl
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.UserPaint |
                   ControlStyles.AllPaintingInWmPaint |
                   ControlStyles.OptimizedDoubleBuffer |
                   ControlStyles.ResizeRedraw, true
             );
-
-            // Properly draw background in a TabControl
-            this.SetStyle(ControlStyles.UserPaint, true);
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
-            this.SetStyle(ControlStyles.ResizeRedraw, true);
             this.BackColor = SystemColors.Control;
         }
 
