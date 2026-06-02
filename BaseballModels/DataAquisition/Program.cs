@@ -4,7 +4,7 @@
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2026;
-        const int END_MONTH = 4;
+        const int END_MONTH = 5;
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
@@ -29,7 +29,7 @@
 
             if ((DATA_UPDATE && isFullYearUpdate) || FULL_REFRESH)
             {
-                //await FangraphsData.Update(years);
+                await FangraphsData.Update(years);
             }
 
             //Player could be drafted in 2004 and not play until 2005 or later
@@ -41,96 +41,96 @@
 
             if (DATA_UPDATE || FULL_REFRESH)
             {
-            //    foreach (int year in years)
-            //    {
-            //        if ((FULL_REFRESH && year != END_YEAR) || DRAFT_UPDATE)
-            //        {
-            //            while (!await DraftResults.Update(year))
-            //            { }
-            //        }
-                    
-            //        while (!await PlayerUpdate.Update(year))
-            //        { }
-            //        while (!await GameLogUpdate.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
-            //        { }
-            //        while (!await FielderGameLog.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
-            //        { }
-            //        while (!await GetPlayByPlay.Update(year))
-            //        { }
-            //        GetPlayByPlayFlags.UpdateFlags(year);
-            //        ParkFactorUpdate.Update(year, false);
-            //        CalculateLeagueStats.Update(year);
+                foreach (int year in years)
+                {
+                    if ((FULL_REFRESH && year != END_YEAR) || DRAFT_UPDATE)
+                    {
+                        while (!await DraftResults.Update(year))
+                        { }
+                    }
 
-            //        foreach (int month in months)
-            //        {
-            //            CreateLevelGameCounts.Update(year, month);
-            //            CalculateMonthStats.Update(year, month);
-            //            CalculateLeagueBaselines.Update(year, month);
-            //            CalculateMonthStats.UpdateAdvanced(year, month);
-            //            CalculateMonthRatios.Update(year, month);
-            //            CalculateMonthBaserunning.Update(year, month);
-            //            CalculateMonthFielding.Update(year, month);
+                    while (!await PlayerUpdate.Update(year))
+                    { }
+                    while (!await GameLogUpdate.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
+                    { }
+                    while (!await FielderGameLog.Update(year, year == END_YEAR, END_YEAR, END_MONTH))
+                    { }
+                    while (!await GetPlayByPlay.Update(year))
+                    { }
+                    GetPlayByPlayFlags.UpdateFlags(year);
+                    ParkFactorUpdate.Update(year, year == END_YEAR);
+                    CalculateLeagueStats.Update(year);
 
-            //            if (year == END_YEAR && month == END_MONTH)
-            //                break;
-            //        }
+                    foreach (int month in months)
+                    {
+                        CreateLevelGameCounts.Update(year, month);
+                        CalculateMonthStats.Update(year, month);
+                        CalculateLeagueBaselines.Update(year, month);
+                        CalculateMonthStats.UpdateAdvanced(year, month);
+                        CalculateMonthRatios.Update(year, month);
+                        CalculateMonthBaserunning.Update(year, month);
+                        CalculateMonthFielding.Update(year, month);
 
-            //        CalculateAnnualStats.Update(year);
-            //        CalculateAnnualWRC.Update(year);
-            //        ScaleFieldingStats.Update(year);
+                        if (year == END_YEAR && month == END_MONTH)
+                            break;
+                    }
 
-            //        foreach (int month in months)
-            //        {
-            //            CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month);
-            //            CalculateMonthWar.Update(year, month);
+                    CalculateAnnualStats.Update(year);
+                    CalculateAnnualWRC.Update(year);
+                    ScaleFieldingStats.Update(year);
 
-            //            if (year == END_YEAR && month == END_MONTH)
-            //                break;
-            //        }
+                    foreach (int month in months)
+                    {
+                        CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month);
+                        CalculateMonthWar.Update(year, month);
 
-            //        while (!await UpdateParents.Update(year))
-            //        { }
-            //    }
+                        if (year == END_YEAR && month == END_MONTH)
+                            break;
+                    }
+
+                    while (!await UpdateParents.Update(year))
+                    { }
+                }
             }
-            
-            //if ((END_MONTH == 9 && DATA_UPDATE) || FULL_REFRESH)
-            //{
-            //    UpdateServiceTime.Update();
-            //}
+
+            if ((END_MONTH == 9 && DATA_UPDATE) || FULL_REFRESH)
+            {
+                UpdateServiceTime.Update();
+            }
 
             if (DATA_UPDATE || FULL_REFRESH)
             {
-                //UpdateCareers.Update(years);
+                UpdateCareers.Update(years);
                 ModelPlayers.Update();
-                //ModelPlayerWar.Update();
+                ModelPlayerWar.Update();
 
-                //while (!await TransactionLog.Update())
-                //{ }
+                while (!await TransactionLog.Update())
+                { }
 
-                //UpdatePlayerOrgMap.Update();
+                UpdatePlayerOrgMap.Update();
 
                 while (!await ModelMonthStats.Update(END_YEAR, months.Last()))
                 { }
 
-                //Model_MonthValue.Update();
+                Model_MonthValue.Update();
 
-                //while (!await GetLeagues.Update())
-                //{ }
+                while (!await GetLeagues.Update())
+                { }
 
-                //while (!await SitePlayerBio.Update(END_YEAR))
-                //{ }
+                while (!await SitePlayerBio.Update(END_YEAR))
+                { }
 
-                //// 1 Year trailing stats
-                //foreach (var year in years)
-                //{
-                //    foreach (var month in months)
-                //    {
-                //        if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
-                //            break;
+                // 1 Year trailing stats
+                foreach (var year in years)
+                {
+                    foreach (var month in months)
+                    {
+                        if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
+                            break;
 
-                //        Model_RawStats.UpdateRawStats(year, month);
-                //    }
-                //}
+                        Model_RawStats.UpdateRawStats(year, month);
+                    }
+                }
             }
 
             ////////// Statcast Data //////////
@@ -138,21 +138,21 @@
             {
                 foreach (var year in years)
                 {
-                    //while (!await PitchData.Update(year, year == years.Last()))
-                    //{ }
+                    while (!await PitchData.Update(year, year == years.Last()))
+                    { }
 
-                    //PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
-                    //PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
 
-                    //PitchAggregation.CreatePitcherGameBaselines(year);
+                    PitchAggregation.CreatePitcherGameBaselines(year);
 
                     foreach (var month in months)
                     {
                         if (year == END_YEAR && month > END_MONTH)
                             break;
 
-                        //PitchAggregation.CreateLeagueDateAverages(year, month);
-                        //HitterStatcastMonths.Update(month, year);
+                        PitchAggregation.CreateLeagueDateAverages(year, month);
+                        HitterStatcastMonths.Update(month, year);
                     }
                 }
             }

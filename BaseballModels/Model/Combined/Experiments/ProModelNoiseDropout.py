@@ -10,11 +10,7 @@ import torch
 from Constants import device
 
 if __name__ == "__main__":
-
-    batch_size = 1600
-    num_epochs = 201
-
-    noise_levels = [x / 20 for x in range(11)]
+    noise_levels = [x / 250 for x in range(11)]
     dropout_levels = [x / 50 for x in range(11)]
 
     data_prep = Combined_Data_Prep(
@@ -25,7 +21,9 @@ if __name__ == "__main__":
 
     hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", pro_player_values=(2025,2015,1), pro_use_cutoff=True,
                                             col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
-    train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0, True)
+    train_dataset, test_dataset = Create_Test_Train_Datasets(
+        player_list=hitter_io_list, 
+        is_hitter=True)
 
     xs = []
     ys = []
@@ -56,17 +54,15 @@ if __name__ == "__main__":
                 rnn_droupout=dropout,
             ).to(device)
             
-            best_loss = TrainAndGraph(
+            best_loss, _, _ = TrainAndGraph(
                 pro_network=pro_model,
                 col_network=col_model,
                 train_dataset=train_dataset,
                 test_dataset=test_dataset,
-                batch_size=batch_size,
-                num_epochs=num_epochs,
                 pro_model_name="Models/test_pro_hit",
                 col_model_name="Models/test_col_hit",
                 is_hitter=True,
-                should_output=False
+                should_output=False,
             )
             
             xs.append(noise)
@@ -86,8 +82,8 @@ if __name__ == "__main__":
         fmt='.3f',
         cmap='viridis',
         linewidths=0.5,
-        xticklabels=[f"{x:.2f}" for x in noise_levels],
-        yticklabels=[f"{y:.2f}" for y in dropout_levels],
+        xticklabels=[f"{x:.3f}" for x in noise_levels],
+        yticklabels=[f"{y:.3f}" for y in dropout_levels],
     )
     plt.xlabel('Noise')
     plt.ylabel('Dropout')

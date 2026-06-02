@@ -14,7 +14,7 @@ from Constants import device
 import numpy as np
 
 if __name__ == "__main__":
-    weights = np.logspace(-8, -2, 50)
+    weights = np.logspace(-5, 0, 200)
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -27,55 +27,55 @@ if __name__ == "__main__":
     train_dataset, test_dataset = Create_Test_Train_Datasets(
         player_list=hitter_io_list, 
         is_hitter=True)
+    
+    # Only do shared, because it is the only one with significant change
+    xs = []
+    zs = []
+    for weight in tqdm(weights, desc="Weights", leave=False):
+        weight_list = DEFAULT_PRO_WEIGHT_DECAY
+        weight_list[0] = weight
+        
+        pro_model = Pro_Model(
+            input_size=train_dataset.GetProInputSize(),
+            mutators=torch.empty(0),
+            data_prep=data_prep.pro_data_prep,
+            is_hitter=True,
+            weight_decay=weight_list,
+        ).to(device)
+        col_model = College_Model(
+            input_size=train_dataset.GetColInputSize(),
+            data_prep=data_prep.college_data_prep,
+            is_hitter=True,
+            output_hidden_size=pro_model.GetHiddenSize(),
+            output_num_layers=pro_model.GetNumLayers()
+        ).to(device)
+        
+        best_loss, _, _ = TrainAndGraph(
+            pro_network=pro_model,
+            col_network=col_model,
+            train_dataset=train_dataset,
+            test_dataset=test_dataset,
+            pro_model_name="Models/test_pro_hit",
+            col_model_name="Models/test_col_hit",
+            is_hitter=True,
+            should_output=False,
+            element_to_save=0,
+        )
+        
+        del pro_model
+        del col_model
+        torch.cuda.empty_cache()
+        gc.collect()   
+        
+        xs.append(weight)
+        zs.append(best_loss)
+            
+    import matplotlib.pyplot as plt
 
-    for i in tqdm(range(NUM_ELEMENTS + 1), desc="Class Params"):
-        xs = []
-        zs = []
-        for weight in tqdm(weights, desc="Weights", leave=False):
-            weight_list = DEFAULT_PRO_WEIGHT_DECAY
-            weight_list[i] = weight
-            
-            pro_model = Pro_Model(
-                input_size=train_dataset.GetProInputSize(),
-                mutators=torch.empty(0),
-                data_prep=data_prep.pro_data_prep,
-                is_hitter=True,
-                weight_decay=weight_list,
-            ).to(device)
-            col_model = College_Model(
-                input_size=train_dataset.GetColInputSize(),
-                data_prep=data_prep.college_data_prep,
-                is_hitter=True,
-                output_hidden_size=pro_model.GetHiddenSize(),
-                output_num_layers=pro_model.GetNumLayers()
-            ).to(device)
-            
-            best_loss, _, _ = TrainAndGraph(
-                pro_network=pro_model,
-                col_network=col_model,
-                train_dataset=train_dataset,
-                test_dataset=test_dataset,
-                pro_model_name="Models/test_pro_hit",
-                col_model_name="Models/test_col_hit",
-                is_hitter=True,
-                should_output=False,
-                element_to_save=i - 1 if i > 0 else 0
-            )
-            
-            del pro_model
-            del col_model
-            torch.cuda.empty_cache()
-            gc.collect()   
-            
-            xs.append(weight)
-            zs.append(best_loss)
-            
-        import matplotlib.pyplot as plt
-
-        plt.plot(xs, zs, 'ko')
-        plt.xlabel('Weight')
-        plt.xscale('log')
-        name = ELEMENT_LIST[i - 1] if i > 0 else "Shared"
-        plt.title(f'Test Loss for {name}')
-        plt.savefig(f'Combined/Experiments/Results/ProWeightDecay/Hitters_WeightDecay_{name}.png', dpi=400)
-        plt.clf()
+    plt.plot(xs, zs, 'ko')
+    plt.xlabel('Weight')
+    plt.xscale('log')
+    name = "Shared"
+    plt.title(f'Test Loss for {name}')
+    plt.savefig(f'Combined/Experiments/Results/ProWeightDecay/Hitters_WeightDecay_{name}_2.png', dpi=400)
+    plt.clf()

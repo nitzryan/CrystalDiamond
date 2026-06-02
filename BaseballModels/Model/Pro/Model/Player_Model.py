@@ -45,7 +45,7 @@ DEFAULT_PRO_HIDDEN_SIZE = 64
 DEFAULT_PRO_NUM_LAYERS = 4
 
 DEFAULT_INPUT_NOISE = 0
-DEFAULT_DROPOUT = 0.2
+DEFAULT_DROPOUT = 0.0
 
 DEFAULT_RESNET_WARCLASS_BLOCKS = 5
 DEFAULT_RESNET_STATS_BLOCKS = 3
@@ -56,7 +56,7 @@ DEFAULT_RESNET_PA_BLOCKS = 3
 DEFAULT_RESNET_VALUE_BLOCKS = 3
 DEFAULT_RESNET_MLBSTAT_BLOCKS = 3
 
-DEFAULT_PRO_WEIGHT_DECAY = [1e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -237,8 +237,8 @@ class RNN_Model(nn.Module):
         yearPt_params = GetParameters(self.pt_layers)
         mlbstat_params = GetParameters(self.mlbstat_layers)
         
-        self.optimizer = torch.optim.AdamW([{'params': shared_params, 'lr': 0.003, 'weight_decay': weight_decay[0]},
-                                           {'params': war_class_params, 'lr': 0.003, 'weight_decay': weight_decay[1]},
+        self.optimizer = torch.optim.AdamW([{'params': shared_params, 'lr': 0.001, 'weight_decay': weight_decay[0]},
+                                           {'params': war_class_params, 'lr': 0.001, 'weight_decay': weight_decay[1]},
                                            {'params': level_params, 'lr': 0.003, 'weight_decay': weight_decay[2]},
                                            {'params': pa_params, 'lr': 0.003, 'weight_decay': weight_decay[3]},
                                            {'params': yearStat_params, 'lr': 0.003, 'weight_decay': weight_decay[4]},
@@ -248,15 +248,15 @@ class RNN_Model(nn.Module):
                                            {'params': mlbstat_params, 'lr': 0.003, 'weight_decay': weight_decay[8]}]) \
                                         \
                         if is_hitter else \
-                        torch.optim.AdamW([{'params': shared_params, 'lr': 0.00125, 'weight_decay': weight_decay},
-                                           {'params': war_class_params, 'lr': 0.01, 'weight_decay': weight_decay},
-                                           {'params': level_params, 'lr': 0.01, 'weight_decay': weight_decay},
-                                           {'params': pa_params, 'lr': 0.02, 'weight_decay': weight_decay},
-                                           {'params': yearStat_params, 'lr': 0.01, 'weight_decay': weight_decay},
-                                           {'params': yearPos_params, 'lr': 0.025, 'weight_decay': weight_decay},
-                                           {'params': mlbValue_params, 'lr': 0.01, 'weight_decay': weight_decay},
-                                           {'params': yearPt_params, 'lr': 0.018, 'weight_decay': weight_decay},
-                                           {'params': mlbstat_params, 'lr': 0.005, 'weight_decay': weight_decay}])
+                        torch.optim.AdamW([{'params': shared_params, 'lr': 0.00125, 'weight_decay': weight_decay[0]},
+                                           {'params': war_class_params, 'lr': 0.01, 'weight_decay': weight_decay[1]},
+                                           {'params': level_params, 'lr': 0.01, 'weight_decay': weight_decay[2]},
+                                           {'params': pa_params, 'lr': 0.02, 'weight_decay': weight_decay[3]},
+                                           {'params': yearStat_params, 'lr': 0.01, 'weight_decay': weight_decay[4]},
+                                           {'params': yearPos_params, 'lr': 0.025, 'weight_decay': weight_decay[5]},
+                                           {'params': mlbValue_params, 'lr': 0.01, 'weight_decay': weight_decay[6]},
+                                           {'params': yearPt_params, 'lr': 0.018, 'weight_decay': weight_decay[7]},
+                                           {'params': mlbstat_params, 'lr': 0.005, 'weight_decay': weight_decay[8]}])
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:

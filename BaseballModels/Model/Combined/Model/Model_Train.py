@@ -33,7 +33,7 @@ def TrainAndGraph(
     col_model_name : str = "no_name_col",
     get_end_loss : bool = False,
     element_to_save : int = 0,
-    early_stopping_cutoff : int = 10,
+    early_stopping_cutoff : int = 20,
     pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES
 ) -> tuple[float, float, int]:
     if SHOULD_PROFILE:
