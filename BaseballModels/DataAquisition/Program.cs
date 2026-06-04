@@ -8,9 +8,9 @@
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
-        const bool DATA_UPDATE = true;
+        const bool DATA_UPDATE = false;
         const bool DRAFT_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = false;
+        const bool STATCAST_ONLY_UPDATE = true;
 
         static async Task Main(string[] args)
         {

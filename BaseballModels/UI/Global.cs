@@ -1,4 +1,8 @@
-﻿using PitchDb;
+﻿using Db;
+using PitchDb;
+using Python.Runtime;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace UI
 {
@@ -9,8 +13,17 @@ namespace UI
         public static Dictionary<YearLeagueDevKey, YearLeagueDeviations> YldDict = new();
         #pragma warning restore CA2211
 
+        public static SqliteDbContext db = new(Db.Connection.DB_READONLY_OPTIONS);
+        public static PitchDbContext pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
+
         public static Color GetValueColor(float value, float min, float max)
         {
+            // Adjust so that it is 0 centered
+            float avg = (min + max) / 2;
+            value -= avg;
+            min -= avg;
+            max -= avg;
+
             float clampedValue = Math.Clamp(value, min, max);
 
             float h, s, v;
@@ -57,6 +70,77 @@ namespace UI
                 (byte)((r + m) * 255),
                 (byte)((g + m) * 255),
                 (byte)((b + m) * 255));
+        }
+
+        public static dynamic CreateFromCSharp<T>(T csharpObj, dynamic pythonClass)
+        {
+            if (csharpObj == null) throw new ArgumentNullException(nameof(csharpObj));
+
+            using (Py.GIL())
+            {
+                var type = typeof(T);
+                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                     .OrderBy(p => p.MetadataToken)   // preserves source declaration order
+                                     .ToList();
+
+                var pyValues = new List<PyObject>(properties.Count);
+                foreach (var prop in properties)
+                {
+                    object? value = prop.GetValue(csharpObj);
+                    pyValues.Add(value.ToPython());
+                }
+
+                var tuple = new PyTuple(pyValues.ToArray());
+
+                return pythonClass(tuple);
+            }
+        }
+
+        public static T CreateFromPython<T>(PyObject pyInstance)
+        {
+            if (pyInstance == null || pyInstance.IsNone())
+                throw new ArgumentNullException(nameof(pyInstance));
+
+            using (Py.GIL())
+            {
+                var type = typeof(T);
+
+                // Create object without calling constructor
+                T csharpObj = (T)RuntimeHelpers.GetUninitializedObject(type);
+
+                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                                     .OrderBy(p => p.MetadataToken)   // preserves source declaration order
+                                     .ToList();
+
+                foreach (var prop in properties)
+                {
+                    if (!prop.CanWrite) continue;
+
+                    PyObject? pyValue = null;
+
+                    // Python object may or may not start with capital letter
+                    if (pyInstance.HasAttr(prop.Name))
+                        pyValue = pyInstance.GetAttr(prop.Name);
+                    else 
+                    {
+                        string lowerName = char.ToLower(prop.Name[0]) + prop.Name[1..];
+                        if (pyInstance.HasAttr(lowerName))
+                        {
+                            pyValue = pyInstance.GetAttr(lowerName);
+                        }
+                        else
+                        {
+                            throw new Exception("Unable to find property name " + prop.Name);
+                        }
+                    }
+                        
+                    object? value = pyValue.AsManagedObject(prop.PropertyType);
+
+                    prop.SetValue(csharpObj, value);
+                }
+
+                return csharpObj;
+            }
         }
     }
 }

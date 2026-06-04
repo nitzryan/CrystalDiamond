@@ -10,9 +10,9 @@ namespace UI.Controls
             public required PitchStatcast Pitch { get; set; }
             public override string ToString()
             {
-#pragma warning disable CS8629 // Will be filtered at this point
+                #pragma warning disable CS8629 // Will be filtered at this point
                 return Pitch.PitchType.ToString() + $" {Math.Round(Pitch.VStart.Value, 1)}mph ({Math.Round(Pitch.BreakHorizontal.Value, 1)},{Pitch.BreakVertical.Value,1})";
-#pragma warning restore CS8629
+                #pragma warning restore CS8629
             }
         }
 
@@ -35,7 +35,7 @@ namespace UI.Controls
 
         private void SelectPitch(PitchStatcast pitch)
         {
-#pragma warning disable CS8629 // Will be filtered out at this point
+            #pragma warning disable CS8629 // Will be filtered out at this point
             nudVelocity.Value = (decimal)pitch.VStart.Value;
             nudBreakHoriz.Value = (decimal)pitch.BreakHorizontal.Value;
             nudBreakVert.Value = (decimal)pitch.BreakInduced.Value;

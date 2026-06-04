@@ -1,5 +1,8 @@
 ﻿using Db;
+using EFCore.BulkExtensions;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
+using System.Text;
 using static Db.DbEnums;
 
 namespace DataAquisition
@@ -299,6 +302,8 @@ namespace DataAquisition
             if (!forceRefresh && pitches.Any(f => f.RunValueSmoothedHitter > -100))
                 return;
 
+            db.RunExpectancyMatrix.Where(f => f.Year == year).ExecuteDelete();
+
             var leaguePitches = pitches.GroupBy(f => f.LeagueId);
             using (ProgressBar progressBar = new(leaguePitches.Count(), $"Generating Statcast Smoothed Pitch Values for {year}"))
             {
@@ -335,6 +340,78 @@ namespace DataAquisition
 
                             topChild.Tick();
                         }
+                    }
+
+                    // Log Run Expectancy Matrix
+                    if (year >= 2017)
+                    {
+                        List<RunExpectancyMatrix> rem = new();
+                        foreach (var dictVal in countBallStrikeRunExpectancyMatrix)
+                        {
+                            (int countBalls, int countStrikes, PitchBallStrike pbs) = dictVal.Key;
+                            float runs = dictVal.Value;
+                            PitchResult pitchResult = pbs == PitchBallStrike.Ball ? PitchResult.Ball : PitchResult.CalledStrike;
+
+                            rem.Add(new RunExpectancyMatrix
+                            {
+                                Year = year,
+                                LeagueId = lp.Key,
+                                CountBalls = countBalls,
+                                CountStrikes = countStrikes,
+                                Result = pitchResult,
+                                DeltaRuns = runs,
+                            });
+                        }
+                        // Log HBP and foul
+                        for (int balls = 0; balls < 4; balls++)
+                        {
+                            for (int strikes = 0; strikes < 3; strikes++)
+                            {
+                                // HBP
+                                rem.Add(new RunExpectancyMatrix
+                                {
+                                    Year = year,
+                                    LeagueId = lp.Key,
+                                    CountBalls = balls,
+                                    CountStrikes = strikes,
+                                    Result = PitchResult.HBP,
+                                    DeltaRuns = hbpValue,
+                                });
+
+                                // Foul
+                                if (strikes == 2)
+                                {
+                                    rem.Add(new RunExpectancyMatrix
+                                    {
+                                        Year = year,
+                                        LeagueId = lp.Key,
+                                        CountBalls = balls,
+                                        CountStrikes = strikes,
+                                        Result = PitchResult.Foul,
+                                        DeltaRuns = 0,
+                                    });
+                                }
+                                else
+                                {
+                                    rem.Add(new RunExpectancyMatrix
+                                    {
+                                        Year = year,
+                                        LeagueId = lp.Key,
+                                        CountBalls = balls,
+                                        CountStrikes = strikes,
+                                        Result = PitchResult.Foul,
+                                        DeltaRuns = rem
+                                            .Where(f =>
+                                                f.CountBalls == balls &&
+                                                f.CountStrikes == strikes &&
+                                                f.Result == PitchResult.CalledStrike)
+                                                .Single().DeltaRuns,
+                                    });
+                                }
+                            }
+                        }
+
+                        db.BulkInsert(rem);
                     }
 
                     progressBar.Tick();

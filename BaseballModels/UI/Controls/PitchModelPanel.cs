@@ -1,4 +1,6 @@
 ﻿using Db;
+using PitchDb;
+using Python.Runtime;
 
 namespace UI.Controls
 {
@@ -12,10 +14,12 @@ namespace UI.Controls
         private static List<float> X_GRID_POINTS = Enumerable.Range(-20, 41).Select(f => X_GRID_SIZE * f).ToList();
         private static List<float> Z_GRID_POINTS = Enumerable.Range(0, 51).Select(f => Z_GRID_SIZE * f).ToList();
 
-        private const float VALUE_MIN = -50;
-        private const float VALUE_MAX = 50;
+        private const float VALUE_MIN = 50;
+        private const float VALUE_MAX = 150;
 
         private PitchStatcast? Pitch = null;
+
+        private PyObject? Py_DataPrep = null, Py_PitchModel = null;
 
         private record PitchGridPoint(float X, float Z, float Val);
         List<PitchGridPoint> GridPoints = [];
@@ -32,6 +36,21 @@ namespace UI.Controls
                   ControlStyles.ResizeRedraw, true
             );
             this.BackColor = SystemColors.Control;
+
+            using (Py.GIL())
+            {
+                // Get Base Pitch Model Location
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string stuffDir = Path.GetFullPath(Path.Combine(baseDir, "../../../../", "PitchModel"));
+
+                // DataPrep
+                dynamic dataPrepModule = Py.Import("Stuff.DataPrep.DataPrep");
+                Py_DataPrep = dataPrepModule.DataPrep.Load_From_File(stuffDir + $"/{PySetup.Py_Constants.DATA_PREP_BINARY_ALL_FILE}");
+
+                // PitchModel
+                dynamic pitchModelModule = Py.Import("Stuff.Model.PitchModel");
+                Py_PitchModel = pitchModelModule.PitchModel(Py_DataPrep);
+            }
         }
 
         public void SetPitch(PitchStatcast pitch)
@@ -129,12 +148,60 @@ namespace UI.Controls
                 }
             }
 
-            // TODO Run Through Model
-            GridPoints = [];
-            foreach (var pitch in GridPitches)
+            // Run Through Model
+            List<Output_PitchValueAggregation> opvaList = [];
+            try{
+                using (Py.GIL())
+                {
+                    var pyPitches = GridPitches
+                        .Select(f => Global.CreateFromCSharp(f, PySetup.Py_DbTypes.DB_PitchStatcast))
+                        .Select(dyn => (PyObject)dyn)
+                        .ToArray();
+                    PyList pitchList = new PyList(pyPitches);
+                    var modelOutputAggregation = Py_PitchModel.InvokeMethod(
+                        "GetPitchOutput",
+                        "../../../../PitchModel/Models/".ToPython(),
+                        pitchList
+                    );
+
+                    PyList moaList = new PyList(modelOutputAggregation);
+                    opvaList = moaList.Select(f => Global.CreateFromPython<Output_PitchValueAggregation>(f))
+                        .ToList();
+                }
+            }
+            catch (PythonException pyEx)  // Specific to Python.NET
             {
+                return;
+            }
+
+            // Get Pitch value for each point
+            GridPoints = [];
+            var runExpectancyMatrix = Global.db.RunExpectancyMatrix
+                .Where(f => f.Year == Pitch.Year && f.LeagueId == 1
+                    && f.CountBalls == Pitch.CountBalls && f.CountStrikes == Pitch.CountStrike)
+                .ToArray();
+            float pitchDev = Global.pitchDb.YearLeagueDeviations
+                .Where(f => f.Year == Pitch.Year && f.Balls == Pitch.CountBalls && f.Strikes == Pitch.CountStrike)
+                .Single().StuffDev;
+            for (int i = 0; i < opvaList.Count; i++)
+            {
+                float pitchValue = 0;
+                if (i == 1225)
+                    pitchValue += 0;
+
+                var opva = opvaList[i];
+                
+                pitchValue += opva.CombinedBall * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Ball).Single().DeltaRuns;
+                pitchValue += (opva.CombinedCalledStrike + (opva.CombinedSwing * opva.CombinedWhiff)) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.CalledStrike).Single().DeltaRuns;
+                pitchValue += (opva.CombinedSwing * opva.CombinedFoul) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Foul).Single().DeltaRuns;
+                pitchValue += opva.CombinedHBP * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.HBP).Single().DeltaRuns;
+                pitchValue += opva.CombinedSwing * opva.CombinedInPlay * opva.CombinedInPlayExpected;
+
+                float pitchPlus = 100 - (10 * (pitchValue / pitchDev));
+
+                var pitch = GridPitches[i];
                 #pragma warning disable CS8629 // Values will exist due to initial filter
-                GridPoints.Add(new PitchGridPoint(pitch.PX.Value, pitch.PZ.Value, (3 * pitch.PX.Value) + pitch.PZ.Value));
+                GridPoints.Add(new PitchGridPoint(pitch.PX.Value, pitch.PZ.Value, pitchPlus));
                 #pragma warning restore CS8629
             }
 

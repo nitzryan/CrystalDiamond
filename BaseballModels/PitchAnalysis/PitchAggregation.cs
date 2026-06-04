@@ -36,8 +36,8 @@ namespace PitchAnalysis
                 balls = f.CountBalls,
                 strikes = f.CountStrike,
                 year = f.Year
-            })
-                .Distinct();
+            }).Distinct();
+
             Dictionary<PitchScenarioResult, float> psrDict = new();
             var pitchStatcastPitches = db.PitchStatcast.Where(f =>
                 f.LevelId == 1

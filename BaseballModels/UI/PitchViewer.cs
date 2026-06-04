@@ -1,5 +1,4 @@
 using Db;
-using PitchDb;
 using static Db.DbEnums;
 
 namespace UI
@@ -14,8 +13,6 @@ namespace UI
             public override string ToString() => Text;
         }
 
-        private SqliteDbContext? db = null;
-        private PitchDbContext? pitchDb = null;
         private Player? player = null;
         private List<PitchStatcast> PlayerPitches = [];
 
@@ -54,11 +51,8 @@ namespace UI
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            db = new(Db.Connection.DB_READONLY_OPTIONS);
-            pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
-
-            playerSearchBar.SetPlayerList(db.Player.Where(f => f.Position != "H").ToList());
-            Global.YldDict = pitchDb.YearLeagueDeviations
+            playerSearchBar.SetPlayerList(Global.db.Player.Where(f => f.Position != "H").ToList());
+            Global.YldDict = Global.pitchDb.YearLeagueDeviations
                 .ToDictionary(
                     f => new Global.YearLeagueDevKey(f.ModelId, f.Year, f.Balls, f.Strikes),
                     f => f
@@ -66,7 +60,7 @@ namespace UI
 
             // Models
             cbModel.Items.Clear();
-            var pitchModels = pitchDb.Models_PitchValue.OrderBy(f => f.Id).ToList();
+            var pitchModels = Global.pitchDb.Models_PitchValue.OrderBy(f => f.Id).ToList();
             foreach (var pm in pitchModels)
             {
                 cbModel.Items.Add(new ComboBoxItem<int>
@@ -98,11 +92,11 @@ namespace UI
 
         public void PlayerSelected(object senser, Player p)
         {
-            if (db == null || pitchDb == null)
+            if (Global.db == null || Global.pitchDb == null)
                 throw new Exception("Failed to load db");
 
             player = p;
-            PlayerPitches = db.PitchStatcast
+            PlayerPitches = Global.db.PitchStatcast
                 .Where(
                     f => f.PitcherId == player.MlbId && 
                     f.ModelStuff != null &&

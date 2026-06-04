@@ -6,11 +6,11 @@ class ResnetBlock(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, dim),
-            nn.BatchNorm1d(dim),
+            nn.LayerNorm(dim),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(dim, dim),
-            nn.BatchNorm1d(dim)
+            nn.LayerNorm(dim)
         )
         
     def forward(self, x : torch.Tensor) -> torch.Tensor:

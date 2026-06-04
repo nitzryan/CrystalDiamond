@@ -227,3 +227,19 @@ CREATE TABLE HitterStatcastMonth
 
     PRIMARY KEY("MlbId", "Year", "Month")
 );
+
+-- Run Change Matrix for different Year/Scenarios
+CREATE TABLE RunExpectancyMatrix
+(
+    "Year" INTEGER NOT NULL,
+    "LeagueId" INTEGER NOT NULL,
+
+    "CountBalls" INTEGER NOT NULL,
+    "CountStrikes" INTEGER NOT NULL,
+
+    "Result" INTEGER NOT NULL,
+
+    "DeltaRuns" REAL NOT NULL,
+
+    PRIMARY KEY("Year", "LeagueId", "CountBalls", "CountStrikes", "Result")
+);

@@ -2096,5 +2096,25 @@ class DB_Model_PitcherStats:
 		items = cursor.execute("SELECT * FROM Model_PitcherStats " + conditional, values).fetchall()
 		return [DB_Model_PitcherStats(i) for i in items]
 
+class DB_RunExpectancyMatrix:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.LeagueId = values[1]
+		self.CountBalls = values[2]
+		self.CountStrikes = values[3]
+		self.Result = values[4]
+		self.DeltaRuns = values[5]
+
+	NUM_ELEMENTS = 6
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.LeagueId,self.CountBalls,self.CountStrikes,self.Result,self.DeltaRuns)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_RunExpectancyMatrix']:
+		items = cursor.execute("SELECT * FROM RunExpectancyMatrix " + conditional, values).fetchall()
+		return [DB_RunExpectancyMatrix(i) for i in items]
+
 
 ##############################################################################################

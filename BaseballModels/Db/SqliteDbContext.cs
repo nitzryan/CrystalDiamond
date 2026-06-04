@@ -75,6 +75,7 @@ namespace Db
 		public DbSet<Model_Players> Model_Players {get; set;}
 		public DbSet<Model_HitterStats> Model_HitterStats {get; set;}
 		public DbSet<Model_PitcherStats> Model_PitcherStats {get; set;}
+		public DbSet<RunExpectancyMatrix> RunExpectancyMatrix {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -151,6 +152,7 @@ namespace Db
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
 			modelBuilder.Entity<Model_HitterStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Model_PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
+			modelBuilder.Entity<RunExpectancyMatrix>().HasKey(f => new {f.Year,f.LeagueId,f.CountBalls,f.CountStrikes,f.Result});
 		}
 	}
 }

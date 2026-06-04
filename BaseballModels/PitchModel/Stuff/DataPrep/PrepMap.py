@@ -86,8 +86,9 @@ __map_pitch_overview : Callable[[DB_PitchStatcast], list[float]] = \
 __size_overview = 4
 
 __map_pitch_combined : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.aX, p.aY, p.aZ, p.vX, p.vY, p.vZ]
-__size_combined = 6
+    lambda p : [p.PlateTime]
+    #lambda p : [p.aX, p.aY, p.aZ, p.vX, p.vY, p.vZ]
+__size_combined = 1#6
 
 __map_league_baseline : Callable[[DB_PitchDateAverages], list[float]] = \
     lambda p : [p.FastballVelo, p.Fastball4SeamVert]

@@ -24,19 +24,11 @@ SHOULD_PROFILE = False
 if SHOULD_PROFILE:
     profiler.enable()
         
-from enum import Enum
-class PitchType(Enum):
-    Fastball = 1,
-    Curveball = 2,
-    Changeup = 3,
-    All = 4,
-        
 _T = TypeVar('T')
 class DataPrep:
     @profiler
     def __init__(self,
         prep_map : Prep_Map,
-        pitch_type : PitchType,
         save_name : str | None = None
     ):
         
@@ -58,6 +50,7 @@ class DataPrep:
                         "ZoneBot",
                         "SpinRate",
                         "SpinDirection",
+                        "PlateTime",
                         ]
         self.conditional_statement = "WHERE "
         for v in vars_to_check:
@@ -310,3 +303,25 @@ class DataPrep:
             profiler.dump_stats("data_prep.lprof")
         
         return list(pitcher_dict.values())
+    
+    def DbPitchesToModelPitches(self, pitches : list[DB_PitchStatcast]) -> tuple[torch.Tensor, ...]:
+        data_overview, data_loc, data_stuff, data_combined = self.Transform_PitchStats(pitches)
+        
+        year = pitches[0].Year
+        month = pitches[0].Month
+        
+        # MLB average for the month
+        cursor = db.cursor()
+        pitch_avg = DB_PitchDateAverages.Select_From_DB(
+            cursor=cursor,
+            conditional="WHERE Year=? AND Month=?",
+            values=(year,month)
+        )[0]
+        data_pitch_averages = self.Transform_PitchAverage(pitch_avg)
+        
+        return data_overview,\
+            data_loc,\
+            data_stuff,\
+            data_combined,\
+            torch.zeros(1, 1),\
+            data_pitch_averages.repeat(data_loc.shape[0], 1)

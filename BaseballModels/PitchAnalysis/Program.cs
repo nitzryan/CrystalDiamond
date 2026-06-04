@@ -5,7 +5,7 @@
         const int START_YEAR = 2017;
         const int END_YEAR = 2026;
         const int END_MONTH = 4;
-        const bool FORCE_REFRESH = false;
+        const bool FORCE_REFRESH = true;
 
         static void Main(string[] args)
         {

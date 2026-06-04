@@ -38,12 +38,14 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   
                   ("PitchStatcast", "Result", "DbEnums.PitchResult"),
                   ("PitchNonStatcast", "Result", "DbEnums.PitchResult"),
+                  ("RunExpectancyMatrix", "Result", "DbEnums.PitchResult"),
                   
                   ("PitchStatcast", "PaResult", "DbEnums.PitchPaResult"),
                   ("PitchNonStatcast", "PaResult", "DbEnums.PitchPaResult"),
                   
                   ("PitchStatcast", "Scenario", "DbEnums.PitchScenario"),
                   ("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
+
                   ]
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
