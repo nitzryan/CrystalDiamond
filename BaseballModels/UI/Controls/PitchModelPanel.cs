@@ -1,6 +1,7 @@
 ﻿using Db;
 using PitchDb;
 using Python.Runtime;
+using System.ComponentModel;
 
 namespace UI.Controls
 {
@@ -27,6 +28,7 @@ namespace UI.Controls
         public PitchModelPanel()
         {
             InitializeComponent();
+            PySetup.Initialize();
 
             // Properly draw background in a TabControl
             this.DoubleBuffered = true;
@@ -37,6 +39,11 @@ namespace UI.Controls
             );
             this.BackColor = SystemColors.Control;
 
+            // Design-time check
+            if (DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+            {
+                return; 
+            }
             using (Py.GIL())
             {
                 // Get Base Pitch Model Location
@@ -65,7 +72,30 @@ namespace UI.Controls
             GridPoints = [];
         }
 
-        public void GenerateLocationGrid()
+        public class PitchModelData
+        {
+            public required int CountBalls;
+            public required int CountStrikes;
+
+            public required bool HitIsR;
+            public required bool PitIsR;
+
+            public required float Velocity;
+            public required float MoveHoriz;
+            public required float MoveVert;
+            public required float BreakAngle;
+
+            public required float Extension;
+            public required float X0;
+            public required float Z0;
+
+            public required float PX;
+            public required float PZ;
+            public required float ZoneTop;
+            public required float ZoneBot;
+        }
+
+        public void GenerateLocationGrid(PitchModelData pmd)
         {
             if (Pitch == null)
                 return;
@@ -91,8 +121,8 @@ namespace UI.Controls
                         Year = Pitch.Year,
                         Month = Pitch.Month,
                         PitcherPitchNum = Pitch.PitcherPitchNum,
-                        CountBalls = Pitch.CountBalls,
-                        CountStrike = Pitch.CountStrike,
+                        CountBalls = pmd.CountBalls,
+                        CountStrike = pmd.CountStrikes,
                         Outs = Pitch.Outs,
                         BaseOccupancy = Pitch.BaseOccupancy,
                         PitchType = Pitch.PitchType,
@@ -105,32 +135,32 @@ namespace UI.Controls
                         HadSwing = Pitch.HadSwing,
                         HadContact = Pitch.HadContact,
                         IsInPlay = Pitch.IsInPlay,
-                        HitIsR = Pitch.HitIsR,
-                        PitIsR = Pitch.PitIsR,
-                        VX = Pitch.VX,
-                        VY = Pitch.VY,
-                        VZ = Pitch.VZ,
-                        VStart = Pitch.VStart,
+                        HitIsR = pmd.HitIsR,
+                        PitIsR = pmd.PitIsR,
+                        VX = 0,
+                        VY = 0,
+                        VZ = 0,
+                        VStart = pmd.Velocity,
                         VEnd = Pitch.VEnd,
-                        AX = Pitch.AX,
-                        AY = Pitch.AY,
-                        AZ = Pitch.AZ,
+                        AX = 0,
+                        AY = 0,
+                        AZ = 0,
                         PfxX = Pitch.PfxX,
                         PfxZ = Pitch.PfxZ,
-                        BreakAngle = Pitch.BreakAngle,
+                        BreakAngle = pmd.BreakAngle,
                         BreakVertical = Pitch.BreakVertical,
-                        BreakInduced = Pitch.BreakInduced,
-                        BreakHorizontal = Pitch.BreakHorizontal,
+                        BreakInduced = pmd.MoveVert,
+                        BreakHorizontal = pmd.MoveHoriz,
                         SpinRate = Pitch.SpinRate,
                         SpinDirection = Pitch.SpinDirection,
                         PX = x,
                         PZ = z,
-                        ZoneTop = Pitch.ZoneTop,
-                        ZoneBot = Pitch.ZoneBot,
-                        Extension = Pitch.Extension,
-                        X0 = Pitch.X0,
+                        ZoneTop = pmd.ZoneTop,
+                        ZoneBot = pmd.ZoneBot,
+                        Extension = pmd.Extension,
+                        X0 = pmd.X0,
                         Y0 = Pitch.Y0,
-                        Z0 = Pitch.Z0,
+                        Z0 = pmd.Z0,
                         PlateTime = Pitch.PlateTime,
                         LaunchSpeed = Pitch.LaunchSpeed,
                         LaunchAngle = Pitch.LaunchAngle,
@@ -186,9 +216,6 @@ namespace UI.Controls
             for (int i = 0; i < opvaList.Count; i++)
             {
                 float pitchValue = 0;
-                if (i == 1225)
-                    pitchValue += 0;
-
                 var opva = opvaList[i];
                 
                 pitchValue += opva.CombinedBall * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Ball).Single().DeltaRuns;

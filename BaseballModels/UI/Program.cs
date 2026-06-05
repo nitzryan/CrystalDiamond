@@ -14,7 +14,6 @@ namespace UI
             // see https://aka.ms/applicationconfiguration.
             
             // Must set PYTHONNET_PYDLL environmental variable to Python DLL
-            PythonEngine.Initialize();
             PySetup.Initialize();
 
             ApplicationConfiguration.Initialize();

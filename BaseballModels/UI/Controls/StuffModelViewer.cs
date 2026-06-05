@@ -1,4 +1,5 @@
 ﻿using Db;
+using static UI.Controls.PitchModelPanel;
 
 namespace UI.Controls
 {
@@ -19,6 +20,7 @@ namespace UI.Controls
         public StuffModelViewer()
         {
             InitializeComponent();
+            PySetup.Initialize();
 
             lbPitches.SelectedIndexChanged += (sender, e) =>
             {
@@ -84,7 +86,31 @@ namespace UI.Controls
 
         private void pbLocation_Click(object sender, EventArgs e)
         {
-            pitchModelPanel.GenerateLocationGrid();
+            PitchModelData pmd = new PitchModelData
+            {
+                CountBalls = (int)nudBalls.Value,
+                CountStrikes = (int)nudStrikes.Value,
+
+                HitIsR = nudHitR.Value == 1,
+                PitIsR = nudPitR.Value == 1,
+
+                Velocity = (float)nudVelocity.Value,
+                MoveHoriz = (float)nudBreakHoriz.Value,
+                MoveVert = (float)nudBreakVert.Value,
+                BreakAngle = (float)nudBreakAngle.Value,
+
+                Extension = (float)nudExtension.Value,
+                X0 = (float)nudX0.Value,
+                Z0 = (float)nudZ0.Value,
+
+                PX = (float)nudPX.Value,
+                PZ = (float)nudPZ.Value,
+
+                ZoneTop = (float)nudZoneTop.Value,
+                ZoneBot = (float)nudZoneBot.Value,
+            };
+
+            pitchModelPanel.GenerateLocationGrid(pmd);
         }
     }
 }

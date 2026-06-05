@@ -1,4 +1,5 @@
 using Db;
+using Python.Runtime;
 using static Db.DbEnums;
 
 namespace UI
@@ -19,6 +20,7 @@ namespace UI
         public PitchViewer()
         {
             InitializeComponent();
+            PySetup.Initialize();
 
             playerSearchBar.PlayerSelected += PlayerSelected;
             yearSelector.Update(2010, 2025, "Year");
