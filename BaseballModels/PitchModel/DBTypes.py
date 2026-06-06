@@ -2116,5 +2116,23 @@ class DB_RunExpectancyMatrix:
 		items = cursor.execute("SELECT * FROM RunExpectancyMatrix " + conditional, values).fetchall()
 		return [DB_RunExpectancyMatrix(i) for i in items]
 
+class DB_HitterYearZoneData:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.MlbId = values[1]
+		self.ZoneTop = values[2]
+		self.ZoneBot = values[3]
+
+	NUM_ELEMENTS = 4
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.MlbId,self.ZoneTop,self.ZoneBot)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_HitterYearZoneData']:
+		items = cursor.execute("SELECT * FROM HitterYearZoneData " + conditional, values).fetchall()
+		return [DB_HitterYearZoneData(i) for i in items]
+
 
 ##############################################################################################

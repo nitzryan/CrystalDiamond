@@ -6,6 +6,7 @@ class Prep_Map:
     def __init__(self,
                 pitch_stuff_map : Callable[[DB_PitchStatcast], list[float]], pitch_stuff_size : int,
                 pitch_loc_map : Callable[[DB_PitchStatcast], list[float]], pitch_loc_size : int,
+                hitter_zone_map : Callable[[DB_HitterYearZoneData], list[float]], hitter_zone_size : int,
                 pitch_combined_map : Callable[[DB_PitchStatcast], list[float]], pitch_combined_size : int,
                 pitch_overview_map : Callable[[DB_PitchStatcast], list[float]], pitch_overview_size : int,
                 league_baseline_map : Callable[[DB_PitchDateAverages], list[float]], league_baseline_size : int,
@@ -22,6 +23,9 @@ class Prep_Map:
         
         self.pitch_loc_map = pitch_loc_map
         self.pitch_loc_size = pitch_loc_size
+        
+        self.hitter_zone_map = hitter_zone_map
+        self.hitter_zone_size = hitter_zone_size
         
         self.pitch_combined_map = pitch_combined_map
         self.pitch_combined_size = pitch_combined_size
@@ -62,17 +66,20 @@ __noise_stuff = torch.tensor([
     10,
     1
 ])
-    
-__map_pitch_loc : Callable[[DB_PitchStatcast], list[float]] = \
-    lambda p : [p.pX, p.pZ, p.ZoneTop, p.ZoneBot]
-__size_loc = 4
 
 __map_pitch_loc_clamped : Callable[[DB_PitchStatcast], list[float]] = \
     lambda p : [
         clamp(p.pX, -4, 4), 
-        clamp(p.pZ, -1, 6), 
-        clamp(p.ZoneTop, 2, 4.5), 
-        clamp(p.ZoneBot, 1, 2.5)]
+        clamp(p.pZ, -1, 6),
+        ]
+__size_loc = 2
+    
+__map_hitter_zone_clamped : Callable[[DB_HitterYearZoneData], list[float]] = \
+    lambda h : [
+        clamp(h.ZoneTop, 2.7, 4.1), 
+        clamp(h.ZoneBot, 1.2, 2)
+    ]
+__size_hitterzone = 2
     
 __noise_loc = torch.tensor([
     0.02,
@@ -113,6 +120,7 @@ __size_game = 8
 standard_prep_map = Prep_Map(
     pitch_stuff_map=map_pitch_stuff, pitch_stuff_size=__size_stuff,
     pitch_loc_map=__map_pitch_loc_clamped, pitch_loc_size=__size_loc,
+    hitter_zone_map=__map_hitter_zone_clamped, hitter_zone_size=__size_hitterzone,
     pitch_combined_map=__map_pitch_combined, pitch_combined_size=__size_combined,
     pitch_overview_map=__map_pitch_overview, pitch_overview_size=__size_overview,
     league_baseline_map=__map_league_baseline, league_baseline_size=__size_baseline,

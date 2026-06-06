@@ -14,6 +14,7 @@ import dill
         
 _OVERVIEW_STRING = "overview"
 _LOC_STRING = "loc"
+_HITZONE_STRING = "hitzone"
 _STUFF_STRING = "stuff"
 _GAME_STRING = "game"
 _AVG_STRING = "avg"
@@ -69,6 +70,13 @@ class DataPrep:
         self.__Create_PCA_Norms(self.prep_map.pitch_loc_map, pitches, _LOC_STRING, self.prep_map.pitch_loc_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_combined_map, pitches, _COMB_STRING, self.prep_map.pitch_combined_size)
+       
+        hitterZones = DB_HitterYearZoneData.Select_From_DB(
+            cursor=cursor,
+            conditional="WHERE Year < ?",
+            values=(DataPrep.__CutoffYear,)
+        )
+        self.__Create_PCA_Norms(self.prep_map.hitter_zone_map, hitterZones, _HITZONE_STRING, self.prep_map.hitter_zone_size)
        
         # Get average result for each bucket
         num_buckets = BUCKET_INPLAY_VALUE.size(0) + 1
@@ -171,6 +179,11 @@ class DataPrep:
         avg_pca = self.Get_PCA_Transform(data_avg, _AVG_STRING).squeeze()
         return avg_pca
     
+    def Transform_HitterZones(self, zones : list[DB_HitterYearZoneData]) -> torch.Tensor:
+        hitter_zone_data = torch.tensor([self.prep_map.hitter_zone_map(hz) for hz in zones], dtype=DTYPE)
+        hz_pca = self.Get_PCA_Transform(hitter_zone_data, _HITZONE_STRING)
+        return hz_pca
+    
     # Map to <Called Strike, Ball, HBP, Swung>
     @staticmethod
     def GetOutputType(pitch : DB_PitchStatcast) -> int:
@@ -206,6 +219,16 @@ class DataPrep:
         pitcher_dict : dict[int, list[PitchIO]] = {}
         
         for year in tqdm(range(start_year, end_year + 1), desc="DataPrep Years", leave=False):
+            hitter_zone_dict : dict[int, list[float]] = {}
+            hitter_zones = DB_HitterYearZoneData.Select_From_DB(
+                cursor=cursor,
+                conditional="WHERE Year=?",
+                values=(year,)
+            )
+            hitter_zones_mapped = self.Transform_HitterZones(hitter_zones)
+            for i in range(len(hitter_zones)):
+                hitter_zone_dict[hitter_zones[i].MlbId] = hitter_zones_mapped[i]
+            
             for month in tqdm([4,5,6,7,8,9], desc="Months", leave=False):
                 if year == end_year and month > end_month:
                     continue
@@ -272,7 +295,7 @@ class DataPrep:
                             pitch_num=pitch.PitchId,
                             level_id=pitch.LevelId,
                             data_overview=data_overview[i],
-                            data_loc=data_loc[i],
+                            data_loc=torch.cat((data_loc[i], hitter_zone_dict[pitch.HitterId])),
                             data_stuff=data_stuff[i],
                             data_combined=data_combined[i],
                             data_pitcher_game=data_pitcher_game[i],

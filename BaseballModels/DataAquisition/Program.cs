@@ -138,21 +138,22 @@
             {
                 foreach (var year in years)
                 {
-                    while (!await PitchData.Update(year, year == years.Last()))
-                    { }
+                    //while (!await PitchData.Update(year, year == years.Last()))
+                    //{ }
 
-                    PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH || true);
-                    PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH || true);
+                    //PitchValues.UpdateUnsmoothed(year, year == years.Last() || FULL_REFRESH);
+                    //PitchValues.UpdateSmoothed(year, year == years.Last() || FULL_REFRESH);
+                    PitchHitterZones.Update(year, year == years.Last() || FULL_REFRESH);
 
-                    PitchAggregation.CreatePitcherGameBaselines(year);
+                    //PitchAggregation.CreatePitcherGameBaselines(year);
 
                     foreach (var month in months)
                     {
                         if (year == END_YEAR && month > END_MONTH)
                             break;
 
-                        PitchAggregation.CreateLeagueDateAverages(year, month);
-                        HitterStatcastMonths.Update(month, year);
+                        //PitchAggregation.CreateLeagueDateAverages(year, month);
+                        //HitterStatcastMonths.Update(month, year);
                     }
                 }
             }

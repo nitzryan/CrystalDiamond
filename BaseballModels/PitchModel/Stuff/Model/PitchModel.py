@@ -81,7 +81,7 @@ class PitchModel(nn.Module):
         
         # Prediction layers for Location only
         self.location_pred = PitcherPredLayers(
-            input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size,
+            input_size=prep_map.pitch_loc_size + prep_map.hitter_zone_size + prep_map.pitch_overview_size,
             
             block_size_result=location_pred_size_result,
             num_layers_result=location_pred_blocks_result,
@@ -115,7 +115,7 @@ class PitchModel(nn.Module):
         
         # Prediction layers for location + stuff
         self.combined_pred = PitcherPredLayers(
-            input_size=prep_map.pitch_loc_size + prep_map.pitch_overview_size + \
+            input_size=prep_map.pitch_loc_size + prep_map.hitter_zone_size + prep_map.pitch_overview_size + \
                 prep_map.pitch_stuff_size + prep_map.league_baseline_size + \
                     prep_map.pitch_combined_size,
             

@@ -167,6 +167,17 @@ CREATE TABLE PitchDateAverages
     PRIMARY KEY ("Year", "Month")
 );
 
+CREATE TABLE HitterYearZoneData
+(
+    "Year" INTEGER NOT NULL,
+    "MlbId" INTEGER NOT NULL,
+
+    "ZoneTop" REAL NOT NULL,
+    "ZoneBot" REAL NOT NULL,
+
+    PRIMARY KEY ("Year", "MlbId")
+);
+
 CREATE TABLE PitcherStatcastMonth
 (
     "MlbId" INTEGER NOT NULL,
