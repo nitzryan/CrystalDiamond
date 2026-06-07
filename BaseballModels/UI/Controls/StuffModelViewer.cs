@@ -20,7 +20,6 @@ namespace UI.Controls
         public StuffModelViewer()
         {
             InitializeComponent();
-            PySetup.Initialize();
 
             lbPitches.SelectedIndexChanged += (sender, e) =>
             {

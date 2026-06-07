@@ -61,6 +61,8 @@
             pitchBucketViewer = new UI.Controls.PitchBucketViewer();
             tabPage2 = new TabPage();
             stuffModelViewer = new UI.Controls.StuffModelViewer();
+            tabPage3 = new TabPage();
+            debugControl = new UI.Controls.DebugControl();
             groupBoxPlayer.SuspendLayout();
             groupBoxFilters.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)nudMinPitches).BeginInit();
@@ -72,6 +74,7 @@
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tabPage2.SuspendLayout();
+            tabPage3.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxPlayer
@@ -360,6 +363,7 @@
             // 
             tabControl1.Controls.Add(tabPage1);
             tabControl1.Controls.Add(tabPage2);
+            tabControl1.Controls.Add(tabPage3);
             tabControl1.Dock = DockStyle.Fill;
             tabControl1.Location = new Point(503, 3);
             tabControl1.Name = "tabControl1";
@@ -391,19 +395,36 @@
             tabPage2.Controls.Add(stuffModelViewer);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(3);
             tabPage2.Size = new Size(838, 1068);
             tabPage2.TabIndex = 1;
-            tabPage2.Text = "Tester";
+            tabPage2.Text = "Testing";
             tabPage2.UseVisualStyleBackColor = true;
             // 
             // stuffModelViewer
             // 
             stuffModelViewer.Dock = DockStyle.Fill;
-            stuffModelViewer.Location = new Point(3, 3);
+            stuffModelViewer.Location = new Point(0, 0);
             stuffModelViewer.Name = "stuffModelViewer";
-            stuffModelViewer.Size = new Size(832, 1062);
+            stuffModelViewer.Size = new Size(838, 1068);
             stuffModelViewer.TabIndex = 0;
+            // 
+            // tabPage3
+            // 
+            tabPage3.Controls.Add(debugControl);
+            tabPage3.Location = new Point(4, 24);
+            tabPage3.Name = "tabPage3";
+            tabPage3.Size = new Size(838, 1068);
+            tabPage3.TabIndex = 2;
+            tabPage3.Text = "Debug";
+            tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // debugControl
+            // 
+            debugControl.Dock = DockStyle.Fill;
+            debugControl.Location = new Point(0, 0);
+            debugControl.Name = "debugControl";
+            debugControl.Size = new Size(838, 1068);
+            debugControl.TabIndex = 0;
             // 
             // PitchViewer
             // 
@@ -430,6 +451,7 @@
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tabPage2.ResumeLayout(false);
+            tabPage3.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -467,8 +489,10 @@
         private Controls.PitcherArsenal pitcherArsenal;
         private TabControl tabControl1;
         private TabPage tabPage1;
-        private TabPage tabPage2;
-        private Controls.StuffModelViewer stuffModelViewer;
         private Controls.PitchBucketViewer pitchBucketViewer;
+        private TabPage tabPage2;
+        private TabPage tabPage3;
+        private Controls.StuffModelViewer stuffModelViewer;
+        private Controls.DebugControl debugControl;
     }
 }

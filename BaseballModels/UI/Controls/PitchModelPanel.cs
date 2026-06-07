@@ -28,7 +28,6 @@ namespace UI.Controls
         public PitchModelPanel()
         {
             InitializeComponent();
-            PySetup.Initialize();
 
             // Properly draw background in a TabControl
             this.DoubleBuffered = true;
@@ -42,8 +41,10 @@ namespace UI.Controls
             // Design-time check
             if (DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
             {
-                return; 
+                return;
             }
+
+            PySetup.Initialize();
             using (Py.GIL())
             {
                 // Get Base Pitch Model Location
@@ -132,7 +133,7 @@ namespace UI.Controls
                         PaResultDirectRuns = Pitch.PaResultDirectRuns,
                         RunsAfterPa = Pitch.RunsAfterPa,
                         Result = Pitch.Result,
-                        HadSwing = Pitch.HadSwing,
+                        HadSwing = true,
                         HadContact = Pitch.HadContact,
                         IsInPlay = Pitch.IsInPlay,
                         HitIsR = pmd.HitIsR,
@@ -201,6 +202,8 @@ namespace UI.Controls
             }
             catch (PythonException pyEx)  // Specific to Python.NET
             {
+                PySetup.WriteException(pyEx);
+
                 return;
             }
 
