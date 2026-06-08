@@ -211,7 +211,7 @@ namespace UI.Controls
             GridPoints = [];
             var runExpectancyMatrix = Global.db.RunExpectancyMatrix
                 .Where(f => f.Year == Pitch.Year && f.LeagueId == 1
-                    && f.CountBalls == Pitch.CountBalls && f.CountStrikes == Pitch.CountStrike)
+                    && f.CountBalls == pmd.CountBalls && f.CountStrikes == pmd.CountStrikes)
                 .ToArray();
             float pitchDev = Global.pitchDb.YearLeagueDeviations
                 .Where(f => f.Year == Pitch.Year && f.Balls == Pitch.CountBalls && f.Strikes == Pitch.CountStrike)
