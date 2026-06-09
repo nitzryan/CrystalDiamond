@@ -32,6 +32,17 @@ namespace UI.Controls
                     throw new Exception("Unexpected Item in lbPitches List Box");
                 }
             };
+
+            // Set Type and Output ComboBoxes
+            cbOutputVar.Items.Add(OutputComboBoxItem.Value);
+            cbOutputVar.Items.Add(OutputComboBoxItem.CSW);
+            cbOutputVar.Items.Add(OutputComboBoxItem.Ball);
+            cbOutputVar.Items.Add(OutputComboBoxItem.Strike);
+            cbOutputVar.Items.Add(OutputComboBoxItem.InPlayPerc);
+            cbOutputVar.Items.Add(OutputComboBoxItem.InPlayExp);
+            cbOutputVar.SelectedIndex = 0;
+
+            cbOutputVar.SelectedIndexChanged += UpdateGridType;
         }
 
         private void SelectPitch(PitchStatcast pitch)
@@ -110,6 +121,14 @@ namespace UI.Controls
             };
 
             pitchModelPanel.GenerateLocationGrid(pmd);
+        }
+
+        private void UpdateGridType(object? sender, EventArgs e)
+        {
+            if (cbOutputVar.SelectedItem is OutputComboBoxItem ocbi)
+            {
+                pitchModelPanel.UpdateGridType(ocbi);
+            }
         }
     }
 }

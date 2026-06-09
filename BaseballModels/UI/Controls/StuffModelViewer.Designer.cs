@@ -73,9 +73,13 @@
             label3 = new Label();
             label1 = new Label();
             nudVelocity = new NumericUpDown();
-            lbPitches = new ListBox();
             tableLayoutPanel8 = new TableLayoutPanel();
             pbLocation = new Button();
+            tableLayoutPanel9 = new TableLayoutPanel();
+            lbPitches = new ListBox();
+            tableLayoutPanel10 = new TableLayoutPanel();
+            cbOutputVar = new ComboBox();
+            label17 = new Label();
             pitchModelPanel = new PitchModelPanel();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -106,6 +110,8 @@
             ((System.ComponentModel.ISupportInitialize)nudBreakHoriz).BeginInit();
             ((System.ComponentModel.ISupportInitialize)nudVelocity).BeginInit();
             tableLayoutPanel8.SuspendLayout();
+            tableLayoutPanel9.SuspendLayout();
+            tableLayoutPanel10.SuspendLayout();
             SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -114,8 +120,8 @@
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 0);
-            tableLayoutPanel1.Controls.Add(lbPitches, 0, 1);
             tableLayoutPanel1.Controls.Add(tableLayoutPanel8, 0, 0);
+            tableLayoutPanel1.Controls.Add(tableLayoutPanel9, 0, 1);
             tableLayoutPanel1.Controls.Add(pitchModelPanel, 1, 1);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
@@ -680,16 +686,6 @@
             nudVelocity.Size = new Size(68, 23);
             nudVelocity.TabIndex = 8;
             // 
-            // lbPitches
-            // 
-            lbPitches.Dock = DockStyle.Fill;
-            lbPitches.FormattingEnabled = true;
-            lbPitches.ItemHeight = 15;
-            lbPitches.Location = new Point(3, 203);
-            lbPitches.Name = "lbPitches";
-            lbPitches.Size = new Size(194, 722);
-            lbPitches.TabIndex = 1;
-            // 
             // tableLayoutPanel8
             // 
             tableLayoutPanel8.ColumnCount = 2;
@@ -716,6 +712,68 @@
             pbLocation.UseVisualStyleBackColor = true;
             pbLocation.Click += pbLocation_Click;
             // 
+            // tableLayoutPanel9
+            // 
+            tableLayoutPanel9.ColumnCount = 1;
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanel9.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel9.Controls.Add(lbPitches, 0, 1);
+            tableLayoutPanel9.Controls.Add(tableLayoutPanel10, 0, 0);
+            tableLayoutPanel9.Dock = DockStyle.Fill;
+            tableLayoutPanel9.Location = new Point(3, 203);
+            tableLayoutPanel9.Name = "tableLayoutPanel9";
+            tableLayoutPanel9.RowCount = 2;
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Absolute, 100F));
+            tableLayoutPanel9.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel9.Size = new Size(194, 722);
+            tableLayoutPanel9.TabIndex = 4;
+            // 
+            // lbPitches
+            // 
+            lbPitches.Dock = DockStyle.Fill;
+            lbPitches.FormattingEnabled = true;
+            lbPitches.ItemHeight = 15;
+            lbPitches.Location = new Point(3, 103);
+            lbPitches.Name = "lbPitches";
+            lbPitches.Size = new Size(188, 616);
+            lbPitches.TabIndex = 1;
+            // 
+            // tableLayoutPanel10
+            // 
+            tableLayoutPanel10.ColumnCount = 2;
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tableLayoutPanel10.Controls.Add(cbOutputVar, 1, 0);
+            tableLayoutPanel10.Controls.Add(label17, 0, 0);
+            tableLayoutPanel10.Dock = DockStyle.Fill;
+            tableLayoutPanel10.Location = new Point(3, 3);
+            tableLayoutPanel10.Name = "tableLayoutPanel10";
+            tableLayoutPanel10.RowCount = 1;
+            tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel10.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel10.Size = new Size(188, 94);
+            tableLayoutPanel10.TabIndex = 2;
+            // 
+            // cbOutputVar
+            // 
+            cbOutputVar.Anchor = AnchorStyles.Left;
+            cbOutputVar.FormattingEnabled = true;
+            cbOutputVar.Location = new Point(97, 35);
+            cbOutputVar.Name = "cbOutputVar";
+            cbOutputVar.Size = new Size(88, 23);
+            cbOutputVar.TabIndex = 3;
+            // 
+            // label17
+            // 
+            label17.AutoSize = true;
+            label17.Dock = DockStyle.Fill;
+            label17.Location = new Point(3, 0);
+            label17.Name = "label17";
+            label17.Size = new Size(88, 94);
+            label17.TabIndex = 2;
+            label17.Text = "Output";
+            label17.TextAlign = ContentAlignment.MiddleLeft;
+            // 
             // pitchModelPanel
             // 
             pitchModelPanel.BackColor = SystemColors.Control;
@@ -723,7 +781,7 @@
             pitchModelPanel.Location = new Point(203, 203);
             pitchModelPanel.Name = "pitchModelPanel";
             pitchModelPanel.Size = new Size(765, 722);
-            pitchModelPanel.TabIndex = 3;
+            pitchModelPanel.TabIndex = 5;
             // 
             // StuffModelViewer
             // 
@@ -766,6 +824,9 @@
             ((System.ComponentModel.ISupportInitialize)nudBreakHoriz).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudVelocity).EndInit();
             tableLayoutPanel8.ResumeLayout(false);
+            tableLayoutPanel9.ResumeLayout(false);
+            tableLayoutPanel10.ResumeLayout(false);
+            tableLayoutPanel10.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -819,6 +880,10 @@
         private ListBox lbPitches;
         private TableLayoutPanel tableLayoutPanel8;
         private Button pbLocation;
+        private TableLayoutPanel tableLayoutPanel9;
+        private TableLayoutPanel tableLayoutPanel10;
+        private ComboBox cbOutputVar;
+        private Label label17;
         private PitchModelPanel pitchModelPanel;
     }
 }

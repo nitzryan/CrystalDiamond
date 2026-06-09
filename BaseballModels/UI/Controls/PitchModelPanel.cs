@@ -2,11 +2,22 @@
 using PitchDb;
 using Python.Runtime;
 using System.ComponentModel;
+using static UI.Controls.PitchModelPanel;
 
 namespace UI.Controls
 {
     public partial class PitchModelPanel : UserControl
     {
+        public enum OutputComboBoxItem
+        {
+            Value,
+            CSW,
+            Ball,
+            Strike,
+            InPlayPerc,
+            InPlayExp,
+        }
+
         private const float BALL_SIZE = 0.24f;
         private const float ZONE_LEFT = -0.83f, ZONE_RIGHT = 0.83f;
 
@@ -24,6 +35,10 @@ namespace UI.Controls
 
         private record PitchGridPoint(float X, float Z, float Val);
         List<PitchGridPoint> GridPoints = [];
+        List<Output_PitchValueAggregation> opvaList = [];
+        private PitchModelData? pitchModelData = null;
+
+        private OutputComboBoxItem outputVarType = OutputComboBoxItem.Value;
 
         public PitchModelPanel()
         {
@@ -37,12 +52,15 @@ namespace UI.Controls
                   ControlStyles.ResizeRedraw, true
             );
             this.BackColor = SystemColors.Control;
+        }
 
-            // Design-time check
-            if (DesignMode || LicenseManager.UsageMode == LicenseUsageMode.Designtime)
-            {
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            // This check is now 100% reliable
+            if (DesignMode)
                 return;
-            }
 
             PySetup.Initialize();
             using (Py.GIL())
@@ -53,7 +71,8 @@ namespace UI.Controls
 
                 // DataPrep
                 dynamic dataPrepModule = Py.Import("Stuff.DataPrep.DataPrep");
-                Py_DataPrep = dataPrepModule.DataPrep.Load_From_File(stuffDir + $"/{PySetup.Py_Constants.DATA_PREP_BINARY_ALL_FILE}");
+                Py_DataPrep = dataPrepModule.DataPrep.Load_From_File(
+                    stuffDir + $"/{PySetup.Py_Constants.DATA_PREP_BINARY_ALL_FILE}");
 
                 // PitchModel
                 dynamic pitchModelModule = Py.Import("Stuff.Model.PitchModel");
@@ -101,14 +120,16 @@ namespace UI.Controls
             if (Pitch == null)
                 return;
 
+            pitchModelData = pmd;
+
             // Generate pitches at different points
             List<PitchStatcast> GridPitches = [];
-            for (int i = 0; i < X_GRID_POINTS.Count - 1; i++)
+            for (int i = 0; i < Z_GRID_POINTS.Count - 1; i++)
             {
-                for (int j = 0; j < Z_GRID_POINTS.Count - 1; j++)
+                for (int j = 0; j < X_GRID_POINTS.Count - 1; j++)
                 {
-                    float x = (X_GRID_POINTS[i] + X_GRID_POINTS[i + 1]) * 0.5f;
-                    float z = (Z_GRID_POINTS[j] + Z_GRID_POINTS[j + 1]) * 0.5f;
+                    float x = (X_GRID_POINTS[j] + X_GRID_POINTS[j + 1]) * 0.5f;
+                    float z = (Z_GRID_POINTS[i] + Z_GRID_POINTS[i + 1]) * 0.5f;
 
                     PitchStatcast p = new PitchStatcast
                     {
@@ -180,7 +201,6 @@ namespace UI.Controls
             }
 
             // Run Through Model
-            List<Output_PitchValueAggregation> opvaList = [];
             try{
                 using (Py.GIL())
                 {
@@ -207,32 +227,86 @@ namespace UI.Controls
                 return;
             }
 
-            // Get Pitch value for each point
+            DrawGrid();
+        }
+
+        public void UpdateGridType(OutputComboBoxItem ocbi)
+        {
+            outputVarType = ocbi;
+
+            DrawGrid();
+        }
+
+        private void DrawGrid()
+        {
+            if (opvaList.Count == 0 || pitchModelData == null || Pitch == null)
+                return;
+
+            // Get Data for current scenario
             GridPoints = [];
             var runExpectancyMatrix = Global.db.RunExpectancyMatrix
                 .Where(f => f.Year == Pitch.Year && f.LeagueId == 1
-                    && f.CountBalls == pmd.CountBalls && f.CountStrikes == pmd.CountStrikes)
+                    && f.CountBalls == pitchModelData.CountBalls && f.CountStrikes == pitchModelData.CountStrikes)
                 .ToArray();
             float pitchDev = Global.pitchDb.YearLeagueDeviations
                 .Where(f => f.Year == Pitch.Year && f.Balls == Pitch.CountBalls && f.Strikes == Pitch.CountStrike)
                 .Single().StuffDev;
-            for (int i = 0; i < opvaList.Count; i++)
+
+            // Get desired output from model
+            List<float> modelValue = [];
+            switch(outputVarType)
             {
-                float pitchValue = 0;
-                var opva = opvaList[i];
-                
-                pitchValue += opva.CombinedBall * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Ball).Single().DeltaRuns;
-                pitchValue += (opva.CombinedCalledStrike + (opva.CombinedSwing * opva.CombinedWhiff)) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.CalledStrike).Single().DeltaRuns;
-                pitchValue += (opva.CombinedSwing * opva.CombinedFoul) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Foul).Single().DeltaRuns;
-                pitchValue += opva.CombinedHBP * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.HBP).Single().DeltaRuns;
-                pitchValue += opva.CombinedSwing * opva.CombinedInPlay * opva.CombinedInPlayExpected;
+                case OutputComboBoxItem.Value:
+                    modelValue = opvaList.Select(f => {
+                        return 100 - 
+                        (10 * 
+                        ((
+                            (f.CombinedBall * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Ball).Single().DeltaRuns) +
+                            ((f.CombinedCalledStrike + (f.CombinedSwing * f.CombinedWhiff)) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.CalledStrike).Single().DeltaRuns) +
+                            ((f.CombinedSwing * f.CombinedFoul) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Foul).Single().DeltaRuns) +
+                            (f.CombinedHBP * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.HBP).Single().DeltaRuns) +
+                            (f.CombinedSwing * f.CombinedInPlay * f.CombinedInPlayExpected)
+                        )
+                        / pitchDev));
+                    }).ToList();
+                    break;
+                case OutputComboBoxItem.CSW:
+                    modelValue = opvaList.Select(f => {
+                        return f.CombinedCalledStrike +
+                        (f.CombinedSwing * f.CombinedWhiff);
+                    }).ToList();
+                    break;
+                case OutputComboBoxItem.Ball:
+                    modelValue = opvaList.Select(f => f.CombinedBall + f.CombinedHBP).ToList();
+                    break;
+                case OutputComboBoxItem.Strike:
+                    modelValue = opvaList.Select(f =>
+                    {
+                        return f.CombinedCalledStrike +
+                            (f.CombinedSwing * (f.CombinedWhiff * f.CombinedFoul));
+                    }).ToList();
+                    break;
+                case OutputComboBoxItem.InPlayPerc:
+                    modelValue = opvaList.Select(f =>
+                    {
+                        return f.CombinedSwing * f.CombinedInPlay;
+                    }).ToList();
+                    break;
+                case OutputComboBoxItem.InPlayExp:
+                    modelValue = opvaList.Select(f => f.CombinedInPlayExpected).ToList();
+                    break;
+            }
+                    
 
-                float pitchPlus = 100 - (10 * (pitchValue / pitchDev));
+            // Plot points based on value
+            for (int i = 0; i < modelValue.Count; i++)
+            {
+                int row = i / (X_GRID_POINTS.Count - 1);
+                int col = i % (X_GRID_POINTS.Count - 1);
+                float x = (X_GRID_POINTS[col] + X_GRID_POINTS[col + 1]) * 0.5f;
+                float z = (Z_GRID_POINTS[row] + Z_GRID_POINTS[row + 1]) * 0.5f;
 
-                var pitch = GridPitches[i];
-                #pragma warning disable CS8629 // Values will exist due to initial filter
-                GridPoints.Add(new PitchGridPoint(pitch.PX.Value, pitch.PZ.Value, pitchPlus));
-                #pragma warning restore CS8629
+                GridPoints.Add(new PitchGridPoint(x, z, modelValue[i]));
             }
 
             // Plot points
@@ -306,9 +380,32 @@ namespace UI.Controls
             }
         }
 
-        private static SolidBrush GetBrush(float val)
+        private SolidBrush GetBrush(float val)
         {
-            Color color = Global.GetValueColor(val, VALUE_MIN, VALUE_MAX);
+            Color color;
+            switch(outputVarType)
+            {
+                case OutputComboBoxItem.Value:
+                    color = Global.GetValueColor(val, VALUE_MIN, VALUE_MAX);
+                    break;
+                case OutputComboBoxItem.CSW:
+                    color = Global.GetValueColor(val, 0, 1);
+                    break;
+                case OutputComboBoxItem.Ball:
+                    color = Global.GetValueColor(val, 0, 1);
+                    break;
+                case OutputComboBoxItem.Strike:
+                    color = Global.GetValueColor(val, 0, 1);
+                    break;
+                case OutputComboBoxItem.InPlayPerc:
+                    color = Global.GetValueColor(val, 0, 0.5f);
+                    break;
+                case OutputComboBoxItem.InPlayExp:
+                    color = Global.GetValueColor(val, -0.5f, 0.5f);
+                    break;
+                default:
+                    throw new Exception($"No Output type programmed for {outputVarType}");
+            }
             SolidBrush brush = new(color);
             return brush;
         }
