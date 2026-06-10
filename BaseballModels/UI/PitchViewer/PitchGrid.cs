@@ -126,7 +126,7 @@ namespace UI
                     break;
             }
 
-            return Global.GetValueColor(value, min, max);
+            return Global.GetValueColor(value, min, max, 0);
         }
     }
 

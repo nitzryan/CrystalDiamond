@@ -16,13 +16,12 @@ namespace UI
         public static SqliteDbContext db = new(Db.Connection.DB_READONLY_OPTIONS);
         public static PitchDbContext pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
 
-        public static Color GetValueColor(float value, float min, float max)
+        public static Color GetValueColor(float value, float min, float max, float neutral)
         {
             // Adjust so that it is 0 centered
-            float avg = (min + max) / 2;
-            value -= avg;
-            min -= avg;
-            max -= avg;
+            value -= neutral;
+            min -= neutral;
+            max -= neutral;
 
             float clampedValue = Math.Clamp(value, min, max);
 

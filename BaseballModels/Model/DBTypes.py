@@ -2134,5 +2134,29 @@ class DB_HitterYearZoneData:
 		items = cursor.execute("SELECT * FROM HitterYearZoneData " + conditional, values).fetchall()
 		return [DB_HitterYearZoneData(i) for i in items]
 
+class DB_PitchModelResultBasis:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.CountBalls = values[1]
+		self.CountStrikes = values[2]
+		self.OutputType = values[3]
+		self.Min = values[4]
+		self.Perc5 = values[5]
+		self.Avg = values[6]
+		self.Median = values[7]
+		self.Perc95 = values[8]
+		self.Max = values[9]
+
+	NUM_ELEMENTS = 10
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.CountBalls,self.CountStrikes,self.OutputType,self.Min,self.Perc5,self.Avg,self.Median,self.Perc95,self.Max)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchModelResultBasis']:
+		items = cursor.execute("SELECT * FROM PitchModelResultBasis " + conditional, values).fetchall()
+		return [DB_PitchModelResultBasis(i) for i in items]
+
 
 ##############################################################################################

@@ -241,5 +241,17 @@ namespace Db
             EvenCount = 1 << 7,
             BehindCount = 1 << 8,
         }
+
+        public enum PitchModelOutputType
+        {
+            Value = 1,
+            CSW = 2,
+            Ball = 3,
+            CSWFoul = 4,
+            InPlayPerc = 5,
+            InPlayExp = 6,
+            WhiffRate = 7,
+            SwingStrikePerc = 8,
+        }
     }
 }

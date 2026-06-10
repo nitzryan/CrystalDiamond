@@ -254,3 +254,21 @@ CREATE TABLE RunExpectancyMatrix
 
     PRIMARY KEY("Year", "LeagueId", "CountBalls", "CountStrikes", "Result")
 );
+
+-- Min/Max/Average for different scenarios/outcomes to allow for better plotting
+CREATE TABLE PitchModelResultBasis
+(
+	"Year" INTEGER NOT NULL,
+	"CountBalls" INTEGER NOT NULL,
+	"CountStrikes" INTEGER NOT NULL,
+	"OutputType" INTEGER NOT NULL,
+
+	"Min" REAL NOT NULL,
+	"Perc5" REAL NOT NULL,
+	"Avg" REAL NOT NULL,
+	"Median" REAL NOT NULL,
+	"Perc95" REAL NOT NULL,
+	"Max" REAL NOT NULL,
+
+	PRIMARY KEY("Year", "CountBalls", "CountStrikes", "OutputType")
+);

@@ -1,5 +1,6 @@
 ﻿using Db;
 using static UI.Controls.PitchModelPanel;
+using static Db.DbEnums;
 
 namespace UI.Controls
 {
@@ -34,12 +35,14 @@ namespace UI.Controls
             };
 
             // Set Type and Output ComboBoxes
-            cbOutputVar.Items.Add(OutputComboBoxItem.Value);
-            cbOutputVar.Items.Add(OutputComboBoxItem.CSW);
-            cbOutputVar.Items.Add(OutputComboBoxItem.Ball);
-            cbOutputVar.Items.Add(OutputComboBoxItem.Strike);
-            cbOutputVar.Items.Add(OutputComboBoxItem.InPlayPerc);
-            cbOutputVar.Items.Add(OutputComboBoxItem.InPlayExp);
+            cbOutputVar.Items.Add(PitchModelOutputType.Value);
+            cbOutputVar.Items.Add(PitchModelOutputType.CSW);
+            cbOutputVar.Items.Add(PitchModelOutputType.Ball);
+            cbOutputVar.Items.Add(PitchModelOutputType.CSWFoul);
+            cbOutputVar.Items.Add(PitchModelOutputType.InPlayPerc);
+            cbOutputVar.Items.Add(PitchModelOutputType.InPlayExp);
+            cbOutputVar.Items.Add(PitchModelOutputType.WhiffRate);
+            cbOutputVar.Items.Add(PitchModelOutputType.SwingStrikePerc);
             cbOutputVar.SelectedIndex = 0;
 
             cbOutputVar.SelectedIndexChanged += UpdateGridType;
@@ -125,7 +128,7 @@ namespace UI.Controls
 
         private void UpdateGridType(object? sender, EventArgs e)
         {
-            if (cbOutputVar.SelectedItem is OutputComboBoxItem ocbi)
+            if (cbOutputVar.SelectedItem is PitchModelOutputType ocbi)
             {
                 pitchModelPanel.UpdateGridType(ocbi);
             }

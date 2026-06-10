@@ -1,23 +1,12 @@
 ﻿using Db;
 using PitchDb;
 using Python.Runtime;
-using System.ComponentModel;
-using static UI.Controls.PitchModelPanel;
+using static Db.DbEnums;
 
 namespace UI.Controls
 {
     public partial class PitchModelPanel : UserControl
     {
-        public enum OutputComboBoxItem
-        {
-            Value,
-            CSW,
-            Ball,
-            Strike,
-            InPlayPerc,
-            InPlayExp,
-        }
-
         private const float BALL_SIZE = 0.24f;
         private const float ZONE_LEFT = -0.83f, ZONE_RIGHT = 0.83f;
 
@@ -25,9 +14,6 @@ namespace UI.Controls
         private const float Z_GRID_SIZE = 0.1f;
         private static List<float> X_GRID_POINTS = Enumerable.Range(-20, 41).Select(f => X_GRID_SIZE * f).ToList();
         private static List<float> Z_GRID_POINTS = Enumerable.Range(0, 51).Select(f => Z_GRID_SIZE * f).ToList();
-
-        private const float VALUE_MIN = 50;
-        private const float VALUE_MAX = 150;
 
         private PitchStatcast? Pitch = null;
 
@@ -38,7 +24,20 @@ namespace UI.Controls
         List<Output_PitchValueAggregation> opvaList = [];
         private PitchModelData? pitchModelData = null;
 
-        private OutputComboBoxItem outputVarType = OutputComboBoxItem.Value;
+        private PitchModelOutputType outputVarType = PitchModelOutputType.Value;
+
+        // Color Min/Max values
+        private record PitchScaleValues(
+            float pitchMin, float pitchMax,
+            float ballAvg,
+            float cswMax, float cswAvg,
+            float cswFoulMax, float cswFoulAvg,
+            float inPlayMax, float inPlayAvg,
+            float inPlayExpectedMin, float inPlayExpectedMax, float inPlayExpectedAvg,
+            float whiffRateMin, float whiffRateMax, float whiffRateAvg,
+            float swingStrikeMax, float swingStrikeAvg
+            );
+        PitchScaleValues? scaleValues = null;
 
         public PitchModelPanel()
         {
@@ -121,6 +120,39 @@ namespace UI.Controls
                 return;
 
             pitchModelData = pmd;
+
+            // Get Color Scales for count/year
+            var resultBasis = Global.db.PitchModelResultBasis
+                .Where(f => f.Year == Pitch.Year &&
+                    f.CountBalls == pmd.CountBalls &&
+                    f.CountStrikes == pmd.CountStrikes)
+                .ToList();
+            scaleValues = new PitchScaleValues(
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.Value).Single().Perc5,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.Value).Single().Perc95,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.Ball).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.CSW).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.CSW).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.CSWFoul).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.CSWFoul).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.InPlayPerc).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.InPlayPerc).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.InPlayExp).Single().Perc5,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.InPlayExp).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.InPlayExp).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.WhiffRate).Single().Perc5,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.WhiffRate).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.WhiffRate).Single().Avg,
+
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.SwingStrikePerc).Single().Perc95,
+                resultBasis.Where(f => f.OutputType == PitchModelOutputType.SwingStrikePerc).Single().Avg
+            );
 
             // Generate pitches at different points
             List<PitchStatcast> GridPitches = [];
@@ -230,7 +262,7 @@ namespace UI.Controls
             DrawGrid();
         }
 
-        public void UpdateGridType(OutputComboBoxItem ocbi)
+        public void UpdateGridType(PitchModelOutputType ocbi)
         {
             outputVarType = ocbi;
 
@@ -248,52 +280,51 @@ namespace UI.Controls
                 .Where(f => f.Year == Pitch.Year && f.LeagueId == 1
                     && f.CountBalls == pitchModelData.CountBalls && f.CountStrikes == pitchModelData.CountStrikes)
                 .ToArray();
-            float pitchDev = Global.pitchDb.YearLeagueDeviations
-                .Where(f => f.Year == Pitch.Year && f.Balls == Pitch.CountBalls && f.Strikes == Pitch.CountStrike)
-                .Single().StuffDev;
 
             // Get desired output from model
             List<float> modelValue = [];
             switch(outputVarType)
             {
-                case OutputComboBoxItem.Value:
+                case PitchModelOutputType.Value:
                     modelValue = opvaList.Select(f => {
-                        return 100 - 
-                        (10 * 
-                        ((
+                        return 
                             (f.CombinedBall * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Ball).Single().DeltaRuns) +
                             ((f.CombinedCalledStrike + (f.CombinedSwing * f.CombinedWhiff)) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.CalledStrike).Single().DeltaRuns) +
                             ((f.CombinedSwing * f.CombinedFoul) * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.Foul).Single().DeltaRuns) +
                             (f.CombinedHBP * runExpectancyMatrix.Where(f => f.Result == DbEnums.PitchResult.HBP).Single().DeltaRuns) +
-                            (f.CombinedSwing * f.CombinedInPlay * f.CombinedInPlayExpected)
-                        )
-                        / pitchDev));
+                            (f.CombinedSwing * f.CombinedInPlay * f.CombinedInPlayExpected);
                     }).ToList();
                     break;
-                case OutputComboBoxItem.CSW:
+                case PitchModelOutputType.CSW:
                     modelValue = opvaList.Select(f => {
                         return f.CombinedCalledStrike +
                         (f.CombinedSwing * f.CombinedWhiff);
                     }).ToList();
                     break;
-                case OutputComboBoxItem.Ball:
+                case PitchModelOutputType.Ball:
                     modelValue = opvaList.Select(f => f.CombinedBall + f.CombinedHBP).ToList();
                     break;
-                case OutputComboBoxItem.Strike:
+                case PitchModelOutputType.CSWFoul:
                     modelValue = opvaList.Select(f =>
                     {
                         return f.CombinedCalledStrike +
                             (f.CombinedSwing * (f.CombinedWhiff * f.CombinedFoul));
                     }).ToList();
                     break;
-                case OutputComboBoxItem.InPlayPerc:
+                case PitchModelOutputType.InPlayPerc:
                     modelValue = opvaList.Select(f =>
                     {
                         return f.CombinedSwing * f.CombinedInPlay;
                     }).ToList();
                     break;
-                case OutputComboBoxItem.InPlayExp:
+                case PitchModelOutputType.InPlayExp:
                     modelValue = opvaList.Select(f => f.CombinedInPlayExpected).ToList();
+                    break;
+                case PitchModelOutputType.WhiffRate:
+                    modelValue = opvaList.Select(f => f.CombinedWhiff).ToList();
+                    break;
+                case PitchModelOutputType.SwingStrikePerc:
+                    modelValue = opvaList.Select(f => f.CombinedSwing * f.CombinedWhiff).ToList();
                     break;
             }
                     
@@ -382,26 +413,35 @@ namespace UI.Controls
 
         private SolidBrush GetBrush(float val)
         {
+            if (scaleValues == null)
+                throw new Exception("Null Scale Values");
+
             Color color;
             switch(outputVarType)
             {
-                case OutputComboBoxItem.Value:
-                    color = Global.GetValueColor(val, VALUE_MIN, VALUE_MAX);
+                case PitchModelOutputType.Value:
+                    color = Global.GetValueColor(val, scaleValues.pitchMin, scaleValues.pitchMax, 0);
                     break;
-                case OutputComboBoxItem.CSW:
-                    color = Global.GetValueColor(val, 0, 1);
+                case PitchModelOutputType.CSW:
+                    color = Global.GetValueColor(val, 0, scaleValues.cswMax, scaleValues.cswAvg);
                     break;
-                case OutputComboBoxItem.Ball:
-                    color = Global.GetValueColor(val, 0, 1);
+                case PitchModelOutputType.Ball:
+                    color = Global.GetValueColor(val, 0, 1, scaleValues.ballAvg);
                     break;
-                case OutputComboBoxItem.Strike:
-                    color = Global.GetValueColor(val, 0, 1);
+                case PitchModelOutputType.CSWFoul:
+                    color = Global.GetValueColor(val, 0, scaleValues.cswFoulMax, scaleValues.cswFoulAvg);
                     break;
-                case OutputComboBoxItem.InPlayPerc:
-                    color = Global.GetValueColor(val, 0, 0.5f);
+                case PitchModelOutputType.InPlayPerc:
+                    color = Global.GetValueColor(val, 0, scaleValues.inPlayMax, scaleValues.inPlayAvg);
                     break;
-                case OutputComboBoxItem.InPlayExp:
-                    color = Global.GetValueColor(val, -0.5f, 0.5f);
+                case PitchModelOutputType.InPlayExp:
+                    color = Global.GetValueColor(val, scaleValues.inPlayExpectedMin, scaleValues.inPlayExpectedMax, scaleValues.inPlayExpectedAvg);
+                    break;
+                case PitchModelOutputType.WhiffRate:
+                    color = Global.GetValueColor(val, scaleValues.whiffRateMin, scaleValues.whiffRateMax, scaleValues.whiffRateAvg);
+                    break;
+                case PitchModelOutputType.SwingStrikePerc:
+                    color = Global.GetValueColor(val, 0, scaleValues.swingStrikeMax, scaleValues.swingStrikeAvg);
                     break;
                 default:
                     throw new Exception($"No Output type programmed for {outputVarType}");
