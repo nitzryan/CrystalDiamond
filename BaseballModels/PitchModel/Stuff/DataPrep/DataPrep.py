@@ -116,6 +116,12 @@ class DataPrep:
        
     __CutoffYear = 2024
         
+    def GetStuffInputSize(self) -> int:
+        return self.prep_map.pitch_overview_size + self.prep_map.pitch_stuff_size + self.prep_map.league_baseline_size
+    
+    def GetCombinedInputSize(self) -> int:
+        return self.prep_map.pitch_overview_size + self.prep_map.pitch_loc_size + self.prep_map.pitch_stuff_size + self.prep_map.pitch_combined_size + self.prep_map.league_baseline_size + self.prep_map.hitter_zone_size
+        
     def Get_ZScore(self, stats : torch.Tensor, name : str) -> torch.Tensor:
         means : torch.Tensor = getattr(self, f"__{name}_means")
         devs : torch.Tensor = getattr(self, f"__{name}_devs")

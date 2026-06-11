@@ -3,16 +3,16 @@ import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
 from Constants import device
-from Stuff.Model.PitchModel import PitchModel
+from Stuff.Model.PitchModel import PitchModel, ModelVariantType, ModelOutputType
 from Stuff.DataPrep.PitchDataset import PitchDataset
 from Stuff.Model.LossFunctions import *
-from Stuff.Model.ModelScheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
-
+from torch.optim.lr_scheduler import CosineAnnealingLR 
 from Constants import profiler
 
-_MODEL_VARIANTS = ["Location", "Stuff", "Combined"]
-_MODEL_OUTPUTS = ["Result", "SwingResults", "InPlay"]
-_TOTAL_OUTPUTS = [v + " " + o for v in _MODEL_VARIANTS for o in _MODEL_OUTPUTS]
+
+
+_MODEL_VARIANTS = [ModelVariantType.Stuff, ModelVariantType.Combined]
+_MODEL_OUTPUTS = [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]
 
 SHOULD_PROFILE = False
 
@@ -24,16 +24,16 @@ def TrainAndGraph(
     num_epochs : int = 1001,
     logging_interval : int = 50,
     early_stopping_cutoff : int = 20,
-    base_element : int = 2 * len(_MODEL_OUTPUTS),
+
     should_output : bool = True,
     model_name : str = "no_name",
-) -> list[float]:
+) -> float:
     
     if SHOULD_PROFILE:
         profiler.enable()
     
-    test_loss_history : list[list[float]] = [[] for _ in range(len(_TOTAL_OUTPUTS))]
-    train_loss_history : list[list[float]] = [[] for _ in range(len(_TOTAL_OUTPUTS))]
+    test_loss_history : list[float] = []
+    train_loss_history : list[float] = []
     epoch_counter : list[int] = []
     
     best_loss = 99999999
@@ -41,43 +41,57 @@ def TrainAndGraph(
     epochs_since_improve = 0
 
     
-    scheduler = Scheduler(
-        optimizer=network.optimizer,
-        parameter_map=[[0], [1], [2], [3], [4], [5], [6], [7], [8]],
-        verbose=False,
-        factor=0.5,
-        patience=5,
-        cooldown=5)
+    match network.model_variant_type:
+        case ModelVariantType.Stuff:
+            match network.model_output_type:
+                case ModelOutputType.Result:
+                    t_max = 200
+                case ModelOutputType.SwingResults:
+                    t_max = 200
+                case ModelOutputType.InPlay:
+                    t_max = 200
+        case ModelVariantType.Combined:
+            match network.model_output_type:
+                case ModelOutputType.Result:
+                    t_max = 200
+                case ModelOutputType.SwingResults:
+                    t_max = 200
+                case ModelOutputType.InPlay:
+                    t_max = 200
+    
+    scheduler = CosineAnnealingLR(
+        network.optimizer,
+        T_max=t_max
+    )
     
     iterable = range(num_epochs)
     if not should_output:
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
-        train_losses = TrainTest(network=network, 
+        train_loss = TrainTest(network=network, 
             dataset=train_dataset, 
             optimizer=network.optimizer, 
             batch_size=batch_size,
             total_size=len(train_dataset),
             is_train=True)
-        test_losses = TrainTest(network=network, 
+        test_loss = TrainTest(network=network, 
             dataset=test_dataset, 
             optimizer=None,
             batch_size=batch_size,
             total_size=len(test_dataset),
             is_train=False)
         
-        LogResults(epoch, num_epochs, train_losses[base_element], test_losses[base_element], logging_interval, should_output)
-        scheduler.step(test_losses)
+        LogResults(epoch, num_epochs, train_loss, test_loss, logging_interval, should_output)
+        scheduler.step()
         
-        for n in range(len(_TOTAL_OUTPUTS)):
-            train_loss_history[n].append(train_losses[n])
-            test_loss_history[n].append(test_losses[n])
+        train_loss_history.append(train_loss)
+        test_loss_history.append(test_loss)
         epoch_counter.append(epoch)
         
-        if test_losses[base_element] < best_loss:
-            best_loss = test_losses[base_element]
+        if test_loss < best_loss:
+            best_loss = test_loss
             best_epoch = epoch
-            torch.save(network.state_dict(), model_name + ".pt")
+            torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
             epochs_since_improve = 0
         else:
             epochs_since_improve += 1
@@ -93,10 +107,9 @@ def TrainAndGraph(
         
     if should_output:
         print(f"Best result at epoch={best_epoch} with loss={best_loss}")
-        for n in range(len(_TOTAL_OUTPUTS)):
-            GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=_TOTAL_OUTPUTS[n], start=1)
+        GraphLoss(epoch_counter, train_loss_history, test_loss_history, title=f"{network.model_variant_type.name}_{network.model_output_type.name}", start=1)
         
-    return test_losses
+    return test_loss
 
 
 @profiler
@@ -105,7 +118,7 @@ def TrainTest(network : PitchModel,
               optimizer : torch.optim.Optimizer | None, 
               total_size : int,
               batch_size : int,
-              is_train : bool) -> list[float]:
+              is_train : bool) -> float:
     
     
     if is_train:
@@ -117,8 +130,8 @@ def TrainTest(network : PitchModel,
         network.eval()
         indices = torch.arange(total_size, device='cpu')
         
-    avg_losses = [0] * len(_TOTAL_OUTPUTS)
-    sizes = [0] * len(_TOTAL_OUTPUTS)
+    avg_loss = 0
+    size = 0
     for i in range(0, total_size, batch_size):
         # Fetch Data
         batch_idx = indices[i:i + batch_size]
@@ -131,38 +144,56 @@ def TrainTest(network : PitchModel,
         # Run through model, get losses
         if is_train:
             optimizer.zero_grad()
-        losses, counts = GetLosses(network, data, targets, masks, is_train)
+        loss, count = GetLosses(network, data, targets, masks, is_train)
         
         if is_train:
             torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
             optimizer.step()
         
-        for i in range(len(_TOTAL_OUTPUTS)):
-            avg_losses[i] += losses[i].item() * counts[i]
-            sizes[i] += counts[i]
+        
+        avg_loss += loss.item() * count
+        size += count
             
-    for i in range(len(_TOTAL_OUTPUTS)):
-        avg_losses[i] /= sizes[i]
-    return avg_losses
+    avg_loss /= size
+    return avg_loss
         
 @profiler
-def GetLosses(network : PitchModel, data : tuple[torch.Tensor, ...], targets : tuple[torch.Tensor, ...], masks : tuple[torch.Tensor, ...], should_backprop : bool) -> tuple[list[torch.Tensor], list[int]]:
-    outputs = network(data)
+def GetLosses(
+    network : PitchModel, 
+    data : tuple[torch.Tensor, ...], 
+    targets : tuple[torch.Tensor, ...], 
+    masks : tuple[torch.Tensor, ...], 
+    should_backprop : bool) -> tuple[list[torch.Tensor], list[int]]:
     
-    if len(outputs) / len(targets) != len(_MODEL_VARIANTS):
-        raise RuntimeError(f"Not the same number of outputs ({len(outputs)}) and targets ({len(targets)})")
     
-    losses : list[torch.Tensor] = []
-    counts : list[int] = []
-    for i in range(len(outputs)):
-        loss, count = Classification_Loss(outputs[i], targets[i % len(_MODEL_OUTPUTS)], masks[i % len(_MODEL_OUTPUTS)])
-        losses.append(loss)
-        counts.append(count)
+    overview, loc, stuff, combined, game, league = data
+    match network.model_variant_type:
+        case ModelVariantType.Stuff:
+            input_data = torch.cat((overview, stuff, league), dim=-1)
+        case ModelVariantType.Combined:
+            input_data = torch.cat((overview, loc, stuff, combined, league), dim=-1)
+    
+    outputs = network(input_data)
+    
+    output_result, output_swing, output_inplay = targets
+    mask_result, mask_swing, mask_inplay = masks
+    match network.model_output_type:
+        case ModelOutputType.Result:
+            output_targets = output_result
+            output_masks = mask_result
+        case ModelOutputType.SwingResults:
+            output_targets = output_swing
+            output_masks = mask_swing
+        case ModelOutputType.InPlay:
+            output_targets = output_inplay
+            output_masks = mask_inplay
+    
+    loss, count = Classification_Loss(outputs, output_targets, output_masks)
         
     if should_backprop:
-        torch.autograd.backward(losses)
+        torch.autograd.backward(loss)
         
-    return losses, counts
+    return loss, count
 
 def LogResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, should_output=True):
     if should_output and (epoch%print_interval == 0):  
