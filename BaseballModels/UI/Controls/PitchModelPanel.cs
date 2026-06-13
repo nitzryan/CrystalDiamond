@@ -225,7 +225,6 @@ namespace UI.Controls
                         RunValueSmoothedHitter = Pitch.RunValueSmoothedHitter,
                         Scenario = Pitch.Scenario,
                         ModelStuff = Pitch.ModelStuff,
-                        ModelLocation = Pitch.ModelLocation,
                         ModelPitch = Pitch.ModelPitch,
                     };
                     GridPitches.Add(p);

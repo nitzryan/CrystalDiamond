@@ -1,6 +1,7 @@
 from Stuff.DataPrep.DataPrep import DataPrep
 from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP, ModelVariantType, ModelOutputType
+from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
+from Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
 from Stuff.Model.ModelTrain import TrainAndGraph
 from Constants import device, DATA_PREP_BINARY_ALL_FILE
 from tqdm import tqdm
@@ -18,7 +19,7 @@ train_dataset, test_dataset = CreateTestTrainDatasets(pitch_io_list)
 pitch_io_list = None # Clear Memory
 
 num_blocks = [8, 4, 2, 1]
-block_sizes = [512, 256, 128, 64]
+block_sizes = [256, 128, 64, 32]
 
 model_variants = [ModelVariantType.Stuff, ModelVariantType.Combined]
 model_outputs = [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]
@@ -29,6 +30,8 @@ for model_variant in tqdm(model_variants, desc="Model Variants"):
         ys = []
         zs = []
         args = DEFAULT_ARGS_MAP[(model_variant, model_output)]
+        train_dataset.SetOutputType(model_output)
+        test_dataset.SetOutputType(model_output)
         
         for nb in tqdm(num_blocks, desc="Num Blocks", leave=False):
             for bs in tqdm(block_sizes, desc="Block Size", leave=False):

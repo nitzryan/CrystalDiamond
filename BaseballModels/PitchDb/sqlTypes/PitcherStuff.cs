@@ -12,11 +12,9 @@ namespace PitchDb
 		public required int NumPitches {get; set;}
 		public required float ValueActual {get; set;}
 		public required float ValueStuff {get; set;}
-		public required float ValueLoc {get; set;}
 		public required float ValueCombined {get; set;}
 		public required float ActualPlus {get; set;}
 		public required float StuffPlus {get; set;}
-		public required float LocationPlus {get; set;}
 		public required float PitchPlus {get; set;}
 		public required float Vel {get; set;}
 		public required float BreakHoriz {get; set;}
@@ -36,11 +34,9 @@ namespace PitchDb
 				NumPitches = this.NumPitches,
 				ValueActual = this.ValueActual,
 				ValueStuff = this.ValueStuff,
-				ValueLoc = this.ValueLoc,
 				ValueCombined = this.ValueCombined,
 				ActualPlus = this.ActualPlus,
 				StuffPlus = this.StuffPlus,
-				LocationPlus = this.LocationPlus,
 				PitchPlus = this.PitchPlus,
 				Vel = this.Vel,
 				BreakHoriz = this.BreakHoriz,

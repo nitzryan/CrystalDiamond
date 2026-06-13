@@ -1,5 +1,6 @@
 import torch
 from Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
+from Stuff.Model.ModelOutputType import ModelOutputType
 from DBTypes import *
 
 class PitchIO:
@@ -87,6 +88,8 @@ class PitchDataset(torch.utils.data.Dataset):
                 mask_swing : torch.Tensor,
                 mask_inplay : torch.Tensor,
                 
+                current_output_type: ModelOutputType = ModelOutputType.Result,
+                
                 dataset_device = device
                 ):
         
@@ -111,43 +114,63 @@ class PitchDataset(torch.utils.data.Dataset):
         self.mask_swing = mask_swing.to(device=dataset_device, non_blocking=True)
         self.mask_inplay = mask_inplay.to(device=dataset_device, non_blocking=True)
         
+        self.output_targets = {
+            ModelOutputType.Result: self.output_type,
+            ModelOutputType.SwingResults: self.output_swing,
+            ModelOutputType.InPlay: self.output_inplay,
+        }
+        
+        self.output_masks = {
+            ModelOutputType.Result: torch.ones(
+                self.data_overview.size(dim=0),
+                dtype=torch.float,
+                device=dataset_device
+            ),
+            ModelOutputType.SwingResults: self.mask_swing,
+            ModelOutputType.InPlay: self.mask_inplay,
+        }
+        
+        current_output_type
+        self.SetOutputType(current_output_type)
+        
     def __len__(self):
         return self.data_overview.size(dim=0)
     
-    def GetEntries(self, batch_indices : torch.Tensor) -> tuple[tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...]]:
+    def SetOutputType(self, output_type: ModelOutputType):
+        self.current_output_type = output_type
+        self.current_targets = self.output_targets[output_type]
+        self.current_mask = self.output_masks[output_type]
+    
+    def GetEntries(self, batch_indices : torch.Tensor, eval_mode : bool) -> tuple[tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...], tuple[torch.Tensor, ...]]:
+        # Only get valid entries
+        if eval_mode:
+            filtered_indices = batch_indices
+        else:
+            keep = (self.current_mask[batch_indices] > 0.0).to(batch_indices.device)
+            filtered_indices = batch_indices[keep]
+        
         # Mappings used to connect data to specific pitch
         mappings = (
-            self.mapping_game_ids[batch_indices],
-            self.mapping_pitch_nums[batch_indices],
-            self.mapping_pitcher_ids[batch_indices],
-            self.mapping_level_ids[batch_indices],
+            self.mapping_game_ids[filtered_indices],
+            self.mapping_pitch_nums[filtered_indices],
+            self.mapping_pitcher_ids[filtered_indices],
+            self.mapping_level_ids[filtered_indices],
         )
         
         # Data used to feed into model
         data = (
-            self.data_overview[batch_indices],
-            self.data_loc[batch_indices],
-            self.data_stuff[batch_indices],
-            self.data_combined[batch_indices],
-            self.data_pitcher_game[batch_indices],
-            self.data_league_avg[batch_indices]
+            self.data_overview[filtered_indices],
+            self.data_loc[filtered_indices],
+            self.data_stuff[filtered_indices],
+            self.data_combined[filtered_indices],
+            self.data_pitcher_game[filtered_indices],
+            self.data_league_avg[filtered_indices]
         )
         
         # Data used to evaluate model
-        targets = (
-            self.output_type[batch_indices],
-            self.output_swing[batch_indices],
-            self.output_inplay[batch_indices],
-        )
+        target = self.current_targets[filtered_indices]
         
-        # Masks to turn parts of model on/off
-        masks = (
-            torch.ones(batch_indices.shape[0], dtype=torch.float, device=self.mask_inplay.device),
-            self.mask_swing[batch_indices],
-            self.mask_inplay[batch_indices],
-        )
-        
-        return mappings, data, targets, masks
+        return mappings, data, target
             
 def CreateTestTrainDatasets(
     data : list[list[PitchIO]], 

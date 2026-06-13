@@ -32,28 +32,22 @@ namespace PitchAnalysis
                     {
                         var yearModelPitches = pitchDb.Output_PitchValueAggregation
                             .Where(f => f.Year == year && f.Model == modelId && f.LevelId == 1)
-                            .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes })
+                            .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes })
                             .ToList();
                         foreach (int ball in balls)
                         {
                             var yearModelBallPitches = yearModelPitches
                                 .Where(f => f.CountBalls == ball)
-                                .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns, f.CountStrikes })
+                                .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountStrikes })
                                 .ToList();
 
                             foreach (int strike in strikes)
                             {
                                 var yearModelCountPitches = yearModelPitches
                                     .Where(f => f.CountStrikes == strike)
-                                    .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.LocationRuns, f.CombinedRuns })
+                                    .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns })
                                     .ToArray();
 
-                                double locationDev = Math.Sqrt(yearModelCountPitches
-                                    .Select(f => f.LocationRuns)
-                                    .AsEnumerable()
-                                    .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-                                    .Select(v => v * v)
-                                    .Average());
                                 double stuffDev = Math.Sqrt(yearModelCountPitches
                                     .Select(f => f.StuffRuns)
                                     .AsEnumerable()
@@ -73,7 +67,6 @@ namespace PitchAnalysis
                                     ModelId = modelId,
                                     Balls=ball,
                                     Strikes=strike,
-                                    LocDev = (float)locationDev,
                                     StuffDev = (float)stuffDev,
                                     PitchDev = (float)pitchDev
                                 });

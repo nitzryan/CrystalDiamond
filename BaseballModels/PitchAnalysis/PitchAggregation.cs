@@ -130,60 +130,46 @@ namespace PitchAnalysis
                     float valueHBP = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.HBP)];
 
                     // Get probability of each event from individual model run pitches
-                    float probBallLocation = pitches.Average(f => f.LocationBall);
                     float probBallStuff = pitches.Average(f => f.StuffBall);
                     float probBallCombined = pitches.Average(f => f.CombinedBall);
 
-                    float probCSLocation = pitches.Average(f => f.LocationCalledStrike);
                     float probCSStuff = pitches.Average(f => f.StuffCalledStrike);
                     float probCSCombined = pitches.Average(f => f.CombinedCalledStrike);
 
-                    float probSwingLocation = pitches.Average(f => f.LocationSwing);
                     float probSwingStuff = pitches.Average(f => f.StuffSwing);
                     float probSwingCombined = pitches.Average(f => f.CombinedSwing);
 
-                    float probHBPLocation = pitches.Average(f => f.LocationHBP);
                     float probHBPStuff = pitches.Average(f => f.StuffHBP);
                     float probHBPCombined = pitches.Average(f => f.CombinedHBP);
 
-                    float probWhiffLocation = pitches.Average(f => f.LocationWhiff);
                     float probWhiffStuff = pitches.Average(f => f.StuffWhiff);
                     float probWhiffCombined = pitches.Average(f => f.CombinedWhiff);
 
-                    float probFoulLocation = pitches.Average(f => f.LocationFoul);
                     float probFoulStuff = pitches.Average(f => f.StuffFoul);
                     float probFoulCombined = pitches.Average(f => f.CombinedFoul);
 
-                    float probIPLocation = pitches.Average(f => f.LocationInPlay);
                     float probIPStuff = pitches.Average(f => f.StuffInPlay);
                     float probIPCombined = pitches.Average(f => f.CombinedInPlay);
 
                     // Combine probabilities to expected values
-                    float locationExpectedValue = 0;
                     float stuffExpectedValue = 0;
                     float combinedExpectedValue = 0;
 
-                    float valueIPLocation = pitches.Average(f => f.LocationInPlayExpected);
                     float valueIPStuff = pitches.Average(f => f.StuffInPlayExpected);
                     float valueIPCombined = pitches.Average(f => f.CombinedInPlayExpected);
 
-                    locationExpectedValue += valueBall * probBallLocation;
                     stuffExpectedValue += valueBall * probBallStuff;
                     combinedExpectedValue += valueBall * probBallCombined;
 
-                    locationExpectedValue += valueStrike * (probCSLocation + (probSwingLocation * probWhiffLocation));
                     stuffExpectedValue += valueStrike * (probCSStuff + (probSwingStuff * probWhiffStuff));
                     combinedExpectedValue += valueStrike * (probCSCombined + (probSwingCombined * probWhiffCombined));
 
-                    locationExpectedValue += valueFoul * (probSwingLocation * probFoulLocation);
                     stuffExpectedValue += valueFoul * (probSwingStuff * probFoulStuff);
                     combinedExpectedValue += valueFoul * (probSwingCombined * probFoulCombined);
 
-                    locationExpectedValue += valueIPLocation * (probSwingLocation * probIPLocation);
                     stuffExpectedValue += valueIPStuff * (probSwingStuff * probIPStuff);
                     combinedExpectedValue += valueIPCombined * (probSwingCombined * probIPCombined);
 
-                    locationExpectedValue += valueHBP * probHBPLocation;
                     stuffExpectedValue += valueHBP * probHBPStuff;
                     combinedExpectedValue += valueHBP * probHBPCombined;
 
@@ -199,14 +185,6 @@ namespace PitchAnalysis
                         CountBalls = pitchScenario.balls,
                         CountStrikes = pitchScenario.strikes,
 
-                        LocationCalledStrike = probCSLocation,
-                        LocationBall = probBallLocation,
-                        LocationHBP = probHBPLocation,
-                        LocationSwing = probSwingLocation,
-                        LocationWhiff = probWhiffLocation,
-                        LocationFoul = probFoulLocation,
-                        LocationInPlay = probIPLocation,
-                        LocationInPlayExpected = valueIPLocation,
                         StuffCalledStrike = probCSStuff,
                         StuffBall = probBallStuff,
                         StuffHBP = probHBPStuff,
@@ -223,7 +201,6 @@ namespace PitchAnalysis
                         CombinedFoul = probFoulCombined,
                         CombinedInPlay = probIPCombined,
                         CombinedInPlayExpected = valueIPCombined,
-                        LocationRuns = locationExpectedValue,
                         StuffRuns = stuffExpectedValue,
                         CombinedRuns = combinedExpectedValue,
                     });

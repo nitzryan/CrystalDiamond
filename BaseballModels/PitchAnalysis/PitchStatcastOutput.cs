@@ -13,7 +13,6 @@ namespace PitchAnalysis
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelStuff=NULL");
-            db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelLocation=NULL");
             db.Database.ExecuteSqlRaw("UPDATE PitchStatcast SET ModelPitch=NULL");
 
             var pitchOutputs = pitchDb.Output_PitchValueAggregation
@@ -39,7 +38,6 @@ namespace PitchAnalysis
                         .Single();
 
                     pitchStatcast.ModelStuff = opva.StuffRuns;
-                    pitchStatcast.ModelLocation = opva.LocationRuns;
                     pitchStatcast.ModelPitch = opva.CombinedRuns;
 
                     // Make sure that too many pitches don't get logged to run out of memory

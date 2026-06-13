@@ -3,16 +3,12 @@ import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
 from Constants import device
-from Stuff.Model.PitchModel import PitchModel, ModelVariantType, ModelOutputType
+from Stuff.Model.PitchModel import PitchModel
+from Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
 from Stuff.DataPrep.PitchDataset import PitchDataset
 from Stuff.Model.LossFunctions import *
 from torch.optim.lr_scheduler import CosineAnnealingLR 
 from Constants import profiler
-
-
-
-_MODEL_VARIANTS = [ModelVariantType.Stuff, ModelVariantType.Combined]
-_MODEL_OUTPUTS = [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]
 
 SHOULD_PROFILE = False
 
@@ -135,16 +131,14 @@ def TrainTest(network : PitchModel,
     for i in range(0, total_size, batch_size):
         # Fetch Data
         batch_idx = indices[i:i + batch_size]
-        _, data, targets, masks = dataset.GetEntries(batch_idx)
+        _, data, target = dataset.GetEntries(batch_idx, False)
         
         data = tuple(d.to(device, non_blocking=False) for d in data)
-        targets = tuple(t.to(device, non_blocking=False) for t in targets)
-        masks = tuple(m.to(device, non_blocking=False) for m in masks)
         
         # Run through model, get losses
         if is_train:
             optimizer.zero_grad()
-        loss, count = GetLosses(network, data, targets, masks, is_train)
+        loss, count = GetLosses(network, data, target, is_train)
         
         if is_train:
             torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
@@ -161,8 +155,7 @@ def TrainTest(network : PitchModel,
 def GetLosses(
     network : PitchModel, 
     data : tuple[torch.Tensor, ...], 
-    targets : tuple[torch.Tensor, ...], 
-    masks : tuple[torch.Tensor, ...], 
+    targets : torch.Tensor, 
     should_backprop : bool) -> tuple[list[torch.Tensor], list[int]]:
     
     
@@ -175,20 +168,7 @@ def GetLosses(
     
     outputs = network(input_data)
     
-    output_result, output_swing, output_inplay = targets
-    mask_result, mask_swing, mask_inplay = masks
-    match network.model_output_type:
-        case ModelOutputType.Result:
-            output_targets = output_result
-            output_masks = mask_result
-        case ModelOutputType.SwingResults:
-            output_targets = output_swing
-            output_masks = mask_swing
-        case ModelOutputType.InPlay:
-            output_targets = output_inplay
-            output_masks = mask_inplay
-    
-    loss, count = Classification_Loss(outputs, output_targets, output_masks)
+    loss, count = Classification_Loss(outputs, targets)
         
     if should_backprop:
         torch.autograd.backward(loss)

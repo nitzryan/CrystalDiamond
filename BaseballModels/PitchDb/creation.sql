@@ -7,18 +7,6 @@ CREATE TABLE Output_PitchValue (
 	"Year" INTEGER NOT NULL,
 	"LevelId" INTEGER NOT NULL,
 	"mlbId" INTEGER NOT NULL,
-	
-	-- Location
-	"locationCalledStrike" REAL NOT NULL,
-	"locationBall" REAL NOT NULL,
-	"locationHBP" REAL NOT NULL,
-	"locationSwing" REAL NOT NULL,
-
-	"locationWhiff" REAL NOT NULL,
-	"locationFoul" REAL NOT NULL,
-	"locationInPlay" REAL NOT NULL,
-
-	"locationInPlayExpected" REAL NOT NULL,
 
 	-- Stuff
 	"stuffCalledStrike" REAL NOT NULL,
@@ -63,18 +51,6 @@ CREATE TABLE Output_PitchValueAggregation (
 	"CountBalls" INTEGER NOT NULL,
 	"CountStrikes" INTEGER NOT NULL,
 
-	-- Location
-	"locationCalledStrike" REAL NOT NULL,
-	"locationBall" REAL NOT NULL,
-	"locationHBP" REAL NOT NULL,
-	"locationSwing" REAL NOT NULL,
-
-	"locationWhiff" REAL NOT NULL,
-	"locationFoul" REAL NOT NULL,
-	"locationInPlay" REAL NOT NULL,
-
-	"locationInPlayExpected" REAL NOT NULL,
-
 	-- Stuff
 	"stuffCalledStrike" REAL NOT NULL,
 	"stuffBall" REAL NOT NULL,
@@ -99,7 +75,6 @@ CREATE TABLE Output_PitchValueAggregation (
 
 	"combinedInPlayExpected" REAL NOT NULL,
 
-	"locationRuns" REAL NOT NULL,
 	"stuffRuns" REAL NOT NULL,
 	"combinedRuns" REAL NOT NULL,
 
@@ -124,9 +99,6 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"ModelId" INTEGER NOT NULL,
 	"ModelRun" INTEGER NOT NULL,
 	
-	"LossLocationResult" REAL NOT NULL,
-	"LossLocationSwing" REAL NOT NULL,
-	"LossLocationInplay" REAL NOT NULL,
 	"LossStuffResult" REAL NOT NULL,
 	"LossStuffSwing" REAL NOT NULL,
 	"LossStuffInplay" REAL NOT NULL,
@@ -156,7 +128,6 @@ CREATE TABLE YearLeagueDeviations
 	"Strikes" INTEGER NOT NULL,
 
 	"StuffDev" REAL NOT NULL,
-	"LocDev" REAL NOT NULL,
 	"PitchDev" REAL NOT NULL,
 
 	PRIMARY KEY("ModelId", "Year", "Balls", "Strikes")
@@ -176,12 +147,10 @@ CREATE TABLE PitcherStuff
 	"NumPitches" INTEGER NOT NULL,
 	"ValueActual" REAL NOT NULL,
 	"ValueStuff" REAL NOT NULL,
-	"ValueLoc" REAL NOT NULL,
 	"ValueCombined" REAL NOT NULL,
 
 	"ActualPlus" REAL NOT NULL,
 	"StuffPlus" REAL NOT NULL,
-	"LocationPlus" REAL NOT NULL,
 	"PitchPlus" REAL NOT NULL,
 
 	"Vel" REAL NOT NULL,

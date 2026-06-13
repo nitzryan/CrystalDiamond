@@ -1,7 +1,7 @@
 from Stuff.DataPrep.DataPrep import DataPrep
-from Stuff.DataPrep.PrepMap import standard_prep_map
 from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP, ModelVariantType, ModelOutputType
+from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
+from Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
 from Stuff.Model.ModelTrain import TrainAndGraph
 from Constants import device, DATA_PREP_BINARY_ALL_FILE
 from tqdm import tqdm
@@ -14,17 +14,15 @@ import gc
 
 # Get Data
 data_prep = DataPrep.Load_From_File(DATA_PREP_BINARY_ALL_FILE)
-pitch_io_list = data_prep.GenerateIOPitches(start_year=2021, end_year=2021)
+pitch_io_list = data_prep.GenerateIOPitches()
 train_dataset, test_dataset = CreateTestTrainDatasets(pitch_io_list)
 pitch_io_list = None # Clear Memory
 
-dropout_list = [0, 0.05, 0.1, 0.2, 0.3, 0.4]
+dropout_list = [0, 0.1, 0.2, 0.3, 0.4]
 wd_list = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2]
 
 model_variants = [ModelVariantType.Stuff, ModelVariantType.Combined]
 model_outputs = [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]
-
-
 
 # Iterate through training
 for model_variant in tqdm(model_variants, desc="Model Variants"):
@@ -33,6 +31,8 @@ for model_variant in tqdm(model_variants, desc="Model Variants"):
         ys = []
         zs = []
         args = DEFAULT_ARGS_MAP[(model_variant, model_output)]
+        train_dataset.SetOutputType(model_output)
+        test_dataset.SetOutputType(model_output)
         
         for dropout in tqdm(dropout_list, desc="Dropout", leave=False):
             for weight_decay in tqdm(wd_list, desc="Weight Decay", leave=False):

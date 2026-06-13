@@ -5,8 +5,9 @@ import gc
 from Constants import device, pitch_db
 from Shared import GetDataPrep
 from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel
+from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
 from Stuff.Model.ModelTrain import TrainAndGraph
+from Stuff.Model.ModelOutputType import *
 
 def Train_Pitches(num_models : int):
     if num_models < 0:
@@ -27,21 +28,31 @@ def Train_Pitches(num_models : int):
                 pitch_io_list, 
                 train_idx=i)
             
-            # Run Model
-            model_name_pt = f"{model_name}_{i}"
-            network = PitchModel(data_prep=data_prep).to(device)
+            losses = []
             
-            losses = TrainAndGraph(
-                network=network,
-                train_dataset=train_dataset,
-                test_dataset=test_dataset,
-                model_name=f'Models/{model_name_pt}',
-                should_output=False,
-            )
+            for model_variant_type in tqdm(MODEL_VARIANTS, desc="Model Variants", leave=False):
+                for model_output_type in tqdm(MODEL_OUTPUTS, desc="Model Outputs", leave=False):
+                    
+                    # Run Model
+                    args = DEFAULT_ARGS_MAP[(model_variant_type, model_output_type)]
+                    model_name_pt = f"{model_name}_{i}"
+                    network = PitchModel(args=args, data_prep=data_prep).to(device)
+                    
+                    train_dataset.SetOutputType(model_output_type)
+                    test_dataset.SetOutputType(model_output_type)
+                    
+                    loss = TrainAndGraph(
+                        network=network,
+                        train_dataset=train_dataset,
+                        test_dataset=test_dataset,
+                        model_name=f'Models/{model_name_pt}',
+                        should_output=False,
+                    )
+                    losses.append(loss)
             
             # Log Results
             cursor = pitch_db.cursor()
-            cursor.execute("INSERT INTO ModelTrainingHistory_PitchValue VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            cursor.execute("INSERT INTO ModelTrainingHistory_PitchValue VALUES(?,?,?,?,?,?,?,?,?)",
                 (
                     model_id,
                     i,
@@ -51,9 +62,6 @@ def Train_Pitches(num_models : int):
                     losses[3],
                     losses[4],
                     losses[5],
-                    losses[6],
-                    losses[7],
-                    losses[8],
                     "TODO",
                 )
             )

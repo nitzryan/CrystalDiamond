@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from enum import Enum
+
 from Buckets import *
 from DBTypes import *
 from PitchDBTypes import *
@@ -10,15 +10,7 @@ from Stuff.Model.Utilities import *
 from Stuff.DataPrep.DataPrep import DataPrep
 from Constants import pitch_db
 import warnings
-        
-class ModelVariantType(Enum):
-    Stuff = 0,
-    Combined = 1
-    
-class ModelOutputType(Enum):
-    Result = 0,
-    SwingResults = 1,
-    InPlay = 2,
+from Stuff.Model.ModelOutputType import *
         
 def GetParameters(layers):
     parameters = []
@@ -49,49 +41,49 @@ DEFAULT_STUFF_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.Result,
     learning_rate=0.001,
-    block_size=512,
-    num_blocks=2,
-    dropout=0.3,
-    weight_decay=1e-4
+    block_size=64,
+    num_blocks=8,
+    dropout=0.2,
+    weight_decay=1e-2
 )
         
 DEFAULT_STUFF_SWINGRESULTS_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.SwingResults,
     learning_rate=0.001,
-    block_size=512,
+    block_size=128,
     num_blocks=4,
-    dropout=0.3,
-    weight_decay=1e-4
+    dropout=0.0,
+    weight_decay=3e-3
 )
 
 DEFAULT_STUFF_INPLAY_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.InPlay,
     learning_rate=0.001,
-    block_size=512,
-    num_blocks=2,
-    dropout=0.3,
-    weight_decay=1e-4
+    block_size=128,
+    num_blocks=4,
+    dropout=0.2,
+    weight_decay=3e-3
 )
 
 DEFAULT_COMBINED_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.Result,
     learning_rate=0.001,
-    block_size=512,
-    num_blocks=2,
-    dropout=0.3,
-    weight_decay=1e-4
+    block_size=256,
+    num_blocks=4,
+    dropout=0.2,
+    weight_decay=1e-5
 )
         
 DEFAULT_COMBINED_SWINGRESULTS_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.SwingResults,
     learning_rate=0.001,
-    block_size=512,
-    num_blocks=2,
-    dropout=0.3,
+    block_size=64,
+    num_blocks=8,
+    dropout=0.1,
     weight_decay=1e-4
 )
 
@@ -99,8 +91,8 @@ DEFAULT_COMBINED_INPLAY_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.InPlay,
     learning_rate=0.001,
-    block_size=512,
-    num_blocks=2,
+    block_size=64,
+    num_blocks=8,
     dropout=0.3,
     weight_decay=1e-4
 )
@@ -122,9 +114,6 @@ class PitchModel(nn.Module):
     ):
         super().__init__()
         
-        # self.data_prep = data_prep
-        # prep_map = data_prep.prep_map
-        # self.loss_backprop_weights = loss_backprop_weights
         self.nonlin = F.leaky_relu
         self.model_variant_type = args.model_variant_type
         self.model_output_type = args.model_output_type
@@ -145,7 +134,7 @@ class PitchModel(nn.Module):
         
         self.layers = nn.ModuleList(
             [nn.Linear(input_size, args.block_size)] +
-            [ResnetBlock(dim=args.block_size, dropout=args.dropout)] +
+            [ResnetBlock(dim=args.block_size, dropout=args.dropout) for _ in range(args.num_blocks)] +
             [nn.Linear(args.block_size, output_size)]
         )
         

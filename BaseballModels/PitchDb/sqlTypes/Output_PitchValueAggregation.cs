@@ -10,14 +10,6 @@ namespace PitchDb
 		public required int MlbId {get; set;}
 		public required int CountBalls {get; set;}
 		public required int CountStrikes {get; set;}
-		public required float LocationCalledStrike {get; set;}
-		public required float LocationBall {get; set;}
-		public required float LocationHBP {get; set;}
-		public required float LocationSwing {get; set;}
-		public required float LocationWhiff {get; set;}
-		public required float LocationFoul {get; set;}
-		public required float LocationInPlay {get; set;}
-		public required float LocationInPlayExpected {get; set;}
 		public required float StuffCalledStrike {get; set;}
 		public required float StuffBall {get; set;}
 		public required float StuffHBP {get; set;}
@@ -34,7 +26,6 @@ namespace PitchDb
 		public required float CombinedFoul {get; set;}
 		public required float CombinedInPlay {get; set;}
 		public required float CombinedInPlayExpected {get; set;}
-		public required float LocationRuns {get; set;}
 		public required float StuffRuns {get; set;}
 		public required float CombinedRuns {get; set;}
 
@@ -50,14 +41,6 @@ namespace PitchDb
 				MlbId = this.MlbId,
 				CountBalls = this.CountBalls,
 				CountStrikes = this.CountStrikes,
-				LocationCalledStrike = this.LocationCalledStrike,
-				LocationBall = this.LocationBall,
-				LocationHBP = this.LocationHBP,
-				LocationSwing = this.LocationSwing,
-				LocationWhiff = this.LocationWhiff,
-				LocationFoul = this.LocationFoul,
-				LocationInPlay = this.LocationInPlay,
-				LocationInPlayExpected = this.LocationInPlayExpected,
 				StuffCalledStrike = this.StuffCalledStrike,
 				StuffBall = this.StuffBall,
 				StuffHBP = this.StuffHBP,
@@ -74,7 +57,6 @@ namespace PitchDb
 				CombinedFoul = this.CombinedFoul,
 				CombinedInPlay = this.CombinedInPlay,
 				CombinedInPlayExpected = this.CombinedInPlayExpected,
-				LocationRuns = this.LocationRuns,
 				StuffRuns = this.StuffRuns,
 				CombinedRuns = this.CombinedRuns,
 				

@@ -69,7 +69,6 @@ namespace Db
 		public DbSet<PitchNonStatcast> PitchNonStatcast {get; set;}
 		public DbSet<PitcherStatcastGame> PitcherStatcastGame {get; set;}
 		public DbSet<PitchDateAverages> PitchDateAverages {get; set;}
-		public DbSet<PitchStatcast> PitchStatcast {get; set;}
 		public DbSet<PitcherStatcastMonth> PitcherStatcastMonth {get; set;}
 		public DbSet<HitterStatcastMonth> HitterStatcastMonth {get; set;}
 		public DbSet<Model_Players> Model_Players {get; set;}
@@ -78,6 +77,7 @@ namespace Db
 		public DbSet<RunExpectancyMatrix> RunExpectancyMatrix {get; set;}
 		public DbSet<HitterYearZoneData> HitterYearZoneData {get; set;}
 		public DbSet<PitchModelResultBasis> PitchModelResultBasis {get; set;}
+		public DbSet<PitchStatcast> PitchStatcast {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -148,7 +148,6 @@ namespace Db
 			modelBuilder.Entity<PitchNonStatcast>().HasKey(f => new {f.GameId,f.PitchId});
 			modelBuilder.Entity<PitcherStatcastGame>().HasKey(f => new {f.MlbId,f.GameId});
 			modelBuilder.Entity<PitchDateAverages>().HasKey(f => new {f.Year,f.Month});
-			modelBuilder.Entity<PitchStatcast>().HasKey(f => new {f.GameId,f.PitchId});
 			modelBuilder.Entity<PitcherStatcastMonth>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<HitterStatcastMonth>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<Model_Players>().HasKey(f => new {f.MlbId});
@@ -157,6 +156,7 @@ namespace Db
 			modelBuilder.Entity<RunExpectancyMatrix>().HasKey(f => new {f.Year,f.LeagueId,f.CountBalls,f.CountStrikes,f.Result});
 			modelBuilder.Entity<HitterYearZoneData>().HasKey(f => new {f.Year,f.MlbId});
 			modelBuilder.Entity<PitchModelResultBasis>().HasKey(f => new {f.Year,f.CountBalls,f.CountStrikes,f.OutputType});
+			modelBuilder.Entity<PitchStatcast>().HasKey(f => new {f.GameId,f.PitchId});
 		}
 	}
 }

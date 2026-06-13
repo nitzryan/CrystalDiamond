@@ -1,5 +1,42 @@
 import sqlite3
 
+class DB_Output_PitchValue:
+	def __init__(self, values : tuple[any]):
+		self.model = values[0]
+		self.gameId = values[1]
+		self.pitchId = values[2]
+		self.ModelRun = values[3]
+		self.Year = values[4]
+		self.LevelId = values[5]
+		self.mlbId = values[6]
+		self.stuffCalledStrike = values[7]
+		self.stuffBall = values[8]
+		self.stuffHBP = values[9]
+		self.stuffSwing = values[10]
+		self.stuffWhiff = values[11]
+		self.stuffFoul = values[12]
+		self.stuffInPlay = values[13]
+		self.stuffInPlayExpected = values[14]
+		self.combinedCalledStrike = values[15]
+		self.combinedBall = values[16]
+		self.combinedHBP = values[17]
+		self.combinedSwing = values[18]
+		self.combinedWhiff = values[19]
+		self.combinedFoul = values[20]
+		self.combinedInPlay = values[21]
+		self.combinedInPlayExpected = values[22]
+
+	NUM_ELEMENTS = 23
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.model,self.gameId,self.pitchId,self.ModelRun,self.Year,self.LevelId,self.mlbId,self.stuffCalledStrike,self.stuffBall,self.stuffHBP,self.stuffSwing,self.stuffWhiff,self.stuffFoul,self.stuffInPlay,self.stuffInPlayExpected,self.combinedCalledStrike,self.combinedBall,self.combinedHBP,self.combinedSwing,self.combinedWhiff,self.combinedFoul,self.combinedInPlay,self.combinedInPlayExpected)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValue']:
+		items = cursor.execute("SELECT * FROM Output_PitchValue " + conditional, values).fetchall()
+		return [DB_Output_PitchValue(i) for i in items]
+
 class DB_Models_PitchValue:
 	def __init__(self, values : tuple[any]):
 		self.Id = values[0]
@@ -20,22 +57,19 @@ class DB_ModelTrainingHistory_PitchValue:
 	def __init__(self, values : tuple[any]):
 		self.ModelId = values[0]
 		self.ModelRun = values[1]
-		self.LossLocationResult = values[2]
-		self.LossLocationSwing = values[3]
-		self.LossLocationInplay = values[4]
-		self.LossStuffResult = values[5]
-		self.LossStuffSwing = values[6]
-		self.LossStuffInplay = values[7]
-		self.LossCombinedResult = values[8]
-		self.LossCombinedSwing = values[9]
-		self.LossCombinedInplay = values[10]
-		self.Arch = values[11]
+		self.LossStuffResult = values[2]
+		self.LossStuffSwing = values[3]
+		self.LossStuffInplay = values[4]
+		self.LossCombinedResult = values[5]
+		self.LossCombinedSwing = values[6]
+		self.LossCombinedInplay = values[7]
+		self.Arch = values[8]
 
-	NUM_ELEMENTS = 12
+	NUM_ELEMENTS = 9
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelId,self.ModelRun,self.LossLocationResult,self.LossLocationSwing,self.LossLocationInplay,self.LossStuffResult,self.LossStuffSwing,self.LossStuffInplay,self.LossCombinedResult,self.LossCombinedSwing,self.LossCombinedInplay,self.Arch)
+		return (self.ModelId,self.ModelRun,self.LossStuffResult,self.LossStuffSwing,self.LossStuffInplay,self.LossCombinedResult,self.LossCombinedSwing,self.LossCombinedInplay,self.Arch)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_ModelTrainingHistory_PitchValue']:
@@ -67,14 +101,13 @@ class DB_YearLeagueDeviations:
 		self.Balls = values[2]
 		self.Strikes = values[3]
 		self.StuffDev = values[4]
-		self.LocDev = values[5]
-		self.PitchDev = values[6]
+		self.PitchDev = values[5]
 
-	NUM_ELEMENTS = 7
+	NUM_ELEMENTS = 6
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.ModelId,self.Year,self.Balls,self.Strikes,self.StuffDev,self.LocDev,self.PitchDev)
+		return (self.ModelId,self.Year,self.Balls,self.Strikes,self.StuffDev,self.PitchDev)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_YearLeagueDeviations']:
@@ -93,71 +126,24 @@ class DB_PitcherStuff:
 		self.NumPitches = values[7]
 		self.ValueActual = values[8]
 		self.ValueStuff = values[9]
-		self.ValueLoc = values[10]
-		self.ValueCombined = values[11]
-		self.ActualPlus = values[12]
-		self.StuffPlus = values[13]
-		self.LocationPlus = values[14]
-		self.PitchPlus = values[15]
-		self.Vel = values[16]
-		self.BreakHoriz = values[17]
-		self.BreakVert = values[18]
+		self.ValueCombined = values[10]
+		self.ActualPlus = values[11]
+		self.StuffPlus = values[12]
+		self.PitchPlus = values[13]
+		self.Vel = values[14]
+		self.BreakHoriz = values[15]
+		self.BreakVert = values[16]
 
-	NUM_ELEMENTS = 19
+	NUM_ELEMENTS = 17
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.MlbId,self.Year,self.Month,self.Model,self.GameId,self.PitchType,self.Scenario,self.NumPitches,self.ValueActual,self.ValueStuff,self.ValueLoc,self.ValueCombined,self.ActualPlus,self.StuffPlus,self.LocationPlus,self.PitchPlus,self.Vel,self.BreakHoriz,self.BreakVert)
+		return (self.MlbId,self.Year,self.Month,self.Model,self.GameId,self.PitchType,self.Scenario,self.NumPitches,self.ValueActual,self.ValueStuff,self.ValueCombined,self.ActualPlus,self.StuffPlus,self.PitchPlus,self.Vel,self.BreakHoriz,self.BreakVert)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStuff']:
 		items = cursor.execute("SELECT * FROM PitcherStuff " + conditional, values).fetchall()
 		return [DB_PitcherStuff(i) for i in items]
-
-class DB_Output_PitchValue:
-	def __init__(self, values : tuple[any]):
-		self.model = values[0]
-		self.gameId = values[1]
-		self.pitchId = values[2]
-		self.ModelRun = values[3]
-		self.Year = values[4]
-		self.LevelId = values[5]
-		self.mlbId = values[6]
-		self.locationCalledStrike = values[7]
-		self.locationBall = values[8]
-		self.locationHBP = values[9]
-		self.locationSwing = values[10]
-		self.locationWhiff = values[11]
-		self.locationFoul = values[12]
-		self.locationInPlay = values[13]
-		self.locationInPlayExpected = values[14]
-		self.stuffCalledStrike = values[15]
-		self.stuffBall = values[16]
-		self.stuffHBP = values[17]
-		self.stuffSwing = values[18]
-		self.stuffWhiff = values[19]
-		self.stuffFoul = values[20]
-		self.stuffInPlay = values[21]
-		self.stuffInPlayExpected = values[22]
-		self.combinedCalledStrike = values[23]
-		self.combinedBall = values[24]
-		self.combinedHBP = values[25]
-		self.combinedSwing = values[26]
-		self.combinedWhiff = values[27]
-		self.combinedFoul = values[28]
-		self.combinedInPlay = values[29]
-		self.combinedInPlayExpected = values[30]
-
-	NUM_ELEMENTS = 31
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.model,self.gameId,self.pitchId,self.ModelRun,self.Year,self.LevelId,self.mlbId,self.locationCalledStrike,self.locationBall,self.locationHBP,self.locationSwing,self.locationWhiff,self.locationFoul,self.locationInPlay,self.locationInPlayExpected,self.stuffCalledStrike,self.stuffBall,self.stuffHBP,self.stuffSwing,self.stuffWhiff,self.stuffFoul,self.stuffInPlay,self.stuffInPlayExpected,self.combinedCalledStrike,self.combinedBall,self.combinedHBP,self.combinedSwing,self.combinedWhiff,self.combinedFoul,self.combinedInPlay,self.combinedInPlayExpected)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValue']:
-		items = cursor.execute("SELECT * FROM Output_PitchValue " + conditional, values).fetchall()
-		return [DB_Output_PitchValue(i) for i in items]
 
 class DB_Output_PitchValueAggregation:
 	def __init__(self, values : tuple[any]):
@@ -169,39 +155,30 @@ class DB_Output_PitchValueAggregation:
 		self.mlbId = values[5]
 		self.CountBalls = values[6]
 		self.CountStrikes = values[7]
-		self.locationCalledStrike = values[8]
-		self.locationBall = values[9]
-		self.locationHBP = values[10]
-		self.locationSwing = values[11]
-		self.locationWhiff = values[12]
-		self.locationFoul = values[13]
-		self.locationInPlay = values[14]
-		self.locationInPlayExpected = values[15]
-		self.stuffCalledStrike = values[16]
-		self.stuffBall = values[17]
-		self.stuffHBP = values[18]
-		self.stuffSwing = values[19]
-		self.stuffWhiff = values[20]
-		self.stuffFoul = values[21]
-		self.stuffInPlay = values[22]
-		self.stuffInPlayExpected = values[23]
-		self.combinedCalledStrike = values[24]
-		self.combinedBall = values[25]
-		self.combinedHBP = values[26]
-		self.combinedSwing = values[27]
-		self.combinedWhiff = values[28]
-		self.combinedFoul = values[29]
-		self.combinedInPlay = values[30]
-		self.combinedInPlayExpected = values[31]
-		self.locationRuns = values[32]
-		self.stuffRuns = values[33]
-		self.combinedRuns = values[34]
+		self.stuffCalledStrike = values[8]
+		self.stuffBall = values[9]
+		self.stuffHBP = values[10]
+		self.stuffSwing = values[11]
+		self.stuffWhiff = values[12]
+		self.stuffFoul = values[13]
+		self.stuffInPlay = values[14]
+		self.stuffInPlayExpected = values[15]
+		self.combinedCalledStrike = values[16]
+		self.combinedBall = values[17]
+		self.combinedHBP = values[18]
+		self.combinedSwing = values[19]
+		self.combinedWhiff = values[20]
+		self.combinedFoul = values[21]
+		self.combinedInPlay = values[22]
+		self.combinedInPlayExpected = values[23]
+		self.stuffRuns = values[24]
+		self.combinedRuns = values[25]
 
-	NUM_ELEMENTS = 35
+	NUM_ELEMENTS = 26
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.model,self.gameId,self.pitchId,self.Year,self.LevelId,self.mlbId,self.CountBalls,self.CountStrikes,self.locationCalledStrike,self.locationBall,self.locationHBP,self.locationSwing,self.locationWhiff,self.locationFoul,self.locationInPlay,self.locationInPlayExpected,self.stuffCalledStrike,self.stuffBall,self.stuffHBP,self.stuffSwing,self.stuffWhiff,self.stuffFoul,self.stuffInPlay,self.stuffInPlayExpected,self.combinedCalledStrike,self.combinedBall,self.combinedHBP,self.combinedSwing,self.combinedWhiff,self.combinedFoul,self.combinedInPlay,self.combinedInPlayExpected,self.locationRuns,self.stuffRuns,self.combinedRuns)
+		return (self.model,self.gameId,self.pitchId,self.Year,self.LevelId,self.mlbId,self.CountBalls,self.CountStrikes,self.stuffCalledStrike,self.stuffBall,self.stuffHBP,self.stuffSwing,self.stuffWhiff,self.stuffFoul,self.stuffInPlay,self.stuffInPlayExpected,self.combinedCalledStrike,self.combinedBall,self.combinedHBP,self.combinedSwing,self.combinedWhiff,self.combinedFoul,self.combinedInPlay,self.combinedInPlayExpected,self.stuffRuns,self.combinedRuns)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_PitchValueAggregation']:

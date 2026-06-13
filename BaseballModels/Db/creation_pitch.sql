@@ -77,11 +77,29 @@ CREATE TABLE PitchStatcast
 
     "Scenario" INTEGER NOT NULL,
     "ModelStuff" REAL,
-    "ModelLocation" REAL,
     "ModelPitch" REAL,
 
     PRIMARY KEY("GameId", "PitchId")
 );
+
+CREATE TABLE PitchStatcastFlightMetrics
+(
+    "GameId" INTEGER NOT NULL,
+    "PitchId" INTEGER NOT NULL,
+
+    "StartBackspinPerc" REAL NOT NULL,
+    "StartSidespinPerc" REAL NOT NULL,
+    "StartGyrospinPerc" REAL NOT NULL,
+
+    "BreakHorizHalfway" REAL NOT NULL,
+    "BreakVertHalfway" REAL NOT NULL,
+
+    "EndBackspinPerc" REAL NOT NULL,
+    "EndSidespinPerc" REAL NOT NULL,
+    "EndGyrospinPerc" REAL NOT NULL,
+
+    PRIMARY KEY("GameId", "PitchId")
+)
 
 CREATE TABLE PitchNonStatcast
 (

@@ -48,12 +48,10 @@ namespace PitchAnalysis
                             NumPitches = 0,
                             ValueActual = 0f,
                             ValueStuff = 0f,
-                            ValueLoc = 0f,
                             ValueCombined = 0f,
 
                             ActualPlus = 0f,
                             StuffPlus = 0f,
-                            LocationPlus = 0f,
                             PitchPlus = 0f,
 
                             Vel = 0,
@@ -65,7 +63,7 @@ namespace PitchAnalysis
                 // Accumulate values
                 foreach (var p in pitchGroup)
                 {
-                    if (p.ModelStuff == null || p.ModelLocation == null || p.ModelPitch == null)
+                    if (p.ModelStuff == null || p.ModelPitch == null)
                         continue;
 
                     YearLeagueDevationKey yldKey = new(model, p.Year, p.CountBalls, p.CountStrike);
@@ -82,7 +80,6 @@ namespace PitchAnalysis
                             stats.NumPitches++;
                             stats.ValueActual += p.RunValueSmoothedHitter;
                             stats.ValueStuff += p.ModelStuff.Value;
-                            stats.ValueLoc += p.ModelLocation.Value;
                             stats.ValueCombined += p.ModelPitch.Value;
 
                             #pragma warning disable CS8629 // Will be not null if put through model
@@ -108,7 +105,6 @@ namespace PitchAnalysis
                         // Value Per Pitch
                         stats.ValueActual /= stats.NumPitches;
                         stats.ValueStuff /= stats.NumPitches;
-                        stats.ValueLoc /= stats.NumPitches;
                         stats.ValueCombined /= stats.NumPitches;
 
                         // Pitch Metrics
@@ -119,7 +115,6 @@ namespace PitchAnalysis
                         // Normalize to Pitch+
                         stats.ActualPlus = 100 - (10 * stats.ValueActual / avgDev);
                         stats.StuffPlus = 100 - (10 * stats.ValueStuff / avgDev);
-                        stats.LocationPlus = 100 - (10 * stats.ValueLoc / avgDev);
                         stats.PitchPlus = 100 - (10 * stats.ValueCombined / avgDev);
 
                         pitchSideBreakdowns.Add(stats);
