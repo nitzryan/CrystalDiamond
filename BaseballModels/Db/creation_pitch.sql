@@ -99,7 +99,7 @@ CREATE TABLE PitchStatcastFlightMetrics
     "EndGyrospinPerc" REAL NOT NULL,
 
     PRIMARY KEY("GameId", "PitchId")
-)
+);
 
 CREATE TABLE PitchNonStatcast
 (

@@ -77,7 +77,6 @@ namespace UI
             List<(PitchValueType, string)> outputTypes = [
                 (PitchValueType.Actual, "Actual"),
                 (PitchValueType.Stuff, "Stuff Only"),
-                (PitchValueType.Location, "Location Only"),
                 (PitchValueType.Exp, "Pitch Model")
             ];
             cbOutput.Items.Clear();

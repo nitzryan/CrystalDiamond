@@ -17,7 +17,7 @@ namespace UI.Controls
 
         private PitchStatcast? Pitch = null;
 
-        private PyObject? Py_DataPrep = null, Py_PitchModel = null;
+        private PyObject? Py_DataPrep = null;
 
         private record PitchGridPoint(float X, float Z, float Val);
         List<PitchGridPoint> GridPoints = [];
@@ -72,10 +72,6 @@ namespace UI.Controls
                 dynamic dataPrepModule = Py.Import("Stuff.DataPrep.DataPrep");
                 Py_DataPrep = dataPrepModule.DataPrep.Load_From_File(
                     stuffDir + $"/{PySetup.Py_Constants.DATA_PREP_BINARY_ALL_FILE}");
-
-                // PitchModel
-                dynamic pitchModelModule = Py.Import("Stuff.Model.PitchModel");
-                Py_PitchModel = pitchModelModule.PitchModel(Py_DataPrep);
             }
         }
 
@@ -240,8 +236,11 @@ namespace UI.Controls
                         .Select(dyn => (PyObject)dyn)
                         .ToArray();
                     PyList pitchList = new PyList(pyPitches);
-                    var modelOutputAggregation = Py_PitchModel.InvokeMethod(
+
+                    var PitchModel = PySetup.Py_PitchModel.GetAttr("PitchModel");
+                    var modelOutputAggregation = PitchModel.InvokeMethod(
                         "GetPitchOutput",
+                        Py_DataPrep,
                         "../../../../PitchModel/Models/".ToPython(),
                         pitchList
                     );

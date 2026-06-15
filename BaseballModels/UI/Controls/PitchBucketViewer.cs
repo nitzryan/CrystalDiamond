@@ -57,7 +57,6 @@ namespace UI.Controls
             labelMoveX.Text = $"{Math.Round(pitchStats.BreakHoriz, 1)}";
             labelMoveZ.Text = $"{Math.Round(pitchStats.BreakVert, 1)}";
 
-            labelLocation.Text = $"{Math.Round(pitchStats.LocPlus, 1)}";
             labelStuff.Text = $"{Math.Round(pitchStats.StuffPlus, 1)}";
             labelPitch.Text = $"{Math.Round(pitchStats.PitchPlus, 1)}";
             labelActual.Text = $"{Math.Round(pitchStats.ActualPlus, 1)}";

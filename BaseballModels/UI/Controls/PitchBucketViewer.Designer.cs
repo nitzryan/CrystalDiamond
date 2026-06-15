@@ -66,8 +66,6 @@
             labelPitch = new Label();
             label14 = new Label();
             label10 = new Label();
-            labelLocation = new Label();
-            label12 = new Label();
             labelStuff = new Label();
             pitchPanel = new PitchPanel();
             tableLayoutPanel2.SuspendLayout();
@@ -523,7 +521,7 @@
             groupBox4.Font = new Font("Segoe UI", 15.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
             groupBox4.Location = new Point(759, 33);
             groupBox4.Name = "groupBox4";
-            groupBox4.Size = new Size(247, 194);
+            groupBox4.Size = new Size(247, 154);
             groupBox4.TabIndex = 5;
             groupBox4.TabStop = false;
             groupBox4.Text = "Modeling";
@@ -535,23 +533,21 @@
             tableLayoutPanel6.ColumnCount = 2;
             tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel6.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel6.Controls.Add(labelActual, 1, 3);
-            tableLayoutPanel6.Controls.Add(label11, 0, 3);
-            tableLayoutPanel6.Controls.Add(labelPitch, 1, 2);
-            tableLayoutPanel6.Controls.Add(label14, 0, 2);
+            tableLayoutPanel6.Controls.Add(labelActual, 1, 2);
+            tableLayoutPanel6.Controls.Add(label11, 0, 2);
+            tableLayoutPanel6.Controls.Add(labelPitch, 1, 1);
+            tableLayoutPanel6.Controls.Add(label14, 0, 1);
             tableLayoutPanel6.Controls.Add(label10, 0, 0);
-            tableLayoutPanel6.Controls.Add(labelLocation, 1, 1);
-            tableLayoutPanel6.Controls.Add(label12, 0, 1);
             tableLayoutPanel6.Controls.Add(labelStuff, 1, 0);
             tableLayoutPanel6.Dock = DockStyle.Fill;
             tableLayoutPanel6.Location = new Point(3, 31);
             tableLayoutPanel6.Name = "tableLayoutPanel6";
-            tableLayoutPanel6.RowCount = 4;
+            tableLayoutPanel6.RowCount = 3;
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            tableLayoutPanel6.Size = new Size(241, 160);
+            tableLayoutPanel6.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel6.Size = new Size(241, 120);
             tableLayoutPanel6.TabIndex = 1;
             // 
             // labelActual
@@ -559,7 +555,7 @@
             labelActual.AutoSize = true;
             labelActual.Dock = DockStyle.Fill;
             labelActual.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelActual.Location = new Point(123, 120);
+            labelActual.Location = new Point(123, 80);
             labelActual.Name = "labelActual";
             labelActual.Size = new Size(115, 40);
             labelActual.TabIndex = 4;
@@ -571,7 +567,7 @@
             label11.AutoSize = true;
             label11.Dock = DockStyle.Fill;
             label11.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label11.Location = new Point(3, 120);
+            label11.Location = new Point(3, 80);
             label11.Name = "label11";
             label11.Size = new Size(114, 40);
             label11.TabIndex = 3;
@@ -583,7 +579,7 @@
             labelPitch.AutoSize = true;
             labelPitch.Dock = DockStyle.Fill;
             labelPitch.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelPitch.Location = new Point(123, 80);
+            labelPitch.Location = new Point(123, 40);
             labelPitch.Name = "labelPitch";
             labelPitch.Size = new Size(115, 40);
             labelPitch.TabIndex = 2;
@@ -595,7 +591,7 @@
             label14.AutoSize = true;
             label14.Dock = DockStyle.Fill;
             label14.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label14.Location = new Point(3, 80);
+            label14.Location = new Point(3, 40);
             label14.Name = "label14";
             label14.Size = new Size(114, 40);
             label14.TabIndex = 1;
@@ -614,30 +610,6 @@
             label10.Text = "Stuff";
             label10.TextAlign = ContentAlignment.BottomLeft;
             // 
-            // labelLocation
-            // 
-            labelLocation.AutoSize = true;
-            labelLocation.Dock = DockStyle.Fill;
-            labelLocation.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            labelLocation.Location = new Point(123, 40);
-            labelLocation.Name = "labelLocation";
-            labelLocation.Size = new Size(115, 40);
-            labelLocation.TabIndex = 0;
-            labelLocation.Text = "XXX.X";
-            labelLocation.TextAlign = ContentAlignment.BottomRight;
-            // 
-            // label12
-            // 
-            label12.AutoSize = true;
-            label12.Dock = DockStyle.Fill;
-            label12.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label12.Location = new Point(3, 40);
-            label12.Name = "label12";
-            label12.Size = new Size(114, 40);
-            label12.TabIndex = 0;
-            label12.Text = "Location";
-            label12.TextAlign = ContentAlignment.BottomLeft;
-            // 
             // labelStuff
             // 
             labelStuff.AutoSize = true;
@@ -653,6 +625,7 @@
             // pitchPanel
             // 
             pitchPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            pitchPanel.BackColor = SystemColors.Control;
             pitchPanel.Dock = DockStyle.Fill;
             pitchPanel.Location = new Point(3, 239);
             pitchPanel.Name = "pitchPanel";
@@ -729,8 +702,6 @@
         private Label labelPitch;
         private Label label14;
         private Label label10;
-        private Label labelLocation;
-        private Label label12;
         private Label labelStuff;
         private PitchPanel pitchPanel;
     }

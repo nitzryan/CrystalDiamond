@@ -4,7 +4,7 @@ namespace UI
 {
     internal class PySetup
     {
-        public static dynamic Py_DbTypes, Py_Constants, Py_PitchDbTypes;
+        public static dynamic Py_DbTypes, Py_Constants, Py_PitchDbTypes, Py_PitchModel;
         private static bool INITIALIZED = false;
 
         public static event Action<string> PythonMessage;
@@ -30,6 +30,7 @@ namespace UI
                 Py_DbTypes = Py.Import("DBTypes");
                 Py_Constants = Py.Import("Constants");
                 Py_PitchDbTypes = Py.Import("PitchDBTypes");
+                Py_PitchModel = Py.Import("Stuff.Model.PitchModel");
 
                 // Redirect output
                 sys.stdout = _instance;

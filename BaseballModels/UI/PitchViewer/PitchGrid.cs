@@ -7,7 +7,6 @@ namespace UI
     { 
         Actual,
         Stuff,
-        Location,
         Exp,
     }
 
@@ -54,7 +53,6 @@ namespace UI
         public float BreakVert { get; set; } = 0;
 
         public float StuffPlus { get; set; } = 0;
-        public float LocPlus { get; set; } = 0;
         public float PitchPlus { get; set; } = 0;
         public float ActualPlus { get; set; } = 0;
 
@@ -91,7 +89,6 @@ namespace UI
     { 
         public required int NumPitches { get; set; }
         public required float StuffValue { get; set; }
-        public required float LocValue { get; set; }
         public required float ExpValue { get; set; }
         public required float ActValue { get; set; }
         public required float Dev { get; set; }
@@ -120,9 +117,6 @@ namespace UI
                     break;
                 case PitchValueType.Stuff:
                     value = StuffValue;
-                    break;
-                case PitchValueType.Location:
-                    value = LocValue;
                     break;
             }
 
@@ -240,7 +234,6 @@ namespace UI
                 bin.ExpValue += pitch.ModelPitch.Value;
                 bin.ActValue += pitch.RunValueSmoothedHitter;
                 bin.StuffValue += pitch.ModelStuff.Value;
-                bin.LocValue += pitch.ModelLocation.Value;
                 bin.Dev += Global.YldDict[new Global.YearLeagueDevKey(ModelId, pitch.Year, pitch.CountBalls, pitch.CountStrike)].StuffDev;
 
                 bin.Stats.Vel += pitch.VStart.Value;
@@ -349,7 +342,6 @@ namespace UI
             // Get per-pitch values (or per 1000 for value)
             float actValue = PitchBoxes.Sum((List<PitchBox>f) => f.Sum((PitchBox g) => g.ActValue));
             float stuffValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.StuffValue));
-            float locValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.LocValue));
             float pitchValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.ExpValue));
             float devValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.Dev));
 
@@ -358,11 +350,9 @@ namespace UI
                 f.ActValue = f.ActValue / f.NumPitches * 1000;
                 f.ExpValue = f.ExpValue / f.NumPitches * 1000;
                 f.StuffValue = f.StuffValue / f.NumPitches * 1000;
-                f.LocValue = f.LocValue / f.NumPitches * 1000;
                 f.Dev = f.Dev / f.NumPitches * 1000;
 
                 f.Stats.StuffPlus = 100 - (10 * f.StuffValue / f.Dev);
-                f.Stats.LocPlus = 100 - (10 * f.LocValue / f.Dev);
                 f.Stats.PitchPlus = 100 - (10 * f.ExpValue / f.Dev);
                 f.Stats.ActualPlus = 100 - (10 * f.ActValue / f.Dev);
 
@@ -405,7 +395,6 @@ namespace UI
                 OverallStats.BreakVert /= OverallStats.Pitches;
 
                 OverallStats.StuffPlus = 100 - (10 * stuffValue / devValue);
-                OverallStats.LocPlus = 100 - (10 * locValue / devValue);
                 OverallStats.PitchPlus = 100 - (10 * pitchValue / devValue);
                 OverallStats.ActualPlus = 100 - (10 * actValue / devValue);
             }
@@ -442,7 +431,6 @@ namespace UI
                         NumPitches = 0,
                         ActValue = 0,
                         StuffValue = 0,
-                        LocValue = 0,
                         ExpValue = 0,
                         Dev=0,
                         X = xs[i],
@@ -623,7 +611,6 @@ namespace UI
                         {
                             PitchValueType.Actual => pitch.ActValue,
                             PitchValueType.Stuff => pitch.StuffValue,
-                            PitchValueType.Location => pitch.LocValue,
                             PitchValueType.Exp => pitch.ExpValue,
                             _ => pitch.ActValue
                         };

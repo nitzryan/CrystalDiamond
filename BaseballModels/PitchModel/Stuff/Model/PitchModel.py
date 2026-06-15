@@ -146,8 +146,8 @@ class PitchModel(nn.Module):
         
         return data
         
-    def GetPitchOutput(self, filedir : str, pitches : list[DB_PitchStatcast]) -> list[DB_Output_PitchValueAggregation]:
-        self.eval()
+    @staticmethod
+    def GetPitchOutput(data_prep : DataPrep, filedir : str, pitches : list[DB_PitchStatcast], run_device : str = 'cuda') -> list[DB_Output_PitchValueAggregation]:
         if len(pitches) == 0:
             return []
         
@@ -166,8 +166,8 @@ class PitchModel(nn.Module):
                 raise Exception("Not all pitches in GetPitchOutput have the same Month")
             
         # Convert pitches to form required by model
-        model_pitches_tuple = self.data_prep.DbPitchesToModelPitches(pitches)
-        model_pitches_tuple = tuple(d.to(next(self.parameters()).device, non_blocking=True) for d in model_pitches_tuple)
+        model_pitches_tuple = data_prep.DbPitchesToModelPitches(pitches)
+        data_ovr, data_loc, data_stuff, data_comb, data_game, data_league = tuple(d.to(run_device, non_blocking=True) for d in model_pitches_tuple)
         
         # Get Models that do not have that player
         pitch_cursor = pitch_db.cursor()
@@ -180,64 +180,57 @@ class PitchModel(nn.Module):
         # Get Output_PitchValue for each model/pitch
         opv_list : list[list[DB_Output_PitchValue]] = []
         for mr in model_runs:
-            name = filedir + model_name + "_" + str(mr) + ".pt"
-            with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                self.load_state_dict(torch.load(name))
-            self.eval()
+            output_list = []
+            for model_variant in [ModelVariantType.Stuff, ModelVariantType.Combined]:
+                for model_output in [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]:
+                    model = PitchModel(args=DEFAULT_ARGS_MAP[(model_variant, model_output)], data_prep=data_prep)
+                    model = model.to(run_device)
+                    
+                    with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
+                        model.load_state_dict(torch.load(f"{filedir}/{model_name}_{mr}_{model_variant.name}_{model_output.name}.pt"))
+                    model.eval()
+                    
+                    match model_variant:
+                        case ModelVariantType.Stuff:
+                            model_data = torch.cat((data_ovr, data_stuff, data_league), dim=-1)
+                        case ModelVariantType.Combined:
+                            model_data = torch.cat((data_ovr, data_loc, data_stuff, data_comb, data_league), dim=-1)
+                    
+                    output = model(model_data)
+                    result = F.softmax(output, dim=-1)
+                    
+                    if model_output == ModelOutputType.InPlay:
+                        # Get expected value of in-play
+                        inplay_expected = data_prep.ip_bucket_value.to(result.device)
+                        inplay_expected_output = (result * inplay_expected).sum(dim=1, keepdim=True)
+                        output_list.append(inplay_expected_output.cpu())
+                    else:
+                        output_list.append(result.cpu())
             
-            outputs = self(model_pitches_tuple)
             
-            result_location = F.softmax(outputs[0], dim=-1)
-            swing_location = F.softmax(outputs[1], dim=-1)
-            inplay_location = F.softmax(outputs[2], dim=-1)
+            run_data = [tuple(row.tolist()) for row in torch.cat((\
+                torch.tensor([1 for _ in pitches]).unsqueeze(-1),
+                torch.tensor([p.GameId for p in pitches]).unsqueeze(-1),
+                torch.tensor([p.PitchId for p in pitches]).unsqueeze(-1),
+                torch.tensor([mr for _ in pitches]).unsqueeze(-1),
+                torch.tensor([p.Year for p in pitches]).unsqueeze(-1),
+                torch.tensor([p.LevelId for p in pitches]).unsqueeze(-1),
+                torch.tensor([p.PitcherId for p in pitches]).unsqueeze(-1),
+                output_list[0],
+                output_list[1],
+                output_list[2],
+                output_list[3],
+                output_list[4],
+                output_list[5]), dim=-1)]
             
-            result_stuff = F.softmax(outputs[3], dim=-1)
-            swing_stuff = F.softmax(outputs[3 + 1], dim=-1)
-            inplay_stuff = F.softmax(outputs[3 + 2], dim=-1)
-            
-            result_combined = F.softmax(outputs[6], dim=-1)
-            swing_combined = F.softmax(outputs[6 + 1], dim=-1)
-            inplay_combined = F.softmax(outputs[6 + 2], dim=-1)
+            run_pitches = [DB_Output_PitchValue(rd) for rd in run_data]
+            opv_list.append(run_pitches)
                 
-            # Get expected value of in-play
-            inplay_expected = self.data_prep.ip_bucket_value.to(result_combined.device)
-            inplay_expected_location = (inplay_location * inplay_expected).sum(dim=1, keepdim=True)
-            inplay_expected_stuff = (inplay_stuff * inplay_expected).sum(dim=1, keepdim=True)
-            inplay_expected_combined = (inplay_combined * inplay_expected).sum(dim=1, keepdim=True)
-            
-            single_run_data = [DB_Output_PitchValue(tuple(row.tolist())) for row in torch.cat((\
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                torch.zeros(len(pitches), 1),
-                result_location.cpu(),
-                swing_location.cpu(),
-                inplay_expected_location.cpu(),
-                result_stuff.cpu(),
-                swing_stuff.cpu(),
-                inplay_expected_stuff.cpu(),
-                result_combined.cpu(),
-                swing_combined.cpu(),
-                inplay_expected_combined.cpu(),), dim=-1)]
-
-            opv_list.append(single_run_data)
-        
         opva_list : list[DB_Output_PitchValueAggregation] = []
         for i in range(len(pitches)):
             l = len(model_runs)
             agg = DB_Output_PitchValueAggregation((0,0,0,year,0,0,pitches[i].CountBalls,pitches[i].CountStrike,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
             for j in range(len(model_runs)):
-                agg.locationCalledStrike += opv_list[j][i].locationCalledStrike / l
-                agg.locationBall += opv_list[j][i].locationBall / l
-                agg.locationHBP += opv_list[j][i].locationHBP / l
-                agg.locationSwing += opv_list[j][i].locationSwing / l
-                agg.locationWhiff += opv_list[j][i].locationWhiff / l
-                agg.locationFoul += opv_list[j][i].locationFoul / l
-                agg.locationInPlay += opv_list[j][i].locationInPlay / l
-                agg.locationInPlayExpected += opv_list[j][i].locationInPlayExpected / l
                 agg.stuffCalledStrike += opv_list[j][i].stuffCalledStrike / l
                 agg.stuffBall += opv_list[j][i].stuffBall / l
                 agg.stuffHBP += opv_list[j][i].stuffHBP / l
