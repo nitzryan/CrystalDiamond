@@ -192,7 +192,7 @@ namespace Db
             
             Knuckleball = 10,
 
-            Eephus = 12,
+            Eephus = -1,
         }
 
         public enum PitchResult

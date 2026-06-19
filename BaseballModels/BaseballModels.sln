@@ -26,6 +26,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PitchAnalysis", "PitchAnaly
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI", "UI\UI.csproj", "{1B15564D-0D9C-455C-AFF2-855BB5B82A22}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwingDecisionsDb", "SwingDecisionsDb\SwingDecisionsDb.csproj", "{E0DACA3A-1CEC-4D97-ABFA-85C67E45A5FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwingDecisions", "SwingDecisions\SwingDecisions.csproj", "{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +72,14 @@ Global
 		{1B15564D-0D9C-455C-AFF2-855BB5B82A22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1B15564D-0D9C-455C-AFF2-855BB5B82A22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1B15564D-0D9C-455C-AFF2-855BB5B82A22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0DACA3A-1CEC-4D97-ABFA-85C67E45A5FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0DACA3A-1CEC-4D97-ABFA-85C67E45A5FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0DACA3A-1CEC-4D97-ABFA-85C67E45A5FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0DACA3A-1CEC-4D97-ABFA-85C67E45A5FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
