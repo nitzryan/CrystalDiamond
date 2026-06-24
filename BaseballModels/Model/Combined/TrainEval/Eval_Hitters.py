@@ -9,7 +9,7 @@ from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Pro.Model.Player_Model import RNN_Model as ProModel
 from College.Model.College_Model import RNN_Model as ColModel
-from Constants import device, model_db, DRAFT_MEANS, WAR_BUCKET_AVG, NUM_LEVELS
+from Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
 from Utilities import GetModelMaps
 from EvalStats import getOutputHitterStats
 from ModelDBTypes import *
@@ -25,6 +25,14 @@ def Eval_Hitters():
     model_db.commit()
     cursor = model_db.cursor()
     model_idxs = cursor.execute("SELECT modelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
+    
+    # Get average WAR in each bucket
+    base_db = db.cursor()
+    war_bucket_averages = [0]
+    for i in range(1, len(TOTAL_WAR_BUCKETS)):
+        bucket_min = TOTAL_WAR_BUCKETS[i - 1].item()
+        bucket_max = min(TOTAL_WAR_BUCKETS[i].item(), 100)
+        war_bucket_averages.append(base_db.execute(f"SELECT AVG(warHitter) FROM Model_Players WHERE IsEligible=1 AND IsHitter=1 AND warHitter>{bucket_min} AND warHitter<={bucket_max}").fetchone()[0])
     
     for model_name, model_id in tqdm(model_idxs, desc="Evaluating Hitting Architectures"):
         # Get data for model
@@ -133,8 +141,8 @@ def Eval_Hitters():
                     draftMean[:,:] += col_output_draft[:,:,i] * DRAFT_MEANS[i]
                     
                 warMean = torch.zeros(size=(col_output_war.size(0), col_output_war.size(1))).to(device)
-                for i in range(1, len(WAR_BUCKET_AVG)):
-                    warMean[:,:] += col_output_war[:,:,i] * WAR_BUCKET_AVG[i]
+                for i in range(1, len(war_bucket_averages)):
+                    warMean[:,:] += col_output_war[:,:,i] * war_bucket_averages[i]
                     
                 col_dtes = dataset.col_dates.to(device)[batch_indices][col_mask_valid,:col_output_draft.shape[1]]
                 dates = col_dtes[:,:,:]
@@ -166,8 +174,8 @@ def Eval_Hitters():
                 # Insert Pro Data
                 pro_output_war = F.softmax(pro_output_war, dim=2) 
                 pro_war = torch.zeros(size=(pro_output_war.size(0), pro_output_war.size(1))).to(device)
-                for i in range(1, len(WAR_BUCKET_AVG)):
-                    pro_war[:,:] += pro_output_war[:,:,i] * WAR_BUCKET_AVG[i]
+                for i in range(1, len(war_bucket_averages)):
+                    pro_war[:,:] += pro_output_war[:,:,i] * war_bucket_averages[i]
                 
                 pro_dates = dataset.pro_dates.to(device)[batch_indices][mask_valid,:pro_output_war.shape[1]]
                 mask = prospect_mask.to(device)[mask_valid,:pro_output_war.shape[1]]

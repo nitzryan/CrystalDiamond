@@ -97,7 +97,8 @@ namespace ModelEvaluation
 
                             double[] pitValues = ComputePitValues(records);
                             double[] pitHistogram = ComputePitHistogram(pitValues);
-                            PlotPitDiagram(pitHistogram, pitValues, pitPlotFileBase, groupLabel);
+                            double[] classProportions = ComputeClassProportions(records);
+                            PlotPitDiagram(pitHistogram, pitValues, classProportions, pitPlotFileBase, groupLabel);
 
                             double alphaScore = ComputeAlphaScore(pitHistogram);
                             double brierScore = ComputeBrierScore(records);
@@ -218,10 +219,32 @@ namespace ModelEvaluation
             return histogram;
         }
 
+        // Takes the expected amount of each class and the actual amount of each class
+        // Returns how many times each class group is found in the model relative to actual
+        private static double[] ComputeClassProportions(List<PitRecord> pitRecords)
+        {
+            List<double> classProportions = [];
+            for (int i = 0; i < Constants.BUCKET_CUTOFFS.Count; i++)
+            {
+                int actualClassMembers = pitRecords.Where(f => f.ActualBucket == i).Count();
+                float modelClassMembers = pitRecords.Sum(f => f.PredictedProbs[i]);
+
+                if (actualClassMembers == 0)
+                {
+                    classProportions.Add(1);
+                    continue;
+                }
+
+                classProportions.Add(modelClassMembers / actualClassMembers);
+            }
+
+            return classProportions.ToArray();
+        }
+
         // Saves two PIT diagnostic plots:
         //   {fileBase}_hist.png - Histogram showing observed/expected ratio per bin (1.0 = perfect calibration)
         //   {fileBase}_cdf.png  - Empirical CDF of PIT values vs. the uniform diagonal
-        private static void PlotPitDiagram(double[] pitHistogram, double[] pitValues, string fileBase, string groupLabel)
+        private static void PlotPitDiagram(double[] pitHistogram, double[] pitValues, double[] classProportions, string fileBase, string groupLabel)
         {
             int numBins = pitHistogram.Length;
             double uniform = 1.0 / numBins;
@@ -279,6 +302,28 @@ namespace ModelEvaluation
                 plt.Axes.SetLimitsY(0, 1);
 
                 plt.SavePng($"{fileBase}_cdf.png", 800, 600);
+            }
+
+            // ---- Proportion of each class, model / actual ----
+            {
+                double[] bucketValues = Enumerable.Range(0, Constants.BUCKET_CUTOFFS.Count).Select(f => (double)f).ToArray();
+
+                ScottPlot.Plot plt = new();
+
+                var bars = plt.Add.Bars(bucketValues, classProportions);
+                bars.Bars.ForEach(b => b.Size = 1.0 / Constants.BUCKET_CUTOFFS.Count * 0.9);
+
+                var refLine = plt.Add.HorizontalLine(1.0);
+                refLine.LinePattern = ScottPlot.LinePattern.Dashed;
+                refLine.Color = ScottPlot.Colors.Red;
+                refLine.LineWidth = 2;
+
+                plt.Title($"PIT Histogram (Obs/Exp) - {groupLabel}");
+                plt.XLabel("WAR Buckets");
+                plt.YLabel("Ratio of Model to Actual");
+                //plt.Axes.SetLimitsX(0, 1);
+
+                plt.SavePng($"{fileBase}_prop.png", 800, 600);
             }
         }
 
