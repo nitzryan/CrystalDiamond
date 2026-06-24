@@ -30,6 +30,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwingDecisionsDb", "SwingDe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SwingDecisions", "SwingDecisions\SwingDecisions.csproj", "{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelEvaluation", "ModelEvaluation\ModelEvaluation.csproj", "{02D3F002-EB5A-4E94-9BAB-B4604B469478}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +82,10 @@ Global
 		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F3523AE-117D-4ED7-90EB-DFC5E9AB74AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02D3F002-EB5A-4E94-9BAB-B4604B469478}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02D3F002-EB5A-4E94-9BAB-B4604B469478}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02D3F002-EB5A-4E94-9BAB-B4604B469478}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02D3F002-EB5A-4E94-9BAB-B4604B469478}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
