@@ -584,7 +584,6 @@ namespace DataAquisition
                             RunValueSmoothedHitter = -100000, // Will be modified later
                             Scenario = scenario,
                             ModelStuff=null,
-                            ModelLocation=null,
                             ModelPitch=null,
                         });
                     } else {

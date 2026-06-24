@@ -10,7 +10,7 @@
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
         const bool DRAFT_UPDATE = false;
-        const bool STATCAST_ONLY_UPDATE = true;
+        const bool STATCAST_ONLY_UPDATE = false;
 
         static async Task Main(string[] args)
         {
@@ -100,7 +100,7 @@
 
             if (DATA_UPDATE || FULL_REFRESH)
             {
-                UpdateCareers.Update(years);
+                UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
                 ModelPlayers.Update();
                 ModelPlayerWar.Update();
 

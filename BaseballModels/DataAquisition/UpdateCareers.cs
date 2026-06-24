@@ -1,20 +1,15 @@
-﻿using CsvHelper;
-using Db;
-using System.Diagnostics;
-using System.Globalization;
+﻿using Db;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataAquisition
 {
     internal class UpdateCareers
     {
-        public static void Update(List<int> years)
+        public static void Update(int endYear)
         {
             try {
-                
-
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Player_CareerStatus.RemoveRange(db.Player_CareerStatus);
-                db.SaveChanges();
+                db.Player_CareerStatus.ExecuteDelete();
 
                 // Insert empty Career Status
                 foreach (var player in db.Player)
@@ -51,15 +46,16 @@ namespace DataAquisition
                 foreach (var pcs in db.Player_CareerStatus)
                 {
                     int lastYear = -1;
+
                     try {
                         if (pcs.IsHitter == 1)
                             lastYear = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId)
-                                .OrderByDescending(f => f.Year).Select(f => f.Year).Single();
+                                .OrderByDescending(f => f.Year).Select(f => f.Year).First();
                         else
                             lastYear = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId)
-                                .OrderByDescending(f => f.Year).Select(f => f.Year).Single();
+                                .OrderByDescending(f => f.Year).Select(f => f.Year).First();
 
-                        if (years.Last() - lastYear >= 2)
+                        if (endYear - lastYear >= 2)
                             pcs.IsActive = 0;
                         else
                             pcs.IsActive = 1;
@@ -210,7 +206,7 @@ namespace DataAquisition
 
                 
                 // Age Out (No MLB)
-                int cutoffYear = years.Last() - Constants.AGED_OUT_AGE;
+                int cutoffYear = endYear - Constants.AGED_OUT_AGE;
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear == null))
                 {
                     Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
@@ -255,7 +251,7 @@ namespace DataAquisition
 
                 // Service Lapse
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.AgedOut == null &&
-                                                                f.ServiceReached == null &&
+                                                                f.ServiceReached == 0 &&
                                                                 f.IgnorePlayer == null &&
                                                                 f.MlbStartYear != null))
                 {
@@ -300,7 +296,7 @@ namespace DataAquisition
 
                     // Make sure last year is not within 2 years of current year
                     int lastYear = playerYears.Last();
-                    if (lastYear < years.Last() - 1)
+                    if (lastYear < endYear - 1)
                         pcs.ServiceLapseYear = lastYear + 2;
                 }
                 db.SaveChanges();
@@ -325,7 +321,7 @@ namespace DataAquisition
 
                     #pragma warning restore CS8629
 
-                    if (lastYear < years.Last())
+                    if (lastYear < endYear)
                         pcs.pl.PlayingGap = lastYear;
                 }
 

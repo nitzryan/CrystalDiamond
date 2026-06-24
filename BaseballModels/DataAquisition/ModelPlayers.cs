@@ -1,5 +1,5 @@
 ﻿using Db;
-using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
 namespace DataAquisition
@@ -11,8 +11,7 @@ namespace DataAquisition
             try
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Model_Players.RemoveRange(db.Model_Players);
-                db.SaveChanges();
+                db.Model_Players.ExecuteDelete();
 
                 var players = db.Player_CareerStatus.Join(db.Player, pcs => pcs.MlbId, p => p.MlbId, (pcs, p) => new { pcs, p })
                     .Where(f => f.p.SigningYear >= Constants.START_YEAR);
@@ -159,7 +158,7 @@ namespace DataAquisition
                                 : 2000,
                             ProspectType = player.DraftPick != null ? 1 :
                                 lowestLevel == Constants.SPORT_IDS.Last() ? 3 : 2, // Above DSL or not
-                            IsEligible=Utilities.GetEligibilityMask(player),
+                            IsEligible=Utilities.GetEligibilityMask(player, p.pcs),
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,
                             PeakWarHitter = peakHitterWar,

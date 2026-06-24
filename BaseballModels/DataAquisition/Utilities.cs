@@ -349,9 +349,11 @@ namespace DataAquisition
             return mask;
         }
 
-        public static bool GetEligibilityMask(Db.Player player)
+        public static bool GetEligibilityMask(Db.Player player, Db.Player_CareerStatus pcs)
         {
-            return player.SigningYear < 2015;
+            return player.SigningYear < 2015 
+                && pcs.IgnorePlayer == null
+                && (pcs.ServiceEndYear != null || pcs.ServiceLapseYear != null || pcs.AgedOut != null || pcs.PlayingGap != null);
         }
 
         public static void LogException(Exception e)
