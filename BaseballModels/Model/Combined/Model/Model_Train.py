@@ -51,6 +51,14 @@ def TrainAndGraph(
     test_loss_history : list[list[float]] = [[] for _ in range(num_elements)]
     train_loss_history : list[list[float]] = [[] for _ in range(num_elements)]
     epoch_counter : list[int] = []
+    
+    # Per-WAR-class count histories (lazily sized on first epoch)
+    num_war_classes = None
+    train_pred_pct_history : list[list[float]] = None
+    train_actual_pct_history : list[list[float]] = None
+    test_pred_pct_history : list[list[float]] = None
+    test_actual_pct_history : list[list[float]] = None
+    
     best_loss = 999999
     best_loss_college = 999999
     best_epoch = -1
@@ -61,11 +69,20 @@ def TrainAndGraph(
     pro_scheduler = Scheduler(pro_network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7], [8]], verbose=False,
                         factor=0.5, patience=5, cooldown=5)
     
+    # Per-player (not per-timestep) WAR class distribution, for verification vs SQL
+    train_player_dist = GetPlayerClassDistribution(train_dataset, batch_size)
+    test_player_dist = GetPlayerClassDistribution(test_dataset, batch_size)
+    if should_output:
+        print("Train per-player WAR class distribution (%):",
+              [f"{p:.3f}" for p in train_player_dist])
+        print("Test  per-player WAR class distribution (%):",
+              [f"{p:.3f}" for p in test_player_dist])
+    
     iterable = range(num_epochs)
     if not should_output:
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
-        train_loss = Train(
+        train_loss, train_pred_pct, train_actual_pct = Train(
             pro_network=pro_network, 
             col_network=col_network, 
             dataset=train_dataset, 
@@ -78,7 +95,7 @@ def TrainAndGraph(
             col_elements=num_col_elements,
             batch_size=batch_size,
             pro_element_loss_scales=pro_element_loss_scales)
-        test_loss = Test(
+        test_loss, test_pred_pct, test_actual_pct = Test(
             pro_network=pro_network,
             col_network=col_network,
             dataset=test_dataset,
@@ -93,6 +110,19 @@ def TrainAndGraph(
             train_loss_history[n].append(train_loss[n])
             test_loss_history[n].append(test_loss[n])
         epoch_counter.append(epoch)
+        
+        # Record per-WAR-class prediction/actual counts
+        if num_war_classes is None:
+            num_war_classes = len(train_pred_pct)
+            train_pred_pct_history = [[] for _ in range(num_war_classes)]
+            train_actual_pct_history = [[] for _ in range(num_war_classes)]
+            test_pred_pct_history = [[] for _ in range(num_war_classes)]
+            test_actual_pct_history = [[] for _ in range(num_war_classes)]
+        for c in range(num_war_classes):
+            train_pred_pct_history[c].append(train_pred_pct[c])
+            train_actual_pct_history[c].append(train_actual_pct[c])
+            test_pred_pct_history[c].append(test_pred_pct[c])
+            test_actual_pct_history[c].append(test_actual_pct[c])
         
         col_scheduler.step(test_loss[num_pro_elements + 1])
         pro_scheduler.step(test_loss[:num_pro_elements])
@@ -119,6 +149,12 @@ def TrainAndGraph(
         print(f"Best result at epoch={best_epoch} loss={best_loss}")
         for n in range(num_elements):
             GraphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=element_list[n])
+        for c in range(num_war_classes):
+            GraphClassCounts(
+                epoch_counter,
+                train_pred_pct_history[c], train_actual_pct_history[c],
+                test_pred_pct_history[c], test_actual_pct_history[c],
+                title=f"WAR Class {c} Distribution")
     
     if SHOULD_PROFILE:    
         profiler.disable()
@@ -143,11 +179,14 @@ def Train(
     col_elements : int,
     batch_size : int,
     pro_element_loss_scales : list[int]
-) -> list[float]:
+) -> tuple[list[float], list[float], list[float]]:
     
     pro_network.train()
     col_network.train()
     avg_loss = [0] * (pro_elements + col_elements)
+    
+    war_pred_sum : torch.Tensor = None
+    war_actual_counts : torch.Tensor = None
     
     n_samples = len(dataset)
     num_batches = (n_samples + batch_size - 1) // batch_size
@@ -167,7 +206,7 @@ def Train(
         else:
             col_losses, h0 = GetLossesPitcher(col_network, col_data, col_targets, col_masks, shouldBackprop=True)
         
-        pro_losses = GetLosses(
+        pro_losses, (batch_pred_sum, batch_actual_counts) = GetLosses(
             pro_network, 
             pro_data, 
             pro_targets, 
@@ -187,12 +226,22 @@ def Train(
         for i, loss in enumerate(col_losses, start=len(pro_losses)):
             avg_loss[i] += loss.item()
             
+        if war_pred_sum is None:
+            war_pred_sum = torch.zeros_like(batch_pred_sum)
+            war_actual_counts = torch.zeros_like(batch_actual_counts)
+        war_pred_sum += batch_pred_sum
+        war_actual_counts += batch_actual_counts
+            
     for n in range(pro_elements):
         avg_loss[n] /= pro_size
     for n in range(col_elements):
         avg_loss[n + pro_elements] /= col_size
         
-    return avg_loss
+    total_valid = war_actual_counts.sum()
+    war_pred_pct = (war_pred_sum / total_valid * 100).tolist()
+    war_actual_pct = (war_actual_counts / total_valid * 100).tolist()
+        
+    return avg_loss, war_pred_pct, war_actual_pct
 
 
 @profiler
@@ -206,11 +255,14 @@ def Test(
     pro_elements : int,
     col_elements : int,
     batch_size : int,
-) -> list[float]:
+) -> tuple[list[float], list[float], list[float]]:
     
     pro_network.eval()
     col_network.eval()
     avg_loss = [0] * (pro_elements + col_elements)
+    
+    war_pred_sum : torch.Tensor = None
+    war_actual_counts : torch.Tensor = None
     
     n_samples = len(dataset)
     num_batches = (n_samples + batch_size - 1) // batch_size
@@ -227,20 +279,57 @@ def Test(
         else:
             col_losses, h0 = GetLossesPitcher(col_network, col_data, col_targets, col_masks, shouldBackprop=False)
         
-        pro_losses = GetLosses(pro_network, pro_data, pro_targets, pro_masks, h0, shouldBackprop=False, is_hitter=is_hitter)
+        pro_losses, (batch_pred_sum, batch_actual_counts) = GetLosses(pro_network, pro_data, pro_targets, pro_masks, h0, shouldBackprop=False, is_hitter=is_hitter)
         
         for i, loss in enumerate(pro_losses):
             avg_loss[i] += loss.item()
         for i, loss in enumerate(col_losses, start=len(pro_losses)):
             avg_loss[i] += loss.item()
             
+        if war_pred_sum is None:
+            war_pred_sum = torch.zeros_like(batch_pred_sum)
+            war_actual_counts = torch.zeros_like(batch_actual_counts)
+        war_pred_sum += batch_pred_sum
+        war_actual_counts += batch_actual_counts
+            
     for n in range(pro_elements):
         avg_loss[n] /= pro_size
     for n in range(col_elements):
         avg_loss[n + pro_elements] /= col_size
         
-    return avg_loss
+    total_valid = war_actual_counts.sum()
+    war_pred_pct = (war_pred_sum / total_valid * 100).tolist()
+    war_actual_pct = (war_actual_counts / total_valid * 100).tolist()
+    
+    return avg_loss, war_pred_pct, war_actual_pct
 
+
+def GetPlayerClassDistribution(
+    dataset : Combined_Player_Dataset,
+    batch_size : int,
+    num_war_classes : int = 0,
+) -> list[float]:
+    all_targets : list[torch.Tensor] = []
+
+    n_samples = len(dataset)
+    num_batches = (n_samples + batch_size - 1) // batch_size
+    indices = torch.arange(n_samples)
+
+    for batch_i in range(num_batches):
+        start = batch_i * batch_size
+        end = min(start + batch_size, n_samples)
+        batch_indices = indices[start:end]
+        pro_data, pro_targets, _, _, _, _ = dataset.get_batch(batch_indices)
+
+        _, length, _ = pro_data
+        target_war = pro_targets[0]
+        mask_valid = length > 0                      # same player set as GetLosses
+        all_targets.append(target_war[mask_valid])   # one entry per valid player
+
+    all_targets = torch.cat(all_targets)
+    counts = torch.bincount(all_targets, minlength=num_war_classes).float()
+    percentages = (counts / counts.sum() * 100).tolist()
+    return percentages
 
 def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 1, graph_y_range=None, title=""):
     fig = plt.figure()
@@ -252,3 +341,23 @@ def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
     plt.xlabel('#Epochs')
     plt.ylabel(loss_name)
+    
+def GraphClassCounts(
+    epoch_counter : list[int],
+    train_pred : list[float],
+    train_actual : list[float],
+    test_pred : list[float],
+    test_actual : list[float],
+    start : int = 1,
+    title : str = ""
+) -> None:
+    fig = plt.figure()
+    plt.plot(epoch_counter[start:], train_pred[start:],   color='blue', linestyle='-')
+    plt.plot(epoch_counter[start:], train_actual[start:], color='blue', linestyle='--')
+    plt.plot(epoch_counter[start:], test_pred[start:],    color='red',  linestyle='-')
+    plt.plot(epoch_counter[start:], test_actual[start:],  color='red',  linestyle='--')
+    plt.title(title)
+    plt.legend(['Train Predicted', 'Train Actual', 'Test Predicted', 'Test Actual'],
+               loc='upper right')
+    plt.xlabel('#Epochs')
+    plt.ylabel('% of Dataset')

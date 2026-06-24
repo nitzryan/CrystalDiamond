@@ -50,6 +50,10 @@ def GetLosses(
   mask_mlbValue = mask_mlbValue[mask_valid].to(device, non_blocking=True)
   mask_mlbstat = mask_mlbstat[mask_valid].to(device, non_blocking=True)
   
+  # Track per-class WAR prediction/actual counts over valid timesteps
+  with torch.no_grad():
+    war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, length)
+  
   # Get losses
   loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
   loss_yearStats = Stats_Loss(output_stats, target_yearStats, mask_stats)
@@ -73,7 +77,34 @@ def GetLosses(
     if els != 1:
       losses[i] /= els
   
-  return (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat)
+  return (
+    (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),
+    (war_predicted_counts, war_actual_counts),
+  )
+
+def GetWarClassCounts(
+    output_war : torch.Tensor,   # <Players_Valid, Timesteps, Classes>
+    target_war : torch.Tensor,   # <Players_Valid>
+    length : torch.Tensor        # <Players_Valid>
+      ) -> tuple[torch.Tensor, torch.Tensor]:
+    
+    num_timesteps = output_war.shape[1]
+    num_classes = output_war.shape[2]
+    device = output_war.device
+
+    # Valid timestep mask: timestep t is valid for player i if t < length[i]
+    ts_mask = torch.arange(num_timesteps, device=device).unsqueeze(0) < length.unsqueeze(1)  # <P_valid, T>
+
+    # Predicted: sum softmax probabilities over valid timesteps (soft counts)
+    probs = torch.softmax(output_war, dim=2)           # <P_valid, T, Classes>
+    predicted_sum = probs[ts_mask].sum(dim=0).cpu()     # <Classes>
+    
+    # Actual: hard count per class over valid timesteps
+    actual_classes = target_war.unsqueeze(1).expand(-1, num_timesteps)  # <P_valid, T>
+    actual_valid = actual_classes[ts_mask]
+    actual_counts = torch.bincount(actual_valid, minlength=num_classes).float().cpu()
+    
+    return predicted_sum, actual_counts
 
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
