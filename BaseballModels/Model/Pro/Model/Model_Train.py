@@ -53,7 +53,9 @@ def GetLosses(
   
   # Track per-class WAR prediction/actual counts over valid timesteps
   with torch.no_grad():
-    war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, mask_labels)
+    war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)   # <P_valid, T, Classes>
+    war_predicted_counts, war_actual_counts = GetWarClassCounts(war_probs, target_war, mask_labels)
+    brier_per_class_sum, brier_count = Brier_Score(war_probs, target_war, mask_labels)
   
   # Get losses
   loss_war = War_TwoStage_Loss(output_war_binary, output_war_ordinal, target_war, mask_labels)
@@ -82,28 +84,24 @@ def GetLosses(
   return (
     (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),
     (war_predicted_counts, war_actual_counts),
+    (brier_per_class_sum, brier_count),
   )
 
 def GetWarClassCounts(
-        output_war : tuple[torch.Tensor, torch.Tensor],   # (binary <P,T,1>, ordinal <P,T,K-2>)
+        probs : torch.Tensor,                             # <P_valid, T, Classes>
         target_war : torch.Tensor,                        # <Players_Valid>
         mask_labels : torch.Tensor                        # <Players_Valid, T>
           ) -> tuple[torch.Tensor, torch.Tensor]:
     
-    output_war_binary, output_war_ordinal = output_war
+    num_timesteps = probs.shape[1]
     
-    num_timesteps = output_war_binary.shape[1]
-    device = output_war_binary.device
-
-    mask_labels = mask_labels[:,:num_timesteps]
-
-    # Valid timestep mask
+    mask_labels = mask_labels[:, :num_timesteps]
     ts_mask = mask_labels == 1  # <P_valid, T>
-
-    # Predicted: sum softmax probabilities over valid timesteps (soft counts)
-    probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)   # <P_valid, T, Classes>
+    
     num_classes = probs.shape[2]
-    predicted_sum = probs[ts_mask].sum(dim=0).cpu() 
+    
+    # Predicted: sum softmax probabilities over valid timesteps (soft counts)
+    predicted_sum = probs[ts_mask].sum(dim=0).cpu()
     
     # Actual: hard count per class over valid timesteps
     actual_classes = target_war.unsqueeze(1).expand(-1, num_timesteps)
@@ -111,6 +109,43 @@ def GetWarClassCounts(
     actual_counts = torch.bincount(actual_valid, minlength=num_classes).float().cpu()
     
     return predicted_sum, actual_counts
+
+def Brier_Score(
+        probs : torch.Tensor,          # <P_valid, T_batch, Classes>
+        target_war : torch.Tensor,     # <P_valid>
+        mask_labels : torch.Tensor     # <P_valid, T_dataset>
+          ) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Per-class summed squared error for the multi-class Brier score over valid
+    timesteps, plus the number of valid timesteps.
+
+    Returns:
+        brier_per_class_sum : <Classes> sum over valid timesteps of (p_c - o_c)^2
+        brier_count         : scalar, number of valid timesteps (N)
+
+    Notes:
+        - Total multi-class Brier = brier_per_class_sum.sum() / brier_count
+        - Per-class Brier          = brier_per_class_sum[c]   / brier_count
+          (per-class values sum to the total; raw numerator/denominator are kept
+           so a Brier Skill Score can be derived later without re-running.)
+    """
+    num_timesteps = probs.shape[1]
+    num_classes = probs.shape[2]
+
+    # Reduce dataset-max timesteps down to this batch's padded length
+    mask_labels = mask_labels[:, :num_timesteps]
+    ts_mask = mask_labels == 1  # <P_valid, T>
+
+    probs_valid = probs[ts_mask]  # <M, Classes>
+    actual_valid = target_war.unsqueeze(1).expand(-1, num_timesteps)[ts_mask]  # <M>
+
+    onehot = torch.nn.functional.one_hot(actual_valid, num_classes=num_classes).to(probs_valid.dtype)
+
+    sq_err = (probs_valid - onehot) ** 2        # <M, Classes>
+    brier_per_class_sum = sq_err.sum(dim=0).cpu()
+    brier_count = torch.tensor(probs_valid.shape[0], dtype=torch.float)
+
+    return brier_per_class_sum, brier_count
 
 def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
   network.train() #updates any network layers that behave differently in training and execution
