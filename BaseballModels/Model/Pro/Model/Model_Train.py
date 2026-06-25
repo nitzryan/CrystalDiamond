@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 from Constants import device
-from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
+from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, War_TwoStage_Loss, WarTwoStageProbs
 from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 from Utilities import profiler
@@ -30,6 +30,7 @@ def GetLosses(
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
   h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
   output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0)
+  output_war_binary, output_war_ordinal = output_war
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets
@@ -52,10 +53,11 @@ def GetLosses(
   
   # Track per-class WAR prediction/actual counts over valid timesteps
   with torch.no_grad():
-    war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, length)
+    war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, mask_labels)
   
   # Get losses
-  loss_war, loss_level, loss_pa = Classification_Loss(output_war, output_level, output_pa, target_war, target_level, target_pa, mask_labels)
+  loss_war = War_TwoStage_Loss(output_war_binary, output_war_ordinal, target_war, mask_labels)
+  loss_level, loss_pa = Classification_Loss(output_level, output_pa, target_level, target_pa, mask_labels)
   loss_yearStats = Stats_Loss(output_stats, target_yearStats, mask_stats)
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
@@ -83,24 +85,28 @@ def GetLosses(
   )
 
 def GetWarClassCounts(
-    output_war : torch.Tensor,   # <Players_Valid, Timesteps, Classes>
-    target_war : torch.Tensor,   # <Players_Valid>
-    length : torch.Tensor        # <Players_Valid>
-      ) -> tuple[torch.Tensor, torch.Tensor]:
+        output_war : tuple[torch.Tensor, torch.Tensor],   # (binary <P,T,1>, ordinal <P,T,K-2>)
+        target_war : torch.Tensor,                        # <Players_Valid>
+        mask_labels : torch.Tensor                        # <Players_Valid, T>
+          ) -> tuple[torch.Tensor, torch.Tensor]:
     
-    num_timesteps = output_war.shape[1]
-    num_classes = output_war.shape[2]
-    device = output_war.device
+    output_war_binary, output_war_ordinal = output_war
+    
+    num_timesteps = output_war_binary.shape[1]
+    device = output_war_binary.device
 
-    # Valid timestep mask: timestep t is valid for player i if t < length[i]
-    ts_mask = torch.arange(num_timesteps, device=device).unsqueeze(0) < length.unsqueeze(1)  # <P_valid, T>
+    mask_labels = mask_labels[:,:num_timesteps]
+
+    # Valid timestep mask
+    ts_mask = mask_labels == 1  # <P_valid, T>
 
     # Predicted: sum softmax probabilities over valid timesteps (soft counts)
-    probs = torch.softmax(output_war, dim=2)           # <P_valid, T, Classes>
-    predicted_sum = probs[ts_mask].sum(dim=0).cpu()     # <Classes>
+    probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)   # <P_valid, T, Classes>
+    num_classes = probs.shape[2]
+    predicted_sum = probs[ts_mask].sum(dim=0).cpu() 
     
     # Actual: hard count per class over valid timesteps
-    actual_classes = target_war.unsqueeze(1).expand(-1, num_timesteps)  # <P_valid, T>
+    actual_classes = target_war.unsqueeze(1).expand(-1, num_timesteps)
     actual_valid = actual_classes[ts_mask]
     actual_counts = torch.bincount(actual_valid, minlength=num_classes).float().cpu()
     

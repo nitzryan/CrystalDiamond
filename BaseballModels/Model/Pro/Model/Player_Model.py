@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
+import math
 from Pro.DataPrep.Data_Prep import Data_Prep
 from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
 from Pro.Model.ResnetBlock import ResnetBlock
@@ -120,8 +121,11 @@ class RNN_Model(nn.Module):
         
         self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
         
+        num_war_classes = len(output_map.buckets_hitter_war)
         # Individual prediction layers
         if use_resnet:
+            raise Exception("Not Currently Implemented")
+            
             self.war_layers = nn.ModuleList(
                 [ResnetBlock(hidden_size) for _ in range(warclass_blocks)] +
                 [nn.Linear(hidden_size, len(output_map.buckets_hitter_war))]
@@ -166,7 +170,12 @@ class RNN_Model(nn.Module):
                 )]
             )
         else:
-            self.war_layers = warclass_arch.GetArchitecture(hidden_size, len(output_map.buckets_hitter_war))
+            # War predicted in 2-stage fashion: 1 to predict 0 or nonzero, 2nd is CORN on nonzero
+            # Stage 1: binary 0 vs >0
+            self.war_binary_layers = warclass_arch.GetArchitecture(hidden_size, 1)
+            # Stage 2: CORN over the (num_war_classes - 1) non-zero buckets -> (num_war_classes - 2) logits
+            self.war_ordinal_layers = warclass_arch.GetArchitecture(hidden_size, num_war_classes - 2)
+            
             self.level_layers = lvl_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS))
             self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
             self.yearStats_layers = stats_arch.GetArchitecture(hidden_size, NUM_LEVELS * stats_size)
@@ -207,10 +216,15 @@ class RNN_Model(nn.Module):
                     init.constant_(m.bias, 0)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.war_layers[-1], self.pa_layers[-1], self.level_layers[-1]]:
+        for layer in [self.war_binary_layers[-1], self.war_ordinal_layers[-1],
+                      self.pa_layers[-1], self.level_layers[-1]]:
             init.xavier_uniform_(layer.weight, gain=1.0)
             if layer.bias is not None:
                 init.zeros_(layer.bias)
+                
+        # Set initial prediction to match the actual odds
+        p_nonzero = 0.14
+        init.constant_(self.war_binary_layers[-1].bias, math.log(p_nonzero / (1 - p_nonzero)))
                 
         # Set softmax-regression layers
         pt_mean = -self.pt_offset.mean()
@@ -228,7 +242,7 @@ class RNN_Model(nn.Module):
     
         # Create parameter groups for differentiating learning rates
         shared_params = GetParameters([self.recurrent])
-        war_class_params = GetParameters(self.war_layers)
+        war_class_params = GetParameters(self.war_binary_layers) + GetParameters(self.war_ordinal_layers)
         level_params = GetParameters(self.level_layers)
         pa_params = GetParameters(self.pa_layers)
         yearStat_params = GetParameters(self.yearStats_layers)
@@ -299,7 +313,10 @@ class RNN_Model(nn.Module):
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
-        output_war = self.GetModuleOutput(output, self.war_layers, self.use_resnet)
+        output_war_binary = self.GetModuleOutput(output, self.war_binary_layers, self.use_resnet)   # <P, T, 1>
+        output_war_ordinal = self.GetModuleOutput(output, self.war_ordinal_layers, self.use_resnet) # <P, T, K-2>
+        output_war = (output_war_binary, output_war_ordinal)
+        
         output_level = self.GetModuleOutput(output, self.level_layers, self.use_resnet)
         output_pa = self.GetModuleOutput(output, self.pa_layers, self.use_resnet)
         output_yearStats = self.GetModuleOutput(output, self.yearStats_layers, self.use_resnet)
@@ -334,6 +351,76 @@ class RNN_Model(nn.Module):
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
     
+def WarTwoStageProbs(
+                binary_logits : torch.Tensor,   # <..., 1>
+                ordinal_logits : torch.Tensor   # <..., K_ord - 1>
+            ) -> torch.Tensor:                  # <..., K_ord + 1>  (= num_war_classes)
+    
+    p_nonzero = torch.sigmoid(binary_logits)   # P(y > 0)
+    p_zero = 1.0 - p_nonzero
+
+    # CORN: conditional probs q_k = P(y_ord > k | y_ord > k-1); cumulative = P(y_ord > k)
+    q = torch.sigmoid(ordinal_logits)
+    cum_gt = torch.cumprod(q, dim=-1)                     # <..., K_ord-1>  P(y_ord > k), k=0..K_ord-2
+
+    ones = torch.ones_like(cum_gt[..., :1])
+    zeros = torch.zeros_like(cum_gt[..., :1])
+    S = torch.cat([ones, cum_gt], dim=-1)                 # P(y_ord > m-1)
+    T = torch.cat([cum_gt, zeros], dim=-1)                # P(y_ord > m)
+    p_ord = S - T                                         # <..., K_ord>  per-bucket prob within non-zero set
+
+    probs_nonzero = p_nonzero * p_ord                     # scale by P(y > 0)
+    probs = torch.cat([p_zero, probs_nonzero], dim=-1)    # <..., K_ord + 1>
+    return probs
+    
+def CornLoss(
+            logits : torch.Tensor,   # <M, num_ord_classes - 1>
+            y : torch.Tensor,        # <M>, values in [0, num_ord_classes - 1]
+            num_ord_classes : int
+        ) -> torch.Tensor:
+    
+    losses = logits.new_zeros(())
+    num_examples = 0
+    for i in range(num_ord_classes - 1):
+        mask = y >= i                       # samples still "in play" for task i (y > i-1)
+        if mask.sum() < 1:
+            continue
+        label = (y[mask] > i).float()
+        pred = logits[mask, i]
+        losses = losses + F.binary_cross_entropy_with_logits(pred, label, reduction='sum')
+        num_examples += int(mask.sum())
+    if num_examples == 0:
+        return logits.sum() * 0.0
+    return losses
+    
+def War_TwoStage_Loss(
+            binary_logits : torch.Tensor,    # <P, T, 1>
+            ordinal_logits : torch.Tensor,   # <P, T, K_ord - 1>
+            target_war : torch.Tensor,       # <P>
+            mask_labels : torch.Tensor       # <P, T>
+        ) -> torch.Tensor:
+    
+    P, T, _ = binary_logits.shape
+    mask_labels = mask_labels[:, :T]
+    num_ord_classes = ordinal_logits.shape[-1] + 1
+
+    target = target_war.unsqueeze(1).expand(P, T)   # broadcast player label across timesteps
+    valid = mask_labels.bool()
+
+    binary_logits = binary_logits.squeeze(-1)[valid]   # <N>
+    ordinal_logits = ordinal_logits[valid]             # <N, K_ord-1>
+    target = target[valid]                             # <N>
+
+    # Stage 1: 0 vs >0 over all valid timesteps
+    binary_target = (target > 0).float()
+    loss_binary = F.binary_cross_entropy_with_logits(binary_logits, binary_target, reduction='sum')
+
+    # Stage 2: CORN over non-zero buckets only, conditional on y > 0
+    nonzero = target > 0
+    ord_target = (target[nonzero] - 1).long()          # map classes 1..K-1 -> ordinal 0..K_ord-1
+    loss_ordinal = CornLoss(ordinal_logits[nonzero], ord_target, num_ord_classes)
+
+    return loss_binary + loss_ordinal
     
 def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
@@ -461,41 +548,34 @@ def MLB_Stat_Classification_Loss(pred_stats, actual_stats, masks, is_hitter : bo
         
     return loss
     
-def Classification_Loss(pred_war, pred_level, pred_pa, actual_war, actual_level, actual_pa, masks):
+def Classification_Loss(pred_level, pred_pa, actual_level, actual_pa, masks):
     masks = masks[:,:pred_level.size(1)]
     
-    batch_size = pred_war.size(0)
-    time_steps = pred_war.size(1)
+    batch_size = pred_level.size(0)
+    time_steps = pred_level.size(1)
     
-    num_classes_war = pred_war.size(2)
     num_classes_level = pred_level.size(2)
     num_classes_pa = pred_pa.size(2)
     
     masks = masks.reshape((batch_size, time_steps,))
     
-    pred_war = pred_war.reshape((batch_size * time_steps, num_classes_war))
     pred_level = pred_level.reshape((batch_size * time_steps, num_classes_level))
     pred_pa = pred_pa.reshape((batch_size * time_steps, num_classes_pa))
     
-    actual_war = actual_war.repeat_interleave(time_steps)
     actual_level = actual_level.repeat_interleave(time_steps)
     actual_pa = actual_pa.repeat_interleave(time_steps)
     
     l = nn.CrossEntropyLoss(reduction='none')
-    loss_war = l(pred_war, actual_war)
     loss_level = l(pred_level, actual_level)
     loss_pa = l(pred_pa, actual_pa)
     
-    loss_war = loss_war.reshape((batch_size, time_steps))
     loss_level = loss_level.reshape((batch_size, time_steps))
     loss_pa = loss_pa.reshape((batch_size, time_steps))
     
-    masked_loss_war = loss_war * masks
     masked_loss_level = loss_level * masks
     masked_loss_pa = loss_pa * masks
     
-    loss_sums_war = masked_loss_war.sum(dim=1)
     loss_sums_level = masked_loss_level.sum(dim=1)
     loss_sums_pa = masked_loss_pa.sum(dim=1)
     
-    return loss_sums_war.sum(), loss_sums_level.sum(), loss_sums_pa.sum()
+    return loss_sums_level.sum(), loss_sums_pa.sum()

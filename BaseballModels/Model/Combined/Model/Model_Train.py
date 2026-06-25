@@ -341,6 +341,8 @@ def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", 
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
     plt.xlabel('#Epochs')
     plt.ylabel(loss_name)
+    plt.show()
+    plt.close(fig)
     
 def GraphClassCounts(
     epoch_counter : list[int],
@@ -355,9 +357,11 @@ def GraphClassCounts(
     plt.plot(epoch_counter[start:], train_pred[start:],   color='blue', linestyle='-')
     plt.plot(epoch_counter[start:], train_actual[start:], color='blue', linestyle='--')
     plt.plot(epoch_counter[start:], test_pred[start:],    color='red',  linestyle='-')
-    plt.plot(epoch_counter[start:], test_actual[start:],  color='red',  linestyle='--')
+    plt.plot(epoch_counter[start+5:-5], test_actual[start+5:-5],  color='red',  linestyle='--') # Slightly shorter so train_actual is visual if this is too close
     plt.title(title)
     plt.legend(['Train Predicted', 'Train Actual', 'Test Predicted', 'Test Actual'],
                loc='upper right')
     plt.xlabel('#Epochs')
     plt.ylabel('% of Dataset')
+    plt.show()
+    plt.close(fig)
