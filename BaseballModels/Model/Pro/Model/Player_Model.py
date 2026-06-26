@@ -24,12 +24,12 @@ class LayerArch:
                             [nn.Linear(self.layer_size, self.layer_size) for _ in range(self.num_layers - 2)] +\
                             [nn.Linear(self.layer_size, output_size)])
 
-DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=256, num_layers=2)
+DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
-DEFAULT_LVL_ARCH = LayerArch(layer_size=128, num_layers=2)
-DEFAULT_PA_ARCH = LayerArch(layer_size=256, num_layers=2)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=128, num_layers=4)
+DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 

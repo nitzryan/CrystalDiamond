@@ -11,8 +11,8 @@ import gc
 from Constants import device
 
 if __name__ == "__main__":
-    pro_hidden_sizes = [16, 32, 64, 128, 256, 512]
-    pro_num_layers = [1, 2, 4, 8, 16]
+    pro_hidden_sizes = [512, 256, 128, 64, 32, 16]
+    pro_num_layers = [8, 4, 2, 1]
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -20,9 +20,11 @@ if __name__ == "__main__":
         C_Prep_Map.college_base_prep_map,
         C_Output_Map.college_output_map)
 
-    hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", pro_player_values=(2025,2015,1), pro_use_cutoff=True,
-                                            col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
-    train_dataset, test_dataset = Create_Test_Train_Datasets(hitter_io_list, 0.25, 0, True)
+    hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE IsEligible=1 AND isHitter=?", pro_player_values=(1,), pro_use_cutoff=True,
+                                        col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
+    train_dataset, test_dataset = Create_Test_Train_Datasets(
+        player_list=hitter_io_list, 
+        is_hitter=True)
 
     xs = []
     ys = []

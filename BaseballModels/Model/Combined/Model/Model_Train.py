@@ -12,6 +12,7 @@ from Pro.Model.Model_Train import GetLosses
 from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
 
 from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Combined.Model.BrierStats import GetTimestepWarBrier
 
 import io
 import matplotlib.pyplot as plt
@@ -225,6 +226,30 @@ def TrainAndGraph(
                                       title="WAR Loss per Timestep (Test)")
         ))
 
+        # Brier Skill Score and Murphy Decomposition
+        train_brier_ts = GetTimestepWarBrier(
+            pro_network, col_network, train_dataset, is_hitter, batch_size)
+        test_brier_ts = GetTimestepWarBrier(
+            pro_network, col_network, test_dataset, is_hitter, batch_size)
+        plots.append((
+            "WAR BSS per Timestep",
+            lambda: GraphTimestepBSS(
+                train_brier_ts['timesteps'], train_brier_ts['bss'],
+                test_brier_ts['timesteps'],  test_brier_ts['bss'],
+                title="WAR Brier Skill Score per Timestep", show=False)
+        ))
+        plots.append((
+            "WAR Brier Decomposition per Timestep (Train)",
+            lambda: GraphTimestepDecomposition(
+                train_brier_ts, title="WAR Brier Decomposition per Timestep (Train)", show=False)
+        ))
+        plots.append((
+            "WAR Brier Decomposition per Timestep (Test)",
+            lambda: GraphTimestepDecomposition(
+                test_brier_ts, title="WAR Brier Decomposition per Timestep (Test)", show=False)
+        ))
+
+
         ShowPlotDropdown(plots)
     
     if SHOULD_PROFILE:    
@@ -419,6 +444,49 @@ def GraphTimestepLoss(
     plt.title(title)
     return fig
     
+    
+def GraphTimestepBSS(
+    train_ts : list[int], train_bss : list[float],
+    test_ts : list[int],  test_bss : list[float],
+    title : str = "", show : bool = True
+) -> "matplotlib.figure.Figure":
+    fig = plt.figure()
+    plt.plot(train_ts, train_bss, color='blue')
+    plt.plot(test_ts, test_bss, color='red')
+    plt.axhline(0, color='gray', linestyle=':')   # 0 = no better than base rate
+    plt.title(title)
+    plt.legend(['Train BSS', 'Test BSS'], loc='upper right')
+    plt.xlabel('Timestep')
+    plt.ylabel('Brier Skill Score')
+    if show:
+        plt.show()
+        plt.close(fig)
+    return fig
+
+def GraphTimestepDecomposition(
+    result : dict, title : str = "", show : bool = True
+) -> "matplotlib.figure.Figure":
+    ts = result['timesteps']
+    fig, ax1 = plt.subplots()
+    ax1.plot(ts, result['bs_model'],    color='black')
+    ax1.plot(ts, result['uncertainty'], color='green')
+    ax1.plot(ts, result['resolution'],  color='blue')
+    ax1.plot(ts, result['reliability'], color='red')
+    ax1.set_xlabel('Timestep')
+    ax1.set_ylabel('Brier Components')
+    ax1.legend(['Brier (model)', 'Uncertainty (difficulty)', 'Resolution', 'Reliability'],
+               loc='upper left')
+
+    ax2 = ax1.twinx()
+    ax2.plot(ts, result['pct'], color='gray', linestyle=':')
+    ax2.set_ylabel('% of Players', color='gray')
+    ax2.tick_params(axis='y', labelcolor='gray')
+
+    plt.title(title)
+    if show:
+        plt.show()
+        plt.close(fig)
+    return fig
     
 def ShowPlotDropdown(plots : list[tuple[str, "callable"]]) -> None:
     dropdown = widgets.Dropdown(options=[title for title, _ in plots], description='Plot:')
