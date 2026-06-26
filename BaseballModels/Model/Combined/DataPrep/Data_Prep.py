@@ -80,12 +80,11 @@ class Combined_Data_Prep:
             dates=torch.zeros(0, *player_template.dates.shape[1:]),
         )
         
-    def Generate_IO_Hitters(self, 
-            pro_player_condition : str, pro_player_values : tuple[any], pro_use_cutoff : bool,
-            col_player_condition : str, col_player_values : tuple[any], col_use_cutoff : bool,) -> list[Combined_IO]:
+    def Generate_IO_Hitters(self, is_training : bool) -> list[Combined_IO]:
+        conditions = "WHERE IsEligible=1 AND IsHitter=1" if is_training else "WHERE IsHitter=1"
         
-        pro_io = self.pro_data_prep.Generate_IO_Hitters(pro_player_condition, pro_player_values, pro_use_cutoff)
-        college_io = self.college_data_prep.Generate_IO_Hitters(col_player_condition, col_player_values, col_use_cutoff)
+        pro_io = self.pro_data_prep.Generate_IO_Hitters(conditions, (), is_training)
+        college_io = self.college_data_prep.Generate_IO_Hitters(conditions, (), is_training)
         
         empty_pro_io = self.GetEmptyProIO(is_hitter=True)
         empty_college_io = self.GetEmptyCollegeIO(is_hitter=True)

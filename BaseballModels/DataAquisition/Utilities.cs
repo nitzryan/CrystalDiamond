@@ -468,5 +468,21 @@ namespace DataAquisition
                 default: throw new Exception($"Unexpected Position encounted at CalculatePosValue: {pos}");
             }
         }
+
+        public static bool IsCollegePlayerElibible(SqliteDbContext db, int mlbId, int lastYear)
+        {
+            const int LAST_YEAR = 2015;
+            if (mlbId == 0)
+                return lastYear <= LAST_YEAR;
+        
+            bool? isEligibleNullable = db.Model_Players
+                        .Where(f => f.MlbId == mlbId)
+                        .Select(f => f.IsEligible)
+                        .SingleOrDefault();
+
+            bool isEligible = isEligibleNullable == null ? lastYear <= 2015 : isEligibleNullable.Value;
+
+            return isEligible;
+        }
     }
 }

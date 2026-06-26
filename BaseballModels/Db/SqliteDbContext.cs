@@ -53,7 +53,6 @@ namespace Db
 		public DbSet<LeagueRunMatrix> LeagueRunMatrix {get; set;}
 		public DbSet<GamePlayByPlay> GamePlayByPlay {get; set;}
 		public DbSet<GamePlayByPlay_GameFielders> GamePlayByPlay_GameFielders {get; set;}
-		public DbSet<College_Player> College_Player {get; set;}
 		public DbSet<College_TeamMap> College_TeamMap {get; set;}
 		public DbSet<College_ParkFactors> College_ParkFactors {get; set;}
 		public DbSet<College_ConfMap> College_ConfMap {get; set;}
@@ -78,6 +77,7 @@ namespace Db
 		public DbSet<HitterYearZoneData> HitterYearZoneData {get; set;}
 		public DbSet<PitchModelResultBasis> PitchModelResultBasis {get; set;}
 		public DbSet<PitchStatcast> PitchStatcast {get; set;}
+		public DbSet<College_Player> College_Player {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -132,7 +132,6 @@ namespace Db
 			modelBuilder.Entity<LeagueRunMatrix>().HasKey(f => new {f.LeagueId,f.Year});
 			modelBuilder.Entity<GamePlayByPlay>().HasKey(f => new {f.EventId});
 			modelBuilder.Entity<GamePlayByPlay_GameFielders>().HasKey(f => new {f.GameId,f.IsHome});
-			modelBuilder.Entity<College_Player>().HasKey(f => new {f.TBCId});
 			modelBuilder.Entity<College_TeamMap>().HasKey(f => new {f.TeamId});
 			modelBuilder.Entity<College_ParkFactors>().HasKey(f => new {f.TeamId,f.Year});
 			modelBuilder.Entity<College_ConfMap>().HasKey(f => new {f.ConfId});
@@ -157,6 +156,7 @@ namespace Db
 			modelBuilder.Entity<HitterYearZoneData>().HasKey(f => new {f.Year,f.MlbId});
 			modelBuilder.Entity<PitchModelResultBasis>().HasKey(f => new {f.Year,f.CountBalls,f.CountStrikes,f.OutputType});
 			modelBuilder.Entity<PitchStatcast>().HasKey(f => new {f.GameId,f.PitchId});
+			modelBuilder.Entity<College_Player>().HasKey(f => new {f.TBCId});
 		}
 	}
 }

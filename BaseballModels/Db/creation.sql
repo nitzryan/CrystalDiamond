@@ -1180,6 +1180,7 @@ CREATE TABLE College_Player
 	"Throws" TEXT NOT NULL,
 	"IsPitcher" INTEGER NOT NULL,
 	"IsHitter" INTEGER NOT NULL,
+	"IsEligible" INTEGER NOT NULL,
 	PRIMARY KEY("TBCId")
 );
 

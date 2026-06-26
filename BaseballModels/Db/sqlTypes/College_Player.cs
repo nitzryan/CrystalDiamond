@@ -17,6 +17,7 @@ namespace Db
 		public required string Throws {get; set;}
 		public required bool IsPitcher {get; set;}
 		public required bool IsHitter {get; set;}
+		public required bool IsEligible {get; set;}
 
 		public College_Player Clone()
 		{
@@ -37,6 +38,7 @@ namespace Db
 				Throws = this.Throws,
 				IsPitcher = this.IsPitcher,
 				IsHitter = this.IsHitter,
+				IsEligible = this.IsEligible,
 			};
 		}
 	}

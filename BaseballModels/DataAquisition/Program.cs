@@ -6,7 +6,7 @@
         const int END_YEAR = 2026;
         const int END_MONTH = 5;
 
-        const bool UPDATE_COLLEGE_DATA = false;
+        const bool UPDATE_COLLEGE_DATA = true;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
         const bool DRAFT_UPDATE = false;
@@ -98,7 +98,7 @@
                 UpdateServiceTime.Update();
             }
 
-            if (DATA_UPDATE || FULL_REFRESH)
+            if (DATA_UPDATE || FULL_REFRESH || true)
             {
                 UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
                 ModelPlayers.Update();

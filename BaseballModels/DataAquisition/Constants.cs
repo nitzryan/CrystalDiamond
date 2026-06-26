@@ -21,7 +21,7 @@ namespace DataAquisition
         public const string DATA_AQ_DIRECTORY = "../../../../DataAquisition/";
         public const int SERVICE_TIME_CUTOFF = 6;
         public const int AGED_OUT_AGE = 27;
-        public const int STOP_YEAR = 34;
+        public const int STOP_YEAR = 33;
 
         // Set these to set start/stop
         //public const int CURRENT_YEAR = 2024;

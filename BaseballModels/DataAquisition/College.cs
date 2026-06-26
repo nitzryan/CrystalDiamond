@@ -648,6 +648,9 @@ namespace DataAquisition
                     if (lastYear != player.First().draftYear)
                         draftPick = 0;
 
+                    // Toggle if player should be included in training data
+                    
+
                     // Player
                     players.Add(new College_Player
                     {
@@ -666,6 +669,7 @@ namespace DataAquisition
                         Throws = firstStats.throws,
                         IsPitcher = false,
                         IsHitter = true,
+                        IsEligible = Utilities.IsCollegePlayerElibible(db, player.First().mlbId, lastYear),
                     });
 
                     // Stats
@@ -892,6 +896,7 @@ namespace DataAquisition
                             Throws = firstStats.throws,
                             IsPitcher = true,
                             IsHitter = false,
+                            IsEligible = Utilities.IsCollegePlayerElibible(db, player.First().mlbId, lastYear),
                         });
                     }
 

@@ -51,7 +51,7 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
                  ("GamePlayByPlay_GameFielders", ["IsHome"]),
-                 ("College_Player", ["IsHitter", "IsPitcher"]),
+                 ("College_Player", ["IsHitter", "IsPitcher", "IsEligible"]),
                  ("PitchStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
                  ("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
                  ("PitcherStatcastMonth", ["IsValid"]),

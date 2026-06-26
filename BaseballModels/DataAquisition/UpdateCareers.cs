@@ -251,7 +251,7 @@ namespace DataAquisition
 
                 // Service Lapse
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.AgedOut == null &&
-                                                                f.ServiceReached == 0 &&
+                                                                f.ServiceReached != 1 &&
                                                                 f.IgnorePlayer == null &&
                                                                 f.MlbStartYear != null))
                 {
