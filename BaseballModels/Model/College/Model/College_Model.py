@@ -80,6 +80,7 @@ class RNN_Model(nn.Module):
                                 )
         
         if use_resnet:
+            raise Exception("Resnet Not Implemented")
             self.draft_layers = nn.ModuleList(
                 [ResnetBlock(hidden_size) for _ in range(7)] +
                 [nn.Linear(hidden_size, len(DRAFT_BUCKETS))]
@@ -114,7 +115,9 @@ class RNN_Model(nn.Module):
         else:
             self.draft_layers = stats_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
             self.pos_layers = stats_arch_pos.GetArchitecture(hidden_size, pos_output_len)
-            self.war_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS))
+            
+            self.war_binary_layers = war_arch.GetArchitecture(hidden_size, 1)
+            self.war_ordinal_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS) - 2)
             
             self.hidden_layers = output_hidden_arch.GetArchitecture(hidden_size, output_hidden_size * output_num_layers)
             
@@ -159,8 +162,11 @@ class RNN_Model(nn.Module):
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
         
         output_draft = self.GetModuleOutput(output, self.draft_layers)
-        output_war = self.GetModuleOutput(output, self.war_layers)
         output_pos = self.GetModuleOutput(output, self.pos_layers)
+        
+        output_war_binary = self.GetModuleOutput(output, self.war_binary_layers)
+        output_war_ordinal = self.GetModuleOutput(output, self.war_ordinal_layers)
+        output_war = (output_war_binary, output_war_ordinal)
         
         output_hidden = self.GetModuleOutput(output, self.hidden_layers)
         output_hidden = output_hidden[

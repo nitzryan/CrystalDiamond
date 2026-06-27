@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import ipywidgets as widgets
 from IPython.display import display
 from matplotlib.figure import Figure
+from Combined.Utilities.Types import *
 
 def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 1, graph_y_range=None, title="") -> Figure:
     fig = plt.figure()
@@ -78,21 +79,21 @@ def GraphTimestepBSS(
     return fig
 
 def GraphTimestepDecomposition(
-    result : dict, title : str = "", show : bool = True
+    result : TimestepBrierResult, title : str = "", show : bool = True
 ) -> Figure:
     ts = result['timesteps']
     fig, ax1 = plt.subplots()
-    ax1.plot(ts, result['bs_model'],    color='black')
-    ax1.plot(ts, result['uncertainty'], color='green')
-    ax1.plot(ts, result['resolution'],  color='blue')
-    ax1.plot(ts, result['reliability'], color='red')
+    ax1.plot(ts, result.bs_model,    color='black')
+    ax1.plot(ts, result.uncertainty, color='green')
+    ax1.plot(ts, result.resolution,  color='blue')
+    ax1.plot(ts, result.reliability, color='red')
     ax1.set_xlabel('Timestep')
     ax1.set_ylabel('Brier Components')
     ax1.legend(['Brier (model)', 'Uncertainty (difficulty)', 'Resolution', 'Reliability'],
                loc='upper left')
 
     ax2 = ax1.twinx()
-    ax2.plot(ts, result['pct'], color='gray', linestyle=':')
+    ax2.plot(ts, result.pct, color='gray', linestyle=':')
     ax2.set_ylabel('% of Players', color='gray')
     ax2.tick_params(axis='y', labelcolor='gray')
 

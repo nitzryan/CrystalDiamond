@@ -1,219 +1,84 @@
 from Constants import device
-import matplotlib.pyplot as plt
 import torch
-from tqdm import tqdm
 from College.Model.College_Model import Classification_Loss, Position_Loss
+from College.Model.College_Model import RNN_Model as Col_Model
+from Pro.Model.Player_Model import War_TwoStage_Loss, WarTwoStageProbs
+from Combined.Model.GetWarClassCounts import *
+from Combined.Utilities.Types import *
+from Combined.Utilities.BrierScore import Brier_Score
 
-from Utilities import profiler
-
-HITTER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProOff", "ProDef", "ProPA", "ProPosition"]
+HITTER_ELEMENT_LIST = ["DRAFT", "WAR", "OFF", "DEF", "PA", "POS"]
 NUM_ELEMENTS_HITTER = len(HITTER_ELEMENT_LIST)
 
-PITCHER_ELEMENT_LIST = ["DraftPos", "ProWAR", "ProPosition"]
+PITCHER_ELEMENT_LIST = ["DRAFT", "WAR", "POS"]
 NUM_ELEMENTS_PITCHER = len(PITCHER_ELEMENT_LIST)
 
-@profiler
-def GetLossesHitter(network, data, targets, masks, shouldBackprop : bool):
+def GetLossesCollege(
+        network : Col_Model,
+        data : tuple[torch.Tensor, torch.Tensor],
+        targets : tuple[torch.Tensor, ...],
+        masks : tuple[torch.Tensor, ...],
+        shouldBackprop : bool,
+        is_hitter : bool,
+        ) -> CollegeLossResult:
     # Get Output
     data, length = data
     data = data.to(device, non_blocking=True)
     length = length.to(device, non_blocking=True)
     
-    output_draft, output_war, output_off, output_def, output_pa, output_pos, output_hidden = network(data, length)
+    if is_hitter:
+        output_draft, output_war, output_off, output_def, output_pa, output_pos, output_hidden = network(data, length)
+    else:
+        output_draft, output_war, output_pos, output_hidden = network(data, length)
+    
+    output_war_binary, output_war_ordinal = output_war
     
     max_len = output_draft.size(1)
     mask_length = (torch.arange(max_len, device=length.device)
                    .unsqueeze(0) < length.unsqueeze(1))
     
-    # Get losses
-    target_draft, target_war, target_off, target_def, target_pa, target_pos = targets
     mask_pos, = masks
+    mask_pos = mask_pos.to(device, non_blocking=True)
+    
+    if is_hitter:
+        target_draft, target_war, target_off, target_def, target_pa, target_pos = targets
+    else:
+        target_draft, target_war, target_pos = targets
     
     target_draft = target_draft.to(device, non_blocking=True)
     target_war = target_war.to(device, non_blocking=True)
-    target_off = target_off.to(device, non_blocking=True)
-    target_def = target_def.to(device, non_blocking=True)
-    target_pa = target_pa.to(device, non_blocking=True)
     target_pos = target_pos.to(device, non_blocking=True)
-    mask_pos = mask_pos.to(device, non_blocking=True)
-    
-    loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
-    loss_war = Classification_Loss(output_war, target_war, mask_length)
-    loss_off = Classification_Loss(output_off, target_off, mask_length)
-    loss_def = Classification_Loss(output_def, target_def, mask_length)
-    loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
-    loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
-    
-    if shouldBackprop:
-      torch.autograd.backward([loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos], retain_graph=True)
-    
-    return (loss_draft, loss_war, loss_off, loss_def, loss_pa, loss_pos), output_hidden
-
-def GetLossesPitcher(network, data, targets, masks, shouldBackprop : bool):
-    # Get Output
-    data, length = data
-    data = data.to(device, non_blocking=True)
-    length = length.to(device, non_blocking=True)
-    output_draft, output_war, output_pos, output_hidden = network(data, length)
-    
-    max_len = output_draft.size(1)
-    mask_length = (torch.arange(max_len, device=length.device)
-                   .unsqueeze(0) < length.unsqueeze(1))
-    
-    # Get losses
-    target_draft, target_war, target_pos = targets
-    mask_pos, = masks
-    
-    target_draft = target_draft.to(device)
-    loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
-    
-    target_war = target_war.to(device)
-    loss_war = Classification_Loss(output_war, target_war, mask_length)
-    
-    target_pos = target_pos.to(device)
-    mask_pos = mask_pos.to(device)
-    loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
-    
-    if shouldBackprop:
-      torch.autograd.backward([loss_draft, loss_war, loss_pos], retain_graph=True)
-    
-    return (loss_draft, loss_war, loss_pos), output_hidden
-
-def train(network, data_generator, num_elements, optimizer, is_hitter):
-    network.train()
-    if is_hitter:
-      avg_loss = [0] * NUM_ELEMENTS_HITTER
-    else:
-      avg_loss = [0] * NUM_ELEMENTS_PITCHER
-    
-    for data, length, targets, masks in data_generator:
-        optimizer.zero_grad()
-        if is_hitter:
-          losses = GetLossesHitter(network, data, length, targets, masks, shouldBackprop=True)
-        else:
-          losses = GetLossesPitcher(network, data, length, targets, masks, shouldBackprop=True)
-        torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
-        optimizer.step()
-        
-        for i, loss in enumerate(losses):
-          avg_loss[i] += loss.item()
-        
-    for n in range(len(avg_loss)):
-      avg_loss[n] /= num_elements
-    return avg_loss
-
-def test(network, test_loader, num_elements, is_hitter):
-    network.eval()
-    if is_hitter:
-      avg_loss = [0] * NUM_ELEMENTS_HITTER
-    else:
-      avg_loss = [0] * NUM_ELEMENTS_PITCHER
     
     with torch.no_grad():
-      for data, length, targets, masks in test_loader:
-        if is_hitter:
-          losses = GetLossesHitter(network, data, length, targets, masks, shouldBackprop=False)
-        else:
-          losses = GetLossesPitcher(network, data, length, targets, masks, shouldBackprop=False)
-        
-        for i, loss in enumerate(losses):
-          avg_loss[i] += loss.item()
-        
-    for n in range(len(avg_loss)):
-      avg_loss[n] /= num_elements
-    return avg_loss
-
-def logResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, should_output=True):
-  if should_output and (epoch%print_interval == 0):  
-    print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch+1, num_epochs, train_loss, test_loss))
-
-def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 2, graph_y_range=None, title=""):
-  fig = plt.figure()
-  plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
-  plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')
-  plt.title(title)
-  if graph_y_range is not None:
-    plt.ylim(graph_y_range)
-  plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
-  plt.xlabel('#Epochs')
-  plt.ylabel(loss_name)
-  
-def trainAndGraph(network, 
-                  training_dataset, 
-                  testing_dataset,
-                  scheduler,
-                  optimizer,
-                  batch_size : int,
-                  num_epochs, 
-                  logging_interval=1, 
-                  early_stopping_cutoff=20, 
-                  should_output=True, 
-                  model_name="no_name", 
-                  save_last=False, 
-                  is_hitter=True,
-                  elements_to_save : list[int] = [0],
-                  get_end_loss : bool = False):
-  #Arrays to store training history
-  if is_hitter:
-    NUM_ELEMENTS = NUM_ELEMENTS_HITTER
-    ELEMENT_LIST = HITTER_ELEMENT_LIST
-  else:
-    NUM_ELEMENTS = NUM_ELEMENTS_PITCHER
-    ELEMENT_LIST = PITCHER_ELEMENT_LIST
-  test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
-  epoch_counter = []
-  train_loss_history = [[] for _ in range(NUM_ELEMENTS)]
-  best_losses = [99999999 for _ in elements_to_save]
-  best_epochs = [0 for _ in elements_to_save]
-  epochsSinceLastImprove = 0
-  
-  train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
-  test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
-  
-  iterable = range(num_epochs)
-  if not should_output:
-    iterable = tqdm(iterable, leave=False, desc="Training")
-  for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), optimizer, is_hitter=is_hitter)
-    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter)
-
-    scheduler.step(test_loss[0])
-    logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)
+        war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)
+        war_predicted_counts, war_actual_counts = GetWarClassCounts(war_probs, target_war, mask_length)
+        brier_per_class_sum, brier_count = Brier_Score(war_probs, target_war, mask_length)
     
-    for n in range(NUM_ELEMENTS):
-      train_loss_history[n].append(avg_loss[n])
-      test_loss_history[n].append(test_loss[n])
-    epoch_counter.append(epoch)
+    loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
+    loss_war = War_TwoStage_Loss(output_war_binary, output_war_ordinal, target_war, mask_length)
+    loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
-    anyImproved : bool = False
-    for i, el in enumerate(elements_to_save):
-      if (test_loss[el] < best_losses[i]):
-        best_losses[i] = test_loss[el]
-        torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
-        anyImproved = True
-        best_epochs[i] = epoch
-    if anyImproved:
-      epochsSinceLastImprove = 0
-    else:
-      epochsSinceLastImprove += 1
-      
-    if epochsSinceLastImprove >= early_stopping_cutoff:
-      if should_output:
-        print("Stopped Training Early")
-      break
-
-  if should_output:
-    for i, el in enumerate(elements_to_save):
-      print(f"Best result for {ELEMENT_LIST[el]} at epoch={best_epochs[i]} with loss={best_losses[i]}")
-
-    for n in range(NUM_ELEMENTS):
-      graphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=ELEMENT_LIST[n], start=1)
-  
-  if save_last:
-    for el in elements_to_save:
-      torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
-  
-  if get_end_loss:
-    return test_loss
-  
-  return best_losses
+    losses : list[torch.Tensor] = [loss_draft, loss_war]
+    
+    if is_hitter:
+        target_off = target_off.to(device, non_blocking=True)
+        target_def = target_def.to(device, non_blocking=True)
+        target_pa = target_pa.to(device, non_blocking=True)
+        
+        loss_off = Classification_Loss(output_off, target_off, mask_length)
+        loss_def = Classification_Loss(output_def, target_def, mask_length)
+        loss_pa = Classification_Loss(output_pa, target_pa, mask_length)
+        
+        losses.extend([loss_off, loss_def, loss_pa])
+    
+    losses.append(loss_pos)
+    
+    if shouldBackprop:
+        torch.autograd.backward(losses, retain_graph=True)
+    
+    return CollegeLossResult(
+        losses=tuple(losses),
+        hidden=output_hidden,
+        war_counts=WarClassCounts(predicted=war_predicted_counts, actual=war_actual_counts),
+        brier=BrierAccumulator(per_class_sum=brier_per_class_sum, count=brier_count),
+    )

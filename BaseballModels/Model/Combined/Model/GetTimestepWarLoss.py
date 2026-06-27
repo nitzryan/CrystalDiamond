@@ -2,7 +2,7 @@ from Pro.Model.Player_Model import RNN_Model as Pro_Model
 from College.Model.College_Model import RNN_Model as Col_Model
 from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
-from College.Model.Model_Train import GetLossesHitter, GetLossesPitcher
+from College.Model.Model_Train import GetLossesCollege
 from Constants import device
 
 from Pro.Model.Player_Model import War_TwoStage_Loss
@@ -28,17 +28,14 @@ def IterWarOutputs(
             batch_indices = indices[start:end]
             pro_data, pro_targets, pro_masks, col_data, col_targets, col_masks = dataset.get_batch(batch_indices)
 
-            if is_hitter:
-                _, h0 = GetLossesHitter(col_network, col_data, col_targets, col_masks, shouldBackprop=False)
-            else:
-                _, h0 = GetLossesPitcher(col_network, col_data, col_targets, col_masks, shouldBackprop=False)
+            college_result = GetLossesCollege(col_network, col_data, col_targets, col_masks, shouldBackprop=False, is_hitter=is_hitter)
 
             data, length, pt_levelYearGames = pro_data
             mask_valid = length > 0
             data = data[mask_valid].to(device, non_blocking=True)
             length = length[mask_valid].to(device, non_blocking=True)
             pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
-            h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
+            h0 = college_result.hidden[mask_valid].transpose(0, 1).to(device, non_blocking=True)
 
             output_war, *_ = pro_network(data, length, pt_levelYearGames, h0)
             output_war_binary, output_war_ordinal = output_war

@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
 import torch
-from tqdm import tqdm
 from Constants import device
 from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, War_TwoStage_Loss, WarTwoStageProbs
-from Pro.Model.Model_Scheduler import Model_Scheduler_ReduceOnPlateauGroups as Scheduler
+from Combined.Model.GetWarClassCounts import *
+from Combined.Utilities.Types import *
+from Combined.Utilities.BrierScore import Brier_Score
 
 from Utilities import profiler
 
@@ -11,7 +11,7 @@ ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "Pla
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler
-def GetLosses(
+def GetLossesPro(
   network, 
   data : tuple, 
   targets : tuple, 
@@ -19,7 +19,7 @@ def GetLosses(
   h0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
-  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> tuple:
+  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult:
   
   
   # Get Model Output
@@ -81,205 +81,8 @@ def GetLosses(
     if els != 1:
       losses[i] /= els
   
-  return (
-    (loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),
-    (war_predicted_counts, war_actual_counts),
-    (brier_per_class_sum, brier_count),
+  return ProLossResult(
+    losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),
+    war_counts=WarClassCounts(predicted=war_predicted_counts, actual=war_actual_counts),
+    brier=BrierAccumulator(per_class_sum=brier_per_class_sum, count=brier_count),
   )
-
-def GetWarClassCounts(
-        probs : torch.Tensor,                             # <P_valid, T, Classes>
-        target_war : torch.Tensor,                        # <Players_Valid>
-        mask_labels : torch.Tensor                        # <Players_Valid, T>
-          ) -> tuple[torch.Tensor, torch.Tensor]:
-    
-    num_timesteps = probs.shape[1]
-    
-    mask_labels = mask_labels[:, :num_timesteps]
-    ts_mask = mask_labels == 1  # <P_valid, T>
-    
-    num_classes = probs.shape[2]
-    
-    # Predicted: sum softmax probabilities over valid timesteps (soft counts)
-    predicted_sum = probs[ts_mask].sum(dim=0).cpu()
-    
-    # Actual: hard count per class over valid timesteps
-    actual_classes = target_war.unsqueeze(1).expand(-1, num_timesteps)
-    actual_valid = actual_classes[ts_mask]
-    actual_counts = torch.bincount(actual_valid, minlength=num_classes).float().cpu()
-    
-    return predicted_sum, actual_counts
-
-def Brier_Score(
-        probs : torch.Tensor,          # <P_valid, T_batch, Classes>
-        target_war : torch.Tensor,     # <P_valid>
-        mask_labels : torch.Tensor     # <P_valid, T_dataset>
-          ) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Per-class summed squared error for the multi-class Brier score over valid
-    timesteps, plus the number of valid timesteps.
-
-    Returns:
-        brier_per_class_sum : <Classes> sum over valid timesteps of (p_c - o_c)^2
-        brier_count         : scalar, number of valid timesteps (N)
-
-    Notes:
-        - Total multi-class Brier = brier_per_class_sum.sum() / brier_count
-        - Per-class Brier          = brier_per_class_sum[c]   / brier_count
-          (per-class values sum to the total; raw numerator/denominator are kept
-           so a Brier Skill Score can be derived later without re-running.)
-    """
-    num_timesteps = probs.shape[1]
-    num_classes = probs.shape[2]
-
-    # Reduce dataset-max timesteps down to this batch's padded length
-    mask_labels = mask_labels[:, :num_timesteps]
-    ts_mask = mask_labels == 1  # <P_valid, T>
-
-    probs_valid = probs[ts_mask]  # <M, Classes>
-    actual_valid = target_war.unsqueeze(1).expand(-1, num_timesteps)[ts_mask]  # <M>
-
-    onehot = torch.nn.functional.one_hot(actual_valid, num_classes=num_classes).to(probs_valid.dtype)
-
-    sq_err = (probs_valid - onehot) ** 2        # <M, Classes>
-    brier_per_class_sum = sq_err.sum(dim=0).cpu()
-    brier_count = torch.tensor(probs_valid.shape[0], dtype=torch.float)
-
-    return brier_per_class_sum, brier_count
-
-def train(network, data_generator, num_elements, optimizer, is_hitter : bool, trainingFraction : float):
-  network.train() #updates any network layers that behave differently in training and execution
-  avg_loss = [0] * NUM_ELEMENTS
-  for batch, (data, length, pt_levelYearGames, targets, masks, fake_data) in enumerate(data_generator):
-    # Train on real data
-    optimizer.zero_grad()
-    loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, True, is_hitter, trainingFraction)
-    torch.nn.utils.clip_grad_norm_(network.parameters(), max_norm=0.05)
-    optimizer.step()
-    avg_loss[0] += loss_war.item()
-    avg_loss[1] += loss_level.item()
-    avg_loss[2] += loss_pa.item()
-    avg_loss[3] += loss_yearStats.item()
-    avg_loss[4] += loss_yearPos.item()
-    avg_loss[5] += loss_mlbValue.item()
-    avg_loss[6] += loss_yearPt.item()
-    
-  for n in range(NUM_ELEMENTS):
-    avg_loss[n] /= num_elements
-  return avg_loss
-
-def test(network, test_loader, num_elements, is_hitter : bool, trainingFraction):
-  network.eval() #updates any network layers that behave differently in training and execution
-  avg_loss = [0] * NUM_ELEMENTS
-  num_batches = 0
-  with torch.no_grad():
-    for data, length, pt_levelYearGames, targets, masks, fake_data in test_loader:
-      loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt = GetLosses(network, data, length, pt_levelYearGames, targets, masks, False, is_hitter, trainingFraction)
-      
-      avg_loss[0] += loss_war.item()
-      avg_loss[1] += loss_level.item()
-      avg_loss[2] += loss_pa.item()
-      avg_loss[3] += loss_yearStats.item()
-      avg_loss[4] += loss_yearPos.item()
-      avg_loss[5] += loss_mlbValue.item()
-      avg_loss[6] += loss_yearPt.item()
-      num_batches += 1
-  
-  for n in range(NUM_ELEMENTS):
-    avg_loss[n] /= num_elements
-  return avg_loss
-
-def count_parameters(model):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-def logResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, should_output=True):
-  if should_output and (epoch%print_interval == 0):  
-    print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch+1, num_epochs, train_loss, test_loss))
-
-def graphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 2, graph_y_range=None, title=""):
-  fig = plt.figure()
-  plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
-  plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')
-  plt.title(title)
-  if graph_y_range is not None:
-    plt.ylim(graph_y_range)
-  plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
-  plt.xlabel('#Epochs')
-  plt.ylabel(loss_name)
-
-def trainAndGraph(network, 
-                  training_dataset, 
-                  testing_dataset,
-                  batch_size : int,
-                  num_epochs, 
-                  logging_interval=1, 
-                  early_stopping_cutoff=20, 
-                  should_output=True, 
-                  model_name="no_name", 
-                  save_last=False, 
-                  is_hitter=True,
-                  elements_to_save : list[int] = [0],
-                  get_end_loss : bool = False):
-  #Arrays to store training history
-  test_loss_history = [[] for _ in range(NUM_ELEMENTS)]
-  epoch_counter = []
-  train_loss_history = [[] for _ in range(NUM_ELEMENTS)]
-  best_losses = [99999999 for _ in elements_to_save]
-  best_epochs = [0 for _ in elements_to_save]
-  epochsSinceLastImprove = 0
-  
-  train_generator = torch.utils.data.DataLoader(training_dataset, batch_size=batch_size, shuffle=True)
-  test_generator = torch.utils.data.DataLoader(testing_dataset, batch_size=batch_size, shuffle=False)
-  
-  scheduler = Scheduler(network.optimizer, [[0,1], [2], [3], [4], [5], [6], [7]], verbose=False,
-                        factor=0.5, patience=5, cooldown=5)
-  
-  iterable = range(num_epochs)
-  if not should_output:
-    iterable = tqdm(iterable, leave=False, desc="Training")
-  for epoch in iterable:
-    avg_loss = train(network, train_generator, len(training_dataset), network.optimizer, is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
-    test_loss = test(network, test_generator, len(testing_dataset), is_hitter=is_hitter, trainingFraction=epoch / num_epochs)
-
-    training_dataset.increase_variant()
-
-    scheduler.step(test_loss)
-    logResults(epoch, num_epochs, avg_loss[elements_to_save[0]], test_loss[elements_to_save[0]], logging_interval, should_output)
-    
-    for n in range(NUM_ELEMENTS):
-      train_loss_history[n].append(avg_loss[n])
-      test_loss_history[n].append(test_loss[n])
-    epoch_counter.append(epoch)
-    
-    anyImproved : bool = False
-    for i, el in enumerate(elements_to_save):
-      if (test_loss[el] < best_losses[i]):
-        best_losses[i] = test_loss[el]
-        torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
-        anyImproved = True
-        best_epochs[i] = epoch
-    if anyImproved:
-      epochsSinceLastImprove = 0
-    else:
-      epochsSinceLastImprove += 1
-      
-    if epochsSinceLastImprove >= early_stopping_cutoff:
-      if should_output:
-        print("Stopped Training Early")
-      break
-
-  if should_output:
-    for i, el in enumerate(elements_to_save):
-      print(f"Best result for {ELEMENT_LIST[el]} at epoch={best_epochs[i]} with loss={best_losses[i]}")
-
-    for n in range(NUM_ELEMENTS):
-      graphLoss(epoch_counter, train_loss_history[n], test_loss_history[n], title=ELEMENT_LIST[n], start=1)
-  
-  if save_last:
-    for el in elements_to_save:
-      torch.save(network.state_dict(), model_name + "_" + ELEMENT_LIST[el] + ".pt")
-  
-  if get_end_loss:
-    return test_loss
-  
-  return best_losses
