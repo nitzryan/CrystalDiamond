@@ -7,18 +7,18 @@ from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_R
 from Pro.Model.Player_Model import LayerArch
 from Pro.Model.ResnetBlock import ResnetBlock
 
-DEFAULT_STATS_ARCH = LayerArch(layer_size=50, num_layers=3)
-DEFAULT_POS_ARCH = LayerArch(layer_size=50, num_layers=2)
+DEFAULT_DRAFT_ARCH = LayerArch(layer_size=64, num_layers=2)
+DEFAULT_POS_ARCH = LayerArch(layer_size=64, num_layers=1)
 
-DEFAULT_WAR_ARCH = LayerArch(layer_size=50, num_layers=2)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=32, num_layers=2)
 DEFAULT_WAR_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
-DEFAULT_STATS_ARCH_P = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_DRAFT_ARCH_P = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
-DEFAULT_OFF_ARCH = LayerArch(layer_size=100, num_layers=2)
-DEFAULT_DEF_ARCH = LayerArch(layer_size=100, num_layers=2)
-DEFAULT_PA_ARCH = LayerArch(layer_size=100, num_layers=2)
+DEFAULT_OFF_ARCH = LayerArch(layer_size=32, num_layers=2)
+DEFAULT_DEF_ARCH = LayerArch(layer_size=32, num_layers=2)
+DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=2)
 
 DEFAULT_HITTER_HIDDEN_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_PITCHER_HIDDEN_ARCH = LayerArch(layer_size=100, num_layers=2)
@@ -28,14 +28,14 @@ class RNN_Model(nn.Module):
                 input_size : int,
                 data_prep : College_Data_Prep,
                 is_hitter : bool,
-                num_layers : int = 3,
-                hidden_size : int = 20,
-                noise : float = 0.125,
+                num_layers : int = 4,
+                hidden_size : int = 16,
+                noise : float = 0.1,
                 dropout : float = 0.075,
-                stats_arch : LayerArch = DEFAULT_STATS_ARCH,
-                stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
-                stats_arch_pos : LayerArch = DEFAULT_POS_ARCH,
-                stats_arch_pos_p : LayerArch = DEFAULT_POS_ARCH_P,
+                draft_arch : LayerArch = DEFAULT_DRAFT_ARCH,
+                draft_arch_p : LayerArch = DEFAULT_DRAFT_ARCH_P,
+                pos_arch : LayerArch = DEFAULT_POS_ARCH,
+                pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                 war_arch : LayerArch = DEFAULT_WAR_ARCH,
                 war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,
                 off_arch : LayerArch = DEFAULT_OFF_ARCH,
@@ -55,11 +55,14 @@ class RNN_Model(nn.Module):
         self.num_layers = num_layers
         self.use_resnet = use_resnet
         
+        if num_layers == 1:
+            dropout = 0 # Suppresses warning, dropout not used with 1 layesr
+        
         if is_hitter:
             pos_output_len = data_prep.output_map.len_pos_h
         else:
-            stats_arch = stats_arch_p
-            stats_arch_pos = stats_arch_pos_p
+            draft_arch = draft_arch_p
+            pos_arch = pos_arch_p
             war_arch = war_arch_p
             output_hidden_arch = output_hidden_arch_p
             pos_output_len = data_prep.output_map.len_pos_p
@@ -113,8 +116,8 @@ class RNN_Model(nn.Module):
                     [nn.Linear(hidden_size, len(HITTER_PA_BUCKETS))]
                 )
         else:
-            self.draft_layers = stats_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
-            self.pos_layers = stats_arch_pos.GetArchitecture(hidden_size, pos_output_len)
+            self.draft_layers = draft_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
+            self.pos_layers = pos_arch.GetArchitecture(hidden_size, pos_output_len)
             
             self.war_binary_layers = war_arch.GetArchitecture(hidden_size, 1)
             self.war_ordinal_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS) - 2)
@@ -150,7 +153,7 @@ class RNN_Model(nn.Module):
         return output
                     
     def forward(self, x, lengths):
-        if self.training:
+        if self.training and self.noise > 0:
             x = x + torch.rand_like(x) * self.noise
         
         lengths = lengths.to(torch.device("cpu")).long()

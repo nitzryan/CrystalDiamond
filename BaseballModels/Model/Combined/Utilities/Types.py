@@ -74,3 +74,9 @@ class TimestepBrierResult:
     bss: list[float]
     pct: list[float]
     counts: list[float]
+    
+@dataclass
+class TrainResults:
+    best_loss: float
+    best_epoch : int
+    test_losses : list[list[float]]

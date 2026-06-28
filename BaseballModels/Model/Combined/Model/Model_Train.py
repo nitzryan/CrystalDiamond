@@ -28,12 +28,11 @@ def TrainAndGraph(
     should_output : bool = True,
     pro_model_name : str = "no_name_pro",
     col_model_name : str = "no_name_col",
-    get_end_loss : bool = False,
     element_to_save : int = 0,
     early_stopping_cutoff : int = 20,
     pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES,
     timestep_pct_cutoff : float = 1.0,
-) -> tuple[float, float, int]:
+) -> TrainResults:
     
     num_pro_elements = NUM_ELEMENTS
     if is_hitter:
@@ -50,7 +49,6 @@ def TrainAndGraph(
     epoch_counter : list[int] = []
     
     best_loss = 999999
-    best_loss_college = 999999
     best_epoch = -1
     epochs_since_improve = 0
     
@@ -80,7 +78,6 @@ def TrainAndGraph(
         
         if test_result.avg_loss[element_to_save] < best_loss:
             best_loss = test_result.avg_loss[element_to_save]
-            best_loss_college = test_result.avg_loss[num_pro_elements + 1]
             best_epoch = epoch
             epochs_since_improve = 0
             torch.save(col_network.state_dict(), col_model_name + ".pt")
@@ -99,7 +96,12 @@ def TrainAndGraph(
             element_list=element_list, pro_network=pro_network, col_network=col_network, train_dataset=train_dataset,
             test_dataset=test_dataset, is_hitter=is_hitter, batch_size=batch_size, timestep_pct_cutoff=timestep_pct_cutoff)
         
-    if get_end_loss:
-        return test_result.avg_loss[element_to_save], epoch
-    else:
-        return best_loss, best_loss_college, epoch
+    test_losses = []
+    for n in range(num_elements):
+        test_losses.append([er.avg_loss[n] for er in test_history])
+        
+    return TrainResults(
+        best_loss=best_loss,
+        best_epoch=best_epoch,
+        test_losses=test_losses
+    )

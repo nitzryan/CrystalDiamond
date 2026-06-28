@@ -9,10 +9,11 @@ from Combined.Model.Model_Train import TrainAndGraph
 import torch
 import gc
 from Constants import device
+from Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
 
 if __name__ == "__main__":
-    pro_hidden_sizes = [16, 32, 64, 128, 256]
-    pro_num_layers = [1, 2, 4, 8]
+    hidden_sizes = [8, 12, 16, 24, 32, 48, 64]
+    num_layers_list = [2, 3, 4, 5, 6]
 
     data_prep = Combined_Data_Prep(
         Prep_Map.base_prep_map, 
@@ -20,8 +21,7 @@ if __name__ == "__main__":
         C_Prep_Map.college_base_prep_map,
         C_Output_Map.college_output_map)
 
-    hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE IsEligible=1 AND isHitter=?", pro_player_values=(1,), pro_use_cutoff=True,
-                                        col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
+    hitter_io_list = data_prep.Generate_IO_Hitters(is_training=True)
     train_dataset, test_dataset = Create_Test_Train_Datasets(
         player_list=hitter_io_list, 
         is_hitter=True)
@@ -29,28 +29,31 @@ if __name__ == "__main__":
     xs = []
     ys = []
     zs = []
+    
+    loss_index = GetVariableLossIndex(name="WAR", is_pro=False, is_hitter=True)
 
-    for num_layers in tqdm(reversed(pro_num_layers), desc="Num Layers", total=len(pro_num_layers)):
-        for hidden_size in tqdm(reversed(pro_hidden_sizes), desc="Hidden Sizes", leave=False, total=len(pro_hidden_sizes)):
-            col_model = College_Model(
-                input_size=train_dataset.GetColInputSize(),
-                data_prep=data_prep.college_data_prep,
-                is_hitter=True,
-                output_hidden_size=hidden_size,
-                output_num_layers=num_layers,
-                use_resnet=False,
-            ).to(device)
+    for num_layers in tqdm(reversed(num_layers_list), desc="Num Layers", total=len(num_layers_list)):
+        for hidden_size in tqdm(reversed(hidden_sizes), desc="Hidden Sizes", leave=False, total=len(hidden_sizes)):
+            
             pro_model = Pro_Model(
                 input_size=train_dataset.GetProInputSize(),
-                num_layers=num_layers,
-                hidden_size=hidden_size,
                 mutators=torch.empty(0),
                 data_prep=data_prep.pro_data_prep,
                 is_hitter=True,
                 use_resnet=False
             ).to(device)
+            col_model = College_Model(
+                input_size=train_dataset.GetColInputSize(),
+                data_prep=data_prep.college_data_prep,
+                is_hitter=True,
+                num_layers=num_layers,
+                hidden_size=hidden_size,
+                output_hidden_size=pro_model.hidden_size,
+                output_num_layers=pro_model.num_layers,
+                use_resnet=False,
+            ).to(device)
             
-            best_loss, _, _ = TrainAndGraph(
+            train_results = TrainAndGraph(
                 pro_network=pro_model,
                 col_network=col_model,
                 train_dataset=train_dataset,
@@ -59,7 +62,7 @@ if __name__ == "__main__":
                 col_model_name="Models/test_col_hit",
                 is_hitter=True,
                 should_output=False,
-                batch_size=1000,
+                early_stopping_cutoff=10,
             )
 
             del col_model
@@ -69,7 +72,7 @@ if __name__ == "__main__":
             
             xs.append(hidden_size)
             ys.append(num_layers)
-            zs.append(best_loss)
+            zs.append(train_results.test_losses[loss_index][train_results.best_epoch])
             
     import pandas as pd
     import seaborn as sns
@@ -77,7 +80,7 @@ if __name__ == "__main__":
 
     df = pd.DataFrame({'x': xs, 'y': ys, 'z': zs})
     pivot_table = df.pivot(index='y', columns='x', values='z')
-    plt.figure(figsize=(1 * len(pro_hidden_sizes), .75 * len(pro_num_layers) + 2))
+    plt.figure(figsize=(1 * len(hidden_sizes), .75 * len(num_layers_list) + 2))
     sns.heatmap(
         pivot_table, 
         annot=True,
@@ -87,5 +90,5 @@ if __name__ == "__main__":
     )
     plt.xlabel('Hidden Size')
     plt.ylabel('Num Layers')
-    plt.title('Test Loss vs Pro RNN Architecture')
-    plt.savefig(f'Combined/Experiments/Results/Hitters_ProRecurrent_HiddenSizeNumLayers.png', dpi=400)
+    plt.title('Test Loss vs Col RNN Architecture')
+    plt.savefig(f'College/Experiments/Results/Hitters_RNN_HiddenSizeNumLayers.png', dpi=400)
