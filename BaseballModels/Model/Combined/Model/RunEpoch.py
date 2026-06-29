@@ -4,8 +4,7 @@ from Combined.Model.TestOrTrain import TestOrTrain
 def RunEpoch(
     pro_network, col_network, train_dataset, test_dataset,
     is_hitter: bool, num_pro_elements: int, num_col_elements: int,
-    batch_size: int, pro_element_loss_scales,
-    col_optimizer
+    batch_size: int, pro_element_loss_scales
 ) -> tuple[EpochResult, EpochResult]:
     train_result = TestOrTrain(
             pro_network=pro_network, 
@@ -14,7 +13,7 @@ def RunEpoch(
             pro_size=train_dataset.GetProLength(), 
             col_size=train_dataset.GetColLength(), 
             pro_optimizer=pro_network.optimizer, 
-            col_optimizer=col_optimizer,
+            col_optimizer=col_network.optimizer,
             is_hitter=is_hitter,
             pro_elements=num_pro_elements,
             col_elements=num_col_elements,

@@ -4,13 +4,12 @@ import torch.nn.init as init
 import torch.nn.functional as F
 from College.DataPrep.Data_Prep import College_Data_Prep
 from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
-from Pro.Model.Player_Model import LayerArch
-from Pro.Model.ResnetBlock import ResnetBlock
+from Pro.Model.Player_Model import LayerArch, GetParameters
 
 DEFAULT_DRAFT_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_POS_ARCH = LayerArch(layer_size=64, num_layers=1)
 
-DEFAULT_WAR_ARCH = LayerArch(layer_size=32, num_layers=2)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=19, num_layers=3)
 DEFAULT_WAR_ARCH_P = LayerArch(layer_size=50, num_layers=2)
 
 DEFAULT_DRAFT_ARCH_P = LayerArch(layer_size=100, num_layers=2)
@@ -23,15 +22,21 @@ DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=2)
 DEFAULT_HITTER_HIDDEN_ARCH = LayerArch(layer_size=100, num_layers=2)
 DEFAULT_PITCHER_HIDDEN_ARCH = LayerArch(layer_size=100, num_layers=2)
 
+DEFAULT_LEARNING_RATE = [0.0137, 0.01, 0.00697, 0.01, 0.01, 0.01, 0.01, 2.1e-5]
+DEFAULT_LEARNING_RATE_P = [0.01, 0.01, 0.01, 0.01, 0.01]
+
+DEFAULT_WEIGHT_DECAY = [1.6e-6,1e-7,6.4e-3,1e-7,1e-7,1e-7,1e-7,2.9e-7]
+DEFAULT_WEIGHT_DECAY_P = [1e-7,1e-7,1e-7,1e-7,1e-7]
+
 class RNN_Model(nn.Module):
     def __init__(self,
                 input_size : int,
                 data_prep : College_Data_Prep,
                 is_hitter : bool,
-                num_layers : int = 4,
-                hidden_size : int = 16,
-                noise : float = 0.1,
-                dropout : float = 0.075,
+                num_layers : int = 2,
+                hidden_size : int = 8,
+                noise : float = 0.0257,
+                dropout : float = 0.117,
                 draft_arch : LayerArch = DEFAULT_DRAFT_ARCH,
                 draft_arch_p : LayerArch = DEFAULT_DRAFT_ARCH_P,
                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
@@ -47,13 +52,15 @@ class RNN_Model(nn.Module):
                 output_hidden_arch : LayerArch = DEFAULT_HITTER_HIDDEN_ARCH,
                 output_hidden_arch_p : LayerArch = DEFAULT_PITCHER_HIDDEN_ARCH,
                 
-                use_resnet : bool = False):
+                lr : list[float] = DEFAULT_LEARNING_RATE,
+                lr_p : list[float] = DEFAULT_LEARNING_RATE_P,
+                weight_decay : list[float] = DEFAULT_WEIGHT_DECAY,
+                weight_decay_p : list[float] = DEFAULT_WEIGHT_DECAY_P):
         
         super().__init__()
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.use_resnet = use_resnet
         
         if num_layers == 1:
             dropout = 0 # Suppresses warning, dropout not used with 1 layesr
@@ -66,6 +73,8 @@ class RNN_Model(nn.Module):
             war_arch = war_arch_p
             output_hidden_arch = output_hidden_arch_p
             pos_output_len = data_prep.output_map.len_pos_p
+            lr = lr_p
+            weight_decay = weight_decay_p
         
         self.is_hitter = is_hitter
         # Solely so they can be extracted during training    
@@ -82,53 +91,19 @@ class RNN_Model(nn.Module):
                                 dropout=dropout,
                                 )
         
-        if use_resnet:
-            raise Exception("Resnet Not Implemented")
-            self.draft_layers = nn.ModuleList(
-                [ResnetBlock(hidden_size) for _ in range(7)] +
-                [nn.Linear(hidden_size, len(DRAFT_BUCKETS))]
-            )
-            self.pos_layers = nn.ModuleList(
-                [ResnetBlock(hidden_size) for _ in range(6)] +
-                [nn.Linear(hidden_size, pos_output_len)]
-            )
-            self.war_layers = nn.ModuleList(
-                [ResnetBlock(hidden_size) for _ in range(6)] +
-                [nn.Linear(hidden_size, len(TOTAL_WAR_BUCKETS))]
-            )
-            
-            self.hidden_layers = nn.ModuleList(
-                [ResnetBlock(hidden_size) for _ in range(6)] +
-                [nn.Linear(hidden_size, output_hidden_size * output_num_layers)]
-            )
-            
-            if self.is_hitter:
-                self.off_layers = nn.ModuleList(
-                    [ResnetBlock(hidden_size) for _ in range(6)] +
-                    [nn.Linear(hidden_size, len(OFF_RATE_BUCKETS) + 1)]
-                )
-                self.def_layers = nn.ModuleList(
-                    [ResnetBlock(hidden_size) for _ in range(6)] +
-                    [nn.Linear(hidden_size, len(DEF_RATE_BUCKETS) + 1)]
-                )
-                self.pa_layers = nn.ModuleList(
-                    [ResnetBlock(hidden_size) for _ in range(6)] +
-                    [nn.Linear(hidden_size, len(HITTER_PA_BUCKETS))]
-                )
-        else:
-            self.draft_layers = draft_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
-            self.pos_layers = pos_arch.GetArchitecture(hidden_size, pos_output_len)
-            
-            self.war_binary_layers = war_arch.GetArchitecture(hidden_size, 1)
-            self.war_ordinal_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS) - 2)
-            
-            self.hidden_layers = output_hidden_arch.GetArchitecture(hidden_size, output_hidden_size * output_num_layers)
-            
-            if self.is_hitter:
-                self.off_layers = off_arch.GetArchitecture(hidden_size, len(OFF_RATE_BUCKETS) + 1)
-                self.def_layers = def_arch.GetArchitecture(hidden_size, len(DEF_RATE_BUCKETS) + 1)
-                self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
-            
+        self.draft_layers = draft_arch.GetArchitecture(hidden_size, len(DRAFT_BUCKETS))
+        self.pos_layers = pos_arch.GetArchitecture(hidden_size, pos_output_len)
+        
+        self.war_binary_layers = war_arch.GetArchitecture(hidden_size, 1)
+        self.war_ordinal_layers = war_arch.GetArchitecture(hidden_size, len(TOTAL_WAR_BUCKETS) - 2)
+        
+        self.hidden_layers = output_hidden_arch.GetArchitecture(hidden_size, output_hidden_size * output_num_layers)
+        
+        if self.is_hitter:
+            self.off_layers = off_arch.GetArchitecture(hidden_size, len(OFF_RATE_BUCKETS) + 1)
+            self.def_layers = def_arch.GetArchitecture(hidden_size, len(DEF_RATE_BUCKETS) + 1)
+            self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
+        
         self.nonlin = F.leaky_relu
         
         # Initialize weights
@@ -137,6 +112,32 @@ class RNN_Model(nn.Module):
                 init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='tanh')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
+    
+        # Setup optimizer for individual parameter tuning
+        shared_params = GetParameters([self.recurrent])
+        war_class_params = GetParameters(self.war_binary_layers) + GetParameters(self.war_ordinal_layers)
+        draft_params = GetParameters(self.draft_layers)
+        pos_params = GetParameters(self.pos_layers)
+        hidden_params = GetParameters(self.hidden_layers)
+        
+        if is_hitter:
+            off_params = GetParameters(self.off_layers)
+            def_params = GetParameters(self.def_layers)
+            pa_params = GetParameters(self.pa_layers)
+        self.optimizer = torch.optim.AdamW([{'params': shared_params, 'lr': lr[0], 'weight_decay': weight_decay[0]},
+                                           {'params': draft_params, 'lr': lr[1], 'weight_decay': weight_decay[1]},
+                                           {'params': war_class_params, 'lr': lr[2], 'weight_decay': weight_decay[2]},
+                                           {'params': pa_params, 'lr': lr[3], 'weight_decay': weight_decay[3]},
+                                           {'params': off_params, 'lr': lr[4], 'weight_decay': weight_decay[4]},
+                                           {'params': pos_params, 'lr': lr[5], 'weight_decay': weight_decay[5]},
+                                           {'params': def_params, 'lr': lr[6], 'weight_decay': weight_decay[6]},
+                                           {'params': hidden_params, 'lr': lr[7], 'weight_decay': weight_decay[7]}]) \
+                        if is_hitter else \
+                        torch.optim.AdamW([{'params': shared_params, 'lr': lr[0], 'weight_decay': weight_decay[0]},
+                                           {'params': draft_params, 'lr': lr[1], 'weight_decay': weight_decay[1]},
+                                           {'params': war_class_params, 'lr': lr[2], 'weight_decay': weight_decay[2]},
+                                           {'params': pos_params, 'lr': lr[3], 'weight_decay': weight_decay[3]},
+                                           {'params': hidden_params, 'lr': lr[4], 'weight_decay': weight_decay[4]}])
     
     def GetHiddenSize(self) -> int:
         return self.hidden_size
@@ -147,7 +148,7 @@ class RNN_Model(nn.Module):
     def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
         for layer in moduleList:
             output = layer(output)
-            if layer != moduleList[-1] and not self.use_resnet:
+            if layer != moduleList[-1]:
                 output = self.nonlin(output)
                 
         return output

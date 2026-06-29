@@ -22,16 +22,18 @@ def TrainAndGraph(
     train_dataset : Combined_Player_Dataset,
     test_dataset : Combined_Player_Dataset,
     is_hitter : bool,
-    num_epochs : int = 201,
+    num_epochs : int = 41,
     batch_size : int = 1200,
     logging_interval : int = 10,
     should_output : bool = True,
+    show_progress_bar : bool = False,
     pro_model_name : str = "no_name_pro",
     col_model_name : str = "no_name_col",
     element_to_save : int = 0,
     early_stopping_cutoff : int = 20,
     pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES,
     timestep_pct_cutoff : float = 1.0,
+    save_last=True,
 ) -> TrainResults:
     
     num_pro_elements = NUM_ELEMENTS
@@ -52,22 +54,29 @@ def TrainAndGraph(
     best_epoch = -1
     epochs_since_improve = 0
     
-    col_optimizer = torch.optim.Adam(col_network.parameters(), lr=0.0025)
-    
     # Per-player (not per-timestep) WAR class distribution, for verification vs SQL
-    train_player_dist = GetPlayerClassDistribution(train_dataset, batch_size)
-    test_player_dist = GetPlayerClassDistribution(test_dataset, batch_size)
-    if should_output:
-        print("Train per-player WAR class distribution (%):",
-              [f"{p:.3f}" for p in train_player_dist])
-        print("Test  per-player WAR class distribution (%):",
-              [f"{p:.3f}" for p in test_player_dist])
+    # Leave in, uncomment if desired to chack player distribution
+    # if should_output:
+    #     train_player_dist = GetPlayerClassDistribution(train_dataset, batch_size)
+    #     test_player_dist = GetPlayerClassDistribution(test_dataset, batch_size)
+    #     print("Train per-player WAR class distribution (%):",
+    #           [f"{p:.3f}" for p in train_player_dist])
+    #     print("Test  per-player WAR class distribution (%):",
+    #           [f"{p:.3f}" for p in test_player_dist])
+    
+    # Schedulers
+    pro_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(pro_network.optimizer, T_max=num_epochs)
+    col_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(col_network.optimizer, T_max=num_epochs)
     
     iterable = range(num_epochs)
-    if not should_output:
+    if show_progress_bar:
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
-        train_result, test_result = RunEpoch(pro_network, col_network, train_dataset, test_dataset, is_hitter, num_pro_elements, num_col_elements, batch_size, pro_element_loss_scales, col_optimizer)
+        train_result, test_result = RunEpoch(pro_network, col_network, train_dataset, test_dataset, is_hitter, num_pro_elements, num_col_elements, batch_size, pro_element_loss_scales)
+        
+        pro_scheduler.step()
+        col_scheduler.step()
+        
         train_history.append(train_result)
         test_history.append(test_result)
         epoch_counter.append(epoch)
@@ -76,7 +85,8 @@ def TrainAndGraph(
         if should_output and (epoch % logging_interval == 0):  
             print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch + 1, num_epochs, train_result.avg_loss[element_to_save], test_result.avg_loss[element_to_save]))
         
-        if test_result.avg_loss[element_to_save] < best_loss:
+        if (not save_last and test_result.avg_loss[element_to_save] < best_loss) \
+            or (save_last and epoch == iterable[-1]):
             best_loss = test_result.avg_loss[element_to_save]
             best_epoch = epoch
             epochs_since_improve = 0
@@ -85,13 +95,16 @@ def TrainAndGraph(
         else:
             epochs_since_improve += 1
            
-        if epochs_since_improve >= early_stopping_cutoff:
+        if not save_last and epochs_since_improve >= early_stopping_cutoff:
             if should_output:
                 print(f"Exited Early at epoch={epoch}")
             break
             
     if should_output:
-        print(f"Best result at epoch={best_epoch} loss={best_loss}")
+        if save_last:
+            print(f"End result at loss={test_result.avg_loss[element_to_save]}")
+        else:
+            print(f"Best result at epoch={best_epoch} loss={best_loss}")
         BuildPlots(epoch_counter=epoch_counter, train_history=train_history, test_history=test_history,
             element_list=element_list, pro_network=pro_network, col_network=col_network, train_dataset=train_dataset,
             test_dataset=test_dataset, is_hitter=is_hitter, batch_size=batch_size, timestep_pct_cutoff=timestep_pct_cutoff)
