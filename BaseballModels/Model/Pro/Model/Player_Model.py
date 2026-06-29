@@ -30,8 +30,8 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
-DEFAULT_WAR_BINARY_ARCH = LayerArch(layer_size=64, num_layers=2)
-DEFAULT_WAR_ORDINAL_ARCH = LayerArch(layer_size=64, num_layers=2)
+DEFAULT_WAR_BINARY_ARCH = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
+DEFAULT_WAR_ORDINAL_ARCH = LayerArch(layer_size=70, num_layers=2, nonlin=F.tanh)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -50,16 +50,16 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 64
-DEFAULT_PRO_NUM_LAYERS = 4
+DEFAULT_PRO_HIDDEN_SIZE = 51
+DEFAULT_PRO_NUM_LAYERS = 3
 
 DEFAULT_INPUT_NOISE = 0
-DEFAULT_DROPOUT = 0.0
+DEFAULT_DROPOUT = 0.283
 
-DEFAULT_PRO_WEIGHT_DECAY = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [9.7e-4,8.4e-3,1.3e-6,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 DEFAULT_PRO_WEIGHT_DECAY_P = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
-DEFAULT_LEARNING_RATES = [0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0076,0.018,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 DEFAULT_LEARNING_RATES_P = [0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 class RNN_Model(nn.Module):
