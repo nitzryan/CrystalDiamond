@@ -7,7 +7,7 @@ from Combined.Utilities.BrierScore import Brier_Score
 
 from Utilities import profiler
 
-ELEMENT_LIST = ["WarClass", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
+ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler

@@ -7,23 +7,31 @@ from Pro.DataPrep.Data_Prep import Data_Prep
 from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
 
-def GetParameters(layers):
-    parameters = []
-    for l in layers:
-        parameters.extend(l.parameters())
-    return parameters
-
-class LayerArch:
-    def __init__(self, layer_size : int, num_layers : int):
+class LayerArch(nn.Module):
+    def __init__(self, layer_size: int, num_layers: int, nonlin=F.leaky_relu):
+        super().__init__()
         self.layer_size = layer_size
         self.num_layers = num_layers
-        
-    def GetArchitecture(self, hidden_size : int, output_size : int):
-        return nn.ModuleList([nn.Linear(hidden_size, self.layer_size)] + \
-                            [nn.Linear(self.layer_size, self.layer_size) for _ in range(self.num_layers - 2)] +\
-                            [nn.Linear(self.layer_size, output_size)])
+        self.nonlin = nonlin
+        self.layers = None
 
-DEFAULT_WARCLASS_ARCH = LayerArch(layer_size=64, num_layers=2)
+    def Build(self, hidden_size: int, output_size: int):
+        layers = [nn.Linear(hidden_size, self.layer_size)]
+        for _ in range(self.num_layers - 2):
+            layers.append(nn.Linear(self.layer_size, self.layer_size))
+        layers.append(nn.Linear(self.layer_size, output_size))
+        self.layers = nn.ModuleList(layers)
+        return self
+
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            if i < len(self.layers) - 1:
+                x = self.nonlin(x)
+        return x
+
+DEFAULT_WAR_BINARY_ARCH = LayerArch(layer_size=64, num_layers=2)
+DEFAULT_WAR_ORDINAL_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -32,7 +40,8 @@ DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
-DEFAULT_WARCLASS_ARCH_P = LayerArch(layer_size=150, num_layers=3)
+DEFAULT_WAR_BINARY_ARCH_P = LayerArch(layer_size=150, num_layers=3)
+DEFAULT_WAR_ORDINAL_ARCH_P = LayerArch(layer_size=150, num_layers=3)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
@@ -47,7 +56,11 @@ DEFAULT_PRO_NUM_LAYERS = 4
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_DROPOUT = 0.0
 
-DEFAULT_PRO_WEIGHT_DECAY = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY_P = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+
+DEFAULT_LEARNING_RATES = [0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES_P = [0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -60,22 +73,33 @@ class RNN_Model(nn.Module):
                 num_layers : int = DEFAULT_PRO_NUM_LAYERS, 
                 hidden_size : int = DEFAULT_PRO_HIDDEN_SIZE, 
                 stats_arch : LayerArch = DEFAULT_STATS_ARCH,
-                warclass_arch : LayerArch = DEFAULT_WARCLASS_ARCH,
+                
+                war_binary_arch : LayerArch = DEFAULT_WAR_BINARY_ARCH,
+                war_ordinal_arch : LayerArch = DEFAULT_WAR_ORDINAL_ARCH,
                 pt_arch : LayerArch = DEFAULT_PT_ARCH,
                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
                 lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
                 pa_arch : LayerArch = DEFAULT_PA_ARCH,
                 val_arch : LayerArch = DEFAULT_VALUE_ARCH,
                 mlbstat_arch : LayerArch = DEFAULT_MLBSTAT_ARCH,
+                
                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
-                warclass_arch_p : LayerArch = DEFAULT_WARCLASS_ARCH_P,
+                war_binary_arch_p : LayerArch = DEFAULT_WAR_BINARY_ARCH,
+                war_ordinal_arch_p : LayerArch = DEFAULT_WAR_ORDINAL_ARCH,
                 pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
                 pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
                 pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
                 val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
                 mlbstat_arch_p : LayerArch = DEFAULT_MLBSTAT_ARCH_P,
+                
                 weight_decay : list[float] = DEFAULT_PRO_WEIGHT_DECAY,
+                weight_decay_p : list[float] = DEFAULT_PRO_WEIGHT_DECAY_P,
+                
+                learning_rates : list[float] = DEFAULT_LEARNING_RATES,
+                learning_rates_p : list[float] = DEFAULT_LEARNING_RATES_P,
+                
+                rnn_nonlinearity : str = "relu",
                 ):
         super().__init__()
         
@@ -84,40 +108,43 @@ class RNN_Model(nn.Module):
         
         if not is_hitter:
             stats_arch = stats_arch_p
-            warclass_arch = warclass_arch_p
+            war_binary_arch = war_binary_arch_p
+            war_ordinal_arch = war_ordinal_arch_p
             pt_arch = pt_arch_p
             pos_arch = pos_arch_p
             lvl_arch = lvl_arch_p
             pa_arch = pa_arch_p
             val_arch = val_arch_p
             mlbstat_arch = mlbstat_arch_p
+            weight_decay = weight_decay_p
+            learning_rates = learning_rates_p
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
         
         self.input_noise = input_noise
         
-        self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout)
+        self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
         
         num_war_classes = len(output_map.buckets_hitter_war)
         # Individual prediction layers
         # War predicted in 2-stage fashion: 1 to predict 0 or nonzero, 2nd is CORN on nonzero
         # Stage 1: binary 0 vs >0
-        self.war_binary_layers = warclass_arch.GetArchitecture(hidden_size, 1)
+        self.war_binary = war_binary_arch.Build(hidden_size, 1)
         # Stage 2: CORN over the (num_war_classes - 1) non-zero buckets -> (num_war_classes - 2) logits
-        self.war_ordinal_layers = warclass_arch.GetArchitecture(hidden_size, num_war_classes - 2)
+        self.war_ordinal = war_ordinal_arch.Build(hidden_size, num_war_classes - 2)
         
-        self.level_layers = lvl_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS))
-        self.pa_layers = pa_arch.GetArchitecture(hidden_size, len(HITTER_PA_BUCKETS))
-        self.yearStats_layers = stats_arch.GetArchitecture(hidden_size, NUM_LEVELS * stats_size)
-        self.pos_layers = pos_arch.GetArchitecture(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
-        self.pt_layers = pt_arch.GetArchitecture(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
-        self.value_layers = val_arch.GetArchitecture(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
+        self.level = lvl_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS))
+        self.pa = pa_arch.Build(hidden_size, len(HITTER_PA_BUCKETS))
+        self.yearStats = stats_arch.Build(hidden_size, NUM_LEVELS * stats_size)
+        self.pos = pos_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+        self.pt = pt_arch.Build(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
+        self.value = val_arch.Build(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         if is_hitter:
-            self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
+            self.mlbstat = mlbstat_arch.Build(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
         else:
-            self.mlbstat_layers = mlbstat_arch.GetArchitecture(hidden_size, NUM_PITCHER_STATS * NUM_PITCHER_BUCKETS_PER_STAT)
+            self.mlbstat = mlbstat_arch.Build(hidden_size, NUM_PITCHER_STATS * NUM_PITCHER_BUCKETS_PER_STAT)
         
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
@@ -129,7 +156,6 @@ class RNN_Model(nn.Module):
         
         
         self.mutators = mutators
-        self.nonlin = F.leaky_relu
         self.softplus = nn.Softplus()
         
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
@@ -145,61 +171,43 @@ class RNN_Model(nn.Module):
                     init.constant_(m.bias, 0)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.war_binary_layers[-1], self.war_ordinal_layers[-1],
-                      self.pa_layers[-1], self.level_layers[-1]]:
+        for layer in [self.war_binary.layers[-1], self.war_ordinal.layers[-1],
+                      self.pa.layers[-1], self.level.layers[-1]]:
             init.xavier_uniform_(layer.weight, gain=1.0)
             if layer.bias is not None:
                 init.zeros_(layer.bias)
                 
         # Set initial prediction to match the actual odds
         p_nonzero = 0.14
-        init.constant_(self.war_binary_layers[-1].bias, math.log(p_nonzero / (1 - p_nonzero)))
+        init.constant_(self.war_binary.layers[-1].bias, math.log(p_nonzero / (1 - p_nonzero)))
                 
         # Set softmax-regression layers
         pt_mean = -self.pt_offset.mean()
-        for layer in [self.pt_layers[-1]]:
+        for layer in [self.pt.layers[-1]]:
             if isinstance(layer, nn.Linear):
                 init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
                 
-        init.constant_(self.yearStats_layers[-1].bias, 0)
-        init.constant_(self.pt_layers[-1].bias, pt_mean * 0.75)
+        init.constant_(self.yearStats.layers[-1].bias, 0)
+        init.constant_(self.pt.layers[-1].bias, pt_mean * 0.75)
         
         # Set PA/IP to kaiming_uniform
-        for vf in self.value_layers:
+        for vf in self.value.layers:
             if isinstance(vf, nn.Linear):
                 init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        shared_params = GetParameters([self.recurrent])
-        war_class_params = GetParameters(self.war_binary_layers) + GetParameters(self.war_ordinal_layers)
-        level_params = GetParameters(self.level_layers)
-        pa_params = GetParameters(self.pa_layers)
-        yearStat_params = GetParameters(self.yearStats_layers)
-        yearPos_params = GetParameters(self.pos_layers)
-        mlbValue_params = GetParameters(self.value_layers)
-        yearPt_params = GetParameters(self.pt_layers)
-        mlbstat_params = GetParameters(self.mlbstat_layers)
         
-        self.optimizer = torch.optim.AdamW([{'params': shared_params, 'lr': 0.001, 'weight_decay': weight_decay[0]},
-                                           {'params': war_class_params, 'lr': 0.001, 'weight_decay': weight_decay[1]},
-                                           {'params': level_params, 'lr': 0.003, 'weight_decay': weight_decay[2]},
-                                           {'params': pa_params, 'lr': 0.003, 'weight_decay': weight_decay[3]},
-                                           {'params': yearStat_params, 'lr': 0.003, 'weight_decay': weight_decay[4]},
-                                           {'params': yearPos_params, 'lr': 0.003, 'weight_decay': weight_decay[5]},
-                                           {'params': mlbValue_params, 'lr': 0.003, 'weight_decay': weight_decay[6]},
-                                           {'params': yearPt_params, 'lr': 0.003, 'weight_decay': weight_decay[7]},
-                                           {'params': mlbstat_params, 'lr': 0.003, 'weight_decay': weight_decay[8]}]) \
-                                        \
-                        if is_hitter else \
-                        torch.optim.AdamW([{'params': shared_params, 'lr': 0.00125, 'weight_decay': weight_decay[0]},
-                                           {'params': war_class_params, 'lr': 0.01, 'weight_decay': weight_decay[1]},
-                                           {'params': level_params, 'lr': 0.01, 'weight_decay': weight_decay[2]},
-                                           {'params': pa_params, 'lr': 0.02, 'weight_decay': weight_decay[3]},
-                                           {'params': yearStat_params, 'lr': 0.01, 'weight_decay': weight_decay[4]},
-                                           {'params': yearPos_params, 'lr': 0.025, 'weight_decay': weight_decay[5]},
-                                           {'params': mlbValue_params, 'lr': 0.01, 'weight_decay': weight_decay[6]},
-                                           {'params': yearPt_params, 'lr': 0.018, 'weight_decay': weight_decay[7]},
-                                           {'params': mlbstat_params, 'lr': 0.005, 'weight_decay': weight_decay[8]}])
+        self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[0], 'weight_decay': weight_decay[0]},
+                                           {'params': self.war_binary.parameters(), 'lr': learning_rates[1], 'weight_decay': weight_decay[1]},
+                                           {'params': self.war_ordinal.parameters(), 'lr': learning_rates[2], 'weight_decay': weight_decay[2]},
+                                           {'params': self.level.parameters(), 'lr': learning_rates[3], 'weight_decay': weight_decay[3]},
+                                           {'params': self.pa.parameters(), 'lr': learning_rates[4], 'weight_decay': weight_decay[4]},
+                                           {'params': self.yearStats.parameters(), 'lr': learning_rates[5], 'weight_decay': weight_decay[5]},
+                                           {'params': self.pos.parameters(), 'lr': learning_rates[6], 'weight_decay': weight_decay[6]},
+                                           {'params': self.value.parameters(), 'lr': learning_rates[7], 'weight_decay': weight_decay[7]},
+                                           {'params': self.pt.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]},
+                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[9], 'weight_decay': weight_decay[9]}])
+
         
     def to(self, *args, **kwargs):
         if self.mutators is not None:
@@ -211,14 +219,6 @@ class RNN_Model(nn.Module):
     
     def GetNumLayers(self) -> int:
         return self.num_layers
-    
-    def GetModuleOutput(self, output : torch.Tensor, moduleList : nn.ModuleList) -> torch.Tensor:
-        for layer in moduleList:
-            output = layer(output)
-            if layer != moduleList[-1]:
-                output = self.nonlin(output)
-                
-        return output
     
     def forward(self, x, lengths, pt_levelYearGames, h0):
         if self.training and self.input_noise > 0:
@@ -242,16 +242,15 @@ class RNN_Model(nn.Module):
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
-        output_war_binary = self.GetModuleOutput(output, self.war_binary_layers)   # <P, T, 1>
-        output_war_ordinal = self.GetModuleOutput(output, self.war_ordinal_layers) # <P, T, K-2>
+        output_war_binary   = self.war_binary(output)
+        output_war_ordinal  = self.war_ordinal(output)
         output_war = (output_war_binary, output_war_ordinal)
-        
-        output_level = self.GetModuleOutput(output, self.level_layers)
-        output_pa = self.GetModuleOutput(output, self.pa_layers)
-        output_yearStats = self.GetModuleOutput(output, self.yearStats_layers)
-        output_yearPositions = self.GetModuleOutput(output, self.pos_layers)
-        output_mlbValue = self.GetModuleOutput(output, self.value_layers)
-        output_mlbStat = self.GetModuleOutput(output, self.mlbstat_layers)
+        output_level        = self.level(output)
+        output_pa           = self.pa(output)
+        output_yearStats    = self.yearStats(output)
+        output_yearPositions= self.pos(output)
+        output_mlbValue     = self.value(output)
+        output_mlbStat      = self.mlbstat(output)
         
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
@@ -271,9 +270,9 @@ class RNN_Model(nn.Module):
         # Generate PT Predictions
         pt_levelYearGames = pt_levelYearGames[:, :output.size(1), :]
         output_pt = torch.cat((output, pt_levelYearGames), dim=-1)
-        for layer in self.pt_layers[:-1]:
+        for layer in self.pt.layers[:-1]:
             output_pt = F.tanh(layer(output_pt))
-        output_pt = self.softplus(self.pt_layers[-1](output_pt)) + self.pt_offset
+        output_pt = self.softplus(self.pt.layers[-1](output_pt)) + self.pt_offset
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
     
