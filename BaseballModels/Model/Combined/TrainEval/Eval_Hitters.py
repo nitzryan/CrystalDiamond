@@ -8,7 +8,6 @@ from Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Pro.Model.Player_Model import RNN_Model as ProModel
-from Pro.Model.Player_Model import WarTwoStageProbs
 from College.Model.College_Model import RNN_Model as ColModel
 from Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
 from Utilities import GetModelMaps
@@ -124,10 +123,6 @@ def Eval_Hitters():
                     col_length = col_length.to(device, non_blocking=True)
                     col_output_draft, col_output_war, col_output_off, col_output_def, col_output_pa, col_output_pos, h0 = col_network(col_data, col_length)
                     
-                    # Convert Binary + Corn to class probs
-                    col_war_binary, col_war_ordinal = col_output_war
-                    col_output_war = WarTwoStageProbs(col_war_binary, col_war_ordinal)
-                    
                     # Insert College Data
                     col_mask_valid = col_length > 0
 
@@ -171,10 +166,6 @@ def Eval_Hitters():
                     h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
                     
                     pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0)
-                    
-                    # Convert Binary + Corn to class probs
-                    pro_war_binary, pro_war_ordinal = pro_output_war
-                    pro_output_war = WarTwoStageProbs(pro_war_binary, pro_war_ordinal)
                     
                     # Insert Pro Data
                     pro_output_war = F.softmax(pro_output_war, dim=2) 

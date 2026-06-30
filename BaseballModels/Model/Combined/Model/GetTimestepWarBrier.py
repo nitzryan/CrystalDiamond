@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from Pro.Model.Player_Model import RNN_Model as Pro_Model
 from College.Model.College_Model import RNN_Model as Col_Model
 from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Pro.Model.Player_Model import WarTwoStageProbs
 from Combined.Model.GetTimestepWarLoss import IterWarOutputs
 from Combined.Utilities.Types import *
 from Constants import device
@@ -26,9 +25,9 @@ def GetTimestepWarBrier(
     stats : list[torch.Tensor] = None
     num_players_total : int = 0
 
-    for output_war_binary, output_war_ordinal, target_war, mask_labels, num_valid in \
+    for output_war, target_war, mask_labels, num_valid in \
             IterWarOutputs(pro_network, col_network, dataset, is_hitter, batch_size):
-        war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)   # <N, T, C>
+        war_probs = F.softmax(output_war, dim=-1)
         batch_stats = GetTimestepBrierStats(war_probs, target_war, mask_labels, num_bins)
 
         if stats is None:
@@ -93,15 +92,15 @@ def GetTimestepWarBrierCollege(
             length = length.to(device, non_blocking=True)
 
             outputs = col_network(data, length)
-            output_war_binary, output_war_ordinal = outputs[1]
+            output_war = outputs[1]
 
             target_war = col_targets[1].to(device, non_blocking=True)
 
-            max_len = output_war_binary.size(1)
+            max_len = output_war.size(1)
             mask_length = (torch.arange(max_len, device=length.device)
                           .unsqueeze(0) < length.unsqueeze(1))
 
-            war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)
+            war_probs = F.softmax(output_war, dim=-1)
             T_batch = war_probs.size(1)
             if T_batch < max_T:
                 pad_T = max_T - T_batch

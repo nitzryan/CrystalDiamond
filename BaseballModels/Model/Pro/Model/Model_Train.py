@@ -1,6 +1,6 @@
 import torch
 from Constants import device
-from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, War_TwoStage_Loss, WarTwoStageProbs
+from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
 from Combined.Model.GetWarClassCounts import *
 from Combined.Utilities.Types import *
 from Combined.Utilities.BrierScore import Brier_Score
@@ -30,7 +30,6 @@ def GetLossesPro(
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
   h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
   output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0)
-  output_war_binary, output_war_ordinal = output_war
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets
@@ -53,13 +52,14 @@ def GetLossesPro(
   
   # Track per-class WAR prediction/actual counts over valid timesteps
   with torch.no_grad():
-    war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)   # <P_valid, T, Classes>
-    war_predicted_counts, war_actual_counts = GetWarClassCounts(war_probs, target_war, mask_labels)
-    brier_per_class_sum, brier_count = Brier_Score(war_probs, target_war, mask_labels)
+    war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, mask_labels)
+    brier_per_class_sum, brier_count = Brier_Score(output_war, target_war, mask_labels)
   
   # Get losses
-  loss_war = War_TwoStage_Loss(output_war_binary, output_war_ordinal, target_war, mask_labels)
-  loss_level, loss_pa = Classification_Loss(output_level, output_pa, target_level, target_pa, mask_labels)
+  loss_war = Classification_Loss(output_war, target_war, mask_labels)
+  loss_level = Classification_Loss(output_level, target_level, mask_labels)
+  loss_pa = Classification_Loss(output_pa, target_pa, mask_labels)
+  
   loss_yearStats = Stats_Loss(output_stats, target_yearStats, mask_stats)
   loss_yearPt = Pt_Loss(output_pt, target_pt)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)

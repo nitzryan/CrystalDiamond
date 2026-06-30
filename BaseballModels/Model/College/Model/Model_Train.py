@@ -2,7 +2,6 @@ from Constants import device
 import torch
 from College.Model.College_Model import Classification_Loss, Position_Loss
 from College.Model.College_Model import RNN_Model as Col_Model
-from Pro.Model.Player_Model import War_TwoStage_Loss, WarTwoStageProbs
 from Combined.Model.GetWarClassCounts import *
 from Combined.Utilities.Types import *
 from Combined.Utilities.BrierScore import Brier_Score
@@ -31,7 +30,6 @@ def GetLossesCollege(
     else:
         output_draft, output_war, output_pos, output_hidden = network(data, length)
     
-    output_war_binary, output_war_ordinal = output_war
     
     max_len = output_draft.size(1)
     mask_length = (torch.arange(max_len, device=length.device)
@@ -50,12 +48,11 @@ def GetLossesCollege(
     target_pos = target_pos.to(device, non_blocking=True)
     
     with torch.no_grad():
-        war_probs = WarTwoStageProbs(output_war_binary, output_war_ordinal)
-        war_predicted_counts, war_actual_counts = GetWarClassCounts(war_probs, target_war, mask_length)
-        brier_per_class_sum, brier_count = Brier_Score(war_probs, target_war, mask_length)
+        war_predicted_counts, war_actual_counts = GetWarClassCounts(output_war, target_war, mask_length)
+        brier_per_class_sum, brier_count = Brier_Score(output_war, target_war, mask_length)
     
     loss_draft = Classification_Loss(output_draft, target_draft, mask_length)
-    loss_war = War_TwoStage_Loss(output_war_binary, output_war_ordinal, target_war, mask_length)
+    loss_war = Classification_Loss(output_war, target_war, mask_length)
     loss_pos = Position_Loss(output_pos, target_pos, mask_length * mask_pos.unsqueeze(-1))
     
     losses : list[torch.Tensor] = [loss_draft, loss_war]

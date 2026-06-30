@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-import math
 from Pro.DataPrep.Data_Prep import Data_Prep
 from Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
 from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
@@ -30,8 +29,7 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
-DEFAULT_WAR_BINARY_ARCH = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
-DEFAULT_WAR_ORDINAL_ARCH = LayerArch(layer_size=70, num_layers=2, nonlin=F.tanh)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -40,8 +38,7 @@ DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
-DEFAULT_WAR_BINARY_ARCH_P = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
-DEFAULT_WAR_ORDINAL_ARCH_P = LayerArch(layer_size=70, num_layers=2, nonlin=F.tanh)
+DEFAULT_WAR_ARCH_P = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
@@ -56,11 +53,11 @@ DEFAULT_PRO_NUM_LAYERS = 3
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_DROPOUT = 0.283
 
-DEFAULT_PRO_WEIGHT_DECAY = [9.7e-4,8.4e-3,1.3e-6,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
-DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1.3e-6,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0076,0.018,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
-DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 
@@ -74,8 +71,7 @@ class RNN_Model(nn.Module):
                 hidden_size : int = DEFAULT_PRO_HIDDEN_SIZE, 
                 stats_arch : LayerArch = DEFAULT_STATS_ARCH,
                 
-                war_binary_arch : LayerArch = DEFAULT_WAR_BINARY_ARCH,
-                war_ordinal_arch : LayerArch = DEFAULT_WAR_ORDINAL_ARCH,
+                war_arch : LayerArch = DEFAULT_WAR_ARCH,
                 pt_arch : LayerArch = DEFAULT_PT_ARCH,
                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
                 lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
@@ -84,8 +80,7 @@ class RNN_Model(nn.Module):
                 mlbstat_arch : LayerArch = DEFAULT_MLBSTAT_ARCH,
                 
                 stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
-                war_binary_arch_p : LayerArch = DEFAULT_WAR_BINARY_ARCH,
-                war_ordinal_arch_p : LayerArch = DEFAULT_WAR_ORDINAL_ARCH,
+                war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,
                 pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
                 pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
                 lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
@@ -108,8 +103,7 @@ class RNN_Model(nn.Module):
         
         if not is_hitter:
             stats_arch = stats_arch_p
-            war_binary_arch = war_binary_arch_p
-            war_ordinal_arch = war_ordinal_arch_p
+            war_arch = war_arch_p
             pt_arch = pt_arch_p
             pos_arch = pos_arch_p
             lvl_arch = lvl_arch_p
@@ -127,12 +121,7 @@ class RNN_Model(nn.Module):
         self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
         
         num_war_classes = len(output_map.buckets_hitter_war)
-        # Individual prediction layers
-        # War predicted in 2-stage fashion: 1 to predict 0 or nonzero, 2nd is CORN on nonzero
-        # Stage 1: binary 0 vs >0
-        self.war_binary = war_binary_arch.Build(hidden_size, 1)
-        # Stage 2: CORN over the (num_war_classes - 1) non-zero buckets -> (num_war_classes - 2) logits
-        self.war_ordinal = war_ordinal_arch.Build(hidden_size, num_war_classes - 2)
+        self.war = war_arch.Build(hidden_size, num_war_classes)
         
         self.level = lvl_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS))
         self.pa = pa_arch.Build(hidden_size, len(HITTER_PA_BUCKETS))
@@ -171,15 +160,11 @@ class RNN_Model(nn.Module):
                     init.constant_(m.bias, 0)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.war_binary.layers[-1], self.war_ordinal.layers[-1],
+        for layer in [self.war.layers[-1],
                       self.pa.layers[-1], self.level.layers[-1]]:
             init.xavier_uniform_(layer.weight, gain=1.0)
             if layer.bias is not None:
                 init.zeros_(layer.bias)
-                
-        # Set initial prediction to match the actual odds
-        p_nonzero = 0.14
-        init.constant_(self.war_binary.layers[-1].bias, math.log(p_nonzero / (1 - p_nonzero)))
                 
         # Set softmax-regression layers
         pt_mean = -self.pt_offset.mean()
@@ -198,15 +183,14 @@ class RNN_Model(nn.Module):
         # Create parameter groups for differentiating learning rates
         
         self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[0], 'weight_decay': weight_decay[0]},
-                                           {'params': self.war_binary.parameters(), 'lr': learning_rates[1], 'weight_decay': weight_decay[1]},
-                                           {'params': self.war_ordinal.parameters(), 'lr': learning_rates[2], 'weight_decay': weight_decay[2]},
-                                           {'params': self.level.parameters(), 'lr': learning_rates[3], 'weight_decay': weight_decay[3]},
-                                           {'params': self.pa.parameters(), 'lr': learning_rates[4], 'weight_decay': weight_decay[4]},
-                                           {'params': self.yearStats.parameters(), 'lr': learning_rates[5], 'weight_decay': weight_decay[5]},
-                                           {'params': self.pos.parameters(), 'lr': learning_rates[6], 'weight_decay': weight_decay[6]},
-                                           {'params': self.value.parameters(), 'lr': learning_rates[7], 'weight_decay': weight_decay[7]},
-                                           {'params': self.pt.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]},
-                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[9], 'weight_decay': weight_decay[9]}])
+                                           {'params': self.war.parameters(), 'lr': learning_rates[1], 'weight_decay': weight_decay[1]},
+                                           {'params': self.level.parameters(), 'lr': learning_rates[2], 'weight_decay': weight_decay[2]},
+                                           {'params': self.pa.parameters(), 'lr': learning_rates[3], 'weight_decay': weight_decay[3]},
+                                           {'params': self.yearStats.parameters(), 'lr': learning_rates[4], 'weight_decay': weight_decay[4]},
+                                           {'params': self.pos.parameters(), 'lr': learning_rates[5], 'weight_decay': weight_decay[5]},
+                                           {'params': self.value.parameters(), 'lr': learning_rates[6], 'weight_decay': weight_decay[6]},
+                                           {'params': self.pt.parameters(), 'lr': learning_rates[7], 'weight_decay': weight_decay[7]},
+                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]}])
 
         
     def to(self, *args, **kwargs):
@@ -238,13 +222,10 @@ class RNN_Model(nn.Module):
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        #h0 = h0.transpose(0, 1).contiguous()
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
-        output_war_binary   = self.war_binary(output)
-        output_war_ordinal  = self.war_ordinal(output)
-        output_war = (output_war_binary, output_war_ordinal)
+        output_war          = self.war(output)
         output_level        = self.level(output)
         output_pa           = self.pa(output)
         output_yearStats    = self.yearStats(output)
@@ -275,77 +256,6 @@ class RNN_Model(nn.Module):
         output_pt = self.softplus(self.pt.layers[-1](output_pt)) + self.pt_offset
         
         return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
-    
-def WarTwoStageProbs(
-                binary_logits : torch.Tensor,   # <..., 1>
-                ordinal_logits : torch.Tensor   # <..., K_ord - 1>
-            ) -> torch.Tensor:                  # <..., K_ord + 1>  (= num_war_classes)
-    
-    p_nonzero = torch.sigmoid(binary_logits)   # P(y > 0)
-    p_zero = 1.0 - p_nonzero
-
-    # CORN: conditional probs q_k = P(y_ord > k | y_ord > k-1); cumulative = P(y_ord > k)
-    q = torch.sigmoid(ordinal_logits)
-    cum_gt = torch.cumprod(q, dim=-1)                     # <..., K_ord-1>  P(y_ord > k), k=0..K_ord-2
-
-    ones = torch.ones_like(cum_gt[..., :1])
-    zeros = torch.zeros_like(cum_gt[..., :1])
-    S = torch.cat([ones, cum_gt], dim=-1)                 # P(y_ord > m-1)
-    T = torch.cat([cum_gt, zeros], dim=-1)                # P(y_ord > m)
-    p_ord = S - T                                         # <..., K_ord>  per-bucket prob within non-zero set
-
-    probs_nonzero = p_nonzero * p_ord                     # scale by P(y > 0)
-    probs = torch.cat([p_zero, probs_nonzero], dim=-1)    # <..., K_ord + 1>
-    return probs
-    
-def CornLoss(
-            logits : torch.Tensor,   # <M, num_ord_classes - 1>
-            y : torch.Tensor,        # <M>, values in [0, num_ord_classes - 1]
-            num_ord_classes : int
-        ) -> torch.Tensor:
-    
-    losses = logits.new_zeros(())
-    num_examples = 0
-    for i in range(num_ord_classes - 1):
-        mask = y >= i                       # samples still "in play" for task i (y > i-1)
-        if mask.sum() < 1:
-            continue
-        label = (y[mask] > i).float()
-        pred = logits[mask, i]
-        losses = losses + F.binary_cross_entropy_with_logits(pred, label, reduction='sum')
-        num_examples += int(mask.sum())
-    if num_examples == 0:
-        return logits.sum() * 0.0
-    return losses
-    
-def War_TwoStage_Loss(
-            binary_logits : torch.Tensor,    # <P, T, 1>
-            ordinal_logits : torch.Tensor,   # <P, T, K_ord - 1>
-            target_war : torch.Tensor,       # <P>
-            mask_labels : torch.Tensor       # <P, T>
-        ) -> torch.Tensor:
-    
-    P, T, _ = binary_logits.shape
-    mask_labels = mask_labels[:, :T]
-    num_ord_classes = ordinal_logits.shape[-1] + 1
-
-    target = target_war.unsqueeze(1).expand(P, T)   # broadcast player label across timesteps
-    valid = mask_labels.bool()
-
-    binary_logits = binary_logits.squeeze(-1)[valid]   # <N>
-    ordinal_logits = ordinal_logits[valid]             # <N, K_ord-1>
-    target = target[valid]                             # <N>
-
-    # Stage 1: 0 vs >0 over all valid timesteps
-    binary_target = (target > 0).float()
-    loss_binary = F.binary_cross_entropy_with_logits(binary_logits, binary_target, reduction='sum')
-
-    # Stage 2: CORN over non-zero buckets only, conditional on y > 0
-    nonzero = target > 0
-    ord_target = (target[nonzero] - 1).long()          # map classes 1..K-1 -> ordinal 0..K_ord-1
-    loss_ordinal = CornLoss(ordinal_logits[nonzero], ord_target, num_ord_classes)
-
-    return loss_binary + loss_ordinal
     
 def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats[:, :pred_stats.size(1)]
@@ -473,34 +383,23 @@ def MLB_Stat_Classification_Loss(pred_stats, actual_stats, masks, is_hitter : bo
         
     return loss
     
-def Classification_Loss(pred_level, pred_pa, actual_level, actual_pa, masks):
-    masks = masks[:,:pred_level.size(1)]
+def Classification_Loss(pred : torch.Tensor, actual : torch.Tensor, masks : torch.Tensor):
+    # Clip masks to match prediction time dimension
+    time_steps = pred.size(1)
+    masks = masks[:, :time_steps]
     
-    batch_size = pred_level.size(0)
-    time_steps = pred_level.size(1)
+    batch_size = pred.size(0)
+    num_classes = pred.size(2)
     
-    num_classes_level = pred_level.size(2)
-    num_classes_pa = pred_pa.size(2)
+    pred_flat = pred.reshape(batch_size * time_steps, num_classes)
+    actual_flat = actual.repeat_interleave(time_steps)
     
-    masks = masks.reshape((batch_size, time_steps,))
+    criterion = nn.CrossEntropyLoss(reduction='none')
+    loss_flat = criterion(pred_flat, actual_flat)
     
-    pred_level = pred_level.reshape((batch_size * time_steps, num_classes_level))
-    pred_pa = pred_pa.reshape((batch_size * time_steps, num_classes_pa))
+    loss = loss_flat.reshape(batch_size, time_steps)
     
-    actual_level = actual_level.repeat_interleave(time_steps)
-    actual_pa = actual_pa.repeat_interleave(time_steps)
+    masked_loss = loss * masks
+    total_loss = masked_loss.sum()
     
-    l = nn.CrossEntropyLoss(reduction='none')
-    loss_level = l(pred_level, actual_level)
-    loss_pa = l(pred_pa, actual_pa)
-    
-    loss_level = loss_level.reshape((batch_size, time_steps))
-    loss_pa = loss_pa.reshape((batch_size, time_steps))
-    
-    masked_loss_level = loss_level * masks
-    masked_loss_pa = loss_pa * masks
-    
-    loss_sums_level = masked_loss_level.sum(dim=1)
-    loss_sums_pa = masked_loss_pa.sum(dim=1)
-    
-    return loss_sums_level.sum(), loss_sums_pa.sum()
+    return total_loss
