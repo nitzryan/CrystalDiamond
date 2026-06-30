@@ -34,14 +34,11 @@ function GetPitcherPromise()
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const org_map_promise = retrieveJson("../../assets/map.json.gz")
-    
-    const datesJson = await datesJsonPromise
+    await assetLoader.ready;
 
-    endYear = datesJson["endYear"] as number
-    endMonth = datesJson["endMonth"] as number
+    const dates = await assetLoader.dates();
+    endYear = dates.endYear;
+    endMonth = dates.endMonth;
     month = getQueryParamBackup('month', endMonth)
     year = getQueryParamBackup('year', endYear)
     modelId = getQueryParamBackup("model", 1)
@@ -50,7 +47,6 @@ async function main()
 
     const statsHitterPromise = GetHitterPromise()
     const statsPitcherPromise = GetPitcherPromise()
-    org_map = await org_map_promise
 
     setupSelector({
         month : month,
@@ -58,7 +54,7 @@ async function main()
         modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
+        startYear : dates.startYear as number,
         startTeam : teamId,
         level : levelId
     })
@@ -119,7 +115,6 @@ async function main()
     })
     stat_hitter_btn.click()
 
-    searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_stats').classList.add('selected')
 
     rankings_button.addEventListener('click', (event) => {

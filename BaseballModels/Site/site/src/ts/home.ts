@@ -63,20 +63,17 @@ function createHomeDataElements(home_data : JsonObject)
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('/assets/dates.json.gz')
-    const player_search_data = retrieveJson('/assets/player_search.json.gz')
-    const org_map_promise = retrieveJson("/assets/map.json.gz")
-    
-    const datesJson = await datesJsonPromise
-    const endYear = datesJson["endYear"] as number
-    const endMonth = datesJson["endMonth"] as number
+    await assetLoader.ready;
+
+    const dates = await assetLoader.dates();
+    endYear = dates.endYear;
+    endMonth = dates.endMonth;
     const year = getQueryParamBackup("year", endYear)
     const month = getQueryParamBackup("month", endMonth)
     const modelId = getQueryParamBackup("model", 1)
 
     const home_data_response = fetch(`/homedata?year=${year}&month=${month}&model=${modelId}`)
     const home_data = await(await home_data_response).json() as JsonObject
-    org_map = await org_map_promise
     createHomeDataElements(home_data)
     
     setupSelector({
@@ -85,12 +82,11 @@ async function main()
         modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
+        startYear : dates.startYear,
         startTeam : null,
         level : null
     })
 
-    searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_home').classList.add('selected')
 
     rankings_button.addEventListener('click', (event) => {

@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/methodology.ts", "src/searchbar.ts", "src/css_styles.ts", "src/utility.ts", "src/*.d.ts"],
+    "include": ["src/ts/Global/*.ts", "src/ts/methodology.ts"],
 }

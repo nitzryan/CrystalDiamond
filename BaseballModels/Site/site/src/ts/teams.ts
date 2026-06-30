@@ -4,16 +4,11 @@ let modelId : number
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    
-    
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const datesJson = await datesJsonPromise
-    org_map = await retrieveJson("../../assets/map.json.gz")
-    await loadQualityLegend()
+    await assetLoader.ready;
 
-    endYear = datesJson["endYear"] as number
-    endMonth = datesJson["endMonth"] as number
+    const dates = await assetLoader.dates();
+    endYear = dates.endYear;
+    endMonth = dates.endMonth;
     month = getQueryParamBackup('month', endMonth)
     year = getQueryParamBackup('year', endYear)
     modelId = getQueryParamBackup("model", 1)
@@ -24,14 +19,13 @@ async function main()
         modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
+        startYear : dates.startYear,
         startTeam : null,
         level : null
     })
 
-    createOverviewPage(datesJson)
+    createOverviewPage(dates)
 
-    searchBar = new SearchBar(await player_search_data)
     getElementByIdStrict('nav_teams').classList.add('selected')
 }
 

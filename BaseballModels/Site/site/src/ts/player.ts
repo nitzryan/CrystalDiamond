@@ -761,13 +761,10 @@ let predPitStats : DB_Prediction_PitcherStats[]
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
     const id = getQueryParam("id")
     var player_data = fetch(`/player/${id}`)
 
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    org_map = await retrieveJson("../../assets/map.json.gz")
-
+    await assetLoader.ready
     const pd = await (await player_data).json() as JsonObject
     person = getPerson(pd)
 
@@ -829,12 +826,10 @@ async function main()
             line_graph.increment_index(x_inc)
     })
 
-    searchBar = new SearchBar(await player_search_data)
-
     // Update stats date
-    const datesJson = await datesJsonPromise
-    const endYear = datesJson["endYear"] as number
-    const endMonth = datesJson["endMonth"] as number
+    const dates = await assetLoader.dates();
+    const endYear = dates.endYear;
+    const endMonth = dates.endMonth;
     let hitter_title_element = getElementByIdStrict('hitter_stats_title')
     let pitcher_title_element = getElementByIdStrict('pitcher_stats_title')
     hitter_title_element.textContent = `Hitter Stats through ${MONTH_CODES[endMonth]} ${endYear}`

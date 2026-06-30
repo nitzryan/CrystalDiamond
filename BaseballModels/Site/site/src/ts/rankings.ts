@@ -5,28 +5,24 @@ let teamId : number | null
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const datesJson = await datesJsonPromise
-    await loadQualityLegend()
+    await assetLoader.ready;
 
-    endYear = datesJson["endYear"] as number
-    endMonth = datesJson["endMonth"] as number
+    const dates = await assetLoader.dates();
+    endYear = dates.endYear;
+    endMonth = dates.endMonth;
     
     month = getQueryParamBackup("month", endMonth)
     year = getQueryParamBackup("year", endYear)
     teamId = getQueryParamNullable('team')
-    const modelId = getQueryParamBackup("model", 1)
+    modelId = getQueryParamBackup("model", 1)
 
-    org_map = await retrieveJson("../../assets/map.json.gz")
     setupSelector({
         month : month,
         year : year,
         modelId : modelId,
         endYear : endYear,
         endMonth : endMonth,
-        startYear : datesJson["startYear"] as number,
+        startYear : dates.startYear,
         startTeam : teamId,
         level : null
     })
@@ -39,7 +35,6 @@ async function main()
         period : 0,
         type: PlayerLoaderType.Prospect
     }, 100)
-    searchBar = new SearchBar(await player_search_data)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value

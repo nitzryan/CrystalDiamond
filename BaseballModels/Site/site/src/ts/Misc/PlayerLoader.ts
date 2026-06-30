@@ -380,12 +380,12 @@ function renderQualityIcon(timestepQuality : number | null, trainingBias : boole
 
     if (trainingBias === true)
     {
-        const entry = qualityLegend.get(`trainingBias:1`)
+        const entry = assetLoader.qualityLegend.get(`trainingBias:1`)
         const blurb = entry !== undefined ? entry.blurb : ""
         return `<img class='c_quality_icon' src='/assets/training.svg' title="${blurb}" alt='In Training'>`
     }
 
-    const entry = qualityLegend.get(`timestepQuality:${timestepQuality}`)
+    const entry = assetLoader.qualityLegend.get(`timestepQuality:${timestepQuality}`)
     if (entry === undefined)
         return ""
 

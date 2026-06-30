@@ -5,12 +5,10 @@ const draft_select : HTMLSelectElement = getElementByIdStrict('draft_type_select
 
 async function main()
 {
-    const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
-    const player_search_data = retrieveJson('../../assets/player_search.json.gz')
-    const datesJson = await datesJsonPromise
-    await loadQualityLegend()
+    await assetLoader.ready;
 
-    endYear = datesJson["draftEndYear"] as number
+    const dates = await assetLoader.dates();
+    endYear = dates.endYear;
     year = getQueryParamBackup("year", endYear)
     modelId = getQueryParamBackup("model", 1)
     const draftType = getQueryParamBackup("type", 4)
@@ -23,7 +21,7 @@ async function main()
         modelId : modelId,
         endYear : endYear,
         endMonth : month,
-        startYear : datesJson["startYear"] as number,
+        startYear : dates.startYear,
         startTeam : null,
         level : null
     })
@@ -36,8 +34,6 @@ async function main()
         period : 0,
         type : draftType as PlayerLoaderType
     }, 100)
-
-    searchBar = new SearchBar(await player_search_data)
 
     rankings_button.addEventListener('click', (event) => {
         const yr = year_select.value
