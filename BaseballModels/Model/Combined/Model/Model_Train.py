@@ -86,7 +86,7 @@ def TrainAndGraph(
             print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch + 1, num_epochs, train_result.avg_loss[element_to_save], test_result.avg_loss[element_to_save]))
         
         if (not save_last and test_result.avg_loss[element_to_save] < best_loss) \
-            or (save_last and epoch == iterable[-1]):
+            or (save_last and epoch == num_epochs - 1):
             best_loss = test_result.avg_loss[element_to_save]
             best_epoch = epoch
             epochs_since_improve = 0

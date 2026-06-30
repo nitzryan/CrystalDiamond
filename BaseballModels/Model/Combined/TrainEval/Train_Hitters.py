@@ -10,6 +10,7 @@ from Pro.Model.Player_Model import RNN_Model as ProModel
 from College.Model.College_Model import RNN_Model as ColModel
 from Constants import device, model_db
 from Utilities import GetModelMaps
+from Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
 
 def Train_Hitters(num_models : int):
     if num_models < 0:
@@ -32,8 +33,7 @@ def Train_Hitters(num_models : int):
             college_output_map=col_output_map
         )
         
-        hitter_io_list = data_prep.Generate_IO_Hitters(pro_player_condition="WHERE lastMLBSeason<? AND signingYear<? AND isHitter=?", pro_player_values=(2025,2015,1), pro_use_cutoff=True,
-                col_player_condition="WHERE LastYear<=? AND isHitter=?", col_player_values=(2015, 1), col_use_cutoff=True)
+        hitter_io_list = data_prep.Generate_IO_Hitters(is_training=True)
         
         model_cursor = model_db.cursor()
         model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}' AND IsHitter=1")
@@ -45,23 +45,20 @@ def Train_Hitters(num_models : int):
             train_dataset, test_dataset = Create_Test_Train_Datasets(player_list=hitter_io_list, is_hitter=True, train_idx=i)
             
             model_name_pt = f"{model_name}_{i}"
-            use_resnet = model_id == 2
             pro_network = ProModel(
                 input_size=train_dataset.GetProInputSize(),
                 mutators=torch.empty(0),
                 data_prep=data_prep.pro_data_prep,
-                is_hitter=True,
-                use_resnet=use_resnet).to(device)
+                is_hitter=True).to(device)
             col_network = ColModel(
                 input_size=train_dataset.GetColInputSize(),
                 data_prep=data_prep.college_data_prep,
                 is_hitter=True,
                 output_hidden_size=pro_network.GetHiddenSize(),
                 output_num_layers=pro_network.GetNumLayers(),
-                use_resnet=use_resnet
             ).to(device)
             
-            best_loss, best_loss_college, best_epoch = TrainAndGraph(
+            train_results = TrainAndGraph(
                 pro_network=pro_network,
                 col_network=col_network,
                 train_dataset=train_dataset,
@@ -70,10 +67,12 @@ def Train_Hitters(num_models : int):
                 col_model_name=f"Models/col_{model_name_pt}_hit",
                 is_hitter=True,
                 should_output=False,
+                show_progress_bar=True,
             )
             
             model_cursor = model_db.cursor()
-            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?,?)", (model_name, 1, best_loss, best_loss_college, i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
+            loss_index = GetVariableLossIndex(name="WAR", is_pro=False, is_hitter=True)
+            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?,?,?,?,?)", (model_name, 1, train_results.best_loss, train_results.test_losses[loss_index][-1], i, pro_network.GetNumLayers(), pro_network.GetHiddenSize(), col_network.GetNumLayers(), col_network.GetHiddenSize()))
             
             # Insert hitters that were trained on so that they can be marked on the site
             model_cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?,?,?,?,?)", [(

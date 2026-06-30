@@ -40,8 +40,8 @@ DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
-DEFAULT_WAR_BINARY_ARCH_P = LayerArch(layer_size=150, num_layers=3)
-DEFAULT_WAR_ORDINAL_ARCH_P = LayerArch(layer_size=150, num_layers=3)
+DEFAULT_WAR_BINARY_ARCH_P = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
+DEFAULT_WAR_ORDINAL_ARCH_P = LayerArch(layer_size=70, num_layers=2, nonlin=F.tanh)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
@@ -57,10 +57,10 @@ DEFAULT_INPUT_NOISE = 0
 DEFAULT_DROPOUT = 0.283
 
 DEFAULT_PRO_WEIGHT_DECAY = [9.7e-4,8.4e-3,1.3e-6,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
-DEFAULT_PRO_WEIGHT_DECAY_P = [6e-1,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1.3e-6,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
 DEFAULT_LEARNING_RATES = [0.0076,0.018,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
-DEFAULT_LEARNING_RATES_P = [0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 class RNN_Model(nn.Module):
     def __init__(self, input_size : int, 

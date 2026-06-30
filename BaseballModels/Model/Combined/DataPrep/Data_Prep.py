@@ -115,12 +115,11 @@ class Combined_Data_Prep:
         
         return io
        
-    def Generate_IO_Pitchers(self,
-            pro_player_condition : str, pro_player_values : tuple[any], pro_use_cutoff : bool,
-            col_player_condition : str, col_player_values : tuple[any], col_use_cutoff : bool,) -> list[Combined_IO]:
+    def Generate_IO_Pitchers(self, is_training : bool) -> list[Combined_IO]:
+        conditions = "WHERE IsEligible=1 AND IsPitcher=1" if is_training else "WHERE IsPitcher=1"
         
-        pro_io = self.pro_data_prep.Generate_IO_Pitchers(pro_player_condition, pro_player_values, pro_use_cutoff)
-        college_io = self.college_data_prep.Generate_IO_Pitchers(col_player_condition, col_player_values, col_use_cutoff)
+        pro_io = self.pro_data_prep.Generate_IO_Pitchers(conditions, (), is_training)
+        college_io = self.college_data_prep.Generate_IO_Pitchers(conditions, (), is_training)
         
         empty_pro_io = self.GetEmptyProIO(is_hitter=False)
         empty_college_io = self.GetEmptyCollegeIO(is_hitter=False)
