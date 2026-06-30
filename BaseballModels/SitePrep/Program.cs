@@ -25,6 +25,7 @@ namespace SitePrep
             OrgMap.Update();
             SearchIndex.Update();
             Homepage.Update();
+            SetTimestepQuality.Create();
             MoveDbToServer.Update();
         }
     }

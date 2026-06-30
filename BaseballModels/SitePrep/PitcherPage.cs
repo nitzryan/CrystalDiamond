@@ -18,6 +18,15 @@ namespace SitePrep
             siteDb.PitcherMonthStats.ExecuteDelete();
             siteDb.SaveChanges();
 
+            // Pre-load which players are in trainingData
+            HashSet<(int MlbId, int ModelIdx)> pitcherTrainSet = modelDb.PlayersInTrainingData
+                .Where(f => !f.IsHitter && f.IsTrain)
+                .Select(f => new { f.MlbId, f.ModelIdx })
+                .Distinct()
+                .AsEnumerable()
+                .Select(f => (f.MlbId, f.ModelIdx))
+                .ToHashSet();
+
             var players = db.Model_Players.Where(f => f.IsPitcher == 1)
                 .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi }); ;
             using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Pitcher Site Data"))
@@ -28,27 +37,39 @@ namespace SitePrep
                     var bio = playerTuple.sbi;
 
                     // Model Output Buckets
-                    var opws = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == player.MlbId && !f.IsHitter).OrderBy(f => f.Year).ThenBy(f => f.Month);
-                    foreach (var opw in opws)
+                    var opwsByModel = modelDb.Output_PlayerWarAggregation
+                        .Where(f => f.MlbId == player.MlbId && !f.IsHitter)
+                        .GroupBy(f => f.Model);
+                    foreach (var modelGroup in opwsByModel)
                     {
-                        var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model);
-
-                        siteDb.Add(new PlayerModel
+                        int modelId = modelGroup.Key;
+                        bool trainingBias = pitcherTrainSet.Contains((player.MlbId, modelId));
+                        int timestepIndex = 0; // N, 0-indexed count of sequential prospect rankings seen so far
+                        foreach (var opw in modelGroup.OrderBy(f => f.Year).ThenBy(f => f.Month))
                         {
-                            MlbId = player.MlbId,
-                            Year = opw.Year,
-                            Month = opw.Month,
-                            ModelId = opw.Model,
-                            IsHitter = opw.IsHitter,
-                            ProbsWar = $"{opw.War0.ToString("0.000")}," +
-                                    $"{opw.War1.ToString("0.000")}," +
-                                    $"{opw.War2.ToString("0.000")}," +
-                                    $"{opw.War3.ToString("0.000")}," +
-                                    $"{opw.War4.ToString("0.000")}," +
-                                    $"{opw.War5.ToString("0.000")}," +
-                                    $"{opw.War6.ToString("0.000")}",
-                            RankWar = ranks.Any() ? ranks.First().RankWar : null,
-                        });
+                            var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model);
+
+                            siteDb.Add(new PlayerModel
+                            {
+                                MlbId = player.MlbId,
+                                Year = opw.Year,
+                                Month = opw.Month,
+                                ModelId = opw.Model,
+                                IsHitter = opw.IsHitter,
+                                ProbsWar = $"{opw.War0.ToString("0.000")}," +
+                                        $"{opw.War1.ToString("0.000")}," +
+                                        $"{opw.War2.ToString("0.000")}," +
+                                        $"{opw.War3.ToString("0.000")}," +
+                                        $"{opw.War4.ToString("0.000")}," +
+                                        $"{opw.War5.ToString("0.000")}," +
+                                        $"{opw.War6.ToString("0.000")}",
+                                RankWar = ranks.Any() ? ranks.First().RankWar : null,
+                                TrainingBias = trainingBias,
+                                TimestepQuality = Utilities.GetProPitcherTimestepQuality(timestepIndex),
+                            });
+
+                            timestepIndex++;
+                        }
                     }
 
                     // Demographic Data

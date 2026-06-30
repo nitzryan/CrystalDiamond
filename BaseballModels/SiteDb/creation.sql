@@ -173,6 +173,8 @@ CREATE TABLE "PlayerModel" (
 	"isHitter" INTEGER NOT NULL,
 	"probsWar" TEXT NOT NULL,
 	"rankWar" INTEGER,
+	"trainingBias" INTEGER NOT NULL,
+	"timestepQuality" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId","year","month","modelId", "isHitter")
 );
 
@@ -188,6 +190,8 @@ CREATE TABLE "PlayerRank" (
 	"rankWar" INTEGER NOT NULL,
 	"teamRankWar" INTEGER NOT NULL,
 	"highestLevel" INTEGER NOT NULL,
+	"trainingBias" INTEGER NOT NULL,
+	"timestepQuality" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
 
@@ -204,6 +208,8 @@ CREATE TABLE "DraftRank" (
 	"warPre" REAL,
 	"warPost" REAL,
 	"draftPick" INTEGER,
+	"trainingBias" INTEGER NOT NULL,
+	"timestepQuality" INTEGER NOT NULL,
 	PRIMARY KEY("tbcId", "modelId", "year", "isHitter", "mlbId")
 );
 
@@ -258,6 +264,15 @@ CREATE TABLE "HomeDataType" (
 	"type" INTEGER NOT NULL,
 	"name" TEXT NOT NULL,
 	PRIMARY KEY("type")
+);
+
+CREATE TABLE "QualityCode" (
+    "category" TEXT    NOT NULL,
+    "code"     INTEGER NOT NULL,
+    "severity" INTEGER NOT NULL,
+    "label"    TEXT    NOT NULL,
+    "blurb"    TEXT    NOT NULL,
+    PRIMARY KEY("category", "code")
 );
 
 CREATE INDEX "idx_PlayerRankOverallWar" ON "PlayerRank" (

@@ -19,6 +19,9 @@ type Player = {
     draftPick : number | null,
     preDraftWar : number | null,
     postDraftWar : number | null,
+
+    timestepQuality : number | null,
+    trainingBias : boolean | null,
 }
 
 function createPlayer(obj : JsonObject)
@@ -36,6 +39,8 @@ function createPlayer(obj : JsonObject)
         draftPick : null,
         preDraftWar : null,
         postDraftWar : null,
+        timestepQuality : getJsonNumber(obj, "timestepQuality"),
+        trainingBias : obj["trainingBias"] as boolean,
     }
     return p
 }
@@ -55,6 +60,8 @@ function createMLBHitter(obj : JsonObject)
         draftPick : null,
         preDraftWar : null,
         postDraftWar : null,
+        timestepQuality : null,
+        trainingBias : null,
     }
     return p
 }
@@ -74,6 +81,8 @@ function createMLBStarter(obj : JsonObject)
         draftPick : null,
         preDraftWar : null,
         postDraftWar : null,
+        timestepQuality : null,
+        trainingBias : null,
     }
     return p
 }
@@ -93,6 +102,8 @@ function createMLBReliever(obj : JsonObject)
         draftPick : null,
         preDraftWar : null,
         postDraftWar : null,
+        timestepQuality : null,
+        trainingBias : null,
     }
     return p
 }
@@ -112,6 +123,8 @@ function createDraftProspect(obj : JsonObject)
         draftPick : getJsonNumberNullable(obj, "draftPick"),
         preDraftWar : getJsonNumberNullable(obj, "warPre"),
         postDraftWar : getJsonNumberNullable(obj, "warPost"),
+        timestepQuality : getJsonNumber(obj, "timestepQuality"),
+        trainingBias : obj["trainingBias"] as boolean,
     }
     return p
 }
@@ -129,9 +142,10 @@ function createPlayerElement(player : Player, year : number, month : number, mod
 
     const levelString = player.level !== null ? `<td class='c_lvl'>${level_map[player.level]}</td>` : ""
     const ptString = player.playingTime !== null ? `<td class='c_pt'>${player.playingTime.toFixed(0)}</td>` : ""
+    const qualityIcon = renderQualityIcon(player.timestepQuality, player.trainingBias)
     el.innerHTML = `
             <td>${__current_rank}</td>
-            <td class='c_name'><a href='./player?id=${player.id}'>${player.name}</a></td>
+            <td class='c_name'><a href='./player?id=${player.id}'>${player.name}</a>${qualityIcon}</td>
             <td class='c_team'><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
             <td class='c_value'>${formatModelString(player.war)}</td>
             ${levelString}
@@ -159,10 +173,11 @@ function createDraftPlayerElement(player : Player, year : number, month : number
     const draft_pick = player.draftPick === null ? '---' : player.draftPick
     
     const player_href = player.draftPick === null ? '' : `href='./player?id=${player.id}'`
+    const qualityIcon = renderQualityIcon(player.timestepQuality, player.trainingBias)
 
     el.innerHTML = `
             <td>${__current_rank}</td>
-            <td class='c_name'><a ${player_href}>${player.name}</a></td>
+            <td class='c_name'><a ${player_href}>${player.name}</a>${qualityIcon}</td>
             <td class='c_pre'>${pre_war}</td>
             <td class='c_post'>${post_war}</td>
             <td class='c_pick'>${draft_pick}</td>
@@ -355,4 +370,28 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
     `
 
     rankings_load.dispatchEvent(new Event('click'))
+}
+
+// Renders an icon when the player ranked is low model quality or in the training data
+function renderQualityIcon(timestepQuality : number | null, trainingBias : boolean | null) : string
+{
+    if (timestepQuality === null)
+        return ""
+
+    if (trainingBias === true)
+    {
+        const entry = qualityLegend.get(`trainingBias:1`)
+        const blurb = entry !== undefined ? entry.blurb : ""
+        return `<img class='c_quality_icon' src='/assets/training.svg' title="${blurb}" alt='In Training'>`
+    }
+
+    const entry = qualityLegend.get(`timestepQuality:${timestepQuality}`)
+    if (entry === undefined)
+        return ""
+
+    // Severity.VeryLow = 0, Severity.Low = 1
+    if (entry.severity === 0 || entry.severity === 1)
+        return `<img class='c_quality_icon' src='/assets/warning.svg' title="${entry.blurb}" alt='Low Quality'>`
+
+    return ""
 }

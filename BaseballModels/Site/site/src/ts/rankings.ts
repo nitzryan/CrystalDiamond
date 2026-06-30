@@ -9,6 +9,7 @@ async function main()
     
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     const datesJson = await datesJsonPromise
+    await loadQualityLegend()
 
     endYear = datesJson["endYear"] as number
     endMonth = datesJson["endMonth"] as number

@@ -19,6 +19,7 @@ namespace SiteDb
 		public DbSet<PlayerYearPositions> PlayerYearPositions {get; set;}
 		public DbSet<HomeData> HomeData {get; set;}
 		public DbSet<HomeDataType> HomeDataType {get; set;}
+		public DbSet<QualityCode> QualityCode {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -39,6 +40,7 @@ namespace SiteDb
 			modelBuilder.Entity<PlayerYearPositions>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
 			modelBuilder.Entity<HomeData>().HasKey(f => new {f.Year,f.Month,f.RankType,f.ModelId,f.IsWar,f.Rank});
 			modelBuilder.Entity<HomeDataType>().HasKey(f => new {f.Type});
+			modelBuilder.Entity<QualityCode>().HasKey(f => new {f.Category,f.Code});
 		}
 	}
 }

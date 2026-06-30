@@ -14,6 +14,8 @@ namespace SiteDb
 		public float? WarPre {get; set;}
 		public float? WarPost {get; set;}
 		public int? DraftPick {get; set;}
+		public required bool TrainingBias {get; set;}
+		public required DbEnums.TimestepQuality TimestepQuality {get; set;}
 
 		public DraftRank Clone()
 		{
@@ -31,6 +33,8 @@ namespace SiteDb
 				WarPre = this.WarPre,
 				WarPost = this.WarPost,
 				DraftPick = this.DraftPick,
+				TrainingBias = this.TrainingBias,
+				TimestepQuality = this.TimestepQuality,
 				
 			};
 		}

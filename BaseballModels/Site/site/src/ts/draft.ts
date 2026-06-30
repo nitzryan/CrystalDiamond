@@ -8,6 +8,7 @@ async function main()
     const datesJsonPromise = retrieveJson('../../assets/dates.json.gz')
     const player_search_data = retrieveJson('../../assets/player_search.json.gz')
     const datesJson = await datesJsonPromise
+    await loadQualityLegend()
 
     endYear = datesJson["draftEndYear"] as number
     year = getQueryParamBackup("year", endYear)

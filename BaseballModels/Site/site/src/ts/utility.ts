@@ -270,3 +270,25 @@ var org_map : JsonObject | null = null
 const level_map : JsonObject = {1:"MLB",11:"AAA",12:"AA",13:"A+",14:"A",15:"A-",16:"Rk",17:"DSL",20:""}
 const level_map2 : string[] = ["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"]
 const MONTH_CODES : string[] = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+// Quality Rankings
+type QualityLegendEntry = { label : string, blurb : string, severity : number }
+const qualityLegend : Map<string, QualityLegendEntry> = new Map()
+async function loadQualityLegend() : Promise<void>
+{
+    if (qualityLegend.size > 0)
+        return
+    const response = await fetch('/qualityLegend')
+    const rows = await response.json() as JsonArray
+    for (const r of rows)
+    {
+        const obj = r as JsonObject
+        const category = getJsonString(obj, "category")
+        const code = getJsonNumber(obj, "code")
+        qualityLegend.set(`${category}:${code}`, {
+            label : getJsonString(obj, "label"),
+            blurb : getJsonString(obj, "blurb"),
+            severity : getJsonNumber(obj, "severity"),
+        })
+    }
+}

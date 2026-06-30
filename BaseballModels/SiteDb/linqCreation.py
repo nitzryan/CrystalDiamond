@@ -13,11 +13,19 @@ tables = cursor.fetchall()
 # Allows for not being required to create column, but not being nullable
 autoincrement_pairs = []
 
-boolean_types = [("DraftRank", ["IsHitter", "IsEligible"]),
+boolean_types = [("DraftRank", ["IsHitter", "IsEligible", "TrainingBias"]),
                  ("Player", ["IsHitter", "IsPitcher", "InTraining"]),
-                 ("PlayerModel", ["IsHitter"]),
-                 ("PlayeRank", ["IsHitter"]),
+                 ("PlayerModel", ["IsHitter", "TrainingBias"]),
+                 ("PlayerRank", ["IsHitter", "TrainingBias"]),
                  ("PlayerYearPositions", ["IsHitter"])]
+
+type_overrides = [("DraftRank", "TimestepQuality", "DbEnums.TimestepQuality"), 
+                  ("PlayerModel", "TimestepQuality", "DbEnums.TimestepQuality"), 
+                  ("PlayerRank", "TimestepQuality", "DbEnums.TimestepQuality"), 
+                  ("QualityCode", "Code", "DbEnums.TimestepQuality"), 
+                  
+                  ("QualityCode", "Severity", "DbEnums.Severity"), 
+                  ]
 
 for table, in tables:
     # Get table data
@@ -48,6 +56,10 @@ for table, in tables:
                 csharp_type = "string"
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
+        
+            for (tbl, col, typ) in type_overrides:
+                if (tbl == table) and (col == name):
+                    csharp_type = typ
         
             for (tbl, cols) in boolean_types:
                 if tbl == table:

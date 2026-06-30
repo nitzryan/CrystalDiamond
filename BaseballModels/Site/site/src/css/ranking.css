@@ -41,6 +41,12 @@
 .c_name {
     padding-left: 0.5rem;
     padding-right: 2rem;
+
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 6px;
+    height: 100%;
 }
 
 .c_team {
@@ -60,4 +66,10 @@
 .c_age {
     text-align: right;
     padding-right: 0.5rem;
+}
+
+.c_quality_icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
 }

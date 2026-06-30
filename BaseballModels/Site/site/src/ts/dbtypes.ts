@@ -341,6 +341,8 @@ class DB_PlayerModel
 	public isHitter : number
 	public probsWar : string
 	public rankWar : number
+	public trainingBias : number
+	public timestepQuality : number
 
 	constructor(data : JsonObject)
 	{
@@ -351,6 +353,8 @@ class DB_PlayerModel
 		this.isHitter = data['isHitter'] as number
 		this.probsWar = data['probsWar'] as string
 		this.rankWar = data['rankWar'] as number
+		this.trainingBias = data['trainingBias'] as number
+		this.timestepQuality = data['timestepQuality'] as number
 	}
 }
 
@@ -367,6 +371,8 @@ class DB_PlayerRank
 	public rankWar : number
 	public teamRankWar : number
 	public highestLevel : number
+	public trainingBias : number
+	public timestepQuality : number
 
 	constructor(data : JsonObject)
 	{
@@ -381,6 +387,8 @@ class DB_PlayerRank
 		this.rankWar = data['rankWar'] as number
 		this.teamRankWar = data['teamRankWar'] as number
 		this.highestLevel = data['highestLevel'] as number
+		this.trainingBias = data['trainingBias'] as number
+		this.timestepQuality = data['timestepQuality'] as number
 	}
 }
 
@@ -398,6 +406,8 @@ class DB_DraftRank
 	public warPre : number
 	public warPost : number
 	public draftPick : number
+	public trainingBias : number
+	public timestepQuality : number
 
 	constructor(data : JsonObject)
 	{
@@ -413,6 +423,8 @@ class DB_DraftRank
 		this.warPre = data['warPre'] as number
 		this.warPost = data['warPost'] as number
 		this.draftPick = data['draftPick'] as number
+		this.trainingBias = data['trainingBias'] as number
+		this.timestepQuality = data['timestepQuality'] as number
 	}
 }
 
@@ -509,6 +521,24 @@ class DB_HomeDataType
 	{
 		this.type = data['type'] as number
 		this.name = data['name'] as string
+	}
+}
+
+class DB_QualityCode
+{
+	public category : string
+	public code : number
+	public severity : number
+	public label : string
+	public blurb : string
+
+	constructor(data : JsonObject)
+	{
+		this.category = data['category'] as string
+		this.code = data['code'] as number
+		this.severity = data['severity'] as number
+		this.label = data['label'] as string
+		this.blurb = data['blurb'] as string
 	}
 }
 

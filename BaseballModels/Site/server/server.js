@@ -368,6 +368,17 @@ app.get('/prediction_pitcher', (req, res) => {
     }
 })
 
+app.get('/qualityLegend', async (req, res) => {
+    try {
+        const rows = await dbAll("SELECT * FROM QualityCode", [])
+        res.json(rows)
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in qualityLegend: " + e)
+    }
+})
+
 app.get('/brew', async (req, res) => {
     let html = await fs.readFile(path.join(__dirname, "src/html/error.html"), "utf8")
     html = html.replace("<!-- ERROR TEXT -->", `<p class='center_text'>Short and stout</p>`)

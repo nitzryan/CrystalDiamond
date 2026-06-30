@@ -1,5 +1,5 @@
 ﻿using Db;
-using System.Text;
+using static SiteDb.DbEnums;
 
 namespace SitePrep
 {
@@ -298,6 +298,45 @@ namespace SitePrep
             int deltaDays = d1 - d0;
 
             return deltaYears + (deltaMonths / 12.0f) + (deltaDays / 365.0f);
+        }
+
+        // Timestep Quality Functions
+        public static TimestepQuality GetProHitterTimestepQuality(int n)
+        {
+            if (n < 3) return TimestepQuality.ProEarlyLow;
+            if (n < 8) return TimestepQuality.ProEarlyMed;
+            if (n < 15) return TimestepQuality.ProEarlyHigh;
+            if (n <= 30) return TimestepQuality.ProPeak;
+            if (n <= 35) return TimestepQuality.ProDeclineHigh;
+            if (n <= 45) return TimestepQuality.ProDeclineLow;
+            return TimestepQuality.ProDeclineVeryLow;
+        }
+
+        public static TimestepQuality GetProPitcherTimestepQuality(int n)
+        {
+            if (n < 3) return TimestepQuality.ProEarlyLow;
+            if (n < 8) return TimestepQuality.ProEarlyMed;
+            if (n < 15) return TimestepQuality.ProEarlyHigh;
+            if (n <= 30) return TimestepQuality.ProPeak;
+            if (n <= 35) return TimestepQuality.ProDeclineHigh;
+            if (n <= 45) return TimestepQuality.ProDeclineLow;
+            return TimestepQuality.ProDeclineVeryLow;
+        }
+
+        public static TimestepQuality GetDraftHitterTimestepQuality(int n)
+        {
+            if (n == 0) return TimestepQuality.CollegeLow;
+            if (n == 1) return TimestepQuality.CollegeMed;
+            if (n == 2) return TimestepQuality.CollegeHigh;
+            return TimestepQuality.CollegeVeryLow;
+        }
+
+        public static TimestepQuality GetDraftPitcherTimestepQuality(int n)
+        {
+            if (n == 0) return TimestepQuality.CollegeLow;
+            if (n == 1) return TimestepQuality.CollegeMed;
+            if (n == 2) return TimestepQuality.CollegeHigh;
+            return TimestepQuality.CollegeVeryLow;
         }
     }
 }

@@ -4,7 +4,7 @@ namespace SiteDb
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsHitter {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int TeamId {get; set;}
@@ -13,6 +13,8 @@ namespace SiteDb
 		public required int RankWar {get; set;}
 		public required int TeamRankWar {get; set;}
 		public required int HighestLevel {get; set;}
+		public required bool TrainingBias {get; set;}
+		public required DbEnums.TimestepQuality TimestepQuality {get; set;}
 
 		public PlayerRank Clone()
 		{
@@ -29,6 +31,8 @@ namespace SiteDb
 				RankWar = this.RankWar,
 				TeamRankWar = this.TeamRankWar,
 				HighestLevel = this.HighestLevel,
+				TrainingBias = this.TrainingBias,
+				TimestepQuality = this.TimestepQuality,
 				
 			};
 		}

@@ -128,12 +128,35 @@ namespace SitePrep
 
             var modelYears = modelDb.Output_College_HitterAggregation.Where(f => f.Year >= 2005)
                 .Select(f => new { f.Year, f.Model })
-                .Distinct();
+                .Distinct()
+                .OrderBy(f => f.Model).ThenBy(f => f.Year);
+
+            // tbcId -> N, reset whenever the model changes since N is sequential within one model's timeline
+            Dictionary<int, int> tbcTimestepCounts = new();
+            int currentTrackedModel = -1;
+
+            // Keep track of who is in training set.
+            HashSet<(int TbcId, bool IsHitter)> draftTrainSet = new();
 
             using (ProgressBar progressBar = new ProgressBar(modelYears.Count(), "Generating Draft Rankings"))
             {
                 foreach (var modelYear in modelYears)
                 {
+                    // Reset when model changes
+                    if (modelYear.Model != currentTrackedModel)
+                    {
+                        tbcTimestepCounts.Clear();
+                        currentTrackedModel = modelYear.Model;
+
+                        draftTrainSet = modelDb.PlayersInTrainingData
+                        .Where(f => f.ModelIdx == modelYear.Model && f.IsTrain)
+                        .Select(f => new { f.TbcId, f.IsHitter })
+                        .Distinct()
+                        .AsEnumerable()
+                        .Select(f => (f.TbcId, f.IsHitter))
+                        .ToHashSet();
+                    }
+
                     // Get all players ranked
                     var hitterStats = modelDb.Output_College_HitterAggregation
                         .Where(f => f.Year == modelYear.Year && f.Model == modelYear.Model);
@@ -153,7 +176,7 @@ namespace SitePrep
                             tbcId = hs.TbcId,
                             value = hs.War,
                             isHitter = true,
-                            position = DbEnums.GetFlagsDescription(hitStats.Pos),
+                            position = Db.DbEnums.GetFlagsDescription(hitStats.Pos),
                             isEligible = IsPlayerEligible(cp, hs.Year, hitStats.ExpYears),
                         });
                     }
@@ -202,6 +225,7 @@ namespace SitePrep
                             
                         }
 
+                        int n = tbcTimestepCounts.GetValueOrDefault(dr.tbcId, 0);
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = dr.tbcId,
@@ -216,8 +240,14 @@ namespace SitePrep
                             WarPre = dr.value,
                             WarPost = warPost,
                             DraftPick = draftPick,
+                            TrainingBias = draftTrainSet.Contains((dr.tbcId, dr.isHitter)),
+                            TimestepQuality = dr.isHitter
+                        ? Utilities.GetDraftHitterTimestepQuality(n)
+                        : Utilities.GetDraftPitcherTimestepQuality(n),
                         });
+
                         rank++;
+                        tbcTimestepCounts[dr.tbcId] = n + 1;
                     }
 
                     // Non-eligible rankings included for player history
@@ -225,6 +255,7 @@ namespace SitePrep
                     foreach (var ip in ineligiblePlayers)
                     {
                         var colPlayer = db.College_Player.Where(f => f.TBCId == ip.tbcId).Single();
+                        int n = tbcTimestepCounts.GetValueOrDefault(ip.tbcId, 0);
 
                         draftRanks.Add(new DraftRank
                         {
@@ -240,7 +271,13 @@ namespace SitePrep
                             WarPre = ip.value,
                             WarPost = null, // Ineligible, so not possible to be drafted
                             DraftPick = null,
+                            TrainingBias = draftTrainSet.Contains((ip.tbcId, ip.isHitter)),
+                            TimestepQuality = ip.isHitter
+                                ? Utilities.GetDraftHitterTimestepQuality(n)
+                                : Utilities.GetDraftPitcherTimestepQuality(n),
                         });
+
+                        tbcTimestepCounts[ip.tbcId] = n + 1;
                     }
 
                     siteDb.BulkInsert(draftRanks);
@@ -274,6 +311,8 @@ namespace SitePrep
                             WarPre = null,
                             WarPost = warPost,
                             DraftPick = dp.DraftPick,
+                            TrainingBias = false,
+                            TimestepQuality = SiteDb.DbEnums.TimestepQuality.HSVeryLow
                         });
                     }
 

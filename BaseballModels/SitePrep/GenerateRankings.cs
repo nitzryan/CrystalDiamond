@@ -33,9 +33,10 @@ namespace SitePrep
             public required float War;
             public required int ParentOrgId;
             public required int HighestLevel;
+            public required int TimestepN;
         }
 
-        private static void GenFunc(SqliteDbContext db, ModelDbContext modelDb, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear)
+        private static void GenFunc(SqliteDbContext db, ModelDbContext modelDb, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear, HashSet<int> trainedMlbIds)
         {
             // Get ordered list of values for players
             List<List<PlayerWar>> playersWarList = new(initial_pwa.Count());
@@ -199,7 +200,8 @@ namespace SitePrep
                                 highestLevel = pitcherLevels.First();
                         }
 
-
+                        // Get timestep
+                        int n = playerWarList.Count(f => f.isHitter == first.isHitter && (f.Year < year || (f.Year == year && f.Month <= month))) - 1;
                         pmwList.Add(new PlayerMonthWar
                         {
                             MLbId = current.MlbId,
@@ -210,6 +212,7 @@ namespace SitePrep
                                 .First().ParentOrgId : 0,
                             position = position,
                             HighestLevel = highestLevel,
+                            TimestepN = n
                         });
                     }
 
@@ -229,13 +232,17 @@ namespace SitePrep
                             Year = year,
                             Month = month,
                             ModelId = pmw.ModelId,
-                            IsHitter = pmw.isHitter ? 1 : 0,
+                            IsHitter = pmw.isHitter,
                             RankWar = r,
                             War = pmw.War,
                             Position = pmw.position,
                             TeamId = pmw.ParentOrgId,
                             TeamRankWar = -1,
                             HighestLevel = pmw.HighestLevel,
+                            TrainingBias = trainedMlbIds.Contains(pmw.MLbId),
+                            TimestepQuality = pmw.isHitter
+                                ? Utilities.GetProHitterTimestepQuality(pmw.TimestepN)
+                                : Utilities.GetProPitcherTimestepQuality(pmw.TimestepN),
                         });
                         rank++;
                     }
@@ -341,7 +348,12 @@ namespace SitePrep
                             #pragma warning restore CS8629
                         }
 
-                        GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear);
+                        HashSet<int> trainedMlbIds = modelDb.PlayersInTrainingData
+                            .Where(f => f.ModelIdx == model.Id && f.IsTrain)
+                            .Select(f => f.MlbId)
+                            .Distinct()
+                            .ToHashSet();
+                        GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear, trainedMlbIds);
 
                         progressBar.Tick();
                     }
