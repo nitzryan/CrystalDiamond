@@ -13,6 +13,7 @@ type Player = {
     birthYear : number,
     birthMonth : number,
     level : number | null,
+    rankWar : number | null,
     playingTime : number | null,
 
     // Draft data
@@ -35,6 +36,7 @@ function createPlayer(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : getJsonNumber(obj, "highestLevel"),
+        rankWar : getJsonNumber(obj, "rankWar"),
         playingTime : null,
         draftPick : null,
         preDraftWar : null,
@@ -56,6 +58,7 @@ function createMLBHitter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
+        rankWar : null,
         playingTime : getJsonNumber(obj, "pa"),
         draftPick : null,
         preDraftWar : null,
@@ -77,6 +80,7 @@ function createMLBStarter(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
+        rankWar : null,
         playingTime : getJsonNumber(obj, "spIP"),
         draftPick : null,
         preDraftWar : null,
@@ -98,6 +102,7 @@ function createMLBReliever(obj : JsonObject)
         birthYear : getJsonNumber(obj, "birthYear"),
         birthMonth : getJsonNumber(obj, "birthMonth"),
         level : null,
+        rankWar : null,
         playingTime : getJsonNumber(obj, "rpIP"),
         draftPick : null,
         preDraftWar : null,
@@ -119,6 +124,7 @@ function createDraftProspect(obj : JsonObject)
         birthYear : 0, // TODO
         birthMonth : 0, // TODO
         level : null,
+        rankWar : null,
         playingTime : null,
         draftPick : getJsonNumberNullable(obj, "draftPick"),
         preDraftWar : getJsonNumberNullable(obj, "warPre"),
@@ -130,7 +136,7 @@ function createDraftProspect(obj : JsonObject)
 }
 
 let __current_rank = 1
-function createPlayerElement(player : Player, year : number, month : number, modelId : number) : HTMLTableRowElement
+function createPlayerElement(player : Player, year : number, month : number, modelId : number, is_team_rank : boolean) : HTMLTableRowElement
 {
     const el = document.createElement('tr') as HTMLTableRowElement
     el.classList.add('rankings_item')
@@ -143,13 +149,16 @@ function createPlayerElement(player : Player, year : number, month : number, mod
     const levelString = player.level !== null ? `<td class='c_lvl'>${level_map[player.level]}</td>` : ""
     const ptString = player.playingTime !== null ? `<td class='c_pt'>${player.playingTime.toFixed(0)}</td>` : ""
     const qualityIcon = renderQualityIcon(player.timestepQuality, player.trainingBias)
+    const overallString = is_team_rank ? `<td class='c_ovr'>${player.rankWar}</td>` : ""
+    
     el.innerHTML = `
             <td>${__current_rank}</td>
             <td class='c_name'><a href='./player?id=${player.id}'>${player.name}</a>${qualityIcon}</td>
-            <td class='c_team'><a href='./teams?id=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
+            <td class='c_team'><a href='./rankings?team=${player.team}&year=${year}&month=${month}'>${teamAbbr}</a></td>
             <td class='c_value'>${formatModelString(player.war)}</td>
             ${levelString}
             ${ptString}
+            ${overallString}
             <td class='c_pos'>${player.position}</td>
             <td class='c_age'>${ageInYears}</td>
         `
@@ -265,19 +274,19 @@ class PlayerLoader
 
         if (this.type === PlayerLoaderType.Prospect)
             return players.map(f => {
-                return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month, this.model)
+                return createPlayerElement(createPlayer(f as JsonObject), this.year, this.month, this.model, this.teamId != null)
             })
         else if (this.type === PlayerLoaderType.MLBHitter)
             return players.map(f => {
-                return createPlayerElement(createMLBHitter(f as JsonObject), this.year, this.month, this.model)
+                return createPlayerElement(createMLBHitter(f as JsonObject), this.year, this.month, this.model, false)
             })
         else if (this.type === PlayerLoaderType.MLBStarter)
             return players.map(f => {
-                return createPlayerElement(createMLBStarter(f as JsonObject), this.year, this.month, this.model)
+                return createPlayerElement(createMLBStarter(f as JsonObject), this.year, this.month, this.model, false)
             })
         else if (this.type === PlayerLoaderType.MLBReliever)
             return players.map(f => {
-                return createPlayerElement(createMLBReliever(f as JsonObject), this.year, this.month, this.model)
+                return createPlayerElement(createMLBReliever(f as JsonObject), this.year, this.month, this.model, false)
             })
         else if (this.type === PlayerLoaderType.DraftRank || this.type === PlayerLoaderType.DraftResult)
             return players.map(f => {
@@ -328,14 +337,13 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
     })
     
     let headerString : string
-    let valueString : string
-    let levelString : string = ""
-    let ptString : string = ""
     
     // Setup visibility for rankings table
     if (args.type === PlayerLoaderType.Prospect)
     {
         headerString = "<th>Team</th><th>WAR</th><th>Level</th>"
+        if (args.teamId != null)
+            headerString += "<th>Overall</th>"
     } else 
     {
         if (args.type === PlayerLoaderType.MLBHitter)

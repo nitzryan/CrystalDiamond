@@ -876,6 +876,13 @@ namespace DataAquisition
                         var dbPlayer = db.College_Player.Where(f => f.TBCId == player.Key).Single();
                         dbPlayer.IsPitcher = true;
                         dbPlayer.DraftOvrPitcher = dbPlayer.DraftOvrHitter;
+
+                        // Need to check if a player has more pitching data than hitting data
+                        if (lastYear > dbPlayer.LastYear)
+                        {
+                            dbPlayer.LastYear = lastYear;
+                            dbPlayer.DraftOvrPitcher = draftPick;
+                        }
                     }
                     else // Add
                     {

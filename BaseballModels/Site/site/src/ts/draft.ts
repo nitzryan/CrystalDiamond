@@ -8,13 +8,12 @@ async function main()
     await assetLoader.ready;
 
     const dates = await assetLoader.dates();
-    endYear = dates.endYear;
+    endYear = dates.draftEndYear;
     year = getQueryParamBackup("year", endYear)
     modelId = getQueryParamBackup("model", 1)
     const draftType = getQueryParamBackup("type", 4)
     draft_select.value = draftType.toString()
 
-    org_map = await retrieveJson("../../assets/map.json.gz")
     setupSelector({
         month : month,
         year : year,

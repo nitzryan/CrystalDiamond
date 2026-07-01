@@ -132,7 +132,7 @@ namespace SitePrep
                 .OrderBy(f => f.Model).ThenBy(f => f.Year);
 
             // tbcId -> N, reset whenever the model changes since N is sequential within one model's timeline
-            Dictionary<int, int> tbcTimestepCounts = new();
+            Dictionary<(int tbcId, bool isHitter), int> tbcTimestepCounts = new();
             int currentTrackedModel = -1;
 
             // Keep track of who is in training set.
@@ -225,7 +225,7 @@ namespace SitePrep
                             
                         }
 
-                        int n = tbcTimestepCounts.GetValueOrDefault(dr.tbcId, 0);
+                        int n = tbcTimestepCounts.GetValueOrDefault((dr.tbcId, dr.isHitter), 0);
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = dr.tbcId,
@@ -247,7 +247,7 @@ namespace SitePrep
                         });
 
                         rank++;
-                        tbcTimestepCounts[dr.tbcId] = n + 1;
+                        tbcTimestepCounts[(dr.tbcId, dr.isHitter)] = n + 1;
                     }
 
                     // Non-eligible rankings included for player history
@@ -255,7 +255,7 @@ namespace SitePrep
                     foreach (var ip in ineligiblePlayers)
                     {
                         var colPlayer = db.College_Player.Where(f => f.TBCId == ip.tbcId).Single();
-                        int n = tbcTimestepCounts.GetValueOrDefault(ip.tbcId, 0);
+                        int n = tbcTimestepCounts.GetValueOrDefault((ip.tbcId, ip.isHitter), 0);
 
                         draftRanks.Add(new DraftRank
                         {
@@ -277,7 +277,7 @@ namespace SitePrep
                                 : Utilities.GetDraftPitcherTimestepQuality(n),
                         });
 
-                        tbcTimestepCounts[ip.tbcId] = n + 1;
+                        tbcTimestepCounts[(ip.tbcId, ip.isHitter)] = n + 1;
                     }
 
                     siteDb.BulkInsert(draftRanks);

@@ -97,12 +97,13 @@ class AssetLoader {
     }
 
     ////////////////// Dates/Orgs ////////////////////////////
-    async dates(): Promise<{ startYear: number; endYear: number; endMonth: number }> {
+    async dates(): Promise<{ startYear: number; endYear: number; endMonth: number, draftEndYear : number }> {
         const json = await this.load('../../assets/dates.json.gz');
         return {
             startYear : json['startYear'] as number,
             endYear   : json['endYear'] as number,
             endMonth  : json['endMonth'] as number,
+            draftEndYear : json["draftEndYear"] as number,
         };
     }
     org_map : JsonObject | null = null

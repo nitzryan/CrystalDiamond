@@ -58,6 +58,11 @@
     padding-right: 1rem;
 }
 
+.c_ovr {
+    text-align: left;
+    padding-left: 1rem;
+}
+
 .c_lvl {
     text-align: right;
     padding-right: 1rem;

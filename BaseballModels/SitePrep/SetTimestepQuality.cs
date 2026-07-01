@@ -54,7 +54,7 @@ namespace SitePrep
                     // --- College/draft timeline ---
                     case TimestepQuality.CollegeLow:
                         severity = Severity.Low;
-                        blurb = "";
+                        blurb = "Only 1 year of data";
                         break;
                     case TimestepQuality.CollegeMed:
                         severity = Severity.Medium;

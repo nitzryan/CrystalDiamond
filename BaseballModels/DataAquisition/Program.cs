@@ -4,11 +4,11 @@
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2026;
-        const int END_MONTH = 5;
+        const int END_MONTH = 6;
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
-        const bool DATA_UPDATE = false;
+        const bool DATA_UPDATE = true;
         const bool DRAFT_UPDATE = false;
         const bool STATCAST_ONLY_UPDATE = false;
 
