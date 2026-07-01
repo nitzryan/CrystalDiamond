@@ -78,6 +78,7 @@ namespace Db
 		public DbSet<PitchModelResultBasis> PitchModelResultBasis {get; set;}
 		public DbSet<PitchStatcast> PitchStatcast {get; set;}
 		public DbSet<College_Player> College_Player {get; set;}
+		public DbSet<Player_YearlyWPA> Player_YearlyWPA {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -157,6 +158,7 @@ namespace Db
 			modelBuilder.Entity<PitchModelResultBasis>().HasKey(f => new {f.Year,f.CountBalls,f.CountStrikes,f.OutputType});
 			modelBuilder.Entity<PitchStatcast>().HasKey(f => new {f.GameId,f.PitchId});
 			modelBuilder.Entity<College_Player>().HasKey(f => new {f.TBCId});
+			modelBuilder.Entity<Player_YearlyWPA>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter,f.IsStarter});
 		}
 	}
 }

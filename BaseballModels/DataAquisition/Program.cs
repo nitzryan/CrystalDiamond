@@ -8,7 +8,7 @@
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
-        const bool DATA_UPDATE = true;
+        const bool DATA_UPDATE = false;
         const bool DRAFT_UPDATE = false;
         const bool STATCAST_ONLY_UPDATE = false;
 
@@ -27,7 +27,7 @@
 
             bool isFullYearUpdate = END_MONTH == 9;
 
-            if ((DATA_UPDATE && isFullYearUpdate) || FULL_REFRESH)
+            if ((DATA_UPDATE && isFullYearUpdate) || FULL_REFRESH || true)
             {
                 await FangraphsData.Update(years);
             }

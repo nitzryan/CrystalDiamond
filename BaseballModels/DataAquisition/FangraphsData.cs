@@ -42,8 +42,8 @@ namespace DataAquisition
                             continue;
                         }
 
-                        db.Player_YearlyWar.RemoveRange(db.Player_YearlyWar.Where(f => f.Year == year));
-                        db.SaveChanges();
+                        db.Player_YearlyWar.Where(f => f.Year == year).ExecuteDelete();
+                        db.Player_YearlyWPA.Where(f => f.Year == year).ExecuteDelete();
 
                         HttpResponseMessage response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=pit&stats=sta&lg=all&qual=0&season={year}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -57,13 +57,17 @@ namespace DataAquisition
                             id = f.GetProperty("xMLBAMID").GetInt32(),
                             war = f.GetProperty("WAR").GetDouble(),
                             tbf = (int)f.GetProperty("TBF").GetDouble(),
-                            ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble())
+                            ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble()),
+                            era = f.GetProperty("ERA").GetDouble(),
+                            wpa = f.GetProperty("WPA").GetDouble(),
+                            pli = f.GetProperty("pLI").GetDouble(),
+                            fip = f.GetProperty("FIP").GetDouble()
                         });
 
                         response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=pit&stats=rel&lg=all&qual=0&season={year}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
                         {
-                            throw new Exception($"Getting Starting Pitchers Fangraphs stats: {response.StatusCode}");
+                            throw new Exception($"Getting Relief Pitchers Fangraphs stats: {response.StatusCode}");
                         }
                         responseBody = await response.Content.ReadAsStringAsync();
                         json = JsonDocument.Parse(responseBody);
@@ -72,9 +76,15 @@ namespace DataAquisition
                             id = f.GetProperty("xMLBAMID").GetInt32(),
                             war = f.GetProperty("WAR").GetDouble(),
                             tbf = (int)f.GetProperty("TBF").GetDouble(),
-                            ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble())
+                            ip = IPDoubleToFloat(f.GetProperty("IP").GetDouble()),
+                            era = f.GetProperty("ERA").GetDouble(),
+                            wpa = f.GetProperty("WPA").GetDouble(),
+                            pli = f.GetProperty("pLI").GetDouble(),
+                            fip = f.GetProperty("FIP").GetDouble()
                         });
 
+
+                        // Combined WAR
                         var pitchersIds = startingPitchers.Select(f => f.id).ToList();
                         pitchersIds.AddRange(reliefPitchers.Select(f => f.id));
                         pitchersIds = pitchersIds.Distinct().ToList();
@@ -101,10 +111,54 @@ namespace DataAquisition
                             });
                         }
 
+                        // Separate WPA
+                        foreach (var sp in startingPitchers)
+                        {
+                            db.Player_YearlyWPA.Add(new()
+                            {
+                                MlbId = sp.id,
+                                Year = year,
+                                IsHitter = false,
+                                IsStarter = true,
+                                PA = 0,
+                                IP = sp.ip,
+                                FIP = (float)sp.fip,
+                                ERA = (float)sp.era,
+                                LI = (float)sp.pli,
+                                WPA = (float)sp.wpa,
+                                WAR = (float)sp.war,
+                                OFF = 0,
+                                DEF = 0,
+                                BSR = 0,
+                                REP = 0,
+                            });
+                        }
+                        foreach (var rp in reliefPitchers)
+                        {
+                            db.Player_YearlyWPA.Add(new()
+                            {
+                                MlbId = rp.id,
+                                Year = year,
+                                IsHitter = false,
+                                IsStarter = false,
+                                PA = 0,
+                                IP = rp.ip,
+                                FIP = (float)rp.fip,
+                                ERA = (float)rp.era,
+                                LI = (float)rp.pli,
+                                WPA = (float)rp.wpa,
+                                WAR = (float)rp.war,
+                                OFF = 0,
+                                DEF = 0,
+                                BSR = 0,
+                                REP = 0,
+                            });
+                        }
+
                         response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=np&stats=bat&lg=all&qual=0&season={year}&pageitems=10000");
                         if (response.StatusCode != System.Net.HttpStatusCode.OK)
                         {
-                            throw new Exception($"Getting Starting Pitchers Fangraphs stats: {response.StatusCode}");
+                            throw new Exception($"Getting Hitters Fangraphs stats: {response.StatusCode}");
                         }
                         responseBody = await response.Content.ReadAsStringAsync();
                         json = JsonDocument.Parse(responseBody);
@@ -115,22 +169,54 @@ namespace DataAquisition
                             if (hitter.TryGetProperty("Fielding", out var fieldElement) && fieldElement.ValueKind == JsonValueKind.Number)
                                 draa = (float)fieldElement.GetDouble();
 
+                            int id = hitter.GetProperty("xMLBAMID").GetInt32();
+                            int pa = (int)hitter.GetProperty("PA").GetDouble();
+                            float war = (float)hitter.GetProperty("WAR").GetDouble();
+                            float off = (float)hitter.GetProperty("Batting").GetDouble();
+                            float def = (float)hitter.GetProperty("Defense").GetDouble();
+                            float bsr = (float)hitter.GetProperty("BaseRunning").GetDouble();
+                            float rep = (float)hitter.GetProperty("Replacement").GetDouble();
+                            float wpa = 0f;
+                            if (hitter.TryGetProperty("WPA", out var wpaElement) &&
+                                wpaElement.ValueKind != JsonValueKind.Null)
+                            {
+                                wpa = (float)wpaElement.GetDouble();
+                            }
                             db.Player_YearlyWar.Add(new Player_YearlyWar
                             {
-                                MlbId = hitter.GetProperty("xMLBAMID").GetInt32(),
+                                MlbId = id,
                                 Year = year,
                                 IsHitter = 1,
-                                PA = (int)hitter.GetProperty("PA").GetDouble(),
-                                WAR_h = (float)hitter.GetProperty("WAR").GetDouble(),
+                                PA = pa,
+                                WAR_h = war,
                                 WAR_s = 0,
                                 WAR_r = 0,
-                                OFF = (float)hitter.GetProperty("Batting").GetDouble(),
+                                OFF = off,
                                 DRAA = draa,
-                                DEF = (float)hitter.GetProperty("Defense").GetDouble(),
-                                BSR = (float)hitter.GetProperty("BaseRunning").GetDouble(),
-                                REP = (float)hitter.GetProperty("Replacement").GetDouble(),
+                                DEF = def,
+                                BSR = bsr,
+                                REP = rep,
                                 IP_RP = 0,
                                 IP_SP = 0,
+                            });
+
+                            db.Player_YearlyWPA.Add(new()
+                            {
+                                MlbId = id,
+                                Year = year,
+                                IsHitter = true,
+                                IsStarter = false,
+                                PA = pa,
+                                IP = 0,
+                                FIP = 0,
+                                ERA = 0,
+                                LI = 0,
+                                WPA = wpa,
+                                WAR = war,
+                                OFF = off,
+                                DEF = def,
+                                BSR = bsr,
+                                REP = rep,
                             });
                         }
 
@@ -158,8 +244,7 @@ namespace DataAquisition
                             continue;
                         }
 
-                        db.Player_MonthlyWar.RemoveRange(db.Player_MonthlyWar.Where(f => f.Year == year && f.Month == month));
-                        db.SaveChanges();
+                        db.Player_MonthlyWar.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
                         List<Player_MonthlyWar> playerMonthlyWarList = new();
 
