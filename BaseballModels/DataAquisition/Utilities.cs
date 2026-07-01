@@ -349,11 +349,21 @@ namespace DataAquisition
             return mask;
         }
 
-        public static bool GetEligibilityMask(Db.Player player, Db.Player_CareerStatus pcs)
+        public static bool GetEligibilityMask(Db.Player player, Db.Player_CareerStatus pcs, float signingAge)
         {
-            return player.SigningYear < 2015 
-                && pcs.IgnorePlayer == null
-                && (pcs.ServiceEndYear != null || pcs.ServiceLapseYear != null || pcs.AgedOut != null || pcs.PlayingGap != null);
+            if (player.SigningYear >= Constants.MODEL_CUTOFF_YEAR)
+                return false;
+
+            // This was the logic to calculate originally, but then hard cutoffs using this data was done in ModelEligibilityEvaluation
+            //if (player.SigningYear < Constants.MODEL_CUTOFF_YEAR
+            //    && pcs.IgnorePlayer == null
+            //    && (pcs.ServiceEndYear != null || pcs.ServiceLapseYear != null || pcs.AgedOut != null || pcs.PlayingGap != null))
+            //    return true;
+
+            // A player who was 21 at cutoffYear should be included, those not 21 should not be.
+            #pragma warning disable CS8629
+            return signingAge + Constants.MODEL_CUTOFF_YEAR - player.SigningYear.Value >= 21;
+            #pragma warning restore CS8629
         }
 
         public static void LogException(Exception e)

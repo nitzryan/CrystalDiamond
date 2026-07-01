@@ -318,22 +318,14 @@ namespace DataAquisition
                         lastYear = pcs.p.SigningYear.Value + 2;
                     else
                         lastYear = playerYears.First() + 2;
-
                     #pragma warning restore CS8629
 
                     if (lastYear < endYear)
                         pcs.pl.PlayingGap = lastYear;
                 }
+                db.SaveChanges();
 
-                // Update signing date for players that weren't drafted
-                //foreach (var player in db.Player.Where(f => f.SigningYear == null))
-                //{
-                //    var pcs = db.Player_CareerStatus.Where(f => f.MlbId == player.MlbId).First();
-                //    player.SigningYear = pcs.CareerStartYear;
-                //    player.SigningMonth = pcs.CareerStartMonth;
-                //}
-                //db.SaveChanges();
-            } catch (Exception e)
+                } catch (Exception e)
             {
                 Console.WriteLine("Error in UpdateCareers");
                 Utilities.LogException(e);

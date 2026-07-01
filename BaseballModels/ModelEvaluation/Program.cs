@@ -4,7 +4,8 @@
     {
         static void Main(string[] args)
         {
-            ProspectModelSharpnessCalibration.Update();
+            //ProspectModelSharpnessCalibration.Update();
+            ModelEligibilityEvaluation.Update();
         }
     }
 }

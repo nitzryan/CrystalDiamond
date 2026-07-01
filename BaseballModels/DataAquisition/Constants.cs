@@ -19,9 +19,11 @@ namespace DataAquisition
         public const string SERVICE_TIME_FILE = "../../../../DataAquisition/ServiceTime.csv";
         public const string PRE_05_FILE = "../../../../DataAquisition/Pre05Players.csv";
         public const string DATA_AQ_DIRECTORY = "../../../../DataAquisition/";
+
         public const int SERVICE_TIME_CUTOFF = 6;
         public const int AGED_OUT_AGE = 27;
         public const int STOP_YEAR = 33;
+        public const int MODEL_CUTOFF_YEAR = 2015;
 
         // Set these to set start/stop
         //public const int CURRENT_YEAR = 2024;

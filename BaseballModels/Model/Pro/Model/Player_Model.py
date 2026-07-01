@@ -29,7 +29,7 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
-DEFAULT_WAR_ARCH = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=92, num_layers=6, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -47,16 +47,22 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 51
-DEFAULT_PRO_NUM_LAYERS = 3
+DEFAULT_PRO_HIDDEN_SIZE = 53
+DEFAULT_PRO_NUM_LAYERS = 2
+
+DEFAULT_PRO_HIDDEN_SIZE_P = 51
+DEFAULT_PRO_NUM_LAYERS_P = 3
+
+DEFAULT_DROPOUT = 0.293
+DEFAULT_DROPOUT_P = 0.283
 
 DEFAULT_INPUT_NOISE = 0
-DEFAULT_DROPOUT = 0.283
+DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [7.3e-3,1.8e-5,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0089,0.030,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 class RNN_Model(nn.Module):
@@ -65,12 +71,22 @@ class RNN_Model(nn.Module):
                 mutators : torch.Tensor, 
                 data_prep : Data_Prep, 
                 is_hitter : bool, 
-                input_noise : float = DEFAULT_INPUT_NOISE,
+                
                 rnn_droupout : float = DEFAULT_DROPOUT,
                 num_layers : int = DEFAULT_PRO_NUM_LAYERS, 
                 hidden_size : int = DEFAULT_PRO_HIDDEN_SIZE, 
-                stats_arch : LayerArch = DEFAULT_STATS_ARCH,
                 
+                rnn_droupout_p : float = DEFAULT_DROPOUT_P,
+                num_layers_p : int = DEFAULT_PRO_NUM_LAYERS_P, 
+                hidden_size_p : int = DEFAULT_PRO_HIDDEN_SIZE_P, 
+                
+                rnn_nonlinearity : str = "relu",
+                rnn_nonlinearity_p : str = "relu",
+                
+                input_noise = DEFAULT_INPUT_NOISE,
+                input_noise_p = DEFAULT_INPUT_NOISE_P,
+                
+                stats_arch : LayerArch = DEFAULT_STATS_ARCH,
                 war_arch : LayerArch = DEFAULT_WAR_ARCH,
                 pt_arch : LayerArch = DEFAULT_PT_ARCH,
                 pos_arch : LayerArch = DEFAULT_POS_ARCH,
@@ -93,15 +109,15 @@ class RNN_Model(nn.Module):
                 
                 learning_rates : list[float] = DEFAULT_LEARNING_RATES,
                 learning_rates_p : list[float] = DEFAULT_LEARNING_RATES_P,
-                
-                rnn_nonlinearity : str = "relu",
                 ):
         super().__init__()
-        
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        
         if not is_hitter:
+            rnn_droupout = rnn_droupout_p
+            num_layers = num_layers_p
+            hidden_size = hidden_size_p
+            rnn_nonlinearity = rnn_nonlinearity_p
+            input_noise = input_noise_p
+            
             stats_arch = stats_arch_p
             war_arch = war_arch_p
             pt_arch = pt_arch_p
@@ -112,11 +128,13 @@ class RNN_Model(nn.Module):
             mlbstat_arch = mlbstat_arch_p
             weight_decay = weight_decay_p
             learning_rates = learning_rates_p
+            
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.input_noise = input_noise
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
-        
-        self.input_noise = input_noise
         
         self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
         
