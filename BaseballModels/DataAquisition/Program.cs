@@ -6,7 +6,7 @@
         const int END_YEAR = 2026;
         const int END_MONTH = 6;
 
-        const bool UPDATE_COLLEGE_DATA = false;
+        const bool UPDATE_COLLEGE_DATA = true;
         const bool FULL_REFRESH = false;
         const bool DATA_UPDATE = false;
         const bool DRAFT_UPDATE = false;
@@ -27,7 +27,7 @@
 
             bool isFullYearUpdate = END_MONTH == 9;
 
-            if ((DATA_UPDATE && isFullYearUpdate) || FULL_REFRESH || true)
+            if ((DATA_UPDATE && isFullYearUpdate) || FULL_REFRESH)
             {
                 await FangraphsData.Update(years);
             }
@@ -162,31 +162,35 @@
             ////////// College Model //////////
             if (UPDATE_COLLEGE_DATA)
             {
-                College.InsertCollegeHitterStats();
-                College.InsertCollegePitcherStats();
-                College.DataCleanup();
-                College.FixDraftedMissingMLBIds();
-                College.HandleTwoWayDraftedPlayers();
+                if (FULL_REFRESH)
+                {
+                    College.ReadDataFiles.InsertCollegeHitterStats();
+                    College.ReadDataFiles.InsertCollegePitcherStats();
+                    College.DataCleanup.Cleanup();
+                }
+                
                 foreach (var year in collegeYears)
                 {
                     // Covid-Year interrupted, don't use data that exists
                     if (year == 2020)
                         continue;
 
-                    if (year == END_YEAR && !DRAFT_UPDATE)
-                        continue;
+                    if (year > 2025)
+                    {
+                        //College.GetSingleClassData.GetData(year);
+                    }
 
-                    College.UpdateConfStrength(year);
-                    await College.GetParkFactors(year);
-                    College.CreateConfAverages(year);
+                    College.TeamData.UpdateConfStrength(year);
+                    await College.ColParkFactors.GetParkFactors(year);
+                    College.TeamData.CreateConfAverages(year);
                 }
-                College.CreateHitterModelStats();
-                College.CreatePitcherModelStats();
-                College.CreatePlayerGaps();
+                College.ModelStats.CreateHitterModelStats();
+                College.ModelStats.CreatePitcherModelStats();
+                College.ModelStats.CreatePlayerGaps();
 
                 // Create pro playing-time data
-                College.CreateCollegeHittersProData(END_YEAR);
-                College.CreateCollegePitchersProData(END_YEAR);
+                College.ProData.CreateHittersData(END_YEAR);
+                College.ProData.CreatePitchersData(END_YEAR);
             }
 
             #pragma warning disable CS0162
