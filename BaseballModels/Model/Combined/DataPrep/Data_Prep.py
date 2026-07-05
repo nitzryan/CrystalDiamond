@@ -86,6 +86,31 @@ class Combined_Data_Prep:
         pro_io = self.pro_data_prep.Generate_IO_Hitters(conditions, (), is_training)
         college_io = self.college_data_prep.Generate_IO_Hitters(conditions, (), is_training)
         
+        return self._Load_IO_Hitters(pro_io, college_io)
+        
+    def Generate_IO_Hitters_Update(self, year : int, month : int, college_year : int) -> list[Combined_IO]:
+        pro_conditions = '''WHERE mlbId IN (
+                SELECT DISTINCT(mlbId)
+                FROM Model_HitterStats
+                WHERE Year=? AND Month=?
+            ) AND IsHitter=1;'''
+            
+        pro_io = pro_io = self.pro_data_prep.Generate_IO_Hitters(pro_conditions, (year, month), False)
+        
+        # Need college io for pro_io
+        college_io = self.college_data_prep.Generate_IO_Hitters(pro_conditions, (year, month), False)
+        
+        if college_year == year:
+            player_in_col : set[int] = {o.player.MlbId for o in college_io}
+            col_conditions = "WHERE LastYear>=? AND IsHitter=1"
+            college_stat_io = self.college_data_prep.Generate_IO_Hitters(col_conditions, (year,), False)
+            for cs in college_stat_io:
+                if not cs.player.MlbId in player_in_col:
+                    college_io.append(cs)
+        
+        return self._Load_IO_Hitters(pro_io, college_io)
+        
+    def _Load_IO_Hitters(self, pro_io : list[Player_IO], college_io : list[College_IO]) -> list[Combined_IO]:
         empty_pro_io = self.GetEmptyProIO(is_hitter=True)
         empty_college_io = self.GetEmptyCollegeIO(is_hitter=True)
         
@@ -121,6 +146,31 @@ class Combined_Data_Prep:
         pro_io = self.pro_data_prep.Generate_IO_Pitchers(conditions, (), is_training)
         college_io = self.college_data_prep.Generate_IO_Pitchers(conditions, (), is_training)
         
+        return self._Load_IO_Pitchers(pro_io, college_io)
+        
+    def Generate_IO_Pitchers_Update(self, year : int, month : int, college_year : int) -> list[Combined_IO]:
+        pro_conditions = '''WHERE mlbId IN (
+                SELECT DISTINCT(mlbId)
+                FROM Model_PitcherStats
+                WHERE Year=? AND Month=?
+            ) AND IsPitcher=1;'''
+            
+        pro_io = pro_io = self.pro_data_prep.Generate_IO_Pitchers(pro_conditions, (year, month), False)
+        
+        # Need college io for pro_io
+        college_io = self.college_data_prep.Generate_IO_Pitchers(pro_conditions, (year, month), False)
+        
+        if college_year == year:
+            player_in_col : set[int] = {o.player.MlbId for o in college_io}
+            col_conditions = "WHERE LastYear>=? AND IsPitcher=1"
+            college_stat_io = self.college_data_prep.Generate_IO_Pitchers(col_conditions, (year,), False)
+            for cs in college_stat_io:
+                if not cs.player.MlbId in player_in_col:
+                    college_io.append(cs)
+        
+        return self._Load_IO_Pitchers(pro_io, college_io)
+        
+    def _Load_IO_Pitchers(self, pro_io : list[Player_IO], college_io : list[College_IO]) -> list[Combined_IO]:
         empty_pro_io = self.GetEmptyProIO(is_hitter=False)
         empty_college_io = self.GetEmptyCollegeIO(is_hitter=False)
         

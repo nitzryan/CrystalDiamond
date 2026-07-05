@@ -24,5 +24,5 @@ num_models = 12
 
 Train_Hitters(num_models)
 Train_Pitchers(num_models)
-Eval_Hitters()
-Eval_Pitchers()
+Eval_Hitters(eval_update=False)
+Eval_Pitchers(eval_update=False)

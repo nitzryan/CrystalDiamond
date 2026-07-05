@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import warnings
 import gc
+import sys
 
 from Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
@@ -15,15 +16,26 @@ from EvalStats import getOutputHitterStats
 from ModelDBTypes import *
 
 
-def Eval_Pitchers():
+def Eval_Pitchers(eval_update : bool):
     with torch.no_grad():
         BATCH_SIZE = 4000
         
         cursor = model_db.cursor()
-        cursor.execute("DELETE FROM Output_PlayerWar WHERE isHitter=0")
-        cursor.execute("DELETE FROM Output_College_Pitcher")
-        cursor.execute("DELETE FROM Output_PitcherStats")
-        model_db.commit()
+        if eval_update:
+            # Get the last date of data increment 1 month for pro, 1 year for college
+            year, month = cursor.execute("SELECT year, month FROM Output_PlayerWarAggregation WHERE isHitter=0 ORDER BY year DESC, month DESC LIMIT 1").fetchone()
+            month += 1
+            if month > 9:
+                month = 4
+                year += 1
+            
+            college_year, = cursor.execute("SELECT year FROM Output_College_Pitcher ORDER BY year DESC LIMIT 1;").fetchone()
+            college_year += 1
+        else:
+            cursor.execute("DELETE FROM Output_PlayerWar WHERE isHitter=0")
+            cursor.execute("DELETE FROM Output_College_Pitcher")
+            cursor.execute("DELETE FROM Output_PitcherStats")
+            model_db.commit()
         cursor = model_db.cursor()
         model_idxs = cursor.execute("SELECT modelName, id FROM ModelIdx ORDER BY id ASC").fetchall()
         
@@ -46,7 +58,10 @@ def Eval_Pitchers():
                 college_output_map=col_output_map
             )
             
-            pitcher_io_list = data_prep.Generate_IO_Pitchers(is_training=False)
+            if eval_update:
+                pitcher_io_list = data_prep.Generate_IO_Pitchers_Update(year, month, college_year)
+            else:
+                pitcher_io_list = data_prep.Generate_IO_Pitchers(is_training=False)
             
             # Data to unnormalize values from model
             pro_pt_mean : torch.Tensor = data_prep.pro_data_prep.__getattribute__('__pitlvlpt_means').to(device)
@@ -149,8 +164,12 @@ def Eval_Pitchers():
                     db_input = torch.cat((ids, model_idxs, years, col_output_draft, draftMean.unsqueeze(-1), col_output_war, warMean.unsqueeze(-1), col_output_pos), dim=2)
                     db_input = torch.nn.utils.rnn.unpad_sequence(db_input, col_length[col_mask_valid], batch_first=True)
                     for d in db_input:
-                        vals = [tuple(x) for x in d.tolist()]
-                        cursor.executemany(f"INSERT INTO Output_College_Pitcher VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                        if eval_update:
+                            vals = [tuple(x) for x in d.tolist() if x[2] == college_year]
+                        else:
+                            vals = [tuple(x) for x in d.tolist()]
+                        if len(vals) > 0:
+                            cursor.executemany(f"INSERT INTO Output_College_Pitcher VALUES(?,{model_id},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                     
                     # Run Through Pro Model
@@ -185,8 +204,12 @@ def Eval_Pitchers():
                         # Only log where player is actually a prospect
                         dbd = dbd[dbd[:,0] != 0]
                         d = dbd[:,1:]
-                        vals = [tuple(x) for x in d.tolist()]
-                        cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?)", vals)
+                        if eval_update:
+                            vals = [tuple(x) for x in d.tolist() if x[2] == year and x[3] == month]
+                        else:
+                            vals = [tuple(x) for x in d.tolist()]
+                        if len(vals) > 0:
+                            cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},0,?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
                     # Insert Pro Level Stats
                     # Reshape into levels
@@ -207,6 +230,8 @@ def Eval_Pitchers():
                     mlbIds = mlbIds.to('cpu')
                     
                     stats_tensor = getOutputHitterStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_idx)
+                    mask = (stats_tensor[:, 3] == year) & (stats_tensor[:, 4] == month)
+                    stats_tensor = stats_tensor[mask]
                     cursor.executemany("INSERT INTO Output_PitcherStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                 del dataset
                 
@@ -220,4 +245,13 @@ def Eval_Pitchers():
             model_db.commit()
         
 if __name__ == "__main__":
-    Eval_Pitchers()
+    if len(sys.argv) != 2:
+        print(f"Expected 1 input argument recieved {len(sys.argv) - 1}")
+        
+    request_type = sys.argv[1]
+    if request_type == "All":
+        Eval_Pitchers(False)
+    elif request_type == "Update":
+        Eval_Pitchers(True)
+    else:
+        print(f"Expected 'All' or 'Update', recieved {request_type}")
