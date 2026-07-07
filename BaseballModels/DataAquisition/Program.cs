@@ -157,7 +157,6 @@
                     }
                 }
             }
-            
 
             ////////// College Model //////////
             if (UPDATE_COLLEGE_DATA)

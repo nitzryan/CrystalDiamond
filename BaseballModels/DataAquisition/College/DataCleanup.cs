@@ -126,6 +126,23 @@ namespace DataAquisition.College
                 HS.PA += bb;
             }
 
+            // 2 Jordan Craft's are assigned to a single mlbId
+            db.College_Player.Where(f => f.TBCId == 142967).Single().MlbId = 0;
+
+            // Jason Freeman is given James Freeman's mlbId and draftpick
+            var jamesFreeman = db.College_Player.Where(f => f.TBCId == 56077).Single();
+            var jasonFreeman = db.College_Player.Where(f => f.TBCId == 28580).Single();
+            jamesFreeman.DraftOvrPitcher = 507;
+            jasonFreeman.DraftOvrHitter = 0;
+            jasonFreeman.MlbId = 0;
+
+            // Mark Fisher is given Matthew Fisher's mlbId and draft pick
+            var markFisher = db.College_Player.Where(f => f.TBCId == 28412).Single();
+            var matthewFisher = db.College_Player.Where(f => f.TBCId == 28413).Single();
+            markFisher.MlbId = 0;
+            markFisher.DraftOvrHitter = 0;
+            matthewFisher.DraftOvrHitter = 974;
+
             db.SaveChanges();
         }
 
