@@ -2128,6 +2128,35 @@ class DB_PitchStatcast:
 		items = cursor.execute("SELECT * FROM PitchStatcast " + conditional, values).fetchall()
 		return [DB_PitchStatcast(i) for i in items]
 
+class DB_Player_YearlyWPA:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.year = values[1]
+		self.isHitter = values[2]
+		self.isStarter = values[3]
+		self.PA = values[4]
+		self.IP = values[5]
+		self.LI = values[6]
+		self.FIP = values[7]
+		self.ERA = values[8]
+		self.WPA = values[9]
+		self.WAR = values[10]
+		self.OFF = values[11]
+		self.DEF = values[12]
+		self.BSR = values[13]
+		self.REP = values[14]
+
+	NUM_ELEMENTS = 15
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.year,self.isHitter,self.isStarter,self.PA,self.IP,self.LI,self.FIP,self.ERA,self.WPA,self.WAR,self.OFF,self.DEF,self.BSR,self.REP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_YearlyWPA']:
+		items = cursor.execute("SELECT * FROM Player_YearlyWPA " + conditional, values).fetchall()
+		return [DB_Player_YearlyWPA(i) for i in items]
+
 class DB_College_Player:
 	def __init__(self, values : tuple[any]):
 		self.TBCId = values[0]
@@ -2157,35 +2186,6 @@ class DB_College_Player:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_College_Player']:
 		items = cursor.execute("SELECT * FROM College_Player " + conditional, values).fetchall()
 		return [DB_College_Player(i) for i in items]
-
-class DB_Player_YearlyWPA:
-	def __init__(self, values : tuple[any]):
-		self.mlbId = values[0]
-		self.year = values[1]
-		self.isHitter = values[2]
-		self.isStarter = values[3]
-		self.PA = values[4]
-		self.IP = values[5]
-		self.LI = values[6]
-		self.FIP = values[7]
-		self.ERA = values[8]
-		self.WPA = values[9]
-		self.WAR = values[10]
-		self.OFF = values[11]
-		self.DEF = values[12]
-		self.BSR = values[13]
-		self.REP = values[14]
-
-	NUM_ELEMENTS = 15
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.mlbId,self.year,self.isHitter,self.isStarter,self.PA,self.IP,self.LI,self.FIP,self.ERA,self.WPA,self.WAR,self.OFF,self.DEF,self.BSR,self.REP)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_YearlyWPA']:
-		items = cursor.execute("SELECT * FROM Player_YearlyWPA " + conditional, values).fetchall()
-		return [DB_Player_YearlyWPA(i) for i in items]
 
 
 ##############################################################################################

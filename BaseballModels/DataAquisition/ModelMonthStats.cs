@@ -729,7 +729,7 @@ namespace DataAquisition
                 endMonth = EndMonth;
 
                 // Get Hitter Stats
-                int[] ids = db.Model_Players.Where(f => f.IsHitter == 1).Select(f => f.MlbId).ToArray();
+                int[] ids = db.Model_Players.Where(f => f.IsHitter).Select(f => f.MlbId).ToArray();
                 int j = 0;
                 List<IEnumerable<int>> id_partitions = (from item in ids
                                                               group item by j++ % NUM_THREADS into part
@@ -759,7 +759,7 @@ namespace DataAquisition
                 }
 
                 // Get Pitcher Stats
-                ids = db.Model_Players.Where(f => f.IsPitcher == 1).Select(f => f.MlbId).ToArray();
+                ids = db.Model_Players.Where(f => f.IsPitcher).Select(f => f.MlbId).ToArray();
                 j = 0;
                 id_partitions = (from item in ids
                                 group item by j++ % NUM_THREADS into part

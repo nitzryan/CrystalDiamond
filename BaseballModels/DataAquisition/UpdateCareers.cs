@@ -20,17 +20,15 @@ namespace DataAquisition
                     int pa = db.Player_Hitter_GameLog.Where(f => f.MlbId == player.MlbId && f.Position != 1).Sum(f => f.PA);
                     int bf = db.Player_Pitcher_GameLog.Where(f => f.MlbId == player.MlbId).Sum(f => f.BattersFaced);
 
-                    int isHitter, isPitcher;
+                    bool isHitter, isPitcher;
                     if (pa == 0 && bf == 0) // No stats, use position
                     {
-                        isHitter = dbPlayer.Position.Equals("H") || dbPlayer.Position.Equals("TWP")
-                            ? 1 : 0;
-                        isPitcher = dbPlayer.Position.Equals("P") || dbPlayer.Position.Equals("TWP")
-                            ? 1 : 0;
+                        isHitter = dbPlayer.Position.Equals("H") || dbPlayer.Position.Equals("TWP");
+                        isPitcher = dbPlayer.Position.Equals("P") || dbPlayer.Position.Equals("TWP");
                     } else {
                         float prop_hitter = (float)(pa) / (pa + bf);
-                        isHitter = prop_hitter > 0.1 ? 1 : 0;
-                        isPitcher = prop_hitter < 0.9 ? 1 : 0;
+                        isHitter = prop_hitter > 0.1;
+                        isPitcher = prop_hitter < 0.9;
                     }
 
                     db.Player_CareerStatus.Add(new Player_CareerStatus
@@ -48,7 +46,7 @@ namespace DataAquisition
                     int lastYear = -1;
 
                     try {
-                        if (pcs.IsHitter == 1)
+                        if (pcs.IsHitter)
                             lastYear = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId)
                                 .OrderByDescending(f => f.Year).Select(f => f.Year).First();
                         else
@@ -72,7 +70,7 @@ namespace DataAquisition
                     int hitterStartYear = 10000;
                     int pitcherStartYear = 10000;
 
-                    if (pcs.IsHitter == 1)
+                    if (pcs.IsHitter)
                     {
                         var dates = db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId && f.LevelId == 1)
                             .Select(f => f.Year)
@@ -83,7 +81,7 @@ namespace DataAquisition
                         }
                     }
 
-                    if (pcs.IsPitcher == 1)
+                    if (pcs.IsPitcher)
                     {
                         var dates = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId && f.LevelId == 1)
                             .Select(f => f.Year)
@@ -105,7 +103,7 @@ namespace DataAquisition
                 // Get Highest Level
                 foreach (var pcs in db.Player_CareerStatus)
                 {
-                    if (pcs.IsHitter == 1)
+                    if (pcs.IsHitter)
                     {
                         try
                         {
@@ -117,7 +115,7 @@ namespace DataAquisition
                         catch (Exception) { }
                     }
 
-                    if (pcs.IsPitcher == 1)
+                    if (pcs.IsPitcher)
                     {
                         try
                         {
@@ -256,7 +254,7 @@ namespace DataAquisition
                                                                 f.MlbStartYear != null))
                 {
                     // Get Years in MLB Career
-                    IEnumerable<int> playerYears = pcs.IsHitter == 1 ?
+                    IEnumerable<int> playerYears = pcs.IsHitter ?
                         db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.MlbId && f.LevelId == 1).Select(f => f.Year).OrderBy(f => f).Distinct() :
                         db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.MlbId && f.LevelId == 1).Select(f => f.Year).OrderBy(f => f).Distinct();
 
@@ -306,7 +304,7 @@ namespace DataAquisition
                     .Join(db.Player, pcs=>pcs.MlbId, p=>p.MlbId, (pl,p) => new {pl, p})
                     .Where(f => f.p.SigningYear != null))
                 {
-                    IEnumerable<int> playerYears = pcs.pl.IsHitter == 1 ?
+                    IEnumerable<int> playerYears = pcs.pl.IsHitter ?
                         db.Player_Hitter_MonthStats.Where(f => f.MlbId == pcs.pl.MlbId).Select(f => f.Year):
                         db.Player_Pitcher_MonthStats.Where(f => f.MlbId == pcs.pl.MlbId).Select(f => f.Year);
                     playerYears = playerYears.Distinct().OrderDescending();

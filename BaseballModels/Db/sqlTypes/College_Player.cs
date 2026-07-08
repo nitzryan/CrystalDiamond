@@ -3,7 +3,7 @@ namespace Db
 	public class College_Player
 	{
 		public required int TBCId {get; set;}
-		public int? MlbId {get; set;}
+		public required int MlbId {get; set;}
 		public required string FirstName {get; set;}
 		public required string LastName {get; set;}
 		public required int BirthYear {get; set;}

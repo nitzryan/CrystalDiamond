@@ -3,8 +3,8 @@ namespace Db
 	public class Player_CareerStatus
 	{
 		public required int MlbId {get; set;}
-		public required int IsPitcher {get; set;}
-		public required int IsHitter {get; set;}
+		public required bool IsPitcher {get; set;}
+		public required bool IsHitter {get; set;}
 		public int? IsActive {get; set;}
 		public int? ServiceReached {get; set;}
 		public int? MlbStartYear {get; set;}

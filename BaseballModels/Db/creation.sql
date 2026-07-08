@@ -1185,7 +1185,7 @@ CREATE TABLE "GamePlayByPlay_GameFielders" (
 CREATE TABLE College_Player
 (
 	"TBCId" INTEGER NOT NULL,
-	"MlbId" INTEGER,
+	"MlbId" INTEGER NOT NULL,
 	"FirstName" TEXT NOT NULL,
 	"LastName" TEXT NOT NULL,
 	"BirthYear" INTEGER NOT NULL,
