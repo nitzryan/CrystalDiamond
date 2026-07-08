@@ -344,14 +344,14 @@ namespace DataAquisition
             int mask = 0;
 
             if (player.LastProspectYear > year || (player.LastProspectYear == year && player.LastProspectMonth >= month))
-                mask += 1;
+                mask = 1;
 
             return mask;
         }
 
         public static bool GetEligibilityMask(Db.Player player, Db.Player_CareerStatus pcs, float signingAge)
         {
-            if (player.SigningYear >= Constants.MODEL_CUTOFF_YEAR)
+            if (player.SigningYear >= Constants.MODEL_CUTOFF_YEAR || pcs.IgnorePlayer > 0)
                 return false;
 
             // This was the logic to calculate originally, but then hard cutoffs using this data was done in ModelEligibilityEvaluation

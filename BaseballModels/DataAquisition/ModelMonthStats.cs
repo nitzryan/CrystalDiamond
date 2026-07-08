@@ -2,8 +2,6 @@
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using System;
-using System.Threading.Tasks;
 
 namespace DataAquisition
 {
@@ -790,19 +788,6 @@ namespace DataAquisition
                     db.BulkInsert(output);
                 }
 
-                // Set ignore players train masks to 0
-                var ignore_pcs = db.Player_CareerStatus.Where(f => f.IgnorePlayer != null);
-                foreach (var pcs in ignore_pcs)
-                {
-                    foreach (var item in db.Model_HitterStats.Where(f => f.MlbId == pcs.MlbId))
-                    {
-                        item.TrainMask = 0;
-                    }
-                    foreach (var item in db.Model_PitcherStats.Where(f => f.MlbId == pcs.MlbId))
-                    {
-                        item.TrainMask = 0;
-                    }
-                }
                 db.SaveChanges();
 
                 return true;

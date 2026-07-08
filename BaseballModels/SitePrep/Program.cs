@@ -6,9 +6,6 @@ namespace SitePrep
     {
         static void Main(string[] args)
         {
-            if (args.Length != 2)
-                throw new Exception($"Wrong number of arguments: 2 expected (year, month), {args.Length} provided");
-
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             int year = db.Model_HitterStats.Select(f => f.Year).Max();

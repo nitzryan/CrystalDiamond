@@ -233,8 +233,9 @@ def Eval_Hitters(eval_update : bool):
                     mlbIds = mlbIds.to('cpu')
                     
                     stats_tensor = getOutputHitterStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_idx)
-                    mask = (stats_tensor[:, 3] == year) & (stats_tensor[:, 4] == month)
-                    stats_tensor = stats_tensor[mask]
+                    if eval_update:
+                        mask = (stats_tensor[:, 3] == year) & (stats_tensor[:, 4] == month)
+                        stats_tensor = stats_tensor[mask]
                     cursor.executemany("INSERT INTO Output_HitterStats VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", stats_tensor.tolist())
                 del dataset
             
