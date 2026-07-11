@@ -61,7 +61,7 @@ namespace ModelEvaluation
                         o => o.IsHitter == isHitter && o.Model == 1;
 
                     var players = allPlayersDb
-                        .Where(p => isHitter ? p.IsHitter == 1 : p.IsPitcher == 1)
+                        .Where(p => isHitter ? p.IsHitter : p.IsPitcher)
                         .ToList();
 
                     // Build prospect type groups including "All"

@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7" />
+    <PackageReference Include="Plotly.NET" Version="5.1.0" />
     <PackageReference Include="ScottPlot" Version="5.1.59" />
     <PackageReference Include="ShellProgressBar" Version="5.2.0" />
   </ItemGroup>
@@ -18,6 +20,10 @@
     <ProjectReference Include="..\ModelDb\ModelDb.csproj" />
     <ProjectReference Include="..\PitchDb\PitchDb.csproj" />
     <ProjectReference Include="..\SwingDecisionsDb\SwingDecisionsDb.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Output\ModelValidation\" />
   </ItemGroup>
 
 </Project>

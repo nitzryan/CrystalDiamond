@@ -54,16 +54,6 @@ def TrainAndGraph(
     best_epoch = -1
     epochs_since_improve = 0
     
-    # Per-player (not per-timestep) WAR class distribution, for verification vs SQL
-    # Leave in, uncomment if desired to chack player distribution
-    # if should_output:
-    #     train_player_dist = GetPlayerClassDistribution(train_dataset, batch_size)
-    #     test_player_dist = GetPlayerClassDistribution(test_dataset, batch_size)
-    #     print("Train per-player WAR class distribution (%):",
-    #           [f"{p:.3f}" for p in train_player_dist])
-    #     print("Test  per-player WAR class distribution (%):",
-    #           [f"{p:.3f}" for p in test_player_dist])
-    
     # Schedulers
     pro_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(pro_network.optimizer, T_max=num_epochs)
     col_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(col_network.optimizer, T_max=num_epochs)

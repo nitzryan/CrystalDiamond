@@ -43,12 +43,12 @@ namespace ModelEvaluation
         {
             List<PlayerType> types = new();
 
-            if (player.IsHitter > 0)
+            if (player.IsHitter)
             {
                 types.Add(PlayerType.Hitter);
             }
 
-            if (player.IsPitcher > 0)
+            if (player.IsPitcher)
             {
                 types.Add(PlayerType.Pitcher);
             }

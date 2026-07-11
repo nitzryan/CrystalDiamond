@@ -1,11 +1,14 @@
-﻿namespace ModelEvaluation
+﻿using ModelEvaluation.PlayerGroupEvaluations;
+using static ModelEvaluation.PlayerGroupEvaluations.DraftDemoTest;
+
+namespace ModelEvaluation
 {
     internal class Program
     {
         static void Main(string[] args)
         {
-            //ProspectModelSharpnessCalibration.Update();
-            ModelEligibilityEvaluation.Update();
+            RunDraftPickBucketTest(1, 2,
+            DraftPlotOptions.LogX | DraftPlotOptions.LogY);
         }
     }
 }
