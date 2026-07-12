@@ -74,11 +74,13 @@ namespace ModelEvaluation.PlayerGroupEvaluations
         public enum DraftPlotOptions
         {
             None = 0,
-            BestFitCurves = 1,
             LogX = 2,
             LogY = 4,
             IsDraftPick = 8,
         }
+
+        public record Point(double X, double Y);
+        public record GroupingKey(bool isCollege, bool preCutoff, bool isHitter, WarSource warSource);
 
         private static void PlotDraftValidation(
             Dictionary<DraftTestGroupKey, List<PlayerWarComparison>> draftPerfDict, 
@@ -89,7 +91,8 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             // Get configurable options
             bool useLogX = options.HasFlag(DraftPlotOptions.LogX);
             bool useLogY = options.HasFlag(DraftPlotOptions.LogY);
-            bool showFit = options.HasFlag(DraftPlotOptions.BestFitCurves);
+
+            Dictionary<GroupingKey, List<Point>> movingAveragePointDict = new();
 
             // Get distinct series
             ScottPlot.Multiplot multiplot = new();
@@ -155,38 +158,51 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                                 seriesWar.Add(warValue);
                             }
 
-                            // Calculate Fit
                             double[] xs = seriesDraft.ToArray();
                             double[] ys = seriesWar.ToArray();
 
-                            int n = 200;
-                            double[] fitX = new double[n];
-                            double[] fitY = new double[n];
-
-                            double[] p = FitExponentialDecay(xs, ys);
-                            Func<double, double> predict = x => p[0] + p[1] * Math.Exp(-p[2] * x);
-                            (double rSquared, double rmse) = ComputeFitMetrics(xs, ys, predict);
-
-                            double minX = xs.Min();
-                            double maxX = xs.Max();
-
-                            for (int i = 0; i < n; i++)
+                            // Calculate moving average
+                            List<Point> movingAveragePoints = [];
+                            for (int i = 0; i < seriesWar.Count; i++)
                             {
-                                fitX[i] = minX + (i * ((maxX - minX) / (n - 1)));
-                                fitY[i] = predict(fitX[i]);
-                            }
+                                double x = seriesDraft[i];
+                                int windowSize = 1;
+                                if (x > 300)
+                                    windowSize = 5;
+                                else if (x > 200)
+                                    windowSize = 4;
+                                else if (x > 100)
+                                    windowSize = 3;
+                                else if (x > 50)
+                                    windowSize = 2;
+                                
 
+                                int entryCount = 0;
+                                double y = 0;
+                                
+                                for (int j = i - windowSize; j <= i + windowSize; j++)
+                                {
+                                    if (j >= 0 && j < seriesWar.Count)
+                                    {
+                                        entryCount++;
+                                        y += seriesWar[j];
+                                    }
+                                }
+                                y /= entryCount;
+
+                                movingAveragePoints.Add(new Point(x, y));
+                            }
+                            movingAveragePointDict.Add(new GroupingKey(isCollege, isEligible, isHitter, warSource),
+                                movingAveragePoints);
 
                             // Log-transform
                             if (useLogX)
                             {
                                 xs = xs.Select(Math.Log10).ToArray();
-                                fitX = fitX.Select(Math.Log10).ToArray();
                             }
                             if (useLogY)
                             {
                                 ys = ys.Select(Math.Log10).ToArray();
-                                fitY = fitY.Select(Math.Log10).ToArray();
                             }
 
                             // Color/Marking per combination
@@ -228,9 +244,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                             };
                             string colHs = isCollege ? "COL" : "HS";
 
-                            string legendText = showFit ? 
-                                $"{sourceLabel} {colHs} (R²={rSquared:F2} RMSE={rmse:F2})" :
-                                $"{sourceLabel} {colHs}";
+                            string legendText = $"{sourceLabel} {colHs}";
 
                             // Plot Datapoints
                             var dataScatter = plot.Add.Scatter(xs, ys);
@@ -239,17 +253,6 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                             dataScatter.MarkerShape = markerShape;
                             dataScatter.LineStyle = LineStyle.None;
                             dataScatter.LegendText = legendText;
-
-                            // Plot Trendline
-                            if (showFit)
-                            {
-                                var fitScatter = plot.Add.Scatter(fitX, fitY);
-                                fitScatter.Color = seriesColor;
-                                fitScatter.MarkerSize = 0;
-                                fitScatter.LineWidth = 2.5f;
-                                fitScatter.LinePattern = fitPattern;
-                                fitScatter.LegendText = legendText;
-                            }
                         }
                     }
 
@@ -311,48 +314,129 @@ namespace ModelEvaluation.PlayerGroupEvaluations
 
             string plotName = isDraftPick ? "Draft_Pick" : "Draft_Bonus";
             multiplot.SavePng($"../../../Output/ModelValidation/{plotName}.png", width: 1200, height: 900);
+
+            PlotComparativeDraft(movingAveragePointDict, plotName);
         }
 
-        private static (double RSquared, double Rmse) ComputeFitMetrics(double[] logXs, double[] ys, Func<double, double> predict)
+        private static void PlotComparativeDraft(Dictionary<GroupingKey, List<Point>> movingAveragePointDict, string plotName)
         {
-            double meanY = ys.Average();
-            double ssTot = 0;
-            double ssRes = 0;
-            for (int i = 0; i < ys.Length; i++)
-            {
-                double predicted = predict(logXs[i]);
-                ssTot += (ys[i] - meanY) * (ys[i] - meanY);
-                ssRes += (ys[i] - predicted) * (ys[i] - predicted);
-            }
-            double rSquared = ssTot == 0 ? 0 : 1.0 - (ssRes / ssTot);
-            double rmse = Math.Sqrt(ssRes / ys.Length);
-            return (rSquared, rmse);
-        }
+            ScottPlot.Multiplot multiplot = new();
+            multiplot.AddPlots(2);
+            multiplot.Layout = new ScottPlot.MultiplotLayouts.Grid(
+                rows: 2,
+                columns: 1
+            );
 
-        private static double[] FitExponentialDecay(double[] xs, double[] ys)
-        {
-            // Model: y = a + b * exp(-c * x)
-            double[] logXs = xs.Select(Math.Log10).ToArray();
-            var objective = ObjectiveFunction.Value(p =>
+            // Get Same formatting for any GroupingKey on both subplots
+            static (Color color, LinePattern pattern, double lineWidth, string legendText)
+                GetPlotStyle(bool isCollege, bool isHitter, WarSource warSource)
             {
-                double a = p[0], b = p[1], c = p[2];
-                double sse = 0;
-                for (int i = 0; i < logXs.Length; i++)
+                ScottPlot.Color color = (isCollege, isHitter) switch
                 {
-                    double pred = a + b * Math.Exp(-c * logXs[i]);
-                    double err = ys[i] - pred;
-                    sse += err * err;
+                    (true, true) => Colors.Blue,     // College Hitter
+                    (true, false) => Colors.Teal,     // College Pitcher
+                    (false, true) => Colors.Orange,   // HS Hitter
+                    _ => Colors.Red       // HS Pitcher
+                };
+
+                LinePattern pattern = warSource switch
+                {
+                    WarSource.Actual => LinePattern.Solid,
+                    WarSource.ModelPost => LinePattern.Dashed,
+                    WarSource.ModelPre => LinePattern.Dotted,
+                    _ => LinePattern.Solid
+                };
+
+                double lineWidth = warSource switch
+                {
+                    WarSource.Actual => 2.0,
+                    _ => 1.5
+                };
+
+                string group = isCollege ? "College" : "HS";
+                string role = isHitter ? "Hitter" : "Pitcher";
+                string source = warSource.ToString().Replace("Model", "");
+
+                return (color, pattern, lineWidth, $"{group} {role} - {source}");
+            }
+
+            // Training Section
+            List<Point> colHitterActualPointsPreCutoff = movingAveragePointDict[new GroupingKey(true, true, true, WarSource.Actual)];
+            List<Point> colHitterModelPostPostCutoff = movingAveragePointDict[new GroupingKey(true, false, true, WarSource.ModelPost)];
+
+            int plotIdx = 0;
+            foreach (bool preCutoff in new[]{true, false})
+            {
+                Plot plot = multiplot.GetPlot(plotIdx);
+                plotIdx++;
+
+                var baseList = preCutoff ? colHitterActualPointsPreCutoff : colHitterModelPostPostCutoff;
+                foreach (bool isCollege in new[]{true, false})
+                {
+                    foreach (bool isHitter in new[] { true, false })
+                    {
+                        foreach (WarSource warSource in new[] { WarSource.ModelPost, WarSource.Actual })
+                        {
+                            if (!preCutoff && warSource == WarSource.Actual)
+                                continue;
+
+                            if (preCutoff && warSource == WarSource.Actual && isCollege && isHitter)
+                                continue;
+
+                            if (!preCutoff && warSource == WarSource.ModelPost && isCollege && isHitter)
+                                continue;
+
+                            List<Point> points = movingAveragePointDict[new GroupingKey(isCollege, preCutoff, isHitter, warSource)];
+                            List<Point> ratios = GetFractionList(baseList, points);
+
+                            var scatter = plot.Add.Scatter(ratios.Select(f => f.X).ToArray(), ratios.Select(f => f.Y).ToArray());
+
+                            var (color, pattern, lineWidth, legendText) = GetPlotStyle(isCollege, isHitter, warSource);
+                            scatter.Color = color;
+                            scatter.LineStyle.Pattern = pattern;
+                            scatter.LineWidth = (float)lineWidth;
+                            scatter.LegendText = legendText;
+                        }
+                    }
                 }
-                return sse;
-            });
 
-            double minY = ys.Min();
-            double maxY = ys.Max();
-            var initialGuess = Vector<double>.Build.DenseOfArray(new[] { minY, maxY - minY, 1.0 });
+                plot.Axes.AutoScale();
+                plot.Axes.Left.Max = 4;
+                plot.Axes.Left.Min = 0;
+                plot.Axes.Bottom.Max = 600;
+                plot.Axes.Bottom.Min = 0;
 
-            var solver = new NelderMeadSimplex(1e-10, 2000);
-            var result = solver.FindMinimum(objective, initialGuess);
-            return result.MinimizingPoint.ToArray();
+                var refLine = plot.Add.HorizontalLine(1.0);
+                refLine.Color = Colors.Gray;
+                refLine.LinePattern = LinePattern.Dashed;
+                refLine.LineWidth = 1.0f;
+
+                plot.Legend.IsVisible = true;
+                plot.Legend.Orientation = Orientation.Horizontal;
+                plot.Legend.Alignment = Alignment.UpperRight;
+
+                plot.YLabel(preCutoff ? "Ratio to College Hitter Actual" : "Ratio to College Hitter ModelPost");
+                plot.Title(preCutoff ? "Pre-Cutoff" : "Post-Cutoff");
+            }
+
+
+
+            multiplot.SavePng($"../../../Output/ModelValidation/{plotName}_Ratio.png", width: 1200, height: 900);
+        }
+
+        private static List<Point> GetFractionList(List<Point> baseList, List<Point> testList)
+        {
+            List<Point> points = new(baseList.Count);
+            foreach (Point b in baseList)
+            {
+                Point? testPoint = testList.Where(f => Math.Abs(f.X - b.X) < 2).SingleOrDefault();
+                if (testPoint == null)
+                    continue;
+
+                points.Add(new Point(b.X, b.Y / testPoint.Y));
+            }
+
+            return points;
         }
     }
 }
