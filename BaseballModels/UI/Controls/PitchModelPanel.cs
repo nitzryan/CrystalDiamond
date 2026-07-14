@@ -1,6 +1,7 @@
 ﻿using Db;
 using PitchDb;
 using Python.Runtime;
+using UI.Python;
 using static Db.DbEnums;
 
 namespace UI.Controls
@@ -16,8 +17,6 @@ namespace UI.Controls
         private static List<float> Z_GRID_POINTS = Enumerable.Range(0, 51).Select(f => Z_GRID_SIZE * f).ToList();
 
         private PitchStatcast? Pitch = null;
-
-        private PyObject? Py_DataPrep = null;
 
         private record PitchGridPoint(float X, float Z, float Val);
         List<PitchGridPoint> GridPoints = [];
@@ -51,28 +50,6 @@ namespace UI.Controls
                   ControlStyles.ResizeRedraw, true
             );
             this.BackColor = SystemColors.Control;
-        }
-
-        protected override async void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
-
-            // This check is now 100% reliable
-            if (DesignMode)
-                return;
-
-            PySetup.Initialize();
-            using (Py.GIL())
-            {
-                // Get Base Pitch Model Location
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string stuffDir = Path.GetFullPath(Path.Combine(baseDir, "../../../../", "PitchModel"));
-
-                // DataPrep
-                dynamic dataPrepModule = Py.Import("Stuff.DataPrep.DataPrep");
-                Py_DataPrep = dataPrepModule.DataPrep.Load_From_File(
-                    stuffDir + $"/{PySetup.Py_Constants.DATA_PREP_BINARY_ALL_FILE}");
-            }
         }
 
         public void SetPitch(PitchStatcast pitch)
@@ -110,9 +87,9 @@ namespace UI.Controls
             public required float ZoneBot;
         }
 
-        public void GenerateLocationGrid(PitchModelData pmd)
+        public async void GenerateLocationGrid(PitchModelData pmd)
         {
-            if (Pitch == null)
+            if (Pitch == null || PitchPy.DataPrep == null)
                 return;
 
             pitchModelData = pmd;
@@ -229,30 +206,31 @@ namespace UI.Controls
 
             // Run Through Model
             try{
-                using (Py.GIL())
+                opvaList = await PyThread.InvokeAsync(() =>
                 {
                     var pyPitches = GridPitches
-                        .Select(f => Global.CreateFromCSharp(f, PySetup.Py_DbTypes.DB_PitchStatcast))
+                        .Select(f => Global.CreateFromCSharp(f, PitchPy.DbTypes.DB_PitchStatcast))
                         .Select(dyn => (PyObject)dyn)
                         .ToArray();
                     PyList pitchList = new PyList(pyPitches);
 
-                    var PitchModel = PySetup.Py_PitchModel.GetAttr("PitchModel");
+                    var PitchModel = PitchPy.PitchModel.GetAttr("PitchModel");
                     var modelOutputAggregation = PitchModel.InvokeMethod(
                         "GetPitchOutput",
-                        Py_DataPrep,
-                        "../../../../PitchModel/Models/".ToPython(),
+                        PitchPy.DataPrep,
+                        PyCore.PitchModelingModelDir.ToPython(),
                         pitchList
                     );
 
                     PyList moaList = new PyList(modelOutputAggregation);
-                    opvaList = moaList.Select(f => Global.CreateFromPython<Output_PitchValueAggregation>(f))
+                    return moaList
+                        .Select(f => Global.CreateFromPython<Output_PitchValueAggregation>(f))
                         .ToList();
-                }
+                });
             }
             catch (PythonException pyEx)  // Specific to Python.NET
             {
-                PySetup.WriteException(pyEx);
+                PyCore.WriteException(pyEx);
 
                 return;
             }

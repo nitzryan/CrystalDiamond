@@ -1,4 +1,5 @@
 ﻿using Db;
+using ModelDb;
 using PitchDb;
 using Python.Runtime;
 using System.Reflection;
@@ -15,7 +16,8 @@ namespace UI
 
         public static SqliteDbContext db = new(Db.Connection.DB_READONLY_OPTIONS);
         public static PitchDbContext pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
-
+        public static ModelDbContext modelDb = new(ModelDb.Connection.MODELDB_READONLY_OPTIONS);
+        
         public static Color GetValueColor(float value, float min, float max, float neutral)
         {
             // Adjust so that it is 0 centered

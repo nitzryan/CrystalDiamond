@@ -1,4 +1,6 @@
-﻿namespace UI.Controls
+﻿using UI.Python;
+
+namespace UI.Controls
 {
     public partial class DebugControl : UserControl
     {
@@ -6,7 +8,7 @@
         {
             InitializeComponent();
 
-            PySetup.PythonMessage += AddMessage;
+            PyCore.PythonMessage += AddMessage;
         }
 
         public void AddMessage(string msg)
