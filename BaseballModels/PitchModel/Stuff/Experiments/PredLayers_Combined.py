@@ -1,9 +1,9 @@
-from Stuff.DataPrep.DataPrep import DataPrep
-from Stuff.DataPrep.PrepMap import standard_prep_map
-from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel
-from Stuff.Model.ModelTrain import TrainAndGraph, _MODEL_OUTPUTS
-from Constants import device
+from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
+from PitchModel.Stuff.DataPrep.PrepMap import standard_prep_map
+from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
+from PitchModel.Stuff.Model.PitchModel import PitchModel
+from PitchModel.Stuff.Model.ModelTrain import TrainAndGraph, _MODEL_OUTPUTS
+from PitchModel.Constants import device
 from tqdm import tqdm
 
 import pandas as pd

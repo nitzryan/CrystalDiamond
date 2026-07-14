@@ -2,15 +2,15 @@ import optuna
 import numpy as np
 import torch
 import torch.nn.functional as F
-from Combined.Model.Model_Train import TrainAndGraph
-from Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
-from College.Model.College_Model import RNN_Model as Col_Model
-from Pro.Model.Player_Model import DEFAULT_LEARNING_RATES, DEFAULT_LEARNING_RATES_P
-from Pro.Model.Player_Model import DEFAULT_PRO_WEIGHT_DECAY, DEFAULT_PRO_WEIGHT_DECAY_P
-from Combined.DataPrep.Data_Prep import Combined_Data_Prep
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
-from Constants import device
+from Model.Combined.Model.Model_Train import TrainAndGraph
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Pro.Model.Player_Model import DEFAULT_LEARNING_RATES, DEFAULT_LEARNING_RATES_P
+from Model.Pro.Model.Player_Model import DEFAULT_PRO_WEIGHT_DECAY, DEFAULT_PRO_WEIGHT_DECAY_P
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
+from Model.Constants import device
 
 _ACTIVATION_FUNCTIONS = ["ReLU", "LeakyReLU", "GELU", "SiLU", "Tanh"]
 _ACTIVATION_MAP = {

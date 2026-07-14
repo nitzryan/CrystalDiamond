@@ -1,11 +1,11 @@
 from sklearn.decomposition import PCA # type: ignore
 import torch
-from DBTypes import *
-from Constants import db, DTYPE, DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
+from Model.DBTypes import *
+from Model.Constants import db, DTYPE, DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
 from typing import TypeVar, Callable
 from tqdm import tqdm
-from College.DataPrep.Output_Map import College_Output_Map
-from College.DataPrep.Prep_Map import College_Prep_Map
+from Model.College.DataPrep.Output_Map import College_Output_Map
+from Model.College.DataPrep.Prep_Map import College_Prep_Map
 
 class College_IO:
     def __init__(

@@ -2,15 +2,15 @@ from tqdm import tqdm
 import torch
 import gc
 
-from Combined.DataPrep.Data_Prep import Combined_Data_Prep
-from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Combined.Model.Model_Train import TrainAndGraph
-from Pro.Model.Player_Model import RNN_Model as ProModel
-from College.Model.College_Model import RNN_Model as ColModel
-from Constants import device, model_db
-from Utilities import GetModelMaps
-from Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.Model.Model_Train import TrainAndGraph
+from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.College.Model.College_Model import RNN_Model as ColModel
+from Model.Constants import device, model_db
+from Model.Utilities import GetModelMaps
+from Model.Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
 
 def Train_Hitters(num_models : int):
     if num_models < 0:
@@ -63,8 +63,8 @@ def Train_Hitters(num_models : int):
                 col_network=col_network,
                 train_dataset=train_dataset,
                 test_dataset=test_dataset,
-                pro_model_name=f"Models/pro_{model_name_pt}_hit",
-                col_model_name=f"Models/col_{model_name_pt}_hit",
+                pro_model_name=f"Model/Models/pro_{model_name_pt}_hit",
+                col_model_name=f"Model/Models/col_{model_name_pt}_hit",
                 is_hitter=True,
                 should_output=False,
                 show_progress_bar=True,

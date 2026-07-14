@@ -1,2 +1,4 @@
-python -m Combined.TrainEval.Eval_Hitters Update
-python -m Combined.TrainEval.Eval_Pitchers Update
+cd ..
+
+python -m Model.Combined.TrainEval.Eval_Hitters Update
+python -m Model.Combined.TrainEval.Eval_Pitchers Update

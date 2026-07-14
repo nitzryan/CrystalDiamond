@@ -1,6 +1,6 @@
 import torch
-from Combined.DataPrep.Data_Prep import Combined_IO
-from Constants import TOTAL_WAR_BUCKETS
+from Model.Combined.DataPrep.Data_Prep import Combined_IO
+from Model.Constants import TOTAL_WAR_BUCKETS
 
 class Combined_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self,

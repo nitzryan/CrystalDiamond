@@ -1,6 +1,6 @@
 from typing import TypeVar 
 import torch
-from Constants import DTYPE
+from Model.Constants import DTYPE
 
 from line_profiler import LineProfiler
 profiler = LineProfiler()
@@ -24,10 +24,10 @@ def Normalize(item: _T, means: _T, devs: _T) -> _T:
             setattr(item, name, norm_value)
     return item
 
-from Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
-from Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
-from College.DataPrep.Output_Map import College_Output_Map, college_output_map
-from College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map, college_meanrevert_prep_map
+from Model.Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
+from Model.Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
+from Model.College.DataPrep.Output_Map import College_Output_Map, college_output_map
+from Model.College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map, college_meanrevert_prep_map
 def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map, College_Prep_Map, College_Output_Map]:
     if model_id == 1 or model_id == 2:
         return base_prep_map, base_output_map, college_base_prep_map, college_output_map

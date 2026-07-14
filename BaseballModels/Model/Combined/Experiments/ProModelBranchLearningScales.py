@@ -1,15 +1,15 @@
-from Combined.DataPrep.Data_Prep import Combined_Data_Prep
-from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
-from Pro.DataPrep import Prep_Map, Output_Map
-from College.DataPrep import Prep_Map as C_Prep_Map, Output_Map as C_Output_Map
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
+from Model.Pro.DataPrep import Prep_Map, Output_Map
+from Model.College.DataPrep import Prep_Map as C_Prep_Map, Output_Map as C_Output_Map
 from tqdm import tqdm
-from Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
-from College.Model.College_Model import RNN_Model as College_Model
-from Combined.Model.Model_Train import TrainAndGraph
-from Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST, DEFAULT_PRO_ELEMENT_LOSS_SCALES
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
+from Model.College.Model.College_Model import RNN_Model as College_Model
+from Model.Combined.Model.Model_Train import TrainAndGraph
+from Model.Pro.Model.Model_Train import NUM_ELEMENTS, ELEMENT_LIST, DEFAULT_PRO_ELEMENT_LOSS_SCALES
 import torch
 import gc
-from Constants import device
+from Model.Constants import device
 
 def sci(n):
     if n == 0: return "0e0"

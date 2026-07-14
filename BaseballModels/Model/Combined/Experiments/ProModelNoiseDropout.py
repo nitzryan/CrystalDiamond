@@ -1,13 +1,13 @@
-from Combined.DataPrep.Data_Prep import Combined_Data_Prep
-from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
-from Pro.DataPrep import Prep_Map, Output_Map
-from College.DataPrep import Prep_Map as C_Prep_Map, Output_Map as C_Output_Map
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
+from Model.Pro.DataPrep import Prep_Map, Output_Map
+from Model.College.DataPrep import Prep_Map as C_Prep_Map, Output_Map as C_Output_Map
 from tqdm import tqdm
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as College_Model
-from Combined.Model.Model_Train import TrainAndGraph
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as College_Model
+from Model.Combined.Model.Model_Train import TrainAndGraph
 import torch
-from Constants import device
+from Model.Constants import device
 
 if __name__ == "__main__":
     noise_levels = [x / 250 for x in range(11)]

@@ -1,7 +1,7 @@
 import torch
-from Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
-from Stuff.Model.ModelOutputType import ModelOutputType
-from DBTypes import *
+from PitchModel.Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
+from PitchModel.Stuff.Model.ModelOutputType import ModelOutputType
+from PitchModel.DBTypes import *
 
 class PitchIO:
     def __init__(self,

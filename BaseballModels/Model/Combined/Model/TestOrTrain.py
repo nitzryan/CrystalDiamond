@@ -1,9 +1,9 @@
-from College.Model.Model_Train import GetLossesCollege
-from Pro.Model.Model_Train import GetLossesPro
-from Combined.Utilities.Types import *
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.College.Model.Model_Train import GetLossesCollege
+from Model.Pro.Model.Model_Train import GetLossesPro
+from Model.Combined.Utilities.Types import *
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
 def TestOrTrain(
     pro_network : Pro_Model,

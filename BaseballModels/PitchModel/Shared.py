@@ -1,6 +1,6 @@
-from Stuff.DataPrep.PrepMap import *
-from Stuff.DataPrep.DataPrep import DataPrep
-from Constants import DATA_PREP_BINARY_ALL_FILE
+from PitchModel.Stuff.DataPrep.PrepMap import *
+from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
+from PitchModel.Constants import DATA_PREP_BINARY_ALL_FILE
 
 def GetModelMaps(model_id : int) -> Prep_Map:
     if model_id == 1:

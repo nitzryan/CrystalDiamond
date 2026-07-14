@@ -1,10 +1,10 @@
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
-from College.Model.Model_Train import GetLossesCollege
-from Pro.Model.Player_Model import Classification_Loss
-from Constants import device
+from Model.College.Model.Model_Train import GetLossesCollege
+from Model.Pro.Model.Player_Model import Classification_Loss
+from Model.Constants import device
 
 import torch
 

@@ -1,4 +1,4 @@
-from DBTypes import *
+from Model.DBTypes import *
 from typing import TypeVar, Type
 
 _Left = TypeVar('L')

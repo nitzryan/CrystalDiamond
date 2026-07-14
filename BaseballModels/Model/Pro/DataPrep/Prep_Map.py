@@ -1,4 +1,4 @@
-from DBTypes import *
+from Model.DBTypes import *
 from typing import Callable
 import math
 

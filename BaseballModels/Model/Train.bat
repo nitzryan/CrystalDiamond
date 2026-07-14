@@ -1,1 +1,3 @@
-python -m Combined.TrainEval.Train
+cd ..
+
+python -m Model.Combined.TrainEval.Train

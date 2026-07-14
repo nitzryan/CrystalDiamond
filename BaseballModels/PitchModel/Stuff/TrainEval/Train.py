@@ -1,8 +1,8 @@
-from Constants import pitch_db, NUM_TRAINING_VARIANTS
+from PitchModel.Constants import pitch_db, NUM_TRAINING_VARIANTS
 
 from datetime import datetime
-from Stuff.TrainEval.Train_Pitches import Train_Pitches
-from Stuff.TrainEval.Eval_Pitches import Eval_Pitches
+from PitchModel.Stuff.TrainEval.Train_Pitches import Train_Pitches
+from PitchModel.Stuff.TrainEval.Eval_Pitches import Eval_Pitches
 
 dt = datetime.now()
 year = dt.year

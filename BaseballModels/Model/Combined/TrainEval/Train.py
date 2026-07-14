@@ -1,8 +1,8 @@
-from Constants import model_db
-from Combined.TrainEval.Train_Hitters import Train_Hitters
-from Combined.TrainEval.Train_Pitchers import Train_Pitchers
-from Combined.TrainEval.Eval_Hitters import Eval_Hitters
-from Combined.TrainEval.Eval_Pitchers import Eval_Pitchers
+from Model.Constants import model_db
+from Model.Combined.TrainEval.Train_Hitters import Train_Hitters
+from Model.Combined.TrainEval.Train_Pitchers import Train_Pitchers
+from Model.Combined.TrainEval.Eval_Hitters import Eval_Hitters
+from Model.Combined.TrainEval.Eval_Pitchers import Eval_Pitchers
 
 cursor = model_db.cursor()
 cursor.execute("DELETE FROM ModelIdx")

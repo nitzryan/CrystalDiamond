@@ -1,8 +1,8 @@
-from DBTypes import *
+from Model.DBTypes import *
 from typing import Callable, Union
 import torch
 import numpy as np
-from Constants import DTYPE, TOTAL_WAR_BUCKETS
+from Model.Constants import DTYPE, TOTAL_WAR_BUCKETS
 import math
 
 class Output_Map:

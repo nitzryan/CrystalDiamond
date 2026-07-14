@@ -2,12 +2,12 @@ from tqdm import tqdm
 import torch
 import gc
 
-from Constants import device, pitch_db
-from Shared import GetDataPrep
-from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
-from Stuff.Model.ModelTrain import TrainAndGraph
-from Stuff.Model.ModelOutputType import *
+from PitchModel.Constants import device, pitch_db
+from PitchModel.Shared import GetDataPrep
+from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
+from PitchModel.Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
+from PitchModel.Stuff.Model.ModelTrain import TrainAndGraph
+from PitchModel.Stuff.Model.ModelOutputType import *
 
 def Train_Pitches(num_models : int):
     if num_models < 0:
@@ -45,7 +45,7 @@ def Train_Pitches(num_models : int):
                         network=network,
                         train_dataset=train_dataset,
                         test_dataset=test_dataset,
-                        model_name=f'Models/{model_name_pt}',
+                        model_name=f'PitchModel/Models/{model_name_pt}',
                         should_output=False,
                     )
                     losses.append(loss)

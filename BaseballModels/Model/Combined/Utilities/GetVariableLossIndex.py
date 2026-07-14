@@ -1,5 +1,5 @@
-from Pro.Model.Model_Train import ELEMENT_LIST
-from College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST
+from Model.Pro.Model.Model_Train import ELEMENT_LIST
+from Model.College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST
 
 def GetVariableLossIndex(name : str, is_pro : bool, is_hitter : bool) -> int:
     name_lower = name.lower()

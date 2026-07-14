@@ -1,5 +1,5 @@
 import torch
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
 def GetPlayerClassDistribution(
     dataset : Combined_Player_Dataset,

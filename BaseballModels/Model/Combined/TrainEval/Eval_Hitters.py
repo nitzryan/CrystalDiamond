@@ -5,15 +5,15 @@ import warnings
 import gc
 import sys
 
-from Combined.DataPrep.Data_Prep import Combined_Data_Prep
-from Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Pro.Model.Player_Model import RNN_Model as ProModel
-from College.Model.College_Model import RNN_Model as ColModel
-from Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
-from Utilities import GetModelMaps
-from EvalStats import getOutputHitterStats
-from ModelDBTypes import *
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.College.Model.College_Model import RNN_Model as ColModel
+from Model.Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
+from Model.Utilities import GetModelMaps
+from Model.EvalStats import getOutputHitterStats
+from Model.ModelDBTypes import *
 
 
 def Eval_Hitters(eval_update : bool):
@@ -99,8 +99,8 @@ def Eval_Hitters(eval_update : bool):
                 model_idx = int(mth.ModelIdx)
                 
                 with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                    pro_network.load_state_dict(torch.load(f"Models/pro_{mth.ModelName}_{model_idx}_hit.pt"))
-                    col_network.load_state_dict(torch.load(f"Models/col_{mth.ModelName}_{model_idx}_hit.pt"))
+                    pro_network.load_state_dict(torch.load(f"Model/Models/pro_{mth.ModelName}_{model_idx}_hit.pt"))
+                    col_network.load_state_dict(torch.load(f"Model/Models/col_{mth.ModelName}_{model_idx}_hit.pt"))
                 pro_network.eval()
                 col_network.eval()
                 pro_network = pro_network.to(device)

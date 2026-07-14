@@ -53,7 +53,7 @@ namespace UI.Controls
             this.BackColor = SystemColors.Control;
         }
 
-        protected override void OnLoad(EventArgs e)
+        protected override async void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 

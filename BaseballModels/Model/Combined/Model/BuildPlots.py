@@ -1,10 +1,10 @@
-from Combined.Utilities.Types import *
-from Combined.Model.GetTimestepWarBrier import GetTimestepWarBrier, GetTimestepWarBrierCollege
-from Combined.Model.GetTimestepWarLoss import GetTimestepWarLoss
-from Combined.Model.Graphing import *
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.Utilities.Types import *
+from Model.Combined.Model.GetTimestepWarBrier import GetTimestepWarBrier, GetTimestepWarBrierCollege
+from Model.Combined.Model.GetTimestepWarLoss import GetTimestepWarLoss
+from Model.Combined.Model.Graphing import *
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
 def BuildPlots(
     epoch_counter: list[int],

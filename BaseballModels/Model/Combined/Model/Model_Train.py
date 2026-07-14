@@ -1,17 +1,17 @@
 from tqdm import tqdm
 
-from Pro.Model.Model_Train import ELEMENT_LIST, NUM_ELEMENTS
-from College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST, NUM_ELEMENTS_HITTER, NUM_ELEMENTS_PITCHER
+from Model.Pro.Model.Model_Train import ELEMENT_LIST, NUM_ELEMENTS
+from Model.College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST, NUM_ELEMENTS_HITTER, NUM_ELEMENTS_PITCHER
 
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Combined.Model.RunEpoch import RunEpoch
-from Combined.Model.BuildPlots import BuildPlots
-from Combined.Model.GetPlayerClassDistribution import GetPlayerClassDistribution
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.Model.RunEpoch import RunEpoch
+from Model.Combined.Model.BuildPlots import BuildPlots
+from Model.Combined.Model.GetPlayerClassDistribution import GetPlayerClassDistribution
 import torch
 
-from Combined.Utilities.Types import *
+from Model.Combined.Utilities.Types import *
 
 SHOULD_PROFILE = False
 DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1e-1, 1, 1e-1, 1e-3, 1, 1, 1, 1e-1]

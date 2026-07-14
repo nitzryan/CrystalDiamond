@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-from College.DataPrep.Data_Prep import College_Data_Prep
-from Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
-from Pro.Model.Player_Model import LayerArch
+from Model.College.DataPrep.Data_Prep import College_Data_Prep
+from Model.Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
+from Model.Pro.Model.Player_Model import LayerArch
 
 DEFAULT_DRAFT_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_POS_ARCH = LayerArch(layer_size=64, num_layers=1)

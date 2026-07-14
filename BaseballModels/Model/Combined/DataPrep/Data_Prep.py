@@ -1,15 +1,17 @@
 from typing import TypeVar
-from DBTypes import *
+from Model.DBTypes import *
 import torch
-from Pro.DataPrep.Prep_Map import Prep_Map
-from Pro.DataPrep.Output_Map import Output_Map
+from Model.Pro.DataPrep.Prep_Map import Prep_Map
+from Model.Pro.DataPrep.Output_Map import Output_Map
 
-from College.DataPrep.Data_Prep import College_Data_Prep, College_IO
-from Pro.DataPrep.Data_Prep import Data_Prep, Player_IO
-from College.DataPrep.Prep_Map import College_Prep_Map
-from College.DataPrep.Output_Map import College_Output_Map
-from Pro.DataPrep.Prep_Map import Prep_Map
-from Pro.DataPrep.Output_Map import Output_Map
+from Model.College.DataPrep.Data_Prep import College_Data_Prep, College_IO
+from Model.Pro.DataPrep.Data_Prep import Data_Prep, Player_IO
+from Model.College.DataPrep.Prep_Map import College_Prep_Map
+from Model.College.DataPrep.Output_Map import College_Output_Map
+from Model.Pro.DataPrep.Prep_Map import Prep_Map
+from Model.Pro.DataPrep.Output_Map import Output_Map
+
+import dill
 
 NUM_VARIANTS = 10
 
@@ -27,10 +29,32 @@ class Combined_Data_Prep:
                 prep_map : Prep_Map, 
                 output_map : Output_Map, 
                 college_prep_map : College_Prep_Map,
-                college_output_map : College_Output_Map):
+                college_output_map : College_Output_Map,
+                save_name : str | None = None):
         
         self.pro_data_prep = Data_Prep(prep_map=prep_map, output_map=output_map)
         self.college_data_prep = College_Data_Prep(prep_map=college_prep_map, output_map=college_output_map)
+        
+        if save_name is not None:
+           with open(save_name, 'wb') as file:
+               dill.dump(self, file)
+        
+    @staticmethod
+    def Load_From_File(filename : str) -> 'Combined_Data_Prep':
+        with open(filename, 'rb') as file:
+            return dill.load(file)
+        
+    def GetProIOSize(self, is_hitter : bool) -> int:
+        if is_hitter:
+            return self.pro_data_prep.Get_Hitter_Size()
+        else:
+            return self.pro_data_prep.Get_Pitcher_Size()
+    
+    def GetColIoSize(self, is_hitter : bool) -> int:
+        if is_hitter:
+            return self.college_data_prep.Get_Hitter_Size()
+        else:
+            return self.college_data_prep.Get_Pitcher_Size()
         
     def GetEmptyProIO(self, is_hitter : bool) -> Player_IO:
         if is_hitter:

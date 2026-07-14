@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from Stuff.Model.ResnetBlock import ResnetBlock
+from PitchModel.Stuff.Model.ResnetBlock import ResnetBlock
 
 class LayerArch(nn.Module):
     def __init__(self, input_size : int, num_blocks : int, block_dim : int, output_size : int, dropout : float = 0.0):

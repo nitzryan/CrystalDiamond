@@ -3,12 +3,12 @@ from GAN.Generator import Generator
 from GAN.KS_Test import KS_Test_TimeSeries
 from GAN.GAN_Scheduler import GAN_Scheduler
 from DataPrep.Player_Dataset import Player_Dataset
-from Utilities import GetModelMaps
+from Model.Utilities import GetModelMaps
 from DataPrep.Data_Prep import Data_Prep
 from DataPrep.Player_Dataset import Create_Test_Train_Datasets
 
 from torch.utils.data.dataloader import DataLoader
-from Constants import device
+from Model.Constants import device
 
 import torch
 import torch.nn as nn

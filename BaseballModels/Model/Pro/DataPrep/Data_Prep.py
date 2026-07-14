@@ -1,17 +1,17 @@
 from sklearn.decomposition import PCA # type: ignore
 from typing import TypeVar, Optional, Callable
-from DBTypes import *
-from Constants import db, DTYPE, NUM_LEVELS
-from Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
-from Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
+from Model.DBTypes import *
+from Model.Constants import db, DTYPE, NUM_LEVELS
+from Model.Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
+from Model.Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
 import math
 import torch
 from tqdm import tqdm
 import random
-from Pro.DataPrep.Prep_Map import Prep_Map
-from Pro.DataPrep.Output_Map import Output_Map
-from Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS, Aggregate_PitcherMlbBuckets, NUM_PITCHER_STATS
-import DB_AdvancedStatements
+from Model.Pro.DataPrep.Prep_Map import Prep_Map
+from Model.Pro.DataPrep.Output_Map import Output_Map
+from Model.Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS, Aggregate_PitcherMlbBuckets, NUM_PITCHER_STATS
+import Model.DB_AdvancedStatements as DB_AdvancedStatements
 import numpy as np # Random normal distribution
 
 NUM_VARIANTS = 10

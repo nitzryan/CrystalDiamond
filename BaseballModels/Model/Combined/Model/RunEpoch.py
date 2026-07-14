@@ -1,5 +1,5 @@
-from Combined.Utilities.Types import *
-from Combined.Model.TestOrTrain import TestOrTrain
+from Model.Combined.Utilities.Types import *
+from Model.Combined.Model.TestOrTrain import TestOrTrain
 
 def RunEpoch(
     pro_network, col_network, train_dataset, test_dataset,

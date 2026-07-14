@@ -1,10 +1,10 @@
-from Constants import device
+from Model.Constants import device
 import torch
-from College.Model.College_Model import Classification_Loss, Position_Loss
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.Model.GetWarClassCounts import *
-from Combined.Utilities.Types import *
-from Combined.Utilities.BrierScore import Brier_Score
+from Model.College.Model.College_Model import Classification_Loss, Position_Loss
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.Model.GetWarClassCounts import *
+from Model.Combined.Utilities.Types import *
+from Model.Combined.Utilities.BrierScore import Brier_Score
 
 HITTER_ELEMENT_LIST = ["DRAFT", "WAR", "OFF", "DEF", "PA", "POS"]
 NUM_ELEMENTS_HITTER = len(HITTER_ELEMENT_LIST)

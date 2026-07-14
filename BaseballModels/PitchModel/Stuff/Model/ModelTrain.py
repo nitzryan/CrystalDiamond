@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
-from Constants import device
-from Stuff.Model.PitchModel import PitchModel
-from Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
-from Stuff.DataPrep.PitchDataset import PitchDataset
-from Stuff.Model.LossFunctions import *
+from PitchModel.Constants import device
+from PitchModel.Stuff.Model.PitchModel import PitchModel
+from PitchModel.Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
+from PitchModel.Stuff.DataPrep.PitchDataset import PitchDataset
+from PitchModel.Stuff.Model.LossFunctions import *
 from torch.optim.lr_scheduler import CosineAnnealingLR 
-from Constants import profiler
+from PitchModel.Constants import profiler
 
 SHOULD_PROFILE = False
 

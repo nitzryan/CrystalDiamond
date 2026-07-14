@@ -1,5 +1,5 @@
 import torch
-from College.DataPrep.Data_Prep import College_IO
+from Model.College.DataPrep.Data_Prep import College_IO
 
 class College_Eval_Dataset(torch.utils.data.Dataset):
     def __init__(self, players : list[College_IO]):

@@ -1,8 +1,8 @@
-from DBTypes import *
+from Model.DBTypes import *
 import torch
-from Pro.DataPrep.Output_Map import Output_Map
+from Model.Pro.DataPrep.Output_Map import Output_Map
 from typing import Callable
-from Constants import HITTER_LEVEL_BUCKETS
+from Model.Constants import HITTER_LEVEL_BUCKETS
 
 def __IsDateValid(month : int, year : int, startMonth : int, endMonth : int, startYear : int, endYear : int) -> bool:
     afterStart : bool = (year > startYear) or (year == startYear and month > startMonth)

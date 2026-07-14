@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import ipywidgets as widgets
 from IPython.display import display
 from matplotlib.figure import Figure
-from Combined.Utilities.Types import *
+from Model.Combined.Utilities.Types import *
 
 def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 1, graph_y_range=None, title="") -> Figure:
     fig = plt.figure()

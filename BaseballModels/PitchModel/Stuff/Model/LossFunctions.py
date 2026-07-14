@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from Constants import profiler
+from PitchModel.Constants import profiler
 
 @profiler
 def Classification_Loss(pred : torch.Tensor, actual : torch.Tensor) -> tuple[torch.Tensor, int]:

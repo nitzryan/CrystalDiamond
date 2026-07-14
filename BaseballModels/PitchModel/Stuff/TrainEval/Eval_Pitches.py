@@ -4,18 +4,18 @@ import torch.nn.functional as F
 import warnings
 import gc
 
-from Constants import device, pitch_db, db
-from Shared import GetDataPrep
-from Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
-from Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
-from Stuff.Model.ModelOutputType import *
-from PitchDBTypes import *
+from PitchModel.Constants import device, pitch_db, db
+from PitchModel.Shared import GetDataPrep
+from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
+from PitchModel.Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
+from PitchModel.Stuff.Model.ModelOutputType import *
+from PitchModel.PitchDBTypes import *
 
 from line_profiler import LineProfiler
 eval_profiler = LineProfiler()
 _SHOULD_PROFILE = True
 
-from Buckets import *
+from PitchModel.Buckets import *
 
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum
@@ -84,7 +84,7 @@ def Eval_Pitches():
                                 
                                 network = PitchModel(args=args, data_prep=data_prep)
                                 with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                                    network.load_state_dict(torch.load(f"Models/{model_name}_{mth.ModelRun}_{model_variant_type.name}_{model_output_type.name}.pt"))
+                                    network.load_state_dict(torch.load(f"PitchModel/Models/{model_name}_{mth.ModelRun}_{model_variant_type.name}_{model_output_type.name}.pt"))
                                 network.eval()
                                 network = network.to(device)
                                 

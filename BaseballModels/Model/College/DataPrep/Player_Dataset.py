@@ -1,6 +1,6 @@
 import torch
-from DBTypes import *
-from College.DataPrep.Data_Prep import College_IO
+from Model.DBTypes import *
+from Model.College.DataPrep.Data_Prep import College_IO
 from sklearn.model_selection import train_test_split # type: ignore
 
 class College_Player_Dataset(torch.utils.data.Dataset):

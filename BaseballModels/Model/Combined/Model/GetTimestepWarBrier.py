@@ -1,12 +1,12 @@
 import torch
 import torch.nn.functional as F
 
-from Pro.Model.Player_Model import RNN_Model as Pro_Model
-from College.Model.College_Model import RNN_Model as Col_Model
-from Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Combined.Model.GetTimestepWarLoss import IterWarOutputs
-from Combined.Utilities.Types import *
-from Constants import device
+from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.College.Model.College_Model import RNN_Model as Col_Model
+from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
+from Model.Combined.Model.GetTimestepWarLoss import IterWarOutputs
+from Model.Combined.Utilities.Types import *
+from Model.Constants import device
 
 def GetTimestepWarBrier(
     pro_network : Pro_Model,

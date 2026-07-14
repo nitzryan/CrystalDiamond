@@ -1,4 +1,4 @@
-from DBTypes import *
+from PitchModel.DBTypes import *
 from typing import Callable
 import torch
 

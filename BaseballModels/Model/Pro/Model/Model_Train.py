@@ -1,11 +1,11 @@
 import torch
-from Constants import device
-from Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
-from Combined.Model.GetWarClassCounts import *
-from Combined.Utilities.Types import *
-from Combined.Utilities.BrierScore import Brier_Score
+from Model.Constants import device
+from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
+from Model.Combined.Model.GetWarClassCounts import *
+from Model.Combined.Utilities.Types import *
+from Model.Combined.Utilities.BrierScore import Brier_Score
 
-from Utilities import profiler
+from Model.Utilities import profiler
 
 ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
