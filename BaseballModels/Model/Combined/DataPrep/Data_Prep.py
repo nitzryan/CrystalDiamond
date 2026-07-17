@@ -50,7 +50,7 @@ class Combined_Data_Prep:
         else:
             return self.pro_data_prep.Get_Pitcher_Size()
     
-    def GetColIoSize(self, is_hitter : bool) -> int:
+    def GetColIOSize(self, is_hitter : bool) -> int:
         if is_hitter:
             return self.college_data_prep.Get_Hitter_Size()
         else:
@@ -119,7 +119,7 @@ class Combined_Data_Prep:
                 WHERE Year=? AND Month=?
             ) AND IsHitter=1;'''
             
-        pro_io = pro_io = self.pro_data_prep.Generate_IO_Hitters(pro_conditions, (year, month), False)
+        pro_io = self.pro_data_prep.Generate_IO_Hitters(pro_conditions, (year, month), False)
         
         # Need college io for pro_io
         college_io = self.college_data_prep.Generate_IO_Hitters(pro_conditions, (year, month), False)
@@ -133,6 +133,27 @@ class Combined_Data_Prep:
                     college_io.append(cs)
         
         return self._Load_IO_Hitters(pro_io, college_io)
+        
+    def Generate_IO_Test_Hitter(self,
+            pro_player : DB_Model_Players | None,
+            pro_stats : list[DB_Model_HitterStats] | None,
+            pro_month_war : list[DB_Player_MonthlyWar] | None,
+            
+            col_player : DB_College_Player | None,
+            col_stats : list[DB_Model_College_HitterYear] | None
+            ) -> Combined_IO:
+        
+        if pro_player is not None and pro_stats is not None and pro_month_war is not None:
+            pro_io = self.pro_data_prep.Generate_IO_Single_Hitter(pro_player, pro_stats, pro_month_war)
+        else:
+            pro_io = self.GetEmptyProIO(True)
+            
+        if col_player is not None and col_stats is not None:
+            col_io = self.college_data_prep.Generate_IO_Single_Hitter(col_player, col_stats)
+        else:
+            col_io = self.GetEmptyCollegeIO()
+            
+        return Combined_IO(pro_io, col_io)
         
     def _Load_IO_Hitters(self, pro_io : list[Player_IO], college_io : list[College_IO]) -> list[Combined_IO]:
         empty_pro_io = self.GetEmptyProIO(is_hitter=True)

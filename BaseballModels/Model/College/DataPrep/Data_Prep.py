@@ -127,6 +127,66 @@ class College_Data_Prep:
     def Get_Pitcher_Size(self) -> int:
         return self.prep_map.bio_size + self.prep_map.pitstats_size
     
+    def Generate_IO_Single_Hitter(self,
+            hitter : DB_College_Player,
+            stats : list[DB_Model_College_HitterYear],
+            proStats : DB_Model_College_HitterProStats | None = None) -> College_IO | None:
+
+        l = len(stats)
+        if l == 0:
+            return None
+
+        # Dates
+        dates = torch.tensor([(hitter.TBCId, x.Year,) for x in stats], dtype=torch.long)
+
+        # Input
+        input = torch.zeros(l, self.Get_Hitter_Size())
+        input[:, :self.prep_map.bio_size] = self.__Transform_HitterData(hitter)
+        input[:, self.prep_map.bio_size:] = self.__TransformHitterStats(stats)
+
+        # Draft outcome depends only on the player, so it is always available
+        output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
+
+        if proStats is not None:
+            # Buckets
+            output_war = torch.bucketize(torch.tensor(self.output_map.map_war_h(proStats)), TOTAL_WAR_BUCKETS)
+            output_pa = torch.bucketize(torch.tensor(self.output_map.map_pa(proStats)), HITTER_PA_BUCKETS)
+
+            if proStats.MLB_PA > 100:
+                output_def = torch.bucketize(torch.tensor(self.output_map.map_def_rate(proStats)), DEF_RATE_BUCKETS)
+                output_off = torch.bucketize(torch.tensor(self.output_map.map_off_rate(proStats)), OFF_RATE_BUCKETS)
+            else:
+                output_def = torch.tensor([7])
+                output_off = torch.tensor([7])
+
+            # Pos
+            output_pos = torch.tensor(self.output_map.map_pos_h(proStats))
+            mask_pos = self.output_map.mask_pos_h(proStats)
+        else: # What-if analysis
+            output_war = None
+            output_pa = None
+            output_def = None
+            output_off = None
+            output_pos = None
+            mask_pos = None  # <-- confirm attribute/shape
+
+        return College_IO(
+            player=hitter,
+            input=input,
+            output_draft=output_draft,
+            output_war=output_war,
+
+            output_pos=output_pos,
+            mask_pos=mask_pos,
+
+            output_def=output_def,
+            output_off=output_off,
+            output_pa=output_pa,
+
+            length=l,
+            dates=dates
+        )
+    
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
         cursor = db.cursor()
         hitters = DB_College_Player.Select_From_DB(cursor, player_condition, player_values)
@@ -137,51 +197,13 @@ class College_Data_Prep:
         for hitter in tqdm(hitters, desc="Generating College Hitters", leave=False):
             stats = DB_Model_College_HitterYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (hitter.TBCId, cutoff_year))
             proStats = DB_Model_College_HitterProStats.Select_From_DB(cursor, "WHERE tbcId=?", (hitter.TBCId,))[0]
-            l = len(stats)
-            if l == 0:
+            
+            result = self.Generate_IO_Single_Hitter(hitter, stats, proStats)
+            if result is None:
                 continue
             
-            # Dates
-            dates = torch.tensor([(hitter.TBCId, x.Year,) for x in stats], dtype=torch.long)
+            io.append(result)
             
-            # Input
-            input = torch.zeros(l, self.Get_Hitter_Size())
-            input[:, :self.prep_map.bio_size] = self.__Transform_HitterData(hitter)
-            input[:, self.prep_map.bio_size:] = self.__TransformHitterStats(stats)
-            
-            # Buckets
-            output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_h(hitter)), DRAFT_BUCKETS)
-            output_war = torch.bucketize(torch.tensor(self.output_map.map_war_h(proStats)), TOTAL_WAR_BUCKETS)
-            output_pa = torch.bucketize(torch.tensor(self.output_map.map_pa(proStats)), HITTER_PA_BUCKETS)
-            
-            if proStats.MLB_PA > 100:
-                output_def = torch.bucketize(torch.tensor(self.output_map.map_def_rate(proStats)), DEF_RATE_BUCKETS)
-                output_off = torch.bucketize(torch.tensor(self.output_map.map_off_rate(proStats)), OFF_RATE_BUCKETS)
-            else:
-                output_def = torch.tensor([7])
-                output_off = torch.tensor([7])
-            
-            # Pos
-            output_pos = torch.tensor(self.output_map.map_pos_h(proStats))
-            mask_pos = self.output_map.mask_pos_h(proStats)
-            
-            io.append(College_IO(
-                player=hitter,
-                input=input,
-                output_draft=output_draft,
-                output_war=output_war,
-                
-                output_pos=output_pos,
-                mask_pos=mask_pos,
-                
-                output_def=output_def,
-                output_off=output_off,
-                output_pa=output_pa,
-                
-                length=l,
-                dates=dates
-            ))
-        
         return io
     
     def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
