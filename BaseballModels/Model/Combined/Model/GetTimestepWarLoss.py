@@ -35,8 +35,9 @@ def IterWarOutputs(
             length = length[mask_valid].to(device, non_blocking=True)
             pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
             h0 = college_result.hidden[mask_valid].transpose(0, 1).to(device, non_blocking=True)
+            col_lengths = col_data[1][mask_valid]
 
-            output_war, *_ = pro_network(data, length, pt_levelYearGames, h0)
+            output_war, *_ = pro_network(data, length, pt_levelYearGames, h0, col_lengths)
 
             target_war = pro_targets[0][mask_valid].to(device, non_blocking=True)
             mask_labels = pro_masks[0][mask_valid].to(device, non_blocking=True)

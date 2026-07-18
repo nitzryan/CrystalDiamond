@@ -3,8 +3,8 @@ namespace ModelDb
 	public class Output_PitcherStats
 	{
 		public required int MlbId {get; set;}
-		public required int Model {get; set;}
-		public required int ModelIdx {get; set;}
+		public required int ModelId {get; set;}
+		public required int ModelRun {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
@@ -27,8 +27,8 @@ namespace ModelDb
 			return new Output_PitcherStats
 			{
 				MlbId = this.MlbId,
-				Model = this.Model,
-				ModelIdx = this.ModelIdx,
+				ModelId = this.ModelId,
+				ModelRun = this.ModelRun,
 				Year = this.Year,
 				Month = this.Month,
 				LevelId = this.LevelId,

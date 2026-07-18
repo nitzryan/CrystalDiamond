@@ -4,7 +4,7 @@ namespace ModelDb
 	{
 		public required int MlbId {get; set;}
 		public required int TbcId {get; set;}
-		public required int ModelIdx {get; set;}
+		public required int ModelId {get; set;}
 		public required int ModelRun {get; set;}
 		public required bool IsHitter {get; set;}
 		public required bool IsTrain {get; set;}
@@ -15,7 +15,7 @@ namespace ModelDb
 			{
 				MlbId = this.MlbId,
 				TbcId = this.TbcId,
-				ModelIdx = this.ModelIdx,
+				ModelId = this.ModelId,
 				ModelRun = this.ModelRun,
 				IsHitter = this.IsHitter,
 				IsTrain = this.IsTrain,

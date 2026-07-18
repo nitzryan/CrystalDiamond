@@ -6,19 +6,25 @@ import warnings
 from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Model.DBTypes import *
 from Model.ModelDBTypes import *
+from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.College.Model.College_Model import RNN_Model as ColModel
 from Model.Constants import DRAFT_MEANS, TOTAL_WAR_BUCKETS, db, model_db
 
 class Test_Model_Runner:
     def __init__(self,
                 data_prep : Combined_Data_Prep,
-                col_network : nn.Module,
-                pro_network : nn.Module,
+                model_dir : str,
+                is_hitter : bool,
                 model_id : int = 1,
                 device : torch.device = torch.device("cpu")):
 
+        pos_str = "hit" if is_hitter else "pit"
+        model_cursor = model_db.cursor()
+        self.model_name = DB_ModelId.Select_From_DB(model_cursor, "WHERE id=?", (model_id,))[0].modelName
+
         self.data_prep = data_prep
-        self.col_network = col_network
-        self.pro_network = pro_network
+        self.col_network = ColModel.LoadFromFile(model_dir + f"{self.model_name}_{pos_str}_col.json", data_prep.college_data_prep)
+        self.pro_network = ProModel.LoadFromFile(model_dir + f"{self.model_name}_{pos_str}_pro.json", data_prep.pro_data_prep)
         self.device = device
 
         # Used to collapse the WAR bucket distribution into a single expected value
@@ -33,11 +39,9 @@ class Test_Model_Runner:
         self.model_id = model_id
 
         # Get model runs for model
-        model_cursor = model_db.cursor()
-        model_runs = model_cursor.execute("SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE modelIdx=? ORDER BY ModelRun ASC", (model_id,)).fetchall()
-        self.model_runs = [mr[0] for mr in model_runs]
         
-        self.model_name = DB_ModelIdx.Select_From_DB(model_cursor, "WHERE id=?", (model_id,))[0].modelName
+        model_runs = model_cursor.execute("SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE modelId=? ORDER BY ModelRun ASC", (model_id,)).fetchall()
+        self.model_runs = [mr[0] for mr in model_runs]
 
         self.col_network.to(device)
         self.pro_network.to(device)
@@ -58,9 +62,9 @@ class Test_Model_Runner:
         # Get model runs where player is not in training
         model_cursor = model_db.cursor()
         if pro_player is not None:
-            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE mlbId=? AND modelIdx=? AND isHitter=1 ORDER BY modelRun ASC", (pro_player.mlbId, self.model_id)).fetchall()]
+            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE mlbId=? AND modelId=? AND isHitter=1 ORDER BY modelRun ASC", (pro_player.mlbId, self.model_id)).fetchall()]
         elif col_player is not None:
-            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE tbcId=? AND modelIdx=? AND isHitter=1 ORDER BY modelRun ASC", (col_player.TBCId, self.model_id)).fetchall()]
+            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE tbcId=? AND modelId=? AND isHitter=1 ORDER BY modelRun ASC", (col_player.TBCId, self.model_id)).fetchall()]
         else:
             raise Exception("Expected at least 1 of Pro and College Player to not be None")
         
@@ -118,6 +122,9 @@ class Test_Model_Runner:
             # College Model
             col_data = col_io.input.unsqueeze(0).to(self.device)
             col_length = torch.tensor([col_io.length])
+            
+            if col_data.shape[1] == 0:
+                col_data = torch.zeros(1, 1, col_data.shape[2], dtype=col_data.dtype)
 
             col_output_draft, col_output_war, col_output_off, col_output_def, col_output_pa, col_output_pos, h0 = \
                 self.col_network(col_data, col_length)
@@ -139,7 +146,7 @@ class Test_Model_Runner:
 
                 pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, \
                 pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = \
-                    self.pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0)
+                    self.pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0, col_length)
 
                 pro_results = self.__Build_Pro_Outputs(pro_io, pro_output_war)
 

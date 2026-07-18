@@ -13,7 +13,7 @@ if __name__ == "__main__":
     cursor = db.cursor()
     
     if cursor.execute("SELECT COUNT(name) FROM sqlite_master WHERE type='table' AND name=?", (new_table,)).fetchone()[0] == 1:
-        print(f"Table {table} already exists")
+        print(f"Table {new_table} already exists")
         exit(1)
     
     sql_query : str = cursor.execute("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?", (table,)).fetchone()[0]

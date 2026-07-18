@@ -19,6 +19,7 @@ def GetLossesPro(
   h0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
+  col_lengths : torch.Tensor,
   pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult:
   
   
@@ -29,7 +30,8 @@ def GetLossesPro(
   length = length[mask_valid].to(device, non_blocking=True)
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
   h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0)
+  col_lengths = col_lengths[mask_valid]
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0, col_lengths)
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets

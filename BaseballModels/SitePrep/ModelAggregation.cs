@@ -16,7 +16,7 @@ namespace SitePrep
 
             List<Output_PlayerWarAggregation> items = new();
 
-            var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.Model, f.IsHitter, f.Year, f.Month });
+            var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.ModelId, f.IsHitter, f.Year, f.Month });
             int count = opws.Count();
                 
             items.Capacity = count;
@@ -31,7 +31,7 @@ namespace SitePrep
                     Output_PlayerWarAggregation owa = new()
                     {
                         MlbId = o.Key.MlbId,
-                        Model = o.Key.Model,
+                        ModelId = o.Key.ModelId,
                         IsHitter = o.Key.IsHitter,
                         Year = o.Key.Year,
                         Month = o.Key.Month,
@@ -64,7 +64,7 @@ namespace SitePrep
 
             // College Hitters
             List<Output_College_HitterAggregation> collegeHitterItems = new();
-            var ohcd = db.Output_College_Hitter.GroupBy(f => new { f.TbcId, f.Model, f.Year });
+            var ohcd = db.Output_College_Hitter.GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
             count = ohcd.Count();
             collegeHitterItems.Capacity = count;
 
@@ -79,7 +79,7 @@ namespace SitePrep
                     Output_College_HitterAggregation oca = new()
                     {
                         TbcId = o.Key.TbcId,
-                        Model = o.Key.Model,
+                        ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
                         Draft0 = 0,
                         Draft1 = 0,
@@ -200,7 +200,7 @@ namespace SitePrep
 
             // College Pitchers
             List<Output_College_PitcherAggregation> collegePitcherItems = new();
-            var opcd = db.Output_College_Pitcher.GroupBy(f => new { f.TbcId, f.Model, f.Year });
+            var opcd = db.Output_College_Pitcher.GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
             count = opcd.Count();
             collegePitcherItems.Capacity = count;
 
@@ -215,7 +215,7 @@ namespace SitePrep
                     Output_College_PitcherAggregation oca = new()
                     {
                         TbcId = o.Key.TbcId,
-                        Model = o.Key.Model,
+                        ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
                         Draft0 = 0,
                         Draft1 = 0,
@@ -273,6 +273,62 @@ namespace SitePrep
             db.BulkInsert(collegePitcherItems);
         }
 
+        private static void PlayerLevel()
+        {
+            using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
+            db.Output_PlayerHighestLevelAggregation.ExecuteDelete();
+
+            List<Output_PlayerHighestLevelAggregation> items = new();
+
+            var opws = db.Output_PlayerHighestLevel.GroupBy(f => new { f.MlbId, f.ModelId, f.IsHitter, f.Year, f.Month });
+            int count = opws.Count();
+
+            items.Capacity = count;
+            using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Highest Level Model Results"))
+            {
+                foreach (var o in opws)
+                {
+                    int size = o.Count();
+                    if (size == 0)
+                        throw new Exception("No elements in model_results, should not happen");
+
+                    Output_PlayerHighestLevelAggregation ophla = new()
+                    {
+                        MlbId = o.Key.MlbId,
+                        ModelId = o.Key.ModelId,
+                        IsHitter = o.Key.IsHitter,
+                        Year = o.Key.Year,
+                        Month = o.Key.Month,
+                        DSL = 0,
+                        CPX = 0,
+                        A_LOW = 0,
+                        A = 0,
+                        A_HIGH = 0,
+                        AA = 0,
+                        AAA = 0,
+                        MLB = 0,
+                    };
+
+                    foreach (var result in o)
+                    {
+                        ophla.DSL += result.DSL / size;
+                        ophla.CPX += result.CPX / size;
+                        ophla.A_LOW += result.A_LOW / size;
+                        ophla.A += result.A / size;
+                        ophla.A_HIGH += result.A_HIGH / size;
+                        ophla.AA += result.AA / size;
+                        ophla.AAA += result.AAA / size;
+                        ophla.MLB += result.MLB / size;
+                    }
+
+                    items.Add(ophla);
+                    progressBar.Tick();
+                }
+            }
+
+            db.BulkInsert(items);
+        }
+
         private static void HitterStats()
         {
             using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
@@ -280,7 +336,7 @@ namespace SitePrep
 
             List<Output_HitterStatsAggregation> items = new();
 
-            var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+            var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ohs.Count();
             items.Capacity = count;
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Hitter Stats"))
@@ -294,7 +350,7 @@ namespace SitePrep
                     Output_HitterStatsAggregation ohsa = new()
                     {
                         MlbId = o.Key.MlbId,
-                        Model = o.Key.Model,
+                        ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
                         Month = o.Key.Month,
                         LevelId = o.Key.LevelId,
@@ -363,7 +419,7 @@ namespace SitePrep
 
             List<Output_PitcherStatsAggregation> items = new();
 
-            var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.Model, f.LevelId, f.Year, f.Month });
+            var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ops.Count();
             items.Capacity = count;
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitcher Stats"))
@@ -377,7 +433,7 @@ namespace SitePrep
                     Output_PitcherStatsAggregation opsa = new()
                     {
                         MlbId = o.Key.MlbId,
-                        Model = o.Key.Model,
+                        ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
                         Month = o.Key.Month,
                         LevelId = o.Key.LevelId,
@@ -426,6 +482,7 @@ namespace SitePrep
             try
             {
                 ModelAggregation.PlayerWar();
+                ModelAggregation.PlayerLevel();
                 ModelAggregation.HitterStats();
                 ModelAggregation.PitcherStats();
             }

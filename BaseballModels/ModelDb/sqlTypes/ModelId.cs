@@ -1,13 +1,13 @@
 namespace ModelDb
 {
-	public class ModelIdx
+	public class ModelId
 	{
 		public required int Id {get; set;}
 		public required string ModelName {get; set;}
 
-		public ModelIdx Clone()
+		public ModelId Clone()
 		{
-			return new ModelIdx
+			return new ModelId
 			{
 				Id = this.Id,
 				ModelName = this.ModelName,

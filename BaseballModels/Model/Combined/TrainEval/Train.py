@@ -5,7 +5,7 @@ from Model.Combined.TrainEval.Eval_Hitters import Eval_Hitters
 from Model.Combined.TrainEval.Eval_Pitchers import Eval_Pitchers
 
 cursor = model_db.cursor()
-cursor.execute("DELETE FROM ModelIdx")
+cursor.execute("DELETE FROM ModelId")
 model_db.commit()
 
 from datetime import datetime
@@ -17,7 +17,7 @@ day = dt.day
 day_str = f"{day}{months[month]}{year}"
 
 cursor = model_db.cursor()
-cursor.execute(f"INSERT INTO ModelIdx VALUES(1,'Base_{day_str}')")
+cursor.execute(f"INSERT INTO ModelId VALUES(1,'Base_{day_str}')")
 model_db.commit()
 
 num_models = 12

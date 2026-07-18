@@ -127,9 +127,9 @@ namespace SitePrep
             siteDb.DraftRank.ExecuteDelete();
 
             var modelYears = modelDb.Output_College_HitterAggregation.Where(f => f.Year >= 2005)
-                .Select(f => new { f.Year, f.Model })
+                .Select(f => new { f.Year, f.ModelId })
                 .Distinct()
-                .OrderBy(f => f.Model).ThenBy(f => f.Year);
+                .OrderBy(f => f.ModelId).ThenBy(f => f.Year);
 
             // tbcId -> N, reset whenever the model changes since N is sequential within one model's timeline
             Dictionary<(int tbcId, bool isHitter), int> tbcTimestepCounts = new();
@@ -143,13 +143,13 @@ namespace SitePrep
                 foreach (var modelYear in modelYears)
                 {
                     // Reset when model changes
-                    if (modelYear.Model != currentTrackedModel)
+                    if (modelYear.ModelId != currentTrackedModel)
                     {
                         tbcTimestepCounts.Clear();
-                        currentTrackedModel = modelYear.Model;
+                        currentTrackedModel = modelYear.ModelId;
 
                         draftTrainSet = modelDb.PlayersInTrainingData
-                        .Where(f => f.ModelIdx == modelYear.Model && f.IsTrain)
+                        .Where(f => f.ModelId == modelYear.ModelId && f.IsTrain)
                         .Select(f => new { f.TbcId, f.IsHitter })
                         .Distinct()
                         .AsEnumerable()
@@ -159,9 +159,9 @@ namespace SitePrep
 
                     // Get all players ranked
                     var hitterStats = modelDb.Output_College_HitterAggregation
-                        .Where(f => f.Year == modelYear.Year && f.Model == modelYear.Model);
+                        .Where(f => f.Year == modelYear.Year && f.ModelId == modelYear.ModelId);
                     var pitcherStats = modelDb.Output_College_PitcherAggregation
-                        .Where(f => f.Year == modelYear.Year && f.Model == modelYear.Model);
+                        .Where(f => f.Year == modelYear.Year && f.ModelId == modelYear.ModelId);
 
                     // Get DraftValue for each hitter, pitcher in list
                     List<DraftValue> playerValues = new();
@@ -218,7 +218,7 @@ namespace SitePrep
                             try
                             {
                                 warPost = modelDb.Output_PlayerWarAggregation
-                                .Where(f => f.MlbId == colPlayer.MlbId && f.Model == modelYear.Model && f.Year == 0)
+                                .Where(f => f.MlbId == colPlayer.MlbId && f.ModelId == modelYear.ModelId && f.Year == 0)
                                 .Max(f => f.War);
                             }
                             catch (Exception) { /* Drafted and not signed, so no data */ }
@@ -229,8 +229,8 @@ namespace SitePrep
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = dr.tbcId,
-                            MlbId = colPlayer.MlbId ?? -1,
-                            ModelId = modelYear.Model,
+                            MlbId = colPlayer.MlbId,
+                            ModelId = modelYear.ModelId,
                             Name = colPlayer.FirstName + " " + colPlayer.LastName,
                             Position = dr.position,
                             IsHitter = dr.isHitter,
@@ -260,8 +260,8 @@ namespace SitePrep
                         draftRanks.Add(new DraftRank
                         {
                             TbcId = ip.tbcId,
-                            MlbId = colPlayer.MlbId ?? -1,
-                            ModelId = modelYear.Model,
+                            MlbId = colPlayer.MlbId,
+                            ModelId = modelYear.ModelId,
                             Name = colPlayer.FirstName + " " + colPlayer.LastName,
                             Position = ip.position,
                             IsHitter = ip.isHitter,
@@ -288,12 +288,12 @@ namespace SitePrep
                     List<DraftRank> hsDraftedPlayers = new(draftedPlayers.Count());
                     foreach (var dp in draftedPlayers)
                     {
-                        if (siteDb.DraftRank.Any(f => f.MlbId == dp.MlbId && f.ModelId == modelYear.Model))
+                        if (siteDb.DraftRank.Any(f => f.MlbId == dp.MlbId && f.ModelId == modelYear.ModelId))
                             continue;
 
                         float warPost = modelDb.Output_PlayerWarAggregation
                                 .Where(f => f.MlbId == dp.MlbId 
-                                    && f.Model == modelYear.Model 
+                                    && f.ModelId == modelYear.ModelId
                                     && f.Year == 0)
                                 .Max(f => f.War);
 
@@ -301,7 +301,7 @@ namespace SitePrep
                         {
                             TbcId = -1,
                             MlbId = dp.MlbId,
-                            ModelId = modelYear.Model,
+                            ModelId = modelYear.ModelId,
                             Name = dp.UseFirstName + " " + dp.UseLastName,
                             Position = dp.Position,
                             IsHitter = dp.Position == "H",

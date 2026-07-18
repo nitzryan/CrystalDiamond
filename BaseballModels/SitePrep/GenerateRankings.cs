@@ -53,7 +53,7 @@ namespace SitePrep
                     pwa.hitterStats = hitterStats;
                     pwa.pitcherStats = pitcherStats;
                     List<PlayerWar> pw = [];
-                    var opwas = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.Model == pwa.ModelId && (f.IsHitter == pwa.isHitter))
+                    var opwas = modelDb.Output_PlayerWarAggregation.Where(f => f.MlbId == pwa.MlbId && f.Year > 0 && f.ModelId == pwa.ModelId && (f.IsHitter == pwa.isHitter))
                             .OrderBy(f => f.Year).ThenBy(f => f.Month)
                             .Select(f => new PlayerWar
                             {
@@ -281,7 +281,7 @@ namespace SitePrep
                 siteDb.Models.ExecuteDelete();
 
                 // Move models from data DB to site DB
-                foreach (var model in modelDb.ModelIdx)
+                foreach (var model in modelDb.ModelId)
                 {
                     siteDb.Models.Add(new Models
                     {
@@ -319,13 +319,13 @@ namespace SitePrep
                 using var writerDates = new Utf8JsonWriter(gzipStreamDates, new JsonWriterOptions { Indented = false });
                 JsonSerializer.Serialize(writerDates, datesJson);
 
-                using (ProgressBar progressBar = new ProgressBar(modelDb.ModelIdx.Count(), "Generating Rankings for Models"))
+                using (ProgressBar progressBar = new ProgressBar(modelDb.ModelId.Count(), "Generating Rankings for Models"))
                 {
-                    foreach (var model in modelDb.ModelIdx)
+                    foreach (var model in modelDb.ModelId)
                     {
                         // Get data for Buckets
 
-                        var initial_opwa = modelDb.Output_PlayerWarAggregation.Where(f => f.Year == 0 && f.Model == model.Id);
+                        var initial_opwa = modelDb.Output_PlayerWarAggregation.Where(f => f.Year == 0 && f.ModelId == model.Id);
                         List<PlayerWar> initial_pwa = new();
                         initial_pwa.Capacity = initial_opwa.Count();
                         foreach (var o in initial_opwa)
@@ -335,7 +335,7 @@ namespace SitePrep
                             initial_pwa.Add(new PlayerWar
                             {
                                 MlbId = o.MlbId,
-                                ModelId = o.Model,
+                                ModelId = o.ModelId,
                                 War = o.War,
                                 Month = p.SigningMonth.Value,
                                 Year = p.SigningYear.Value,
@@ -349,7 +349,7 @@ namespace SitePrep
                         }
 
                         HashSet<int> trainedMlbIds = modelDb.PlayersInTrainingData
-                            .Where(f => f.ModelIdx == model.Id && f.IsTrain)
+                            .Where(f => f.ModelId == model.Id && f.IsTrain)
                             .Select(f => f.MlbId)
                             .Distinct()
                             .ToHashSet();

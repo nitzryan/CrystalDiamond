@@ -3,7 +3,7 @@ namespace ModelDb
 	public class Output_PitcherStatsAggregation
 	{
 		public required int MlbId {get; set;}
-		public required int Model {get; set;}
+		public required int ModelId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
@@ -26,7 +26,7 @@ namespace ModelDb
 			return new Output_PitcherStatsAggregation
 			{
 				MlbId = this.MlbId,
-				Model = this.Model,
+				ModelId = this.ModelId,
 				Year = this.Year,
 				Month = this.Month,
 				LevelId = this.LevelId,

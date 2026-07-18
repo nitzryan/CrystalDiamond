@@ -1,8 +1,8 @@
 CREATE TABLE "Output_PlayerWar" (
 	"mlbId"	INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
-	"ModelIdx"	INTEGER NOT NULL,
+	"ModelRun"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 	"month"	INTEGER NOT NULL,
 	"war0"	REAL NOT NULL,
@@ -13,12 +13,38 @@ CREATE TABLE "Output_PlayerWar" (
 	"war5"	REAL NOT NULL,
 	"war6"	REAL NOT NULL,
 	"war" REAL NOT NULL,
-	PRIMARY KEY("mlbId", "model", "isHitter", "ModelIdx","year","month")
+	PRIMARY KEY("mlbId", "ModelId", "isHitter", "ModelRun","year","month")
 );
 
 CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
-	"model",
-	"modelIdx",
+	"ModelId",
+	"ModelRun",
+	"mlbId",
+	"year",
+	"month"
+);
+
+CREATE TABLE "Output_PlayerHighestLevel" (
+	"mlbId"	INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"ModelRun"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+	"month"	INTEGER NOT NULL,
+	"DSL" REAL NOT NULL,
+	"CPX" REAL NOT NULL,
+	"A_LOW" REAL NOT NULL,
+	"A" REAL NOT NULL,
+	"A_HIGH" REAL NOT NULL,
+	"AA" REAL NOT NULL,
+	"AAA" REAL NOT NULL,
+	"MLB" REAL NOT NULL,
+	PRIMARY KEY("mlbId", "ModelId", "isHitter", "ModelRun","year","month")
+);
+
+CREATE INDEX "idx_Output_PlayerHighestLevel" ON "Output_PlayerHighestLevel" (
+	"ModelId",
+	"ModelRun",
 	"mlbId",
 	"year",
 	"month"
@@ -26,8 +52,8 @@ CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 
 CREATE TABLE Output_HitterStats (
 	"MlbId" INTEGER NOT NULL,
-	"Model" INTEGER NOT NULL,
-	"ModelIdx" INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
+	"ModelRun" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"Month" INTEGER NOT NULL,
 	"LevelId" INTEGER NOT NULL,
@@ -53,12 +79,12 @@ CREATE TABLE Output_HitterStats (
 	"PercCF"	REAL NOT NULL,
 	"PercRF"	REAL NOT NULL,
 	"PercDH"	REAL NOT NULL,
-	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
+	PRIMARY KEY("MlbId", "ModelId", "ModelRun", "Year", "Month", "LevelId")
 );
 
 CREATE INDEX "idx_Output_HitterStats" ON "Output_HitterStats" (
-	"model",
-	"modelIdx",
+	"ModelId",
+	"ModelRun",
 	"mlbId",
 	"year",
 	"month",
@@ -67,8 +93,8 @@ CREATE INDEX "idx_Output_HitterStats" ON "Output_HitterStats" (
 
 CREATE TABLE "Output_PitcherStats" (
 	"mlbId" INTEGER NOT NULL,
-	"Model" INTEGER NOT NULL,
-	"ModelIdx" INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
+	"ModelRun" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"Month" INTEGER NOT NULL,
 	"levelId" INTEGER NOT NULL,
@@ -85,12 +111,12 @@ CREATE TABLE "Output_PitcherStats" (
 	"ParkRunFactor" REAL NOT NULL,
 	"SP_Perc" REAL NOT NULL,
 	"RP_Perc" REAL NOT NULL,
-	PRIMARY KEY("MlbId", "Model", "ModelIdx", "Year", "Month", "LevelId")
+	PRIMARY KEY("MlbId", "ModelId", "ModelRun", "Year", "Month", "LevelId")
 );
 
 CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
-	"model",
-	"modelIdx",
+	"ModelId",
+	"ModelRun",
 	"mlbId",
 	"year",
 	"month",
@@ -99,8 +125,8 @@ CREATE INDEX "idx_Output_PitcherStats" ON "Output_PitcherStats" (
 
 CREATE TABLE "Output_College_Hitter" (
 	"tbcId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"ModelIdx"	INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
+	"ModelRun"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 
 	-- Draft
@@ -163,20 +189,20 @@ CREATE TABLE "Output_College_Hitter" (
 	"ProbRF" REAL NOT NULL,
 	"ProbDH" REAL NOT NULL,
 
-	PRIMARY KEY("tbcId", "model", "ModelIdx","year")
+	PRIMARY KEY("tbcId", "ModelId", "ModelRun","year")
 );
 
 CREATE INDEX "idx_Output_College_Hitter" ON "Output_College_Hitter" (
-	"model",
-	"modelIdx",
+	"ModelId",
+	"ModelRun",
 	"tbcId",
 	"year"
 );
 
 CREATE TABLE "Output_College_Pitcher" (
 	"tbcId" INTEGER NOT NULL,
-	"model" INTEGER NOT NULL,
-	"ModelIdx"	INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
+	"ModelRun"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,
 
 	-- Draft
@@ -203,12 +229,12 @@ CREATE TABLE "Output_College_Pitcher" (
 	"ProbSP" REAL NOT NULL,
 	"ProbRP" REAL NOT NULL,
 
-	PRIMARY KEY("tbcId", "model", "ModelIdx","year")
+	PRIMARY KEY("tbcId", "ModelId", "ModelRun","year")
 );
 
 CREATE INDEX "idx_Output_College_Pitcher" ON "Output_College_Pitcher" (
-	"model",
-	"modelIdx",
+	"ModelId",
+	"ModelRun",
 	"tbcId",
 	"year"
 );
@@ -219,25 +245,21 @@ CREATE TABLE "Model_TrainingHistory" (
 	"IsHitter"	INTEGER NOT NULL,
 	"TestLoss"	REAL NOT NULL,
 	"TestLossCollege" REAL NOT NULL,
-	"ModelIdx"	INTEGER NOT NULL,
-	"ProNumLayers" INTEGER NOT NULL,
-	"ProHiddenSize" INTEGER NOT NULL,
-	"ColNumLayers" INTEGER NOT NULL,
-	"ColHiddenSize" INTEGER NOT NULL,
-	PRIMARY KEY("ModelName","ModelIdx","IsHitter")
+	"ModelRun"	INTEGER NOT NULL,
+	PRIMARY KEY("ModelName","ModelRun","IsHitter")
 );
 
 CREATE TABLE "PlayersInTrainingData" (
 	"mlbId" INTEGER NOT NULL,
 	"tbcId" INTEGER NOT NULL,
-	"modelIdx" INTEGER NOT NULL,
+	"modelId" INTEGER NOT NULL,
 	"modelRun" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
 	"isTrain" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "tbcId", "isHitter", "modelIdx", "modelRun")
+	PRIMARY KEY ("mlbId", "tbcId", "isHitter", "modelId", "modelRun")
 );
 
-CREATE TABLE "ModelIdx" (
+CREATE TABLE "ModelId" (
 	"id" INTEGER NOT NULL,
 	"modelName" TEXT NOT NULL,
 	PRIMARY KEY("id")

@@ -17,7 +17,9 @@ boolean_types = [
                 ("PlayersInTrainingData", ["IsHitter", "IsTrain"]),
                 ("Model_TrainingHistory", ["IsHitter"]),
                 ("Output_PlayerWar", ["IsHitter"]),
-                ("Output_PlayerWarAggregation", ["IsHitter"]),]
+                ("Output_PlayerWarAggregation", ["IsHitter"]),
+                ("Output_PlayerHighestLevel", ["IsHitter"]),
+                ("Output_PlayerHighestLevelAggregation", ["IsHitter"])]
 
 
 

@@ -3,9 +3,9 @@ namespace ModelDb
 	public class Output_PlayerWar
 	{
 		public required int MlbId {get; set;}
-		public required int Model {get; set;}
+		public required int ModelId {get; set;}
 		public required bool IsHitter {get; set;}
-		public required int ModelIdx {get; set;}
+		public required int ModelRun {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float War0 {get; set;}
@@ -22,9 +22,9 @@ namespace ModelDb
 			return new Output_PlayerWar
 			{
 				MlbId = this.MlbId,
-				Model = this.Model,
+				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
-				ModelIdx = this.ModelIdx,
+				ModelRun = this.ModelRun,
 				Year = this.Year,
 				Month = this.Month,
 				War0 = this.War0,

@@ -6,11 +6,7 @@ namespace ModelDb
 		public required bool IsHitter {get; set;}
 		public required float TestLoss {get; set;}
 		public required float TestLossCollege {get; set;}
-		public required int ModelIdx {get; set;}
-		public required int ProNumLayers {get; set;}
-		public required int ProHiddenSize {get; set;}
-		public required int ColNumLayers {get; set;}
-		public required int ColHiddenSize {get; set;}
+		public required int ModelRun {get; set;}
 
 		public Model_TrainingHistory Clone()
 		{
@@ -20,11 +16,7 @@ namespace ModelDb
 				IsHitter = this.IsHitter,
 				TestLoss = this.TestLoss,
 				TestLossCollege = this.TestLossCollege,
-				ModelIdx = this.ModelIdx,
-				ProNumLayers = this.ProNumLayers,
-				ProHiddenSize = this.ProHiddenSize,
-				ColNumLayers = this.ColNumLayers,
-				ColHiddenSize = this.ColHiddenSize,
+				ModelRun = this.ModelRun,
 				
 			};
 		}

@@ -3,7 +3,7 @@ namespace ModelDb
 	public class Output_PlayerWarAggregation
 	{
 		public required int MlbId {get; set;}
-		public required int Model {get; set;}
+		public required int ModelId {get; set;}
 		public required bool IsHitter {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
@@ -21,7 +21,7 @@ namespace ModelDb
 			return new Output_PlayerWarAggregation
 			{
 				MlbId = this.MlbId,
-				Model = this.Model,
+				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
 				Year = this.Year,
 				Month = this.Month,

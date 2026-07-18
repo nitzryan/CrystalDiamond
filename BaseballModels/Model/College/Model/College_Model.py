@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
+import json
+
 from Model.College.DataPrep.Data_Prep import College_Data_Prep
 from Model.Constants import DRAFT_BUCKETS, TOTAL_WAR_BUCKETS, HITTER_PA_BUCKETS, OFF_RATE_BUCKETS, DEF_RATE_BUCKETS
 from Model.Pro.Model.Player_Model import LayerArch
@@ -33,6 +35,8 @@ class RNN_Model(nn.Module):
                 input_size : int,
                 data_prep : College_Data_Prep,
                 is_hitter : bool,
+                save_name : str | None = None,
+                
                 num_layers : int = 2,
                 hidden_size : int = 8,
                 noise : float = 0.0257,
@@ -58,6 +62,43 @@ class RNN_Model(nn.Module):
                 weight_decay_p : list[float] = DEFAULT_WEIGHT_DECAY_P):
         
         super().__init__()
+        
+        if save_name is not None:
+            with open(save_name, "w") as f:
+                config = {
+                    "input_size": input_size,
+                    "is_hitter": is_hitter,
+                    
+                    # RNN / core parameters
+                    "num_layers": num_layers,
+                    "hidden_size": hidden_size,
+                    "noise": noise,
+                    "dropout": dropout,
+                    
+                    # LayerArch definitions
+                    "draft_arch": draft_arch.ToDict(),
+                    "draft_arch_p": draft_arch_p.ToDict(),
+                    "pos_arch": pos_arch.ToDict(),
+                    "pos_arch_p": pos_arch_p.ToDict(),
+                    "war_arch": war_arch.ToDict(),
+                    "war_arch_p": war_arch_p.ToDict(),
+                    "off_arch": off_arch.ToDict(),
+                    "def_arch": def_arch.ToDict(),
+                    "pa_arch": pa_arch.ToDict(),
+                    
+                    # Output head architecture
+                    "output_hidden_size": output_hidden_size,
+                    "output_num_layers": output_num_layers,
+                    "output_hidden_arch": output_hidden_arch.ToDict(),
+                    "output_hidden_arch_p": output_hidden_arch_p.ToDict(),
+                    
+                    # Training hyperparameters
+                    "lr": lr,
+                    "lr_p": lr_p,
+                    "weight_decay": weight_decay,
+                    "weight_decay_p": weight_decay_p,
+                }
+                json.dump(config, f, indent=2)
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -173,6 +214,45 @@ class RNN_Model(nn.Module):
         
         else:
             return output_draft, output_war, output_pos, output_hidden
+        
+    @classmethod
+    def LoadFromFile(cls, args_file : str, data_prep : College_Data_Prep):
+        with open(args_file) as file:
+            args_dict = json.load(file)
+            return cls(
+                input_size=args_dict["input_size"],
+                data_prep=data_prep,
+                is_hitter=args_dict["is_hitter"],
+                
+                # RNN / core parameters
+                num_layers=args_dict["num_layers"],
+                hidden_size=args_dict["hidden_size"],
+                noise=args_dict["noise"],
+                dropout=args_dict["dropout"],
+                
+                # LayerArch
+                draft_arch=LayerArch.LoadFromDict(args_dict["draft_arch"]),
+                draft_arch_p=LayerArch.LoadFromDict(args_dict["draft_arch_p"]),
+                pos_arch=LayerArch.LoadFromDict(args_dict["pos_arch"]),
+                pos_arch_p=LayerArch.LoadFromDict(args_dict["pos_arch_p"]),
+                war_arch=LayerArch.LoadFromDict(args_dict["war_arch"]),
+                war_arch_p=LayerArch.LoadFromDict(args_dict["war_arch_p"]),
+                off_arch=LayerArch.LoadFromDict(args_dict["off_arch"]),
+                def_arch=LayerArch.LoadFromDict(args_dict["def_arch"]),
+                pa_arch=LayerArch.LoadFromDict(args_dict["pa_arch"]),
+                
+                # Output head
+                output_hidden_size=args_dict["output_hidden_size"],
+                output_num_layers=args_dict["output_num_layers"],
+                output_hidden_arch=LayerArch.LoadFromDict(args_dict["output_hidden_arch"]),
+                output_hidden_arch_p=LayerArch.LoadFromDict(args_dict["output_hidden_arch_p"]),
+                
+                # Training hyperparameters
+                lr=args_dict["lr"],
+                lr_p=args_dict["lr_p"],
+                weight_decay=args_dict["weight_decay"],
+                weight_decay_p=args_dict["weight_decay_p"],
+            )
     
 def Classification_Loss(pred : torch.Tensor, 
                         actual : torch.Tensor, 

@@ -151,7 +151,7 @@ class Combined_Data_Prep:
         if col_player is not None and col_stats is not None:
             col_io = self.college_data_prep.Generate_IO_Single_Hitter(col_player, col_stats)
         else:
-            col_io = self.GetEmptyCollegeIO()
+            col_io = self.GetEmptyCollegeIO(is_hitter=True)
             
         return Combined_IO(pro_io, col_io)
         

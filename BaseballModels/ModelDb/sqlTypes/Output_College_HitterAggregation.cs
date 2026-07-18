@@ -3,7 +3,7 @@ namespace ModelDb
 	public class Output_College_HitterAggregation
 	{
 		public required int TbcId {get; set;}
-		public required int Model {get; set;}
+		public required int ModelId {get; set;}
 		public required int Year {get; set;}
 		public required float Draft0 {get; set;}
 		public required float Draft1 {get; set;}
@@ -59,7 +59,7 @@ namespace ModelDb
 			return new Output_College_HitterAggregation
 			{
 				TbcId = this.TbcId,
-				Model = this.Model,
+				ModelId = this.ModelId,
 				Year = this.Year,
 				Draft0 = this.Draft0,
 				Draft1 = this.Draft1,

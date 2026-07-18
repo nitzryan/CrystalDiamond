@@ -22,10 +22,10 @@ namespace SitePrep
                     {
                         List<PlayerYearPositions> pyps = new();
 
-                        IEnumerable<int> hitterYears = mp.IsHitter == 1 ? db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).Distinct().OrderBy(f => f) : [];
-                        IEnumerable<int> pitcherYears = mp.IsPitcher == 1 ? db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).Distinct().OrderBy(f => f) : [];
+                        IEnumerable<int> hitterYears = mp.IsHitter ? db.Player_Hitter_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).Distinct().OrderBy(f => f) : [];
+                        IEnumerable<int> pitcherYears = mp.IsPitcher ? db.Player_Pitcher_YearAdvanced.Where(f => f.MlbId == mp.MlbId).Select(f => f.Year).Distinct().OrderBy(f => f) : [];
 
-                        if (mp.IsPitcher == 1)
+                        if (mp.IsPitcher)
                         {
                             foreach (var y in pitcherYears)
                             {
@@ -38,7 +38,7 @@ namespace SitePrep
                                 });
                             }
                         }
-                        if (mp.IsHitter == 1)
+                        if (mp.IsHitter)
                         {
                             foreach (var y in hitterYears)
                             {

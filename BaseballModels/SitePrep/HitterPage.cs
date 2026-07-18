@@ -23,13 +23,13 @@ namespace SitePrep
             // Pre-load which players are in trainingData
             HashSet<(int MlbId, int ModelIdx)> hitterTrainSet = modelDb.PlayersInTrainingData
                 .Where(f => f.IsHitter && f.IsTrain)
-                .Select(f => new { f.MlbId, f.ModelIdx })
+                .Select(f => new { f.MlbId, f.ModelId })
                 .Distinct()
                 .AsEnumerable()
-                .Select(f => (f.MlbId, f.ModelIdx))
+                .Select(f => (f.MlbId, f.ModelId))
                 .ToHashSet();
 
-            var players = db.Model_Players.Where(f => f.IsHitter == 1)
+            var players = db.Model_Players.Where(f => f.IsHitter)
                 .Join(db.Site_PlayerBio, mp => mp.MlbId, sbi => sbi.Id, (mp, sbi) => new { mp, sbi });
             using (ProgressBar progressBar = new ProgressBar(players.Count(), "Generating Hitter Site Data"))
             {
@@ -41,7 +41,7 @@ namespace SitePrep
                     // Model Output Buckets by model
                     var opwsByModel = modelDb.Output_PlayerWarAggregation
                         .Where(f => f.MlbId == player.MlbId && f.IsHitter)
-                        .GroupBy(f => f.Model);
+                        .GroupBy(f => f.ModelId);
 
                     foreach (var modelGroup in opwsByModel)
                     {
@@ -50,14 +50,14 @@ namespace SitePrep
                         int timestepIndex = 0; // N, 0-indexed count of sequential prospect rankings seen so far
                         foreach (var opw in modelGroup.OrderBy(f => f.Year).ThenBy(f => f.Month))
                         {
-                            var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.Model);
+                            var ranks = siteDb.PlayerRank.Where(f => f.Year == opw.Year && f.Month == opw.Month && f.MlbId == opw.MlbId && f.ModelId == opw.ModelId);
 
                             siteDb.Add(new PlayerModel
                             {
                                 MlbId = player.MlbId,
                                 Year = opw.Year,
                                 Month = opw.Month,
-                                ModelId = opw.Model,
+                                ModelId = opw.ModelId,
                                 IsHitter = opw.IsHitter,
                                 ProbsWar = $"{opw.War0.ToString("0.000")}," +
                                         $"{opw.War1.ToString("0.000")}," +
