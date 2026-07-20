@@ -110,7 +110,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
         private static Dictionary<OPWA_Key, List<OPWA_Value>> GetOpwaDict(ModelDbContext modelDb, int modelId)
         {
             return modelDb.Output_PlayerWarAggregation
-                .Where(f => f.Model == modelId)
+                .Where(f => f.ModelId == modelId)
                 .GroupBy(f => new OPWA_Key(f.MlbId, f.IsHitter))
                 .ToDictionary(
                     keySelector: f => f.Key,

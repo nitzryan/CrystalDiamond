@@ -58,7 +58,7 @@ namespace ModelEvaluation
                     string hitterLabel = isHitter ? "H" : "P";
 
                     Expression<Func<ModelDb.Output_PlayerWarAggregation, bool>> outputFilter =
-                        o => o.IsHitter == isHitter && o.Model == 1;
+                        o => o.IsHitter == isHitter && o.ModelId == 1;
 
                     var players = allPlayersDb
                         .Where(p => isHitter ? p.IsHitter : p.IsPitcher)

@@ -1,6 +1,4 @@
 ﻿using Db;
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.Optimization;
 using ScottPlot;
 using static ModelEvaluation.PlayerGroupEvaluations.PlayerGroup;
 

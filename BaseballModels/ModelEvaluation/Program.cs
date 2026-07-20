@@ -7,8 +7,9 @@ namespace ModelEvaluation
     {
         static void Main(string[] args)
         {
-            RunDraftPickBucketTest(1, 2,
-            DraftPlotOptions.LogX | DraftPlotOptions.LogY);
+            //RunDraftPickBucketTest(1, 2,
+            //DraftPlotOptions.LogX | DraftPlotOptions.LogY);
+            DraftInitialRatings.Calculate(1, 2023);
         }
     }
 }
