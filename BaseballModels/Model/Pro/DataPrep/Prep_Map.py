@@ -56,7 +56,7 @@ __mlb_hit_value_size = 4
 __mlb_pit_value_size = 4
 
 base_prep_map = Prep_Map(
-    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank)],
+    map_bio=lambda p : [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank), p.prospectType],
     map_off=lambda h : [h.ParkRunFactor, min(h.Hit1B, 4), min(h.Hit2B, 4), min(h.Hit3B, 10), min(h.HitHR, 10), min(h.BB, 3), min(h.K, 2.5), min(h.HBP, 8), min(h.SB, 10), min(h.CS, 10), h.crOFF, max(min(h.crDRAA, 10), -10), h.crDPOS, h.crWAR],
     map_bsr=lambda h : [h.crBSR, h.SBRateRatio],
     map_def=lambda h : [h.PercC, h.Perc1B, h.Perc2B, h.Perc3B, h.PercSS, h.PercLF, h.PercCF, h.PercRF, h.PercDH],
@@ -71,7 +71,7 @@ base_prep_map = Prep_Map(
     map_mlb_pit_value=__map_mlb_pit_value,
     mlb_hit_value_size=__mlb_hit_value_size,
     mlb_pit_value_size=__mlb_pit_value_size,
-    bio_size=2,
+    bio_size=3,
     hitterlvl_size=3,
     hitterpt_size=3,
     off_size=14,

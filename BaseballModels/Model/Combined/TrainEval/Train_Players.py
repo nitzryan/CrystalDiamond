@@ -24,7 +24,7 @@ def Train_Players(num_models : int, is_hitter : bool):
     model_cursor = model_db.cursor()
     model_list = model_cursor.execute("SELECT modelName, id FROM ModelId ORDER BY id ASC").fetchall()
     
-    for model_name, model_id in tqdm(model_list, desc="Training Hitting Architectures"):
+    for model_name, model_id in tqdm(model_list, desc=arch_desc):
         model_cursor = model_db.cursor()
         model_cursor.execute("DELETE FROM PlayersInTrainingData WHERE modelId=? AND isHitter=?", (model_id, is_hitter_int))
         model_db.commit()
@@ -45,7 +45,7 @@ def Train_Players(num_models : int, is_hitter : bool):
         model_cursor.execute(f"DELETE FROM Model_TrainingHistory WHERE ModelName='{model_name}' AND IsHitter={is_hitter_int}")
         model_db.commit()
         
-        for model_run in tqdm(range(num_models), desc="Training Hitter Models", leave=False):
+        for model_run in tqdm(range(num_models), desc=run_desc, leave=False):
             train_dataset : Combined_Player_Dataset
             test_dataset : Combined_Player_Dataset
             train_dataset, test_dataset = Create_Test_Train_Datasets(player_list=io_list, is_hitter=is_hitter, train_idx=model_run)
@@ -61,8 +61,7 @@ def Train_Players(num_models : int, is_hitter : bool):
                 data_prep=data_prep.college_data_prep,
                 is_hitter=is_hitter,
                 save_name=f"Model/Models/{model_name}_{player_type}_col.json" if model_run == 0 else None,
-                output_hidden_size=pro_network.GetHiddenSize(),
-                output_num_layers=pro_network.GetNumLayers(),
+                output_init_state_size=pro_network.GetInitStateSize(),
             ).to(device)
             
             train_results = TrainAndGraph(

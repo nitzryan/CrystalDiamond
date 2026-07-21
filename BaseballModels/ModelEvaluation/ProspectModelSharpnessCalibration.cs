@@ -40,18 +40,17 @@ namespace ModelEvaluation
             string[] warBucketLabels = ["0to1", "1to3", "3to5", "5to10", "10plus"];
             string reportFileName = "../../../Output/Prospect_PIT/report.csv";
 
-            Dictionary<int, string> prospectTypeLabels = new()
-            {
-                { 1, "DRFT" },
-                { 2, "UDFA" },
-                { 3, "INTL" }
-            };
+            List<DbEnums.ProspectType> prospectTypes = [
+                DbEnums.ProspectType.College,
+                DbEnums.ProspectType.HS_JUCO,
+                DbEnums.ProspectType.IntlFA,
+            ];
 
             var allPlayersDb = db.Model_Players.Where(p => p.IsEligible).ToList();
 
             List<GroupResult> results = [];
 
-            using (ProgressBar progressBar = new ProgressBar(2 * (prospectTypeLabels.Count + 1), "Prospect Model Calibration Stats"))
+            using (ProgressBar progressBar = new ProgressBar(2 * (prospectTypes.Count + 1), "Prospect Model Calibration Stats"))
             {
                 foreach (bool isHitter in new[] { true, false })
                 {
@@ -67,7 +66,7 @@ namespace ModelEvaluation
                     // Build prospect type groups including "All"
                     var prospectTypeGroups = players
                         .Select(p => p.ProspectType).Distinct().OrderBy(x => x)
-                        .Select(pt => (Label: prospectTypeLabels[pt], Players: players.Where(p => p.ProspectType == pt).ToList()))
+                        .Select(pt => (Label: pt.ToString(), Players: players.Where(p => p.ProspectType == pt).ToList()))
                         .Append(("All", players))
                         .ToList();
 

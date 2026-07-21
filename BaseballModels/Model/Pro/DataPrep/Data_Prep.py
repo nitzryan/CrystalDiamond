@@ -24,6 +24,8 @@ class Player_IO:
                  output_war_class_variants : torch.Tensor,
                  output_war_regression_variants : torch.Tensor,
                  length : int,
+                 player_demo : int,
+                 player_bio : torch.Tensor,
                  dates : torch.Tensor, 
                  prospect_mask : torch.Tensor,
                  stat_level_mask : torch.Tensor,
@@ -46,6 +48,8 @@ class Player_IO:
         self.output_war_class_variants = output_war_class_variants
         self.output_war_regression_variants = output_war_regression_variants
         self.length = length
+        self.player_demo = player_demo
+        self.player_bio = player_bio
         self.dates = dates
         self.prospect_mask = prospect_mask
         self.stat_level_mask = stat_level_mask
@@ -224,10 +228,10 @@ class Data_Prep:
         return self.Get_ZScore(output_stats, "pitoutput")
     
     def Get_Hitter_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.mlb_hit_value_size + 1
+        return self.prep_map.hitterlvl_size + self.prep_map.off_size + self.prep_map.bsr_size + self.prep_map.def_size + self.prep_map.hitterpt_size + self.prep_map.mlb_hit_value_size + 1
     
     def Get_Pitcher_Size(self) -> int:
-        return self.prep_map.bio_size + self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.mlb_pit_value_size + 1
+        return self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.mlb_pit_value_size + 1
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
@@ -318,10 +322,12 @@ class Data_Prep:
         # Input
         input = torch.zeros(l, self.Get_Hitter_Size())
         input[0,0] = 1 # Initialization step, no stats here
-        input[:,1:self.prep_map.bio_size + 1] = self.__Transform_HitterData(hitter) # Hitter Bio
         if l > 1:
-            input[1:, self.prep_map.bio_size + 1:-self.prep_map.mlb_hit_value_size] = self.Transform_HitterStats(stats) # Month Stats
+            input[1:, 1:-self.prep_map.mlb_hit_value_size] = self.Transform_HitterStats(stats) # Month Stats
             input[1:, -self.prep_map.mlb_hit_value_size:] = self.Transform_HitterMlbValues(monthly_wars)
+
+        # Player bio
+        player_bio = self.__Transform_HitterData(hitter).float()
 
         # Amount of games played at each level each year to make for better pt predictions
         mlyg = torch.zeros(l, 8, dtype=torch.float)
@@ -337,10 +343,10 @@ class Data_Prep:
                 mlyg[i,:] = gc
         if l > 1:
             mlyg[0,:] = mlyg[1,:]
-
+            
 
         if compute_outputs:
-            # Norm tensors (shared across all hitters)
+            # Norm tensors
             hitlvlstat_means : torch.Tensor = getattr(self, "__hitlvlstat_means")
             hitlvlstat_devs : torch.Tensor = getattr(self, "__hitlvlstat_devs")
             hitpt_means : torch.Tensor = getattr(self, "__hitlvlpt_means")
@@ -469,7 +475,7 @@ class Data_Prep:
             mlb_value_stats = None
             mlb_stat_buckets = None
             mlb_stat_mask = None
-
+            player_bio = None
 
         return Player_IO(player=hitter,
                             input=input,
@@ -478,6 +484,8 @@ class Data_Prep:
                             output_war_class_variants=output_war_class_variants,
                             output_war_regression_variants=output_war_regression_variants,
                             length=l,
+                            player_demo=hitter.prospectType,
+                            player_bio=player_bio,
                             dates=dates,
                             prospect_mask=prospect_mask,
                             stat_level_mask=mask_stats,
@@ -492,110 +500,72 @@ class Data_Prep:
                             mlb_stat_buckets = mlb_stat_buckets,
                             mlb_stat_mask = mlb_stat_mask,)
         
+    def Generate_IO_Single_Pitcher(self,
+                pitcher : DB_Model_Players,
+                stats : list[DB_Model_PitcherStats],
+                monthly_wars : list[DB_Player_MonthlyWar],
+                level_stats : list[DB_Model_HitterLevelStats] | None,
+                mlb_values : list[DB_Model_HitterValue] | None,
+                player_wars : list[DB_Model_PlayerWar] | None,
+                modelLevelYearGamesDict : dict | None = None,
+                ignore_player : bool = False) -> Player_IO:
+        
+        # Output/masking arguments are all-or-nothing
+        output_group = (level_stats, mlb_values, player_wars)
+        compute_outputs = any(g is not None for g in output_group)
+        if compute_outputs and any(g is None for g in output_group):
+            raise ValueError(
+            "level_stats, mlb_values and player_wars are all-or-nothing: provide "
+            "all three to generate outputs/masks, or none to only generate "
+            "input/length/pt_levelYearGames.")
+            
+        # Built here if not supplied (standalone / what-if calls)
+        if modelLevelYearGamesDict is None:
+            modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(db.cursor())
 
-        
-    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
-        # Get Hitters
-        cursor = db.cursor()
-        hitters = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
-        
-        io : list[Player_IO] = []
-        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
-        
-        # Amount of games played each year at each level for pt predictions
-        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
-        
-        np.random.seed(4980)
-        for hitter in tqdm(hitters, desc="Generating Pro Hitters", leave=False):
-            # Get Stats
-            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
-                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
-                                                                     (hitter.mlbId, cutoff_year))
-            l = len(stats_monthlywar) + 1
-            stats = [mhs for mhs, pmw in stats_monthlywar]
-            monthly_wars = [pmw for mhs, pmw in stats_monthlywar]
-            
-            level_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (hitter.mlbId, cutoff_year))
-            
-            dates = torch.cat(
-                    (torch.tensor([(hitter.mlbId, 0, 0)], dtype=torch.long),
-                    torch.tensor([(x.mlbId, x.Year, x.Month) for x, _ in stats_monthlywar], dtype=torch.long)))
-            
-            mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
-                WHERE mlbId=:mlbId AND
-                (
-                    Year<=:year
-                )
-                ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':hitter.mlbId,'year':cutoff_year})
-            
-            player_wars = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1", (hitter.mlbId,))
-            ignore_player = cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (hitter.mlbId,)).fetchone()[0] is not None
+        l = len(stats) + 1
 
+        dates = torch.cat(
+                (torch.tensor([(pitcher.mlbId, 0, 0)], dtype=torch.long),
+                torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long)))
+        
+        # Input
+        input = torch.zeros(l, self.Get_Pitcher_Size())
+        input[0,0] = 1 # Initialization step, no stats here
+        if l > 1:
+            input[1:, 1:-self.prep_map.mlb_pit_value_size] = self.Transform_PitcherStats(stats) # Month Stats
+            input[1:, -self.prep_map.mlb_pit_value_size:] = self.Transform_PitcherMlbValues(monthly_wars)
+        
+        # Player bio
+        player_bio = self.__Transform_PitcherData(pitcher).float()
+        
+        # Amount of games played at each level each year to make for better pt predictions
+        mlyg = torch.zeros(l, 8, dtype=torch.float)
+        # Initialize values so that any future values get a full season
+        mlyg[:,:] = torch.tensor([2430 / 500, 2232 / 500, 2056 / 500, 1958 / 500, 1948 / 500, 0, 878 / 500, 1436 / 500])
+        for i, date in enumerate(dates):
+            if i == 0:
+                continue
             
-            io.append(self.Generate_IO_Single_Hitter(
-                hitter=hitter,
-                stats=stats,
-                monthly_wars=monthly_wars,
-                level_stats=level_stats,
-                mlb_values=mlb_values,
-                player_wars=player_wars,
-                modelLevelYearGamesDict=modelLevelYearGamesDict,
-                ignore_player=ignore_player))
-        
-        return io
-       
-    def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
-        # Get Pitchers
-        cursor = db.cursor()
-        pitchers = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
-        
-        io : list[Player_IO] = []
-        
-        pitlvlstat_means : torch.Tensor = getattr(self, "__pitlvlstat_means")
-        pitlvlstat_devs : torch.Tensor = getattr(self, "__pitlvlstat_devs")
-        pitpt_means : torch.Tensor = getattr(self, "__pitlvlpt_means")
-        pitpt_devs : torch.Tensor = getattr(self, "__pitlvlpt_devs")
-        
-        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
-        mlb_value_means : torch.Tensor = getattr(self, "__pitchervalues_means")
-        mlb_value_devs : torch.Tensor = getattr(self, "__pitchervalues_devs")
-        
-        prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
-        prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
-        
-        # Amount of games played each year at each level for pt predictions
-        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
-        
-        np.random.seed(4980)
-        for pitcher in tqdm(pitchers, desc="Generating Pro Pitchers", leave=False):
-            # Get Stats
-            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
-                                                                     "SELECT * FROM Model_PitcherStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? ORDER BY mhs.Year ASC, mhs.Month ASC",
-                                                                     (pitcher.mlbId, cutoff_year))
-            l = len(stats_monthlywar) + 1
-            stats = [mhs for mhs, pmw in stats_monthlywar]
-            level_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (pitcher.mlbId, cutoff_year))
-                
-            dates = torch.cat(
-                    (torch.tensor([(pitcher.mlbId, 0, 0)], dtype=torch.long),
-                    torch.tensor([(x.mlbId, x.Year, x.Month) for x in stats], dtype=torch.long)))
+            dateTuple = date[1].item(), date[2].item()
+            gc = modelLevelYearGamesDict[dateTuple] if dateTuple in modelLevelYearGamesDict else None
+            if gc is not None:
+                mlyg[i,:] = gc
+        if l > 1:
+            mlyg[0,:] = mlyg[1,:]
             
-            mlb_values = DB_Model_PitcherValue.Select_From_DB(cursor, '''
-                WHERE mlbId=:mlbId AND
-                (
-                    Year<=:year
-                )
-                ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':pitcher.mlbId,'year':cutoff_year})
+        if compute_outputs:
+            # Norm tensors
+            pitlvlstat_means : torch.Tensor = getattr(self, "__pitlvlstat_means")
+            pitlvlstat_devs : torch.Tensor = getattr(self, "__pitlvlstat_devs")
+            pitpt_means : torch.Tensor = getattr(self, "__pitlvlpt_means")
+            pitpt_devs : torch.Tensor = getattr(self, "__pitlvlpt_devs")
             
-            # Input
-            input = torch.zeros(l, self.Get_Pitcher_Size())
-            input[0,0] = 1 # Initialization step, no stats here
-            input[:,1:self.prep_map.bio_size + 1] = self.__Transform_PitcherData(pitcher) # Pitcher Bio
-            if l > 1:
-                input[1:, self.prep_map.bio_size + 1:-self.prep_map.mlb_pit_value_size] = self.Transform_PitcherStats(stats) # Month Stats
-                input[1:, -self.prep_map.mlb_pit_value_size:] = self.Transform_PitcherMlbValues([pmw for mhs, pmw in stats_monthlywar])
+            mlb_value_means : torch.Tensor = getattr(self, "__pitchervalues_means")
+            mlb_value_devs : torch.Tensor = getattr(self, "__pitchervalues_devs")
+            
+            prospect_value_means : torch.Tensor = getattr(self, "__pit_prospect_value_means")
+            prospect_value_devs : torch.Tensor = getattr(self, "__pit_prospect_value_devs")
             
             # Output
             output = torch.zeros(3, dtype=torch.long)
@@ -610,11 +580,11 @@ class Data_Prep:
             # Create variants for Prospect value
             output_war_class_variants = torch.zeros(NUM_VARIANTS, dtype=torch.long)
             output_war_regression_variants = torch.zeros(NUM_VARIANTS, dtype=torch.float)
-            mpws = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=0", (pitcher.mlbId,))
-            if len(mpws) > 0:
+            
+            if len(player_wars) > 0:
                 pa = 0
                 war = 0
-                for mpw in mpws:
+                for mpw in player_wars:
                     pa += mpw.PA
                     war += mpw.WAR_r + mpw.WAR_s
                 for n in range(NUM_VARIANTS):
@@ -624,7 +594,7 @@ class Data_Prep:
         
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
-            prospect_mask[0] = 1 if cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (pitcher.mlbId,)).fetchone()[0] == None else 0
+            prospect_mask[0] = 0 if ignore_player else 1
             for i, stat in enumerate(stats):
                 prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
             
@@ -686,9 +656,9 @@ class Data_Prep:
                 mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_pitcher_values(value)) - mlb_value_means) / mlb_value_devs
                 current_value_year = stats[i].Year
                 # Mask on whether the PA count should be counted
-                mlb_value_mask[i+1,0,0] = current_value_year < cutoff_year
-                mlb_value_mask[i+1,1,0] = current_value_year < (cutoff_year - 1)
-                mlb_value_mask[i+1,2,0] = current_value_year < (cutoff_year - 2)
+                mlb_value_mask[i+1,0,0] = current_value_year < Data_Prep.__Cutoff_Year
+                mlb_value_mask[i+1,1,0] = current_value_year < (Data_Prep.__Cutoff_Year - 1)
+                mlb_value_mask[i+1,2,0] = current_value_year < (Data_Prep.__Cutoff_Year - 2)
                 # Mask on whether the rate stats should be counted
                 # Scale so don't take too much from small samples, but cap to prevent bias (players who perform poorly get cut/sent down, so uncapped scale would overestimate marginal players)
                 mlb_value_mask[i+1,0,1] = min(value.IPSP1Year / 25, 1)
@@ -700,41 +670,137 @@ class Data_Prep:
             if len(mlb_values) > 0:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
-            
-            # Amount of games played at each level each year to make for better pt predictions
-            mlyg = torch.zeros(l, 8, dtype=torch.float)
-            # Initialize values so that any future values get a full season
-            mlyg[:,:] = torch.tensor([2430 / 500, 2232 / 500, 2056 / 500, 1958 / 500, 1948 / 500, 0, 878 / 500, 1436 / 500])
-            for i, date in enumerate(dates):
-                if i == 0:
-                    continue
                 
-                dateTuple = date[1].item(), date[2].item()
-                gc = modelLevelYearGamesDict[dateTuple] if dateTuple in modelLevelYearGamesDict else None
-                if gc is not None:
-                    mlyg[i,:] = gc
-            if l > 1:
-                mlyg[0,:] = mlyg[1,:]
+        else: # What-if analysis
+            output = None
+            prospect_value = None
+            output_war_class_variants = None
+            output_war_regression_variants = None
+            prospect_mask = None
+            mask_stats = None
+            lvl_mask = None
+            stat_year_output = None
+            pos_year_output = None
+            pt_year_output = None
+            mlb_value_mask = None
+            mlb_value_stats = None
+            mlb_stat_buckets = None
+            mlb_stat_mask = None
+            player_bio = None
+                
+        return Player_IO(player=pitcher, 
+            input=input, 
+            output=output, 
+            prospect_value=prospect_value, 
+            output_war_class_variants=output_war_class_variants, 
+            output_war_regression_variants=output_war_regression_variants, 
+            length=l, 
+            dates=dates,
+            player_bio=player_bio,
+            player_demo=pitcher.prospectType,
+            prospect_mask=prospect_mask, 
+            stat_level_mask=lvl_mask, 
+            year_level_mask=lvl_year_mask, 
+            year_stat_output=stat_year_output, 
+            year_pos_output=pos_year_output, 
+            pt_year_output=pt_year_output, 
+            mlb_value_mask=mlb_value_mask, 
+            mlb_value_stats=mlb_value_stats,
+            pt_levelYearGames=mlyg,
             
-            io.append(Player_IO(player=pitcher, 
-                                input=input, 
-                                output=output, 
-                                prospect_value=prospect_value, 
-                                output_war_class_variants=output_war_class_variants, 
-                                output_war_regression_variants=output_war_regression_variants, 
-                                length=l, dates=dates, 
-                                prospect_mask=prospect_mask, 
-                                stat_level_mask=lvl_mask, 
-                                year_level_mask=lvl_year_mask, 
-                                year_stat_output=stat_year_output, 
-                                year_pos_output=pos_year_output, 
-                                pt_year_output=pt_year_output, 
-                                mlb_value_mask=mlb_value_mask, 
-                                mlb_value_stats=mlb_value_stats,
-                                pt_levelYearGames=mlyg,
-                                
-                                mlb_stat_buckets = mlb_stat_buckets,
-                                mlb_stat_mask = mlb_stat_mask,))
+            mlb_stat_buckets = mlb_stat_buckets,
+            mlb_stat_mask = mlb_stat_mask,)
+            
+        
+    def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
+        # Get Hitters
+        cursor = db.cursor()
+        hitters = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
+        
+        io : list[Player_IO] = []
+        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
+        
+        # Amount of games played each year at each level for pt predictions
+        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
+        
+        np.random.seed(4980)
+        for hitter in tqdm(hitters, desc="Generating Pro Hitters", leave=False):
+            # Get Stats
+            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
+                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
+                                                                     (hitter.mlbId, cutoff_year))
+            l = len(stats_monthlywar) + 1
+            stats = [mhs for mhs, pmw in stats_monthlywar]
+            monthly_wars = [pmw for mhs, pmw in stats_monthlywar]
+            
+            level_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (hitter.mlbId, cutoff_year))
+            
+            mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
+                WHERE mlbId=:mlbId AND
+                (
+                    Year<=:year
+                )
+                ORDER BY Year ASC, MONTH ASC''',
+                {'mlbId':hitter.mlbId,'year':cutoff_year})
+            
+            player_wars = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1", (hitter.mlbId,))
+            ignore_player = cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (hitter.mlbId,)).fetchone()[0] is not None
+            
+            io.append(self.Generate_IO_Single_Hitter(
+                hitter=hitter,
+                stats=stats,
+                monthly_wars=monthly_wars,
+                level_stats=level_stats,
+                mlb_values=mlb_values,
+                player_wars=player_wars,
+                modelLevelYearGamesDict=modelLevelYearGamesDict,
+                ignore_player=ignore_player))
+        
+        return io
+       
+    def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
+        # Get Pitchers
+        cursor = db.cursor()
+        pitchers = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
+        
+        io : list[Player_IO] = []
+        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
+        
+        # Amount of games played each year at each level for pt predictions
+        modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
+        
+        np.random.seed(4980)
+        for pitcher in tqdm(pitchers, desc="Generating Pro Pitchers", leave=False):
+            # Get Stats
+            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_PitcherStats, DB_Player_MonthlyWar, cursor,
+                                                                     "SELECT * FROM Model_PitcherStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=? ORDER BY mhs.Year ASC, mhs.Month ASC",
+                                                                     (pitcher.mlbId, cutoff_year))
+            l = len(stats_monthlywar) + 1
+            stats = [mhs for mhs, pmw in stats_monthlywar]
+            monthly_wars = [pmw for mhs, pmw in stats_monthlywar]
+            level_stats = DB_Model_PitcherLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (pitcher.mlbId, cutoff_year))
+            
+            mlb_values = DB_Model_PitcherValue.Select_From_DB(cursor, '''
+                WHERE mlbId=:mlbId AND
+                (
+                    Year<=:year
+                )
+                ORDER BY Year ASC, MONTH ASC''',
+                {'mlbId':pitcher.mlbId,'year':cutoff_year})
+            
+            player_wars = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=0", (pitcher.mlbId,))
+            ignore_player = cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (pitcher.mlbId,)).fetchone()[0] is not None
+            
+            io.append(self.Generate_IO_Single_Pitcher(
+                pitcher=pitcher,
+                stats=stats,
+                monthly_wars=monthly_wars,
+                level_stats=level_stats,
+                mlb_values=mlb_values,
+                player_wars=player_wars,
+                modelLevelYearGamesDict=modelLevelYearGamesDict,
+                ignore_player=ignore_player
+            ))
         
         return io
         

@@ -8,6 +8,8 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 pro_dates,
                 pro_data,
                 pro_lengths, 
+                pro_player_demo,
+                pro_player_bios,
                 pro_output_labels, 
                 pro_output_war_values, 
                 pro_mask_labels, 
@@ -47,8 +49,9 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         # === Transpose at creation time so shape becomes (num_players, time_steps, features) ===
         self.pro_data = pro_data.to(device, non_blocking=True).transpose(0, 1)
         self.pro_lengths = pro_lengths.to(device, non_blocking=True)
-        
         self.pro_pt_levelYearGames = pro_pt_levelYearGames.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_player_demo = pro_player_demo.to(device, non_blocking=True)
+        self.pro_player_bios = pro_player_bios.to(device, non_blocking=True)
         
         self.pro_o_war_buckets = pro_output_labels[:,0].to(device, non_blocking=True)
         self.pro_o_level_buckets = pro_output_labels[:,1].to(device, non_blocking=True)
@@ -126,6 +129,8 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_data[batch_indices],
             self.pro_lengths[batch_indices],
             self.pro_pt_levelYearGames[batch_indices],
+            self.pro_player_demo[batch_indices],
+            self.pro_player_bios[batch_indices],
         )
 
         pro_targets = (
@@ -247,6 +252,11 @@ def Create_Test_Train_Datasets(
     pro_pt_levelYearGames_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.pt_levelYearGames for io in io_train])
     pro_pt_levelYearGames_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.pt_levelYearGames for io in io_test])
 
+    pro_player_demo_train = torch.tensor([io.pro_io.player_demo for io in io_train])
+    pro_player_demo_test = torch.tensor([io.pro_io.player_demo for io in io_test])
+    pro_player_bio_train = torch.stack([io.pro_io.player_bio for io in io_train]).squeeze(dim=1)
+    pro_player_bio_test = torch.stack([io.pro_io.player_bio for io in io_test]).squeeze(dim=1)
+
     pro_data_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.input for io in io_train])
     pro_data_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.input for io in io_test])
     pro_output_labels_train = torch.stack([io.pro_io.output for io in io_train])
@@ -337,6 +347,8 @@ def Create_Test_Train_Datasets(
         pro_dates= pro_dates_train,
         pro_data = pro_data_train, 
         pro_lengths = pro_lengths_train, 
+        pro_player_bios=pro_player_bio_train,
+        pro_player_demo=pro_player_demo_train,
         pro_output_labels = pro_output_labels_train, 
         pro_output_war_values = pro_output_war_values_train, 
         pro_mask_labels = pro_mask_labels_train, 
@@ -376,7 +388,9 @@ def Create_Test_Train_Datasets(
     test_dataset = Combined_Player_Dataset(
         pro_dates= pro_dates_test,
         pro_data = pro_data_test, 
-        pro_lengths = pro_lengths_test, 
+        pro_lengths = pro_lengths_test,
+        pro_player_bios=pro_player_bio_test,
+        pro_player_demo=pro_player_demo_test,
         pro_output_labels = pro_output_labels_test, 
         pro_output_war_values = pro_output_war_values_test, 
         pro_mask_labels = pro_mask_labels_test, 

@@ -330,7 +330,7 @@ namespace DataAquisition
         {
             if (outs == 0)
                 return 20.0f; // Don't want too high otherwise will mess up normalization
-            return ((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3) + cFIP;
+            return (((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3)) + cFIP;
         }
 
         public static float SafeDivide(float num, float denom, float fallback = 1.0f)
@@ -493,6 +493,18 @@ namespace DataAquisition
             bool isEligible = isEligibleNullable == null ? lastYear <= 2015 : isEligibleNullable.Value;
 
             return isEligible;
+        }
+
+        public static DbEnums.ProspectType GetProspectType(Player p, SqliteDbContext db)
+        {
+            bool hasCollege = db.College_Player.Any(f => f.MlbId == p.MlbId);
+            if (hasCollege)
+                return DbEnums.ProspectType.College;
+
+            if (p.DraftPick != null)
+                return DbEnums.ProspectType.HS_JUCO;
+
+            return DbEnums.ProspectType.IntlFA;
         }
     }
 }

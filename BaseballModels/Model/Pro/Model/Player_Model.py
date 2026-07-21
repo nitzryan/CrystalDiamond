@@ -92,6 +92,11 @@ DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 DEFAULT_LEARNING_RATES = [0.0089,0.030,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
+DEFAULT_INIT_STATE_SIZE = 16
+DEFAULT_INIT_STATE_SIZE_P = 16
+DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=32, num_layers=4)
+DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=32, num_layers=4)
+
 class RNN_Model(nn.Module):
     def __init__(self, 
                  
@@ -137,6 +142,11 @@ class RNN_Model(nn.Module):
                 
                 learning_rates : list[float] = DEFAULT_LEARNING_RATES,
                 learning_rates_p : list[float] = DEFAULT_LEARNING_RATES_P,
+                
+                init_state_size : float = DEFAULT_INIT_STATE_SIZE,
+                init_state_size_p : float = DEFAULT_INIT_STATE_SIZE_P,
+                init_state_arch : LayerArch = DEFAULT_INIT_STATE_ARCH,
+                init_state_arch_p : LayerArch = DEFAULT_INIT_STATE_ARCH_P,
                 ):
         super().__init__()
         if not is_hitter:
@@ -156,6 +166,9 @@ class RNN_Model(nn.Module):
             mlbstat_arch = mlbstat_arch_p
             weight_decay = weight_decay_p
             learning_rates = learning_rates_p
+            
+            init_state_size = init_state_size_p
+            init_state_arch = init_state_arch_p
         
         if save_name is not None:
             with open(save_name, "w") as f:
@@ -170,11 +183,9 @@ class RNN_Model(nn.Module):
                     "rnn_nonlinearity": rnn_nonlinearity,
                     "input_noise": input_noise,
                     
-                    "rnn_droupout_p": rnn_droupout_p,
-                    "num_layers_p": num_layers_p,
-                    "hidden_size_p": hidden_size_p,
-                    "rnn_nonlinearity_p": rnn_nonlinearity_p,
-                    "input_noise_p": input_noise_p,
+                    # Initial Hidden State Calculation
+                    "init_state_size" : init_state_size,
+                    "init_state_arch" : init_state_arch.ToDict(),
                     
                     # LayerArch definitions
                     "stats_arch": stats_arch.ToDict(),
@@ -186,35 +197,28 @@ class RNN_Model(nn.Module):
                     "val_arch": val_arch.ToDict(),
                     "mlbstat_arch": mlbstat_arch.ToDict(),
                     
-                    "stats_arch_p": stats_arch_p.ToDict(),
-                    "war_arch_p": war_arch_p.ToDict(),
-                    "pt_arch_p": pt_arch_p.ToDict(),
-                    "pos_arch_p": pos_arch_p.ToDict(),
-                    "lvl_arch_p": lvl_arch_p.ToDict(),
-                    "pa_arch_p": pa_arch_p.ToDict(),
-                    "val_arch_p": val_arch_p.ToDict(),
-                    "mlbstat_arch_p": mlbstat_arch_p.ToDict(),
-                    
                     # Training / other hyperparameters
                     "weight_decay": weight_decay,
-                    "weight_decay_p": weight_decay_p,
                     "learning_rates": learning_rates,
-                    "learning_rates_p": learning_rates_p,
                 }
                 json.dump(config, f, indent=2)
         
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.input_noise = input_noise
+        self.init_state_size = init_state_size
+        
+        # Converting Initial State to RNN initial hidden state
+        self.init_hidden = init_state_arch.Build(init_state_size + data_prep.prep_map.bio_size, hidden_size * num_layers)
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
         
-        self.recurrent = nn.RNN(input_size=input_size+1, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
+        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
         
+        # Taking RNN output and making predictions
         num_war_classes = len(output_map.buckets_hitter_war)
         self.war = war_arch.Build(hidden_size, num_war_classes)
-        
         self.level = lvl_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS))
         self.pa = pa_arch.Build(hidden_size, len(HITTER_PA_BUCKETS))
         self.yearStats = stats_arch.Build(hidden_size, NUM_LEVELS * stats_size)
@@ -235,11 +239,9 @@ class RNN_Model(nn.Module):
         self.war_min = data_prep.minHitWar if is_hitter else data_prep.minPitWar
         self.war_max = data_prep.maxHitWar if is_hitter else data_prep.maxPitWar
         
-        # Initialize hidden state for players without college hidden state
-        self.init_hidden = nn.Parameter(
-            torch.zeros(self.num_layers, self.hidden_size)
-        )
-        nn.init.xavier_uniform_(self.init_hidden)
+        # Initialize hidden state for players HS and international players
+        self.init_hidden_hs = nn.Parameter(torch.zeros(init_state_size))
+        self.init_hidden_intl = nn.Parameter(torch.zeros(init_state_size))
         
         self.softplus = nn.Softplus()
         
@@ -277,7 +279,6 @@ class RNN_Model(nn.Module):
                 init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        
         self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[0], 'weight_decay': weight_decay[0]},
                                            {'params': self.war.parameters(), 'lr': learning_rates[1], 'weight_decay': weight_decay[1]},
                                            {'params': self.level.parameters(), 'lr': learning_rates[2], 'weight_decay': weight_decay[2]},
@@ -292,36 +293,40 @@ class RNN_Model(nn.Module):
     def to(self, *args, **kwargs):
         return super(RNN_Model, self).to(*args, **kwargs)
     
-    def GetHiddenSize(self) -> int:
-        return self.hidden_size
+    def GetInitStateSize(self) -> int:
+        return self.init_state_size
     
-    def GetNumLayers(self) -> int:
-        return self.num_layers
-    
-    def forward(self, x, lengths, pt_levelYearGames, h0, col_lengths):
+    def forward(self, x, lengths, pt_levelYearGames, i0, player_demo, player_bios):
         if self.training and self.input_noise > 0:
             noise = torch.rand_like(x, requires_grad=False) * self.input_noise
             x += noise
         
-        # Append sequence index
-        timesteps = torch.arange(x.size(1), dtype=x.dtype, device=x.device)
-        timesteps = timesteps.reshape(1, x.size(1), 1)
-        timesteps = timesteps.expand(x.size(0), x.size(1), 1)
-        x = torch.cat((x, timesteps), dim=-1)
-        
         # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()
         
-        # Need to set h0 to default hidden for any entries without college data which would have set it properly
-        col_invalid_mask = col_lengths == 0
-        num_invalid = col_invalid_mask.sum()
-
-        if num_invalid > 0:
-            h0[:, col_invalid_mask, :] = (
-                self.init_hidden
-                .unsqueeze(1)
-                .expand(-1, num_invalid, -1)
+        # Need to get the correct initial state based on player type
+        hs_mask = player_demo == 2
+        num_hs = hs_mask.sum()
+        if num_hs > 0:
+            i0[hs_mask, :] = (
+                self.init_hidden_hs
+                .expand(num_hs, -1)
             )
+            
+        intl_mask = player_demo == 3
+        num_intl = intl_mask.sum()
+        if num_intl > 0:
+            i0[intl_mask, :] = (
+                self.init_hidden_intl
+                .expand(num_intl, -1)
+            )
+        
+        i0 = torch.cat((i0, player_bios), dim=-1)
+        
+        # Transform initial state to hidden state for RNN
+        h0 = self.init_hidden(i0)
+        h0 = h0.reshape(h0.shape[0], self.num_layers, self.hidden_size)
+        h0 = h0.transpose(0, 1)
         
         # Compute
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
@@ -378,11 +383,17 @@ class RNN_Model(nn.Module):
                 rnn_nonlinearity=args_dict["rnn_nonlinearity"],
                 input_noise=args_dict["input_noise"],
                 
-                rnn_droupout_p=args_dict["rnn_droupout_p"],
-                num_layers_p=args_dict["num_layers_p"],
-                hidden_size_p=args_dict["hidden_size_p"],
-                rnn_nonlinearity_p=args_dict["rnn_nonlinearity_p"],
-                input_noise_p=args_dict["input_noise_p"],
+                rnn_droupout_p=args_dict["rnn_droupout"],
+                num_layers_p=args_dict["num_layers"],
+                hidden_size_p=args_dict["hidden_size"],
+                rnn_nonlinearity_p=args_dict["rnn_nonlinearity"],
+                input_noise_p=args_dict["input_noise"],
+                
+                # Initial Hidden State Calculation
+                init_state_size=args_dict["init_state_size"],
+                init_state_size_p=args_dict["init_state_size"],
+                init_state_arch=LayerArch.LoadFromDict(args_dict["init_state_arch"]),
+                init_state_arch_p=LayerArch.LoadFromDict(args_dict["init_state_arch"]),
                 
                 # LayerArch (reconstructed)
                 stats_arch=LayerArch.LoadFromDict(args_dict["stats_arch"]),
@@ -394,20 +405,20 @@ class RNN_Model(nn.Module):
                 val_arch=LayerArch.LoadFromDict(args_dict["val_arch"]),
                 mlbstat_arch=LayerArch.LoadFromDict(args_dict["mlbstat_arch"]),
                 
-                stats_arch_p=LayerArch.LoadFromDict(args_dict["stats_arch_p"]),
-                war_arch_p=LayerArch.LoadFromDict(args_dict["war_arch_p"]),
-                pt_arch_p=LayerArch.LoadFromDict(args_dict["pt_arch_p"]),
-                pos_arch_p=LayerArch.LoadFromDict(args_dict["pos_arch_p"]),
-                lvl_arch_p=LayerArch.LoadFromDict(args_dict["lvl_arch_p"]),
-                pa_arch_p=LayerArch.LoadFromDict(args_dict["pa_arch_p"]),
-                val_arch_p=LayerArch.LoadFromDict(args_dict["val_arch_p"]),
-                mlbstat_arch_p=LayerArch.LoadFromDict(args_dict["mlbstat_arch_p"]),
+                stats_arch_p=LayerArch.LoadFromDict(args_dict["stats_arch"]),
+                war_arch_p=LayerArch.LoadFromDict(args_dict["war_arch"]),
+                pt_arch_p=LayerArch.LoadFromDict(args_dict["pt_arch"]),
+                pos_arch_p=LayerArch.LoadFromDict(args_dict["pos_arch"]),
+                lvl_arch_p=LayerArch.LoadFromDict(args_dict["lvl_arch"]),
+                pa_arch_p=LayerArch.LoadFromDict(args_dict["pa_arch"]),
+                val_arch_p=LayerArch.LoadFromDict(args_dict["val_arch"]),
+                mlbstat_arch_p=LayerArch.LoadFromDict(args_dict["mlbstat_arch"]),
                 
                 # Training hyperparameters
                 weight_decay=args_dict["weight_decay"],
-                weight_decay_p=args_dict["weight_decay_p"],
+                weight_decay_p=args_dict["weight_decay"],
                 learning_rates=args_dict["learning_rates"],
-                learning_rates_p=args_dict["learning_rates_p"],
+                learning_rates_p=args_dict["learning_rates"],
         )
     
     

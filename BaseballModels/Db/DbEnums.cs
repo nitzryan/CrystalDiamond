@@ -253,5 +253,12 @@ namespace Db
             WhiffRate = 7,
             SwingStrikePerc = 8,
         }
+
+        public enum ProspectType
+        { 
+            College = 1,
+            HS_JUCO = 2, // TODO: Can probably get college data from MLB profile
+            IntlFA = 3,
+        }
     }
 }

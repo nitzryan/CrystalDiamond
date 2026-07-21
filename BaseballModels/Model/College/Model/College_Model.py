@@ -51,8 +51,7 @@ class RNN_Model(nn.Module):
                 def_arch : LayerArch = DEFAULT_DEF_ARCH,
                 pa_arch : LayerArch = DEFAULT_PA_ARCH,
                 
-                output_hidden_size : int = -1,
-                output_num_layers : int = -1,
+                output_init_state_size : int = -1,
                 output_hidden_arch : LayerArch = DEFAULT_HITTER_HIDDEN_ARCH,
                 output_hidden_arch_p : LayerArch = DEFAULT_PITCHER_HIDDEN_ARCH,
                 
@@ -87,8 +86,7 @@ class RNN_Model(nn.Module):
                     "pa_arch": pa_arch.ToDict(),
                     
                     # Output head architecture
-                    "output_hidden_size": output_hidden_size,
-                    "output_num_layers": output_num_layers,
+                    "output_hidden_size": output_init_state_size,
                     "output_hidden_arch": output_hidden_arch.ToDict(),
                     "output_hidden_arch_p": output_hidden_arch_p.ToDict(),
                     
@@ -123,8 +121,7 @@ class RNN_Model(nn.Module):
         self.hidden_size = hidden_size
         
         # Use to reshape hidden output for Pro Model
-        self.output_num_layers = output_num_layers
-        self.output_hidden_size = output_hidden_size
+        self.output_init_state_size = output_init_state_size
         
         self.noise = noise
         
@@ -137,7 +134,7 @@ class RNN_Model(nn.Module):
         
         self.war = war_arch.Build(hidden_size, len(TOTAL_WAR_BUCKETS))
         
-        self.hidden = output_hidden_arch.Build(hidden_size, output_hidden_size * output_num_layers)
+        self.hidden = output_hidden_arch.Build(hidden_size, output_init_state_size)
         
         if self.is_hitter:
             self.off = off_arch.Build(hidden_size, len(OFF_RATE_BUCKETS) + 1)
@@ -203,7 +200,6 @@ class RNN_Model(nn.Module):
             torch.arange(output_hidden.size(0), device=output_hidden.device),
             lengths - 1
         ]
-        output_hidden = output_hidden.reshape((output_hidden.shape[0], self.output_num_layers, self.output_hidden_size))
         
         if self.is_hitter:
             output_off = self.off(output)
@@ -242,8 +238,7 @@ class RNN_Model(nn.Module):
                 pa_arch=LayerArch.LoadFromDict(args_dict["pa_arch"]),
                 
                 # Output head
-                output_hidden_size=args_dict["output_hidden_size"],
-                output_num_layers=args_dict["output_num_layers"],
+                output_init_state_size=args_dict["output_hidden_size"],
                 output_hidden_arch=LayerArch.LoadFromDict(args_dict["output_hidden_arch"]),
                 output_hidden_arch_p=LayerArch.LoadFromDict(args_dict["output_hidden_arch_p"]),
                 

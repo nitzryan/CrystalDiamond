@@ -1,5 +1,6 @@
 ﻿using Db;
 using ModelDb;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ModelEvaluation.PlayerGroupEvaluations
 {
@@ -37,7 +38,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             public required string Label { get; set; }
         }
 
-        public static void Calculate(int modelId, int cutoffYear)
+        public static void Calculate(int modelId, int cutoffYear, string name)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
@@ -46,12 +47,14 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             Dictionary<int, float[]> predictions = LoadPredictionCurves(modelDb, modelId, players);
             List<GroupResult> groups = AggregateGroups(players, predictions);
 
-            PlotBiasByTimestep(groups, modelId);
-            PlotBiasByGroup(groups, modelId, timestep: 0);
-            PlotBiasByGroup(groups, modelId, timestep: MAX_TIMESTEPS - 2);
+            name = DateTime.Now.ToString("yyyyMMMdd").ToUpper() + "_" + name;
+
+            PlotBiasByTimestep(groups, modelId, name);
+            PlotBiasByGroup(groups, modelId, timestep: 0, name);
+            PlotBiasByGroup(groups, modelId, timestep: MAX_TIMESTEPS - 2, name);
 
             List<DemoResult> demos = AggregateDemos(players, predictions);
-            PlotDemoTotals(demos, modelId);
+            PlotDemoTotals(demos, modelId, name);
         }
 
         // Gets PlayerInfo for all players in Model_Players
@@ -287,9 +290,9 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             }
         }
 
-        private static void PlotBiasByTimestep(List<GroupResult> groups, int modelId, int minPlayers = 5)
+        private static void PlotBiasByTimestep(List<GroupResult> groups, int modelId, string name, int minPlayers = 5)
         {
-            Directory.CreateDirectory("../../../Output/ModelValidation/Bias/Timestep");
+            Directory.CreateDirectory($"../../../Output/ModelValidation/Bias_{name}/Timestep");
 
             ScottPlot.MarkerShape[] shapes =
             [
@@ -344,7 +347,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                            $"{(slice.Key.IsEligible ? "pre-cutoff" : "post-cutoff")}");
                 plot.ShowLegend(ScottPlot.Edge.Right);
 
-                string file = $"../../../Output/ModelValidation/Bias/Timestep/m{modelId}_" +
+                string file = $"../../../Output/ModelValidation/Bias_{name}/Timestep/m{modelId}_" +
                               $"{(slice.Key.IsHitter ? "H" : "P")}_" +
                               $"{(slice.Key.IsCollege ? "COL" : "HS")}_" +
                               $"{(slice.Key.IsEligible ? "pre" : "post")}.png";
@@ -352,9 +355,9 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             }
         }
 
-        private static void PlotBiasByGroup(List<GroupResult> groups, int modelId, int timestep, int minPlayers = 5)
+        private static void PlotBiasByGroup(List<GroupResult> groups, int modelId, int timestep, string name, int minPlayers = 5)
         {
-            Directory.CreateDirectory("../../../Output/ModelValidation/Bias/Bucket");
+            Directory.CreateDirectory($"../../../Output/ModelValidation/Bias_{name}/Bucket");
 
             List<GroupResult> usable = groups.Where(g => g.PlayerCount >= minPlayers).ToList();
             if (usable.Count == 0)
@@ -411,7 +414,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
             plot.Title($"Model {modelId}: bias by draft bucket at timestep {timestep}");
             plot.ShowLegend(ScottPlot.Edge.Right);
 
-            string file = $"../../../Output/ModelValidation/Bias/Bucket/m{modelId}_t{timestep}.png";
+            string file = $"../../../Output/ModelValidation/Bias_{name}/Bucket/m{modelId}_t{timestep}.png";
             plot.SavePng(file, 1100, 700);
         }
 
@@ -467,9 +470,9 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                 .ToList();
         }
 
-        private static void PlotDemoTotals(List<DemoResult> demos, int modelId)
+        private static void PlotDemoTotals(List<DemoResult> demos, int modelId, string name)
         {
-            Directory.CreateDirectory("../../../Output/ModelValidation/Bias/DemoTotals");
+            Directory.CreateDirectory($"../../../Output/ModelValidation/Bias_{name}/DemoTotals");
 
             double[] xs = Enumerable.Range(0, MAX_TIMESTEPS).Select(i => (double)i).ToArray();
 
@@ -518,7 +521,7 @@ namespace ModelEvaluation.PlayerGroupEvaluations
                            $"(n={demo.PlayerCount})");
                 plot.ShowLegend(ScottPlot.Edge.Right);
 
-                string file = $"../../../Output/ModelValidation/Bias/DemoTotals/m{modelId}_" +
+                string file = $"../../../Output/ModelValidation/Bias_{name}/DemoTotals/m{modelId}_" +
                               $"{(demo.Key.IsHitter ? "H" : "P")}_" +
                               $"{(demo.Key.IsCollege ? "COL" : "HS")}_" +
                               $"{(demo.Key.IsEligible ? "pre" : "post")}.png";

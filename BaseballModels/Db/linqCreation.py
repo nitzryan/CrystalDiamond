@@ -47,6 +47,8 @@ type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"),
                   ("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
 
                   ("PitchModelResultBasis", "OutputType", "DbEnums.PitchModelOutputType"),
+                  
+                  ("Model_Players", "ProspectType", "DbEnums.ProspectType"),
                   ]
 
 boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),

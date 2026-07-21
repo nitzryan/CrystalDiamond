@@ -12,7 +12,7 @@ namespace Db
 		public required float AgeAtSigningYear {get; set;}
 		public required int DraftPick {get; set;}
 		public required int DraftSignRank {get; set;}
-		public required int ProspectType {get; set;}
+		public required DbEnums.ProspectType ProspectType {get; set;}
 		public required bool IsEligible {get; set;}
 		public required int HighestLevelHitter {get; set;}
 		public required int HighestLevelPitcher {get; set;}

@@ -70,6 +70,8 @@ class Combined_Data_Prep:
             output_war_class_variants=torch.zeros(0, *player_template.output_war_class_variants.shape[1:]),
             output_war_regression_variants=torch.zeros(0, *player_template.output_war_regression_variants.shape[1:]),
             length = 0,
+            player_demo=2, # 1 will fetch college data, so don't use
+            player_bio=player_template.player_bio,
             dates=torch.zeros(0, *player_template.dates.shape[1:]), 
             prospect_mask=torch.zeros(0, *player_template.prospect_mask.shape[1:]),
             stat_level_mask=torch.zeros(0, *player_template.stat_level_mask.shape[1:]),

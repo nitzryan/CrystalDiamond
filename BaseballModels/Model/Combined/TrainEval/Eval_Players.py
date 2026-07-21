@@ -89,8 +89,8 @@ def Eval_Players(eval_update : bool, is_hitter : bool):
             mth_list = DB_Model_TrainingHistory.Select_From_DB(cursor, f"WHERE ModelName=? AND IsHitter={is_hitter_int}", (model_name,))
             
             # Load model architecture
-            pro_network = ProModel.LoadFromDict(f"Model/Models/{model_name}_{player_type}_pro.json", data_prep.pro_data_prep)
-            col_network = ColModel.LoadFromDict(f"Model/Models/{model_name}_{player_type}_col.json", data_prep.college_data_prep)
+            pro_network = ProModel.LoadFromFile(f"Model/Models/{model_name}_{player_type}_pro.json", data_prep.pro_data_prep)
+            col_network = ColModel.LoadFromFile(f"Model/Models/{model_name}_{player_type}_col.json", data_prep.college_data_prep)
             
             # Set Model weights from training runs
             cursor = model_db.cursor()
@@ -136,7 +136,7 @@ def Eval_Players(eval_update : bool, is_hitter : bool):
                     col_data, col_length = col_data
                     col_data = col_data.to(device, non_blocking=True)
                     col_length = col_length.to(device, non_blocking=True)
-                    *col_outputs_raw, h0 = col_network(col_data, col_length)
+                    *col_outputs_raw, i0 = col_network(col_data, col_length)
                     
                     # Get College Data
                     col_mask_valid = col_length > 0
@@ -181,17 +181,18 @@ def Eval_Players(eval_update : bool, is_hitter : bool):
                     
                     
                     # Run Through Pro Model
-                    pro_data, pro_length, pro_pt_levelYearGames = pro_data
+                    pro_data, pro_length, pro_pt_levelYearGames, player_demo, player_bios = pro_data
                     prospect_mask, _, _, _, _ = pro_masks
                     
                     mask_valid = pro_length > 0
                     pro_data = pro_data[mask_valid].to(device, non_blocking=True)
                     pro_length = pro_length[mask_valid].to(device, non_blocking=True)
                     pro_pt_levelYearGames = pro_pt_levelYearGames[mask_valid].to(device, non_blocking=True)
-                    h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-                    col_length = col_length[mask_valid]
+                    i0 = i0[mask_valid].to(device, non_blocking=True)
+                    player_demo = player_demo[mask_valid].to(device, non_blocking=True)
+                    player_bios = player_bios[mask_valid].to(device, non_blocking=True)
                     
-                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0, col_length)
+                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios)
                     
                     # Insert Pro Data
                     pro_output_war = F.softmax(pro_output_war, dim=2) 

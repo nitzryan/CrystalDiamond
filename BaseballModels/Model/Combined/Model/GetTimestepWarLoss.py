@@ -29,15 +29,16 @@ def IterWarOutputs(
 
             college_result = GetLossesCollege(col_network, col_data, col_targets, col_masks, shouldBackprop=False, is_hitter=is_hitter)
 
-            data, length, pt_levelYearGames = pro_data
+            data, length, pt_levelYearGames, player_demo, player_bios = pro_data
             mask_valid = length > 0
             data = data[mask_valid].to(device, non_blocking=True)
             length = length[mask_valid].to(device, non_blocking=True)
             pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
-            h0 = college_result.hidden[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-            col_lengths = col_data[1][mask_valid]
+            i0 = college_result.hidden[mask_valid].to(device, non_blocking=True)
+            player_demo = player_demo[mask_valid].to(device, non_blocking=True)
+            player_bios = player_bios[mask_valid].to(device, non_blocking=True)
 
-            output_war, *_ = pro_network(data, length, pt_levelYearGames, h0, col_lengths)
+            output_war, *_ = pro_network(data, length, pt_levelYearGames, i0, player_demo, player_bios)
 
             target_war = pro_targets[0][mask_valid].to(device, non_blocking=True)
             mask_labels = pro_masks[0][mask_valid].to(device, non_blocking=True)

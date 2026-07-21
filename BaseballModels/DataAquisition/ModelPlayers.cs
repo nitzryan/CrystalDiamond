@@ -156,8 +156,7 @@ namespace DataAquisition
                             DraftSignRank = player.DraftPick != null ?
                                 db.Draft_Results.Where(f => f.Year == player.SigningYear && f.Pick == player.DraftPick.Value).Single().BonusRank
                                 : 2000,
-                            ProspectType = player.DraftPick != null ? 1 :
-                                lowestLevel == Constants.SPORT_IDS.Last() ? 3 : 2, // Above DSL or not
+                            ProspectType = Utilities.GetProspectType(player, db),
                             IsEligible=Utilities.GetEligibilityMask(player, p.pcs, ageAtSigning),
                             WarHitter = totalHitterWar,
                             WarPitcher = totalPitcherWar,

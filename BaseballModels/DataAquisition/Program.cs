@@ -98,7 +98,41 @@
                 UpdateServiceTime.Update();
             }
 
-            if (DATA_UPDATE || FULL_REFRESH)
+            ////////// College Model //////////
+            if (UPDATE_COLLEGE_DATA)
+            {
+                if (FULL_REFRESH)
+                {
+                    College.ReadDataFiles.InsertCollegeHitterStats();
+                    College.ReadDataFiles.InsertCollegePitcherStats();
+                    College.DataCleanup.Cleanup();
+                }
+
+                foreach (var year in collegeYears)
+                {
+                    // Covid-Year interrupted, don't use data that exists
+                    if (year == 2020)
+                        continue;
+
+                    if (year > 2025)
+                    {
+                        //College.GetSingleClassData.GetData(year);
+                    }
+
+                    College.TeamData.UpdateConfStrength(year);
+                    await College.ColParkFactors.GetParkFactors(year);
+                    College.TeamData.CreateConfAverages(year);
+                }
+                College.ModelStats.CreateHitterModelStats();
+                College.ModelStats.CreatePitcherModelStats();
+                College.ModelStats.CreatePlayerGaps();
+
+                // Create pro playing-time data
+                College.ProData.CreateHittersData(END_YEAR);
+                College.ProData.CreatePitchersData(END_YEAR);
+            }
+
+            if (DATA_UPDATE || FULL_REFRESH || true)
             {
                 UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
                 ModelPlayers.Update();
@@ -158,39 +192,7 @@
                 }
             }
 
-            ////////// College Model //////////
-            if (UPDATE_COLLEGE_DATA)
-            {
-                if (FULL_REFRESH)
-                {
-                    College.ReadDataFiles.InsertCollegeHitterStats();
-                    College.ReadDataFiles.InsertCollegePitcherStats();
-                    College.DataCleanup.Cleanup();
-                }
-                
-                foreach (var year in collegeYears)
-                {
-                    // Covid-Year interrupted, don't use data that exists
-                    if (year == 2020)
-                        continue;
-
-                    if (year > 2025)
-                    {
-                        //College.GetSingleClassData.GetData(year);
-                    }
-
-                    College.TeamData.UpdateConfStrength(year);
-                    await College.ColParkFactors.GetParkFactors(year);
-                    College.TeamData.CreateConfAverages(year);
-                }
-                College.ModelStats.CreateHitterModelStats();
-                College.ModelStats.CreatePitcherModelStats();
-                College.ModelStats.CreatePlayerGaps();
-
-                // Create pro playing-time data
-                College.ProData.CreateHittersData(END_YEAR);
-                College.ProData.CreatePitchersData(END_YEAR);
-            }
+            
 
             #pragma warning disable CS0162
         }

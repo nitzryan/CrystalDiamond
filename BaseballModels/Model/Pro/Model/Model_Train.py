@@ -1,6 +1,6 @@
 import torch
 from Model.Constants import device
-from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss
+from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, RNN_Model
 from Model.Combined.Model.GetWarClassCounts import *
 from Model.Combined.Utilities.Types import *
 from Model.Combined.Utilities.BrierScore import Brier_Score
@@ -12,26 +12,26 @@ NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler
 def GetLossesPro(
-  network, 
+  network : RNN_Model, 
   data : tuple, 
   targets : tuple, 
   masks : tuple, 
-  h0 : torch.Tensor, 
+  i0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
-  col_lengths : torch.Tensor,
   pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult:
   
-  
   # Get Model Output
-  data, length, pt_levelYearGames = data
+  data, length, pt_levelYearGames, player_demo, player_bios = data
   mask_valid = length > 0
   data = data[mask_valid].to(device, non_blocking=True)
   length = length[mask_valid].to(device, non_blocking=True)
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)
-  h0 = h0[mask_valid].transpose(0, 1).to(device, non_blocking=True)
-  col_lengths = col_lengths[mask_valid]
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, h0, col_lengths)
+  i0 = i0[mask_valid].to(device, non_blocking=True)
+  player_demo = player_demo[mask_valid].to(device, non_blocking=True)
+  player_bios = player_bios[mask_valid].to(device, non_blocking=True)
+  
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, i0, player_demo, player_bios)
   
   # Move targets and masks to GPU
   target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets

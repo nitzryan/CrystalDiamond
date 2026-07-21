@@ -14,7 +14,7 @@ namespace ModelEvaluation
         internal readonly record struct BucketKey(
             int SigningYear,
             int AgeBand,
-            int ProspectType,
+            DbEnums.ProspectType ProspectType,
             PlayerType PlayerType);
 
 
