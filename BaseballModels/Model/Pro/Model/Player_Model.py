@@ -74,28 +74,31 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 53
+DEFAULT_PRO_HIDDEN_SIZE = 71
 DEFAULT_PRO_NUM_LAYERS = 2
 
 DEFAULT_PRO_HIDDEN_SIZE_P = 51
 DEFAULT_PRO_NUM_LAYERS_P = 3
 
-DEFAULT_DROPOUT = 0.293
+DEFAULT_DROPOUT = 0.4696
 DEFAULT_DROPOUT_P = 0.283
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [7.3e-3,1.8e-5,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.8e-5,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0089,0.030,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0029,0.030,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
-DEFAULT_INIT_STATE_SIZE = 16
+DEFAULT_INIT_STATE_SIZE = 40
 DEFAULT_INIT_STATE_SIZE_P = 16
-DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=32, num_layers=4)
+DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
 DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=32, num_layers=4)
+
+DEFAULT_RNN_NONLINEARITY = 'relu'
+DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
 class RNN_Model(nn.Module):
     def __init__(self, 
@@ -113,8 +116,8 @@ class RNN_Model(nn.Module):
                 num_layers_p : int = DEFAULT_PRO_NUM_LAYERS_P, 
                 hidden_size_p : int = DEFAULT_PRO_HIDDEN_SIZE_P, 
                 
-                rnn_nonlinearity : str = "relu",
-                rnn_nonlinearity_p : str = "relu",
+                rnn_nonlinearity : str = DEFAULT_RNN_NONLINEARITY,
+                rnn_nonlinearity_p : str = DEFAULT_RNN_NONLINEARITY_P,
                 
                 input_noise = DEFAULT_INPUT_NOISE,
                 input_noise_p = DEFAULT_INPUT_NOISE_P,

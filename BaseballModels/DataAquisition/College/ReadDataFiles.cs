@@ -391,7 +391,12 @@ namespace DataAquisition.College
                 {
                     progressBar.Tick();
                     // Check to make sure that player is not a pure-hitter that had some pitching
-                    if (player.All(f => !f.position.Contains('P')))
+                    if (player.All(f => !f.position.Contains('P') && f.G < 5))
+                        continue;
+
+                    // Craig Johnson has a year of pitching after hitting, likely different player.  
+                    // Messes up logic, so just skip
+                    if (player.Key == 46230)
                         continue;
 
                     var firstStats = player.First();
@@ -408,7 +413,6 @@ namespace DataAquisition.College
                     if (lastYear != player.First().draftYear)
                         draftPick = 0;
 
-                    // Player
                     // Check if they already exist
                     if (db.College_Player.Any(f => f.TBCId == player.Key))
                     {

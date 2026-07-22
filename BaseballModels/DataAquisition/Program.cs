@@ -116,7 +116,7 @@
 
                     if (year > 2025)
                     {
-                        //College.GetSingleClassData.GetData(year);
+                        College.GetSingleClassData.GetData(year, FULL_REFRESH);
                     }
 
                     College.TeamData.UpdateConfStrength(year);
@@ -132,7 +132,7 @@
                 College.ProData.CreatePitchersData(END_YEAR);
             }
 
-            if (DATA_UPDATE || FULL_REFRESH || true)
+            if (DATA_UPDATE || FULL_REFRESH)
             {
                 UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
                 ModelPlayers.Update();

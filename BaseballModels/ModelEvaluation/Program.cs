@@ -9,7 +9,7 @@ namespace ModelEvaluation
         {
             //RunDraftPickBucketTest(1, 2,
             //DraftPlotOptions.LogX | DraftPlotOptions.LogY);
-            DraftInitialRatings.Calculate(1, 2023, "InitialBio");
+            DraftInitialRatings.Calculate(1, 2023, "HyperparameterOptimized");
         }
     }
 }

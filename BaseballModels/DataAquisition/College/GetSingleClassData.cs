@@ -1,9 +1,9 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using SeleniumUndetectedChromeDriver;
 using ShellProgressBar;
 
 namespace DataAquisition.College
@@ -17,15 +17,21 @@ namespace DataAquisition.College
         private const string HITTER_URL = "https://www.thebaseballcube.com/content/research/college_batting.asp";
         private const string PITCHER_URL = "https://www.thebaseballcube.com/content/research/college_pitching.asp";
 
-        public static bool GetData(int year)
+        public static bool GetData(int year, bool forceOverride)
         {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            if (!forceOverride 
+                && (db.College_HitterStats.Any(f => f.Year == year) ||
+                    db.College_PitcherStats.Any(f => f.Year == year)))
+            {
+                return true;
+            }
+
             try
             {
                 if (!LetUserSignIn())
                     throw new Exception("User failed to sign in");
-
-
-                using SqliteDbContext db = new(Constants.DB_OPTIONS);
+                
                 db.College_HitterStats.Where(f => f.Year == year).ExecuteDelete();
                 db.College_PitcherStats.Where(f => f.Year == year).ExecuteDelete();
 
@@ -94,7 +100,25 @@ namespace DataAquisition.College
 
         private static bool LetUserSignIn()
         {
-            _driver = new ChromeDriver();
+            var options = new ChromeOptions
+            {
+                BinaryLocation = @"C:\chrome-win64_150\chrome.exe"
+            };
+
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--disable-extensions");
+            options.AddArgument("--disable-popup-blocking");
+            options.AddArgument("--disable-blink-features=AutomationControlled");
+            options.AddArgument("--remote-allow-origins=*");           // Important for newer Chrome
+            options.AddArgument("--disable-features=IsolateOrigins,site-per-process");
+            options.AddArgument("--user-data-dir=C:\\SeleniumChromeProfile");
+
+            //_driver = UndetectedChromeDriver.Create(
+            //    driverExecutablePath: "chromedriver.exe",
+            //    options: options);
+            _driver = new ChromeDriver("chromedriver.exe", options);
             _driver.Navigate().GoToUrl("https://www.thebaseballcube.com/");
 
             Console.WriteLine("Sign in using the browser window that just opened.");
@@ -162,6 +186,8 @@ namespace DataAquisition.College
                 foreach (TeamData[] batch in teams.Chunk(batchSize))
                 {
                     _driver!.Navigate().GoToUrl(url);
+
+                    Thread.Sleep(4000);
 
                     EnsureChecked(_driver.FindElement(By.Id("includebio")));
 

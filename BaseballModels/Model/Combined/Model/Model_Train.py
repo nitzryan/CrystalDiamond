@@ -15,6 +15,10 @@ from Model.Combined.Utilities.Types import *
 
 SHOULD_PROFILE = False
 DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1e-1, 1, 1e-1, 1e-3, 1, 1, 1, 1e-1]
+DEFAULT_BATCH_SIZE = 1038
+DEFAULT_NUM_EPOCHS = 35
+DEFAULT_BATCH_SIZE_P = 1200
+DEFAULT_NUM_EPOCHS_P = 41
 
 def TrainAndGraph(
     pro_network : Pro_Model,
@@ -22,8 +26,8 @@ def TrainAndGraph(
     train_dataset : Combined_Player_Dataset,
     test_dataset : Combined_Player_Dataset,
     is_hitter : bool,
-    num_epochs : int = 41,
-    batch_size : int = 1200,
+    num_epochs : int | None = None,
+    batch_size : int | None = None,
     logging_interval : int = 10,
     should_output : bool = True,
     show_progress_bar : bool = False,
@@ -40,9 +44,18 @@ def TrainAndGraph(
     if is_hitter:
         num_col_elements = NUM_ELEMENTS_HITTER
         col_element_list = HITTER_ELEMENT_LIST
+        if num_epochs is None:
+            num_epochs = DEFAULT_NUM_EPOCHS
+        if batch_size is None:
+            batch_size = DEFAULT_BATCH_SIZE
     else:
         num_col_elements = NUM_ELEMENTS_PITCHER
         col_element_list = PITCHER_ELEMENT_LIST
+        if num_epochs is None:
+            num_epochs = DEFAULT_NUM_EPOCHS_P
+        if batch_size is None:
+            batch_size = DEFAULT_BATCH_SIZE_P
+        
     num_elements = num_pro_elements + num_col_elements
     element_list = [f"PRO {e}" for e in ELEMENT_LIST] + [f"COL {e}" for e in col_element_list]
         
@@ -50,7 +63,7 @@ def TrainAndGraph(
     test_history : list[EpochResult] = []
     epoch_counter : list[int] = []
     
-    best_loss = 999999
+    best_loss = 999
     best_epoch = -1
     epochs_since_improve = 0
     
@@ -70,6 +83,22 @@ def TrainAndGraph(
         train_history.append(train_result)
         test_history.append(test_result)
         epoch_counter.append(epoch)
+        
+        # Check if model is blowing up
+        if epoch == 0:
+            first_loss = test_result.avg_loss[element_to_save]
+        if epoch > 0:
+            if test_result.avg_loss[element_to_save] > first_loss * 1.25:
+                break
+            if epoch > 5 and test_result.avg_loss[element_to_save] > first_loss:
+                break
+            
+        # If ever gets to NaN, report a really large number
+        if test_result.avg_loss[element_to_save] != test_result.avg_loss[element_to_save]:
+            test_result.avg_loss[element_to_save] = 100
+            best_loss = 100
+            best_epoch = epoch
+            break
         
         
         if should_output and (epoch % logging_interval == 0):  
