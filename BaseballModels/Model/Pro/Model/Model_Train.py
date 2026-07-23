@@ -1,6 +1,6 @@
 import torch
-from Model.Constants import device
-from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, RNN_Model
+from Model.Constants import device, TOTAL_WAR_BUCKETS
+from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, Recurrent_Model
 from Model.Combined.Model.GetWarClassCounts import *
 from Model.Combined.Utilities.Types import *
 from Model.Combined.Utilities.BrierScore import Brier_Score
@@ -12,7 +12,7 @@ NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler
 def GetLossesPro(
-  network : RNN_Model, 
+  network : Recurrent_Model, 
   data : tuple, 
   targets : tuple, 
   masks : tuple, 
@@ -24,6 +24,14 @@ def GetLossesPro(
   # Get Model Output
   data, length, pt_levelYearGames, player_demo, player_bios = data
   mask_valid = length > 0
+  if mask_valid.sum() == 0:
+    l = TOTAL_WAR_BUCKETS.size(0)
+    return ProLossResult(
+      losses=(0, 0, 0, 0, 0, 0, 0, 0),
+      war_counts=WarClassCounts(predicted=torch.zeros(l), actual=torch.zeros(l)),
+      brier=BrierAccumulator(per_class_sum=torch.zeros(l), count=torch.zeros(l)),
+    )
+  
   data = data[mask_valid].to(device, non_blocking=True)
   length = length[mask_valid].to(device, non_blocking=True)
   pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)

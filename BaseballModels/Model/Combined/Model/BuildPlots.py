@@ -2,7 +2,7 @@ from Model.Combined.Utilities.Types import *
 from Model.Combined.Model.GetTimestepWarBrier import GetTimestepWarBrier, GetTimestepWarBrierCollege
 from Model.Combined.Model.GetTimestepWarLoss import GetTimestepWarLoss
 from Model.Combined.Model.Graphing import *
-from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 

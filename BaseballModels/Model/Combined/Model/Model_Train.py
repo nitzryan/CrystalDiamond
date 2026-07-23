@@ -3,7 +3,7 @@ from tqdm import tqdm
 from Model.Pro.Model.Model_Train import ELEMENT_LIST, NUM_ELEMENTS
 from Model.College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST, NUM_ELEMENTS_HITTER, NUM_ELEMENTS_PITCHER
 
-from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model
+from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Combined.Model.RunEpoch import RunEpoch

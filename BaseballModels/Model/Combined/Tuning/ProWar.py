@@ -3,7 +3,7 @@ import gc
 from enum import Flag, auto
 import torch.nn.functional as F
 from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS
-from Model.Pro.Model.Player_Model import RNN_Model as Pro_Model, LayerArch
+from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model, LayerArch
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Pro.Model.Player_Model import *
 from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep, Combined_IO
@@ -19,6 +19,7 @@ _ACTIVATION_MAP = {
         "SiLU": F.silu,
         "Tanh": F.tanh,
     }
+_RECURRENT_TYPES = ["RNN", "GRU", "LSTM"]
 
 WAR_CUTOFF_FOLD_1 = 7.9 # Value above which folds 2-3 won't be used
 WAR_EXIT_VALUES_23 = 7.4 + 7.7 # Value for folds 2-3 if not run
@@ -26,8 +27,11 @@ WAR_EXIT_VALUES_23 = 7.4 + 7.7 # Value for folds 2-3 if not run
 WAR_CUTOFF_FOLD_1_P = 9.5
 WAR_EXIT_VALUES_23_P = 9.5 + 9.1
 
+WAR_MAX = 30
+
 class ProModelTuningRecipe(Flag):
-    RNN = auto()
+    RECURRENT = auto()
+    RECURRENT_TYPE = auto()
     INIT_HIDDEN = auto()
     WAR_ARCH = auto()
     BATCH_PARAMS = auto()
@@ -45,19 +49,30 @@ def objective(
         WAR_CUTOFF_FOLD_1 = WAR_CUTOFF_FOLD_1_P
         WAR_EXIT_VALUES_23 = WAR_EXIT_VALUES_23_P
     
-    lr_list = DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P
-    wd_list = DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P
+    lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
+    wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
+    
+    # Recurrent Type
+    if recipe & ProModelTuningRecipe.RECURRENT_TYPE:
+        recurrent_type = trial.suggest_categorical('recurrent_type', _RECURRENT_TYPES)
+    else:
+        recurrent_type = DEFAULT_RECURRENT_TYPE if is_hitter else DEFAULT_RECURRENT_TYPE_P
     
     # RNN Hyperparameters
-    if recipe & ProModelTuningRecipe.RNN:
+    if recipe & (ProModelTuningRecipe.RECURRENT | ProModelTuningRecipe.RECURRENT_TYPE):
         num_layers = trial.suggest_int('num_layers', 2, 4)
         hidden_size = trial.suggest_int('hidden_size', 16, 96)
         dropout = trial.suggest_float('dropout', 0, 0.5)
-        #rnn_activation = trial.suggest_categorical('rnn_activation', ["relu", "tanh"])
-        rnn_activation = DEFAULT_RNN_NONLINEARITY # Currently way better, can uncomment to check
         wd_shared = trial.suggest_float("wd_shared", 1e-3, 1e-1, log=True)
+        lr_shared = trial.suggest_float("lr_shared", 5e-4, 1e-2, log=True)
+        
+        if recurrent_type == "RNN":
+            rnn_activation = trial.suggest_categorical('rnn_activation', ["relu", "tanh"])
+        else:
+            rnn_activation = DEFAULT_RNN_NONLINEARITY # Ignored by GRU/LSTM
         
         wd_list[0] = wd_shared
+        lr_list[0] = lr_shared
     else:
         num_layers = DEFAULT_PRO_NUM_LAYERS if is_hitter else DEFAULT_PRO_NUM_LAYERS_P
         hidden_size = DEFAULT_PRO_HIDDEN_SIZE if is_hitter else DEFAULT_PRO_HIDDEN_SIZE_P
@@ -93,9 +108,6 @@ def objective(
     if recipe & ProModelTuningRecipe.BATCH_PARAMS:
         batch_size = trial.suggest_int("batch_size", 400, 1600)
         num_epochs = trial.suggest_int("num_epochs", 30, 60)
-        lr_shared = trial.suggest_float("lr_shared", 5e-4, 1e-2, log=True)
-        
-        lr_list[0] = lr_shared
     else:
         batch_size = DEFAULT_BATCH_SIZE
         num_epochs = DEFAULT_NUM_EPOCHS
@@ -113,29 +125,20 @@ def objective(
             data_prep=data_prep.pro_data_prep,
             is_hitter=is_hitter,
             
-            rnn_droupout=dropout,
+            recurrent_dropout=dropout,
             num_layers=num_layers,
             hidden_size=hidden_size,
             
-            rnn_droupout_p=dropout,
-            num_layers_p=num_layers,
-            hidden_size_p=hidden_size,
-            
             war_arch=war_arch,
-            war_arch_p=war_arch,
             
             weight_decay=wd_list,
-            weight_decay_p=wd_list,
             learning_rates=lr_list,
-            learning_rates_p=lr_list,
             
+            recurrent_type=recurrent_type,
             rnn_nonlinearity=rnn_activation,
-            rnn_nonlinearity_p=rnn_activation,
             
             init_state_arch=init_arch,
-            init_state_arch_p=init_arch,
             init_state_size=init_size,
-            init_state_size_p=init_size
         ).to(device)
         # Create variant to test
         col_network = Col_Model(
@@ -172,4 +175,4 @@ def objective(
             sum_war += WAR_EXIT_VALUES_23
             break
         
-    return sum_war
+    return min(sum_war, WAR_MAX)

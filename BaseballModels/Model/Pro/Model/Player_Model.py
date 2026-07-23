@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 import json
+from typing import TypeVar, Type
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
 from Model.Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
@@ -100,7 +101,16 @@ DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
-class RNN_Model(nn.Module):
+DEFAULT_RECURRENT_TYPE = "LSTM"
+DEFAULT_RECURRENT_TYPE_P = "RNN"
+
+_T = TypeVar('T')
+def GetPropertyValue(val : Type[_T] | None, is_hitter : bool, hit_default : Type[_T], pit_default : Type[_T]) -> Type[_T]:
+    if val is not None:
+        return val
+    return hit_default if is_hitter else pit_default
+
+class Recurrent_Model(nn.Module):
     def __init__(self, 
                  
                 input_size : int,  
@@ -108,70 +118,55 @@ class RNN_Model(nn.Module):
                 is_hitter : bool, 
                 save_name : str | None = None,
                 
-                rnn_droupout : float = DEFAULT_DROPOUT,
-                num_layers : int = DEFAULT_PRO_NUM_LAYERS, 
-                hidden_size : int = DEFAULT_PRO_HIDDEN_SIZE, 
+                recurrent_dropout : float | None = None,
+                num_layers : int | None = None,
+                hidden_size : int | None = None,
                 
-                rnn_droupout_p : float = DEFAULT_DROPOUT_P,
-                num_layers_p : int = DEFAULT_PRO_NUM_LAYERS_P, 
-                hidden_size_p : int = DEFAULT_PRO_HIDDEN_SIZE_P, 
+                recurrent_type : str | None = None,
+                rnn_nonlinearity : str | None = None,
                 
-                rnn_nonlinearity : str = DEFAULT_RNN_NONLINEARITY,
-                rnn_nonlinearity_p : str = DEFAULT_RNN_NONLINEARITY_P,
+                input_noise : float | None = None,
                 
-                input_noise = DEFAULT_INPUT_NOISE,
-                input_noise_p = DEFAULT_INPUT_NOISE_P,
+                stats_arch : LayerArch | None = None,
+                war_arch : LayerArch | None = None,
+                pt_arch : LayerArch | None = None,
+                pos_arch : LayerArch | None = None,
+                lvl_arch : LayerArch | None = None,
+                pa_arch : LayerArch | None = None,
+                val_arch : LayerArch | None = None,
+                mlbstat_arch : LayerArch | None = None,
                 
-                stats_arch : LayerArch = DEFAULT_STATS_ARCH,
-                war_arch : LayerArch = DEFAULT_WAR_ARCH,
-                pt_arch : LayerArch = DEFAULT_PT_ARCH,
-                pos_arch : LayerArch = DEFAULT_POS_ARCH,
-                lvl_arch : LayerArch = DEFAULT_LVL_ARCH,
-                pa_arch : LayerArch = DEFAULT_PA_ARCH,
-                val_arch : LayerArch = DEFAULT_VALUE_ARCH,
-                mlbstat_arch : LayerArch = DEFAULT_MLBSTAT_ARCH,
+                weight_decay : list[float] | None = None,
                 
-                stats_arch_p : LayerArch = DEFAULT_STATS_ARCH_P,
-                war_arch_p : LayerArch = DEFAULT_WAR_ARCH_P,
-                pt_arch_p : LayerArch = DEFAULT_PT_ARCH_P,
-                pos_arch_p : LayerArch = DEFAULT_POS_ARCH_P,
-                lvl_arch_p : LayerArch = DEFAULT_LVL_ARCH_P,
-                pa_arch_p : LayerArch = DEFAULT_PA_ARCH_P,
-                val_arch_p : LayerArch = DEFAULT_VALUE_ARCH_P,
-                mlbstat_arch_p : LayerArch = DEFAULT_MLBSTAT_ARCH_P,
+                learning_rates : list[float] | None = None,
                 
-                weight_decay : list[float] = DEFAULT_PRO_WEIGHT_DECAY,
-                weight_decay_p : list[float] = DEFAULT_PRO_WEIGHT_DECAY_P,
-                
-                learning_rates : list[float] = DEFAULT_LEARNING_RATES,
-                learning_rates_p : list[float] = DEFAULT_LEARNING_RATES_P,
-                
-                init_state_size : float = DEFAULT_INIT_STATE_SIZE,
-                init_state_size_p : float = DEFAULT_INIT_STATE_SIZE_P,
-                init_state_arch : LayerArch = DEFAULT_INIT_STATE_ARCH,
-                init_state_arch_p : LayerArch = DEFAULT_INIT_STATE_ARCH_P,
+                init_state_size : float | None = None,
+                init_state_arch : LayerArch | None = None,
                 ):
         super().__init__()
-        if not is_hitter:
-            rnn_droupout = rnn_droupout_p
-            num_layers = num_layers_p
-            hidden_size = hidden_size_p
-            rnn_nonlinearity = rnn_nonlinearity_p
-            input_noise = input_noise_p
-            
-            stats_arch = stats_arch_p
-            war_arch = war_arch_p
-            pt_arch = pt_arch_p
-            pos_arch = pos_arch_p
-            lvl_arch = lvl_arch_p
-            pa_arch = pa_arch_p
-            val_arch = val_arch_p
-            mlbstat_arch = mlbstat_arch_p
-            weight_decay = weight_decay_p
-            learning_rates = learning_rates_p
-            
-            init_state_size = init_state_size_p
-            init_state_arch = init_state_arch_p
+        
+        # Insert default hyperparameters
+        recurrent_dropout = GetPropertyValue(recurrent_dropout, is_hitter, DEFAULT_DROPOUT, DEFAULT_DROPOUT_P)
+        num_layers = GetPropertyValue(num_layers, is_hitter, DEFAULT_PRO_NUM_LAYERS, DEFAULT_PRO_NUM_LAYERS_P)
+        hidden_size = GetPropertyValue(hidden_size, is_hitter, DEFAULT_PRO_HIDDEN_SIZE, DEFAULT_PRO_HIDDEN_SIZE_P)
+        rnn_nonlinearity = GetPropertyValue(rnn_nonlinearity, is_hitter, DEFAULT_RNN_NONLINEARITY, DEFAULT_RNN_NONLINEARITY_P)
+        recurrent_type = GetPropertyValue(recurrent_type, is_hitter, DEFAULT_RECURRENT_TYPE, DEFAULT_RECURRENT_TYPE_P)
+        input_noise = GetPropertyValue(input_noise, is_hitter, DEFAULT_INPUT_NOISE, DEFAULT_INPUT_NOISE_P)
+
+        stats_arch = GetPropertyValue(stats_arch, is_hitter, DEFAULT_STATS_ARCH, DEFAULT_STATS_ARCH_P)
+        war_arch = GetPropertyValue(war_arch, is_hitter, DEFAULT_WAR_ARCH, DEFAULT_WAR_ARCH_P)
+        pt_arch = GetPropertyValue(pt_arch, is_hitter, DEFAULT_PT_ARCH, DEFAULT_PT_ARCH_P)
+        pos_arch = GetPropertyValue(pos_arch, is_hitter, DEFAULT_POS_ARCH, DEFAULT_POS_ARCH_P)
+        lvl_arch = GetPropertyValue(lvl_arch, is_hitter, DEFAULT_LVL_ARCH, DEFAULT_LVL_ARCH_P)
+        pa_arch = GetPropertyValue(pa_arch, is_hitter, DEFAULT_PA_ARCH, DEFAULT_PA_ARCH_P)
+        val_arch = GetPropertyValue(val_arch, is_hitter, DEFAULT_VALUE_ARCH, DEFAULT_VALUE_ARCH_P)
+        mlbstat_arch = GetPropertyValue(mlbstat_arch, is_hitter, DEFAULT_MLBSTAT_ARCH, DEFAULT_MLBSTAT_ARCH_P)
+
+        weight_decay = GetPropertyValue(weight_decay, is_hitter, DEFAULT_PRO_WEIGHT_DECAY, DEFAULT_PRO_WEIGHT_DECAY_P)
+        learning_rates = GetPropertyValue(learning_rates, is_hitter, DEFAULT_LEARNING_RATES, DEFAULT_LEARNING_RATES_P)
+
+        init_state_size = GetPropertyValue(init_state_size, is_hitter, DEFAULT_INIT_STATE_SIZE, DEFAULT_INIT_STATE_SIZE_P)
+        init_state_arch = GetPropertyValue(init_state_arch, is_hitter, DEFAULT_INIT_STATE_ARCH, DEFAULT_INIT_STATE_ARCH_P)
         
         if save_name is not None:
             with open(save_name, "w") as f:
@@ -180,10 +175,11 @@ class RNN_Model(nn.Module):
                     "is_hitter": is_hitter,
                     
                     # RNN parameters
-                    "rnn_droupout": rnn_droupout,
+                    "recurrent_dropout": recurrent_dropout,
                     "num_layers": num_layers,
                     "hidden_size": hidden_size,
                     "rnn_nonlinearity": rnn_nonlinearity,
+                    "recurrent_type": recurrent_type,
                     "input_noise": input_noise,
                     
                     # Initial Hidden State Calculation
@@ -210,14 +206,23 @@ class RNN_Model(nn.Module):
         self.num_layers = num_layers
         self.input_noise = input_noise
         self.init_state_size = init_state_size
+        self.recurrent_type = recurrent_type
         
         # Converting Initial State to RNN initial hidden state
-        self.init_hidden = init_state_arch.Build(init_state_size + data_prep.prep_map.bio_size, hidden_size * num_layers)
+        num_states = 2 if self.recurrent_type == "LSTM" else 1
+        self.init_hidden = init_state_arch.Build(init_state_size + data_prep.prep_map.bio_size, hidden_size * num_layers * num_states)
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
         
-        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=rnn_droupout, nonlinearity=rnn_nonlinearity)
+        if self.recurrent_type == "RNN":
+            self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout, nonlinearity=rnn_nonlinearity)
+        elif self.recurrent_type == "GRU":
+            self.recurrent = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout)
+        elif self.recurrent_type == "LSTM":
+            self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout)
+        else:
+            raise ValueError(f"Unknown recurrent_type: {recurrent_type}. Must be 'RNN', 'GRU', or 'LSTM'.")
         
         # Taking RNN output and making predictions
         num_war_classes = len(output_map.buckets_hitter_war)
@@ -294,7 +299,7 @@ class RNN_Model(nn.Module):
 
         
     def to(self, *args, **kwargs):
-        return super(RNN_Model, self).to(*args, **kwargs)
+        return super().to(*args, **kwargs)
     
     def GetInitStateSize(self) -> int:
         return self.init_state_size
@@ -325,17 +330,26 @@ class RNN_Model(nn.Module):
             )
         
         i0 = torch.cat((i0, player_bios), dim=-1)
-        
-        # Transform initial state to hidden state for RNN
         h0 = self.init_hidden(i0)
+        
+        # Transform initial state to hidden state
+        if self.recurrent_type == "LSTM":
+            # Split the output into hidden state and cell state
+            h0, c0 = h0.chunk(2, dim=-1)
+            c0 = c0.reshape(c0.shape[0], self.num_layers, self.hidden_size)
+            c0 = c0.transpose(0, 1).contiguous()
+        
         h0 = h0.reshape(h0.shape[0], self.num_layers, self.hidden_size)
-        h0 = h0.transpose(0, 1)
+        h0 = h0.transpose(0, 1).contiguous()
         
         # Compute
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        packedOutput, _ = self.recurrent(packedInput, h0)
+        if self.recurrent_type == "LSTM":
+            packedOutput, _ = self.recurrent(packedInput, (h0, c0))
+        else:
+            packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         output_war          = self.war(output)
@@ -380,23 +394,16 @@ class RNN_Model(nn.Module):
                 is_hitter=args_dict["is_hitter"],
                 
                 # RNN parameters
-                rnn_droupout=args_dict["rnn_droupout"],
+                recurrent_dropout=args_dict["recurrent_dropout"],
                 num_layers=args_dict["num_layers"],
                 hidden_size=args_dict["hidden_size"],
                 rnn_nonlinearity=args_dict["rnn_nonlinearity"],
+                recurrent_type=args_dict["recurrent_type"],
                 input_noise=args_dict["input_noise"],
-                
-                rnn_droupout_p=args_dict["rnn_droupout"],
-                num_layers_p=args_dict["num_layers"],
-                hidden_size_p=args_dict["hidden_size"],
-                rnn_nonlinearity_p=args_dict["rnn_nonlinearity"],
-                input_noise_p=args_dict["input_noise"],
                 
                 # Initial Hidden State Calculation
                 init_state_size=args_dict["init_state_size"],
-                init_state_size_p=args_dict["init_state_size"],
                 init_state_arch=LayerArch.LoadFromDict(args_dict["init_state_arch"]),
-                init_state_arch_p=LayerArch.LoadFromDict(args_dict["init_state_arch"]),
                 
                 # LayerArch (reconstructed)
                 stats_arch=LayerArch.LoadFromDict(args_dict["stats_arch"]),
@@ -408,20 +415,9 @@ class RNN_Model(nn.Module):
                 val_arch=LayerArch.LoadFromDict(args_dict["val_arch"]),
                 mlbstat_arch=LayerArch.LoadFromDict(args_dict["mlbstat_arch"]),
                 
-                stats_arch_p=LayerArch.LoadFromDict(args_dict["stats_arch"]),
-                war_arch_p=LayerArch.LoadFromDict(args_dict["war_arch"]),
-                pt_arch_p=LayerArch.LoadFromDict(args_dict["pt_arch"]),
-                pos_arch_p=LayerArch.LoadFromDict(args_dict["pos_arch"]),
-                lvl_arch_p=LayerArch.LoadFromDict(args_dict["lvl_arch"]),
-                pa_arch_p=LayerArch.LoadFromDict(args_dict["pa_arch"]),
-                val_arch_p=LayerArch.LoadFromDict(args_dict["val_arch"]),
-                mlbstat_arch_p=LayerArch.LoadFromDict(args_dict["mlbstat_arch"]),
-                
                 # Training hyperparameters
                 weight_decay=args_dict["weight_decay"],
-                weight_decay_p=args_dict["weight_decay"],
                 learning_rates=args_dict["learning_rates"],
-                learning_rates_p=args_dict["learning_rates"],
         )
     
     
