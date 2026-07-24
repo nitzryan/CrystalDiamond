@@ -19,18 +19,13 @@ def GetLossesPro(
   i0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
-  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult:
+  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult | None:
   
   # Get Model Output
   data, length, pt_levelYearGames, player_demo, player_bios = data
   mask_valid = length > 0
   if mask_valid.sum() == 0:
-    l = TOTAL_WAR_BUCKETS.size(0)
-    return ProLossResult(
-      losses=(0, 0, 0, 0, 0, 0, 0, 0),
-      war_counts=WarClassCounts(predicted=torch.zeros(l), actual=torch.zeros(l)),
-      brier=BrierAccumulator(per_class_sum=torch.zeros(l), count=torch.zeros(l)),
-    )
+    return None
   
   data = data[mask_valid].to(device, non_blocking=True)
   length = length[mask_valid].to(device, non_blocking=True)

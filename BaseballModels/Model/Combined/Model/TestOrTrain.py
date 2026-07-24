@@ -53,6 +53,9 @@ def TestOrTrain(
             col_result = GetLossesCollege(col_network, col_data, col_targets, col_masks, shouldBackprop=is_train, is_hitter=is_hitter)
             pro_result = GetLossesPro(pro_network, pro_data, pro_targets, pro_masks, col_result.hidden, shouldBackprop=is_train, is_hitter=is_hitter,pro_element_loss_scales=pro_element_loss_scales)
             
+            if pro_result is None:
+                continue
+            
             if is_train:
                 torch.nn.utils.clip_grad_norm_(col_network.parameters(), max_norm=0.05)
                 col_optimizer.step()

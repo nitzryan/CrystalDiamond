@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 import json
-from typing import TypeVar, Type
+from Model.Utilities import GetPropertyValue
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
 from Model.Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
@@ -57,7 +57,7 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
-DEFAULT_WAR_ARCH = LayerArch(layer_size=92, num_layers=6, nonlin=F.leaky_relu)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=126, num_layers=5, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -87,10 +87,10 @@ DEFAULT_DROPOUT_P = 0.283
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.8e-5,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0029,0.030,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0029,0.077,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
 
 DEFAULT_INIT_STATE_SIZE = 40
@@ -101,14 +101,7 @@ DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
-DEFAULT_RECURRENT_TYPE = "LSTM"
-DEFAULT_RECURRENT_TYPE_P = "RNN"
 
-_T = TypeVar('T')
-def GetPropertyValue(val : Type[_T] | None, is_hitter : bool, hit_default : Type[_T], pit_default : Type[_T]) -> Type[_T]:
-    if val is not None:
-        return val
-    return hit_default if is_hitter else pit_default
 
 class Recurrent_Model(nn.Module):
     def __init__(self, 
@@ -122,7 +115,6 @@ class Recurrent_Model(nn.Module):
                 num_layers : int | None = None,
                 hidden_size : int | None = None,
                 
-                recurrent_type : str | None = None,
                 rnn_nonlinearity : str | None = None,
                 
                 input_noise : float | None = None,
@@ -150,7 +142,6 @@ class Recurrent_Model(nn.Module):
         num_layers = GetPropertyValue(num_layers, is_hitter, DEFAULT_PRO_NUM_LAYERS, DEFAULT_PRO_NUM_LAYERS_P)
         hidden_size = GetPropertyValue(hidden_size, is_hitter, DEFAULT_PRO_HIDDEN_SIZE, DEFAULT_PRO_HIDDEN_SIZE_P)
         rnn_nonlinearity = GetPropertyValue(rnn_nonlinearity, is_hitter, DEFAULT_RNN_NONLINEARITY, DEFAULT_RNN_NONLINEARITY_P)
-        recurrent_type = GetPropertyValue(recurrent_type, is_hitter, DEFAULT_RECURRENT_TYPE, DEFAULT_RECURRENT_TYPE_P)
         input_noise = GetPropertyValue(input_noise, is_hitter, DEFAULT_INPUT_NOISE, DEFAULT_INPUT_NOISE_P)
 
         stats_arch = GetPropertyValue(stats_arch, is_hitter, DEFAULT_STATS_ARCH, DEFAULT_STATS_ARCH_P)
@@ -179,7 +170,6 @@ class Recurrent_Model(nn.Module):
                     "num_layers": num_layers,
                     "hidden_size": hidden_size,
                     "rnn_nonlinearity": rnn_nonlinearity,
-                    "recurrent_type": recurrent_type,
                     "input_noise": input_noise,
                     
                     # Initial Hidden State Calculation
@@ -206,23 +196,15 @@ class Recurrent_Model(nn.Module):
         self.num_layers = num_layers
         self.input_noise = input_noise
         self.init_state_size = init_state_size
-        self.recurrent_type = recurrent_type
         
         # Converting Initial State to RNN initial hidden state
-        num_states = 2 if self.recurrent_type == "LSTM" else 1
-        self.init_hidden = init_state_arch.Build(init_state_size + data_prep.prep_map.bio_size, hidden_size * num_layers * num_states)
+        self.init_hidden = init_state_arch.Build(init_state_size + data_prep.prep_map.bio_size, hidden_size * num_layers)
         
         output_map = data_prep.output_map
         stats_size = output_map.hitter_stats_size if is_hitter else output_map.pitcher_stats_size
         
-        if self.recurrent_type == "RNN":
-            self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout, nonlinearity=rnn_nonlinearity)
-        elif self.recurrent_type == "GRU":
-            self.recurrent = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout)
-        elif self.recurrent_type == "LSTM":
-            self.recurrent = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout)
-        else:
-            raise ValueError(f"Unknown recurrent_type: {recurrent_type}. Must be 'RNN', 'GRU', or 'LSTM'.")
+        self.recurrent = nn.RNN(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, batch_first=False, dropout=recurrent_dropout, nonlinearity=rnn_nonlinearity)
+        
         
         # Taking RNN output and making predictions
         num_war_classes = len(output_map.buckets_hitter_war)
@@ -330,26 +312,17 @@ class Recurrent_Model(nn.Module):
             )
         
         i0 = torch.cat((i0, player_bios), dim=-1)
+        
+        # Transform initial state to hidden state for RNN
         h0 = self.init_hidden(i0)
-        
-        # Transform initial state to hidden state
-        if self.recurrent_type == "LSTM":
-            # Split the output into hidden state and cell state
-            h0, c0 = h0.chunk(2, dim=-1)
-            c0 = c0.reshape(c0.shape[0], self.num_layers, self.hidden_size)
-            c0 = c0.transpose(0, 1).contiguous()
-        
         h0 = h0.reshape(h0.shape[0], self.num_layers, self.hidden_size)
-        h0 = h0.transpose(0, 1).contiguous()
+        h0 = h0.transpose(0, 1)
         
         # Compute
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
-        if self.recurrent_type == "LSTM":
-            packedOutput, _ = self.recurrent(packedInput, (h0, c0))
-        else:
-            packedOutput, _ = self.recurrent(packedInput, h0)
+        packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         output_war          = self.war(output)

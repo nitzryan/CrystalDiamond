@@ -1,8 +1,11 @@
 import optuna
 import gc
-from enum import Flag, auto
+from enum import Flag, auto, Enum
 import torch.nn.functional as F
-from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS
+import math
+from dataclasses import dataclass
+
+from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS, DEFAULT_PRO_ELEMENT_LOSS_SCALES, DEFAULT_PRO_ELEMENT_LOSS_SCALES_P, DEFAULT_BATCH_SIZE_P, DEFAULT_NUM_EPOCHS_P
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model, LayerArch
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Pro.Model.Player_Model import *
@@ -19,99 +22,165 @@ _ACTIVATION_MAP = {
         "SiLU": F.silu,
         "Tanh": F.tanh,
     }
-_RECURRENT_TYPES = ["RNN", "GRU", "LSTM"]
 
-WAR_CUTOFF_FOLD_1 = 7.9 # Value above which folds 2-3 won't be used
-WAR_EXIT_VALUES_23 = 7.4 + 7.7 # Value for folds 2-3 if not run
+# Configurable Explore/Exploit balance
+class SearchWidth(Enum):
+    WIDE = auto()
+    NARROW = auto()
 
-WAR_CUTOFF_FOLD_1_P = 9.5
-WAR_EXIT_VALUES_23_P = 9.5 + 9.1
-
-WAR_MAX = 30
-
+# What hyperparameters to tune
 class ProModelTuningRecipe(Flag):
     RECURRENT = auto()
-    RECURRENT_TYPE = auto()
     INIT_HIDDEN = auto()
     WAR_ARCH = auto()
     BATCH_PARAMS = auto()
+    LOSS_SCALES = auto()
 
-def objective(
-            trial : optuna.trial.Trial, 
-            io_list : list[Combined_IO],
-            data_prep : Combined_Data_Prep,
-            is_hitter : bool,
-            recipe : ProModelTuningRecipe,
-            max_repeats : int = 3) -> float:
+@dataclass(frozen=True)
+class ParamSpec:
+    name: str
+    low: float = -1
+    high: float = -1
+    log: bool = False
+    is_int: bool = False
+    choices: list[str] | None = None
+    narrow_frac: float = 0.2 # How much range (% of value) is varied in narrow test
+
+    def __post_init__(self):
+        if self.choices is None:
+            assert self.low < self.high, f"ParamSpec '{self.name}': low must be < high"
+
+    def suggest(self, trial: optuna.trial.Trial, default, width: SearchWidth):
+        if self.choices is not None:
+            if width is SearchWidth.NARROW:
+                return default
+            return trial.suggest_categorical(self.name, self.choices)
+
+        low, high = self.low, self.high
+        if width is SearchWidth.NARROW:
+            span = self.narrow_frac * (self.high - self.low)
+            low = max(low, default - span)
+            high = min(high, default + span)
+            
+            # Low int should always round down, high int round up
+            if self.is_int:
+                low = round(low) if self.low == 0 else math.floor(low)
+                high = math.ceil(high)
+
+        if self.is_int:
+            return trial.suggest_int(self.name, int(round(low)), int(round(high)), log=self.log)
+        return trial.suggest_float(self.name, low, high, log=self.log)
+
+SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
+    ProModelTuningRecipe.RECURRENT: [
+        ParamSpec("num_layers", 2, 4, is_int=True),
+        ParamSpec("hidden_size", 16, 96, is_int=True),
+        ParamSpec("dropout", 0.0, 0.5),
+        ParamSpec("wd_shared", 1e-3, 1e-1, log=True),
+        ParamSpec("lr_shared", 5e-4, 1e-2, log=True),
+        ParamSpec("rnn_activation", choices=["relu", "tanh"]),
+    ],
+    ProModelTuningRecipe.WAR_ARCH: [
+        ParamSpec("war_layers", 2, 6, is_int=True),
+        ParamSpec("war_size", 4, 128, is_int=True),
+        ParamSpec("war_activation", choices=_ACTIVATION_FUNCTIONS),
+        ParamSpec("lr_war", 1e-4, 1e-1, log=True),
+        ParamSpec("wd_war", 1e-7, 1e-2, log=True),
+    ],
+    ProModelTuningRecipe.INIT_HIDDEN: [
+        ParamSpec("init_input_size", 4, 128, is_int=True),
+        ParamSpec("init_layers", 2, 6, is_int=True),
+        ParamSpec("init_size", 4, 128, is_int=True),
+        ParamSpec("init_activation", choices=_ACTIVATION_FUNCTIONS),
+    ],
+    ProModelTuningRecipe.BATCH_PARAMS: [
+        ParamSpec("batch_size", 400, 1600, is_int=True),
+        ParamSpec("num_epochs", 30, 60, is_int=True),
+    ],
+    ProModelTuningRecipe.LOSS_SCALES: [
+        ParamSpec(f"loss_scale_{i}", 1e-6, 10.0, log=True)
+        for i in range(len(DEFAULT_PRO_ELEMENT_LOSS_SCALES))
+    ],
+}
+
+_ACTIVATION_NAME = {v: k for k, v in _ACTIVATION_MAP.items()}
+HITTER_DEFAULTS = {
+    "num_layers": DEFAULT_PRO_NUM_LAYERS,
+    "hidden_size": DEFAULT_PRO_HIDDEN_SIZE,
+    "dropout": DEFAULT_DROPOUT,
+    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY[0],
+    "lr_shared": DEFAULT_LEARNING_RATES[0],
+    "rnn_activation": DEFAULT_RNN_NONLINEARITY,
+    "war_layers": DEFAULT_WAR_ARCH.num_layers,
+    "war_size": DEFAULT_WAR_ARCH.layer_size,
+    "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH.nonlin],
+    "lr_war": DEFAULT_LEARNING_RATES[1],
+    "wd_war": DEFAULT_PRO_WEIGHT_DECAY[1],
+    "init_input_size": DEFAULT_INIT_STATE_SIZE,
+    "init_layers": DEFAULT_INIT_STATE_ARCH.num_layers,
+    "init_size": DEFAULT_INIT_STATE_ARCH.layer_size,
+    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH.nonlin],
+    "batch_size": DEFAULT_BATCH_SIZE,
+    "num_epochs": DEFAULT_NUM_EPOCHS,
     
-    global MAX_LOSS, WAR_CUTOFF_FOLD_1, WAR_EXIT_VALUES_23
-    if not is_hitter:
-        WAR_CUTOFF_FOLD_1 = WAR_CUTOFF_FOLD_1_P
-        WAR_EXIT_VALUES_23 = WAR_EXIT_VALUES_23_P
+    # Loss Scale Factor
+    **{f"loss_scale_{i}": v
+       for i, v in enumerate(DEFAULT_PRO_ELEMENT_LOSS_SCALES)},
+}
+
+PITCHER_DEFAULTS = {
+    "num_layers": DEFAULT_PRO_NUM_LAYERS_P,
+    "hidden_size": DEFAULT_PRO_HIDDEN_SIZE_P,
+    "dropout": DEFAULT_DROPOUT_P,
+    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY_P[0],
+    "lr_shared": DEFAULT_LEARNING_RATES_P[0],
+    "rnn_activation": DEFAULT_RNN_NONLINEARITY_P,
+    "war_layers": DEFAULT_WAR_ARCH_P.num_layers,
+    "war_size": DEFAULT_WAR_ARCH_P.layer_size,
+    "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH.nonlin],
+    "lr_war": DEFAULT_LEARNING_RATES_P[1],
+    "wd_war": DEFAULT_PRO_WEIGHT_DECAY_P[1],
+    "init_input_size": DEFAULT_INIT_STATE_SIZE_P,
+    "init_layers": DEFAULT_INIT_STATE_ARCH_P.num_layers,
+    "init_size": DEFAULT_INIT_STATE_ARCH_P.layer_size,
+    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH.nonlin],
+    "batch_size": DEFAULT_BATCH_SIZE_P,
+    "num_epochs": DEFAULT_NUM_EPOCHS_P,
     
-    lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
-    wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
+    # Loss Scale Factor
+    **{f"loss_scale_{i}": v
+       for i, v in enumerate(DEFAULT_PRO_ELEMENT_LOSS_SCALES_P)},
+}
+
+def resolve_params(
+        trial: optuna.trial.Trial,
+        recipe: ProModelTuningRecipe,
+        width: SearchWidth,
+        is_hitter: bool) -> dict:
     
-    # Recurrent Type
-    if recipe & ProModelTuningRecipe.RECURRENT_TYPE:
-        recurrent_type = trial.suggest_categorical('recurrent_type', _RECURRENT_TYPES)
-    else:
-        recurrent_type = DEFAULT_RECURRENT_TYPE if is_hitter else DEFAULT_RECURRENT_TYPE_P
+    defaults = HITTER_DEFAULTS if is_hitter else PITCHER_DEFAULTS
+    params = dict(defaults)
+    for flag, specs in SEARCH_SPACE.items():
+        if recipe & flag:
+            for spec in specs:
+                params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
+    return params
+
+def run_evaluation(
+            io_list: list[Combined_IO],
+            data_prep: Combined_Data_Prep,
+            is_hitter: bool,
+            p: dict,
+            war_arch: LayerArch,
+            init_arch: LayerArch,
+            lr_list: list[float],
+            wd_list: list[float],
+            loss_scales: list[float] | None = None,
+            max_repeats: int = 3) -> float:
     
-    # RNN Hyperparameters
-    if recipe & (ProModelTuningRecipe.RECURRENT | ProModelTuningRecipe.RECURRENT_TYPE):
-        num_layers = trial.suggest_int('num_layers', 2, 4)
-        hidden_size = trial.suggest_int('hidden_size', 16, 96)
-        dropout = trial.suggest_float('dropout', 0, 0.5)
-        wd_shared = trial.suggest_float("wd_shared", 1e-3, 1e-1, log=True)
-        lr_shared = trial.suggest_float("lr_shared", 5e-4, 1e-2, log=True)
-        
-        if recurrent_type == "RNN":
-            rnn_activation = trial.suggest_categorical('rnn_activation', ["relu", "tanh"])
-        else:
-            rnn_activation = DEFAULT_RNN_NONLINEARITY # Ignored by GRU/LSTM
-        
-        wd_list[0] = wd_shared
-        lr_list[0] = lr_shared
-    else:
-        num_layers = DEFAULT_PRO_NUM_LAYERS if is_hitter else DEFAULT_PRO_NUM_LAYERS_P
-        hidden_size = DEFAULT_PRO_HIDDEN_SIZE if is_hitter else DEFAULT_PRO_HIDDEN_SIZE_P
-        dropout = DEFAULT_DROPOUT if is_hitter else DEFAULT_DROPOUT_P
-        rnn_activation = DEFAULT_RNN_NONLINEARITY if is_hitter else DEFAULT_RNN_NONLINEARITY_P
-    
-    # War Output Hyperparameters
-    if recipe & ProModelTuningRecipe.WAR_ARCH:
-        war_numlayers = trial.suggest_int('war_layers', 2, 6)
-        war_layersize = trial.suggest_int('war_size', 4, 128)
-        war_activation = trial.suggest_categorical('war_activation', _ACTIVATION_FUNCTIONS)
-        war_arch = LayerArch(num_layers=war_numlayers, layer_size=war_layersize, nonlin=_ACTIVATION_MAP[war_activation])
-        lr_war = trial.suggest_float("lr_war", 1e-4, 1e-1, log=True)
-        wd_war = trial.suggest_float("wd_war", 1e-7, 1e-2, log=True)
-        
-        lr_list[1] = lr_war
-        wd_list[1] = wd_war
-    else:
-        war_arch = DEFAULT_WAR_ARCH if is_hitter else DEFAULT_WAR_ARCH_P
-    
-    # Initial State Hyperparameters
-    if recipe & ProModelTuningRecipe.INIT_HIDDEN:
-        init_size = trial.suggest_int('init_input_size', 4, 128)
-        init_numlayers = trial.suggest_int('init_layers', 2, 6)
-        init_layersize = trial.suggest_int('init_size', 4, 128)
-        init_activation = trial.suggest_categorical('init_activation', _ACTIVATION_FUNCTIONS)
-        init_arch = LayerArch(num_layers=init_numlayers, layer_size=init_layersize, nonlin=_ACTIVATION_MAP[init_activation])
-    else:
-        init_size = DEFAULT_INIT_STATE_SIZE if is_hitter else DEFAULT_INIT_STATE_SIZE_P
-        init_arch = DEFAULT_INIT_STATE_ARCH if is_hitter else DEFAULT_INIT_STATE_ARCH_P
-    
-    # Batch size and num epochs
-    if recipe & ProModelTuningRecipe.BATCH_PARAMS:
-        batch_size = trial.suggest_int("batch_size", 400, 1600)
-        num_epochs = trial.suggest_int("num_epochs", 30, 60)
-    else:
-        batch_size = DEFAULT_BATCH_SIZE
-        num_epochs = DEFAULT_NUM_EPOCHS
-    
+    WAR_MAX = 30
+    cutoff_fold_1, exit_values_23 = (7.9, 7.4 + 7.7) if is_hitter else (9.5, 9.5 + 9.1)
+
     sum_war = 0
     for i in range(max_repeats):
         train_dataset, test_dataset = Create_Test_Train_Datasets(
@@ -125,20 +194,19 @@ def objective(
             data_prep=data_prep.pro_data_prep,
             is_hitter=is_hitter,
             
-            recurrent_dropout=dropout,
-            num_layers=num_layers,
-            hidden_size=hidden_size,
+            recurrent_dropout=p["dropout"],
+            num_layers=p["num_layers"],
+            hidden_size=p["hidden_size"],
             
             war_arch=war_arch,
             
             weight_decay=wd_list,
             learning_rates=lr_list,
             
-            recurrent_type=recurrent_type,
-            rnn_nonlinearity=rnn_activation,
+            rnn_nonlinearity=p["rnn_activation"],
             
             init_state_arch=init_arch,
-            init_state_size=init_size,
+            init_state_size=p["init_input_size"],
         ).to(device)
         # Create variant to test
         col_network = Col_Model(
@@ -155,8 +223,9 @@ def objective(
             test_dataset=test_dataset,
             is_hitter=is_hitter,
             should_output=False,
-            batch_size=batch_size,
-            num_epochs=num_epochs,
+            batch_size=p["batch_size"],
+            num_epochs=p["num_epochs"],
+            pro_element_loss_scales=loss_scales,
             col_model_name="../../Models/no_name_col",
             pro_model_name="../../Models/no_name_pro",
         )
@@ -171,8 +240,37 @@ def objective(
         sum_war += train_results.best_loss
         
         # Check if it should exit early
-        if i == 0 and sum_war > WAR_CUTOFF_FOLD_1:
-            sum_war += WAR_EXIT_VALUES_23
+        if i == 0 and sum_war > cutoff_fold_1:
+            sum_war += exit_values_23
             break
         
     return min(sum_war, WAR_MAX)
+
+def objective(
+            trial: optuna.trial.Trial,
+            io_list: list[Combined_IO],
+            data_prep: Combined_Data_Prep,
+            is_hitter: bool,
+            recipe: ProModelTuningRecipe,
+            width: SearchWidth,
+            max_repeats: int = 3) -> float:
+
+    p = resolve_params(trial, recipe, width, is_hitter)
+    loss_scales = [p[f"loss_scale_{i}"]
+        for i in range(len(DEFAULT_PRO_ELEMENT_LOSS_SCALES))]
+
+    war_arch = LayerArch(num_layers=p["war_layers"], layer_size=p["war_size"],
+                         nonlin=_ACTIVATION_MAP[p["war_activation"]])
+    init_arch = LayerArch(num_layers=p["init_layers"], layer_size=p["init_size"],
+                          nonlin=_ACTIVATION_MAP[p["init_activation"]])
+
+    lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
+    wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
+    lr_list[0], lr_list[1] = p["lr_shared"], p["lr_war"]
+    wd_list[0], wd_list[1] = p["wd_shared"], p["wd_war"]
+
+    return run_evaluation(
+        io_list=io_list, data_prep=data_prep, is_hitter=is_hitter,
+        p=p, war_arch=war_arch, init_arch=init_arch,
+        loss_scales=loss_scales,
+        lr_list=lr_list, wd_list=wd_list, max_repeats=max_repeats)

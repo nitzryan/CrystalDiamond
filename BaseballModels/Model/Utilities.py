@@ -1,4 +1,4 @@
-from typing import TypeVar 
+from typing import TypeVar, Type
 import torch
 from Model.Constants import DTYPE
 
@@ -23,6 +23,12 @@ def Normalize(item: _T, means: _T, devs: _T) -> _T:
             norm_value = (raw_value - getattr(means, name)) / getattr(devs, name)
             setattr(item, name, norm_value)
     return item
+
+_T = TypeVar('T')
+def GetPropertyValue(val : Type[_T] | None, is_hitter : bool, hit_default : Type[_T], pit_default : Type[_T]) -> Type[_T]:
+    if val is not None:
+        return val
+    return hit_default if is_hitter else pit_default
 
 from Model.Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
 from Model.Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map

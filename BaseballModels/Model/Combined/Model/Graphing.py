@@ -5,7 +5,7 @@ from IPython.display import display
 from matplotlib.figure import Figure
 from Model.Combined.Utilities.Types import *
 
-def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 1, graph_y_range=None, title="") -> Figure:
+def GraphLoss(epoch_counter : list[int], train_loss_hist : list[float], test_loss_hist : list[float], loss_name="Loss", start = 1, graph_y_range=None, title="") -> Figure:
     fig = plt.figure()
     plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
     plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')

@@ -12,9 +12,11 @@ from Model.Combined.Model.GetPlayerClassDistribution import GetPlayerClassDistri
 import torch
 
 from Model.Combined.Utilities.Types import *
+from Model.Utilities import GetPropertyValue
 
 SHOULD_PROFILE = False
-DEFAULT_PRO_ELEMENT_LOSS_SCALES = [1e-1, 1, 1e-1, 1e-3, 1, 1, 1, 1e-1]
+DEFAULT_PRO_ELEMENT_LOSS_SCALES = [0.24, 2.3, 8.2e-5, 8.6e-6, 1.07e-5, 1.2e-5, 0.86, 3.6e-6]
+DEFAULT_PRO_ELEMENT_LOSS_SCALES_P = [1e-1, 1, 1e-1, 1e-3, 1, 1, 1, 1e-1]
 DEFAULT_BATCH_SIZE = 1038
 DEFAULT_NUM_EPOCHS = 35
 DEFAULT_BATCH_SIZE_P = 1200
@@ -35,26 +37,21 @@ def TrainAndGraph(
     col_model_name : str = "no_name_col",
     element_to_save : int = 0,
     early_stopping_cutoff : int = 20,
-    pro_element_loss_scales : list[int] = DEFAULT_PRO_ELEMENT_LOSS_SCALES,
+    pro_element_loss_scales : list[float] | None = None,
     timestep_pct_cutoff : float = 1.0,
     save_last=True,
 ) -> TrainResults:
     
     num_pro_elements = NUM_ELEMENTS
+    num_epochs = GetPropertyValue(num_epochs, is_hitter, DEFAULT_NUM_EPOCHS, DEFAULT_NUM_EPOCHS_P)
+    batch_size = GetPropertyValue(batch_size, is_hitter, DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_P)
+    pro_element_loss_scales = GetPropertyValue(pro_element_loss_scales, is_hitter, DEFAULT_PRO_ELEMENT_LOSS_SCALES, DEFAULT_PRO_ELEMENT_LOSS_SCALES_P)
     if is_hitter:
         num_col_elements = NUM_ELEMENTS_HITTER
         col_element_list = HITTER_ELEMENT_LIST
-        if num_epochs is None:
-            num_epochs = DEFAULT_NUM_EPOCHS
-        if batch_size is None:
-            batch_size = DEFAULT_BATCH_SIZE
     else:
         num_col_elements = NUM_ELEMENTS_PITCHER
         col_element_list = PITCHER_ELEMENT_LIST
-        if num_epochs is None:
-            num_epochs = DEFAULT_NUM_EPOCHS_P
-        if batch_size is None:
-            batch_size = DEFAULT_BATCH_SIZE_P
         
     num_elements = num_pro_elements + num_col_elements
     element_list = [f"PRO {e}" for e in ELEMENT_LIST] + [f"COL {e}" for e in col_element_list]
@@ -88,9 +85,7 @@ def TrainAndGraph(
         if epoch == 0:
             first_loss = test_result.avg_loss[element_to_save]
         if epoch > 0:
-            if test_result.avg_loss[element_to_save] > first_loss * 1.25:
-                break
-            if epoch > 5 and test_result.avg_loss[element_to_save] > first_loss:
+            if test_result.avg_loss[element_to_save] > first_loss * 2:
                 break
             
         # If ever gets to NaN, report a really large number
