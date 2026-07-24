@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
-namespace DataAquisition
+namespace DataAquisition.ModelStats
 {
     internal class Model_MonthValue
     {
@@ -29,9 +29,9 @@ namespace DataAquisition
                             int month = m.Month;
                             int year = m.Year;
 
-                            var warStats1Year = pmw.Where(f => (f.Year == year && f.Month > month) || (f.Year == (year + 1) && f.Month <= month));
-                            var warStats2Year = pmw.Where(f => (f.Year == (year + 1) && f.Month > month) || (f.Year == (year + 2) && f.Month <= month));
-                            var warStats3Year = pmw.Where(f => (f.Year == (year + 2) && f.Month > month) || (f.Year == (year + 3) && f.Month <= month));
+                            var warStats1Year = pmw.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
+                            var warStats2Year = pmw.Where(f => f.Year == year + 1 && f.Month > month || f.Year == year + 2 && f.Month <= month);
+                            var warStats3Year = pmw.Where(f => f.Year == year + 2 && f.Month > month || f.Year == year + 3 && f.Month <= month);
 
                             db.Model_HitterValue.Add(new Model_HitterValue
                             {
@@ -81,9 +81,9 @@ namespace DataAquisition
                             int month = m.Month;
                             int year = m.Year;
 
-                            var warStats1Year = pmw.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
-                            var warStats2Year = pmw.Where(f => (f.Year == year + 1 && f.Month > month) || (f.Year == year + 2 && f.Month <= month));
-                            var warStats3Year = pmw.Where(f => (f.Year == year + 2 && f.Month > month) || (f.Year == year + 3 && f.Month <= month));
+                            var warStats1Year = pmw.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
+                            var warStats2Year = pmw.Where(f => f.Year == year + 1 && f.Month > month || f.Year == year + 2 && f.Month <= month);
+                            var warStats3Year = pmw.Where(f => f.Year == year + 2 && f.Month > month || f.Year == year + 3 && f.Month <= month);
 
                             db.Model_PitcherValue.Add(new Model_PitcherValue
                             {

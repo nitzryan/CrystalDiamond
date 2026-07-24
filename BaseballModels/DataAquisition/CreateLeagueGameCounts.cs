@@ -3,7 +3,7 @@ using ShellProgressBar;
 
 namespace DataAquisition
 {
-    internal class CreateLevelGameCounts
+    internal class CreateLeagueGameCounts
     {
         public static void Update(int year, int month)
         {
@@ -11,26 +11,26 @@ namespace DataAquisition
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-                db.RemoveRange(db.Level_GameCounts.Where(f => f.Year == year && f.Month == month));
+                db.RemoveRange(db.League_GameCounts.Where(f => f.Year == year && f.Month == month));
                 db.SaveChanges();
 
                 var monthGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month == month);
-                var levels = monthGames.Select(f => f.LevelId).Distinct();
-                using (ProgressBar progressBar = new(levels.Count(), $"Generating LevelGameCounts for {year}-{month}"))
+                var leagues = monthGames.Select(f => f.LeagueId).Distinct();
+                using (ProgressBar progressBar = new(leagues.Count(), $"Generating League_GameCounts for {year}-{month}"))
                 {
-                    foreach (int levelId in levels)
+                    foreach (int leagueId in leagues)
                     {
-                        var levelGames = monthGames.Where(f => f.LevelId == levelId);
+                        var leagueGames = monthGames.Where(f => f.LeagueId == leagueId);
                         int maxPA = 0;
-                        if (levelGames.Any())
+                        if (leagueGames.Any())
                         {
-                            var levelGroups = levelGames.GroupBy(f => f.MlbId).Select(f => f.Sum(p => p.PA));
+                            var levelGroups = leagueGames.GroupBy(f => f.MlbId).Select(f => f.Sum(p => p.PA));
                             maxPA = levelGroups.Max(f => f);
                         }
 
-                        db.Level_GameCounts.Add(new Level_GameCounts
+                        db.League_GameCounts.Add(new League_GameCounts
                         {
-                            LevelId = levelId,
+                            LeagueId = leagueId,
                             Year = year,
                             Month = month,
                             MaxPA = maxPA

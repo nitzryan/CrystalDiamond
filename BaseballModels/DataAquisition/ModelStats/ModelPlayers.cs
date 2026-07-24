@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
-namespace DataAquisition
+namespace DataAquisition.ModelStats
 {
     internal class ModelPlayers
     {

@@ -1,7 +1,7 @@
 ﻿using Db;
 using Microsoft.EntityFrameworkCore;
 
-namespace DataAquisition
+namespace DataAquisition.ModelStats
 {
     internal class UpdateCareers
     {
@@ -14,7 +14,7 @@ namespace DataAquisition
                 // Insert empty Career Status
                 foreach (var player in db.Player)
                 {
-                    Db.Player dbPlayer = db.Player.Where(f => f.MlbId == player.MlbId).Single();
+                    Player dbPlayer = db.Player.Where(f => f.MlbId == player.MlbId).Single();
 
                     // Determine if player is hitter/pitcher/two-way
                     int pa = db.Player_Hitter_GameLog.Where(f => f.MlbId == player.MlbId && f.Position != 1).Sum(f => f.PA);
@@ -26,7 +26,7 @@ namespace DataAquisition
                         isHitter = dbPlayer.Position.Equals("H") || dbPlayer.Position.Equals("TWP");
                         isPitcher = dbPlayer.Position.Equals("P") || dbPlayer.Position.Equals("TWP");
                     } else {
-                        float prop_hitter = (float)(pa) / (pa + bf);
+                        float prop_hitter = (float)pa / (pa + bf);
                         isHitter = prop_hitter > 0.1;
                         isPitcher = prop_hitter < 0.9;
                     }
@@ -164,7 +164,7 @@ namespace DataAquisition
                     int AB = 0;
                     foreach (var stat in hitterStats)
                     {
-                        if (stat.Year > reachedYear || (stat.Year == reachedYear && stat.Month <= reachedMonth))
+                        if (stat.Year > reachedYear || stat.Year == reachedYear && stat.Month <= reachedMonth)
                             break; // Reached for pitcher first
 
                         AB += stat.AB;
@@ -207,7 +207,7 @@ namespace DataAquisition
                 int cutoffYear = endYear - Constants.AGED_OUT_AGE;
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear == null))
                 {
-                    Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
+                    Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
                     int birthYear = player.BirthYear;
                     int birthMonth = player.BirthMonth;
                     if (birthMonth >= 4)
@@ -221,7 +221,7 @@ namespace DataAquisition
                 // Aged Out (Some MLB)
                 foreach (var pcs in db.Player_CareerStatus.Where(f => f.MlbStartYear != null))
                 {
-                    Db.Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
+                    Player player = db.Player.Where(f => f.MlbId == pcs.MlbId).First();
                     int birthYear = player.BirthYear;
                     int birthMonth = player.BirthMonth;
                     if (birthMonth >= 4)
@@ -238,7 +238,7 @@ namespace DataAquisition
                 {
                     int idInt = Convert.ToInt32(id);
                     try {
-                        Db.Player_CareerStatus pcs = db.Player_CareerStatus.Where(f => f.MlbId == idInt).First();
+                        Player_CareerStatus pcs = db.Player_CareerStatus.Where(f => f.MlbId == idInt).First();
                         pcs.IgnorePlayer = 1;
                     } catch (Exception) { // Player not in db, this only hit if only fraction of data is run
                         continue;
@@ -279,7 +279,7 @@ namespace DataAquisition
                     foreach (var py in playerYears)
                     {
                             // Time Since Debut       Gap between Years        Too Old
-                        if ((py - startYear) >= 9 || (py - prevYear) > 2 || py > stopYear)
+                        if (py - startYear >= 9 || py - prevYear > 2 || py > stopYear)
                         {
                             pcs.ServiceLapseYear = py;
                             logged = true;

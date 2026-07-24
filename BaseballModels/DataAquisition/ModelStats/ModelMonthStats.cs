@@ -3,7 +3,7 @@ using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
-namespace DataAquisition
+namespace DataAquisition.ModelStats
 {
     internal class ModelMonthStats
     {
@@ -20,18 +20,24 @@ namespace DataAquisition
             List<Model_HitterStats> output = new(ids.Length * 70);
             IProgress<float> progress = progressBar.AsProgress<float>();
 
+            // Get dict of league averages ages
+            Dictionary<(int leagueId, int year, int month), float> leagueAgeDict = db.LeagueAverageAge.ToDictionary(
+                f => (f.LeagueId, f.Year, f.Month),
+                f => f.HitterAge
+            );
+
             // Create dictionary to store what levels have data
-            Dictionary<(int, int, int), bool> GamesAtLevelDict = new();
-            Dictionary<(int, int, int), float> GamesFracDict = new();
-            var allLevels = db.Level_GameCounts.Select(f => f.LevelId).Distinct();
-            var allYears = db.Level_GameCounts.Select(f => f.Year).Distinct();
-            var allMonths = db.Level_GameCounts.Select(f => f.Month).Distinct();
+            Dictionary<(int month, int leagueId, int year), bool> GamesAtLeagueDict = new();
+            Dictionary<(int month, int leagueId, int year), float> GamesFracDict = new();
+            var allLeagues = db.League_GameCounts.Select(f => f.LeagueId).Distinct();
+            var allYears = db.League_GameCounts.Select(f => f.Year).Distinct();
+            var allMonths = db.League_GameCounts.Select(f => f.Month).Distinct();
             foreach (int month in allMonths)
-                foreach (int level in allLevels)
+                foreach (int league in allLeagues)
                     foreach (int year in allYears)
                     {
-                        GamesAtLevelDict.Add((month, level, year), Utilities.GamesAtLevel(month, level, year, db));
-                        GamesFracDict.Add((month, level, year), Utilities.GetGamesFrac(month, level, year, db));
+                        GamesAtLeagueDict.Add((month, league, year), Utilities.GamesAtLeague(month, league, year, db));
+                        GamesFracDict.Add((month, league, year), Utilities.GetGamesFrac(month, league, year, db));
                     }
 
             foreach (int id in ids)
@@ -45,10 +51,12 @@ namespace DataAquisition
                 int prevYear = 0;
                 int prevMonth = 0;
                 float prevLevel = -1;
+                int prevLeagueId = -1;
                 Model_HitterStats currentData = new()
                 {
                     MlbId = player.MlbId,
                     Age = -1,
+                    LeagueAverageAge = -1,
                     InjStatus = -1,
                     PA = -1,
                     TrainMask = -1,
@@ -95,6 +103,7 @@ namespace DataAquisition
                 // Generate Hitter Stats
                 foreach (var r in ratios)
                 {
+                    prevLeagueId = r.LeagueId;
                     int level = r.LevelId == 1 ? 1 : r.LevelId - 9;
                     var stat = db.Player_Hitter_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId)
                         .Select(f => new { f.H, f.Hit2B, f.Hit3B, f.HR, f.PA, f.BB, f.HBP, f.K, f.SB, f.CS, f.AB, f.ParkHRFactor, f.ParkRunFactor }).Single();
@@ -111,14 +120,17 @@ namespace DataAquisition
                     float hitSBRatio = Utilities.SafeDivide(stat.SB, stat.PA * lhs.SB);
                     float hitCSRatio = Utilities.SafeDivide(stat.CS, stat.PA * lhs.CS);
 
+                    float leagueAge = leagueAgeDict[(r.LeagueId, r.Year, r.Month)];
+
                     if (r.Year == prevYear && r.Month == prevMonth)
                     {
                         int PA = stat.AB + stat.BB + stat.HBP;
-                        float prop = (currentData.PA + PA) > 0 ? (float)(PA) / (currentData.PA + PA) : 0.5f;
+                        float prop = currentData.PA + PA > 0 ? (float)PA / (currentData.PA + PA) : 0.5f;
                         float invProp = 1 - prop;
 
                         currentData.PA += PA;
-                        currentData.MonthFrac = (GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(level), prevYear)] * prop) + (currentData.MonthFrac * invProp);
+                        currentData.LeagueAverageAge = (leagueAge * prop) + (currentData.LeagueAverageAge * invProp);
+                        currentData.MonthFrac = (GamesFracDict[(prevMonth, r.LeagueId, prevYear)] * prop) + (currentData.MonthFrac * invProp);
                         currentData.ParkHRFactor = (stat.ParkHRFactor * prop) + (currentData.ParkHRFactor * invProp);
                         currentData.ParkRunFactor = (stat.ParkRunFactor * prop) + (currentData.ParkRunFactor * invProp);
                         currentData.LevelId = (level * prop) + (currentData.LevelId * invProp);
@@ -168,17 +180,18 @@ namespace DataAquisition
                             while (prevYear < r.Year || (prevYear == r.Year && prevMonth < r.Month))
                             {
                                 // Fill Hitter Gaps
-                                if (GamesAtLevelDict[(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear)])
+                                if (GamesAtLeagueDict[(prevMonth, prevLeagueId, prevYear)])
                                     output.Add(new Model_HitterStats
                                     {
                                         MlbId = r.MlbId,
                                         Year = prevYear,
                                         Month = prevMonth,
                                         Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        LeagueAverageAge = leagueAgeDict[(r.LeagueId, prevYear, prevMonth)],
                                         PA = 0,
                                         TrainMask = Utilities.GetModelMask(hitter, prevYear, prevMonth),
                                         InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
-                                        MonthFrac = GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear)],
+                                        MonthFrac = GamesFracDict[(prevMonth, prevLeagueId, prevYear)],
                                         LevelId = prevLevelInt,
                                         ParkHRFactor = 1,
                                         ParkRunFactor = 1,
@@ -233,6 +246,7 @@ namespace DataAquisition
                             .Select(f => f.DRAA);
 
                         currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
+                        currentData.LeagueAverageAge = leagueAge;
                         currentData.PA = stat.AB + stat.BB + stat.HBP;
                         currentData.TrainMask = Utilities.GetModelMask(hitter, r.Year, r.Month);
                         currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
@@ -241,7 +255,7 @@ namespace DataAquisition
                         currentData.Year = r.Year;
                         currentData.Month = r.Month;
                         currentData.LevelId = level;
-                        currentData.MonthFrac = GamesFracDict[(r.Month, Utilities.ModelLevelToMlbLevel(level), r.Year)];
+                        currentData.MonthFrac = GamesFracDict[(r.Month, r.LeagueId, r.Year)];
                         currentData.AVGRatio = r.AVGRatio;
                         currentData.OBPRatio = r.OBPRatio;
                         currentData.ISORatio = r.ISORatio;
@@ -306,17 +320,18 @@ namespace DataAquisition
                     while (prevYear <= Math.Min(lastYear + 2, endYear))
                     {
                         // Fill Hitter Gaps
-                        if (GamesAtLevelDict[(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear)])
+                        if (GamesAtLeagueDict[(prevMonth, prevLeagueId, prevYear)])
                             output.Add(new Model_HitterStats
                             {
                                 MlbId = hitter.MlbId,
                                 Year = prevYear,
                                 Month = prevMonth,
                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                LeagueAverageAge = leagueAgeDict[(prevLeagueId, prevYear, prevMonth)],
                                 PA = 0,
                                 TrainMask = Utilities.GetModelMask(hitter, prevYear, prevMonth),
                                 InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, hitter.MlbId, db),
-                                MonthFrac = GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear)],
+                                MonthFrac = GamesFracDict[(prevMonth, prevLeagueId, prevYear)],
                                 LevelId = pLevelInt,
                                 ParkHRFactor = 1,
                                 ParkRunFactor = 1,
@@ -372,20 +387,22 @@ namespace DataAquisition
 
                     int y = signingYear + 1;
                     int m = 4;
+                    const int MISSING_LEAGUE = 124; // Florida Complex League
                     const int MISSING_LEVEL = 7;
-                    while ((y < endYear || (y == endYear && m <= endMonth)) && (y < (signingYear + 7)))
+                    while ((y < endYear || (y == endYear && m <= endMonth)) && y < signingYear + 7)
                     {
-                        if (GamesAtLevelDict[(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y)])
+                        if (GamesAtLeagueDict[(m, MISSING_LEAGUE, y)])
                             output.Add(new Model_HitterStats
                             {
                                 MlbId = hitter.MlbId,
                                 Year = y,
                                 Month = m,
                                 Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                LeagueAverageAge = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                 PA = 0,
                                 TrainMask = Utilities.GetModelMask(hitter, y, m),
                                 InjStatus = Utilities.GetInjStatus(m, y, hitter.MlbId, db),
-                                MonthFrac = GamesFracDict[(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y)],
+                                MonthFrac = GamesFracDict[(m, MISSING_LEAGUE, y)],
                                 LevelId = MISSING_LEVEL,
                                 ParkHRFactor = 1,
                                 ParkRunFactor = 1,
@@ -450,18 +467,24 @@ namespace DataAquisition
             List<Model_PitcherStats> output = new(ids.Length * 70);
             IProgress<float> progress = progressBar.AsProgress<float>();
 
+            // Get dict of league averages ages
+            Dictionary<(int leagueId, int year, int month), float> leagueAgeDict = db.LeagueAverageAge.ToDictionary(
+                f => (f.LeagueId, f.Year, f.Month),
+                f => f.PitcherAge
+            );
+
             // Create dictionary to store what levels have data
-            Dictionary<(int, int, int), bool> GamesAtLevelDict = new();
-            Dictionary<(int, int, int), float> GamesFracDict = new();
-            var allLevels = db.Level_GameCounts.Select(f => f.LevelId).Distinct();
-            var allYears = db.Level_GameCounts.Select(f => f.Year).Distinct();
-            var allMonths = db.Level_GameCounts.Select(f => f.Month).Distinct();
+            Dictionary<(int month, int leagueId, int year), bool> GamesAtLeagueDict = new();
+            Dictionary<(int month, int leagueId, int year), float> GamesFracDict = new();
+            var allLeagues = db.League_GameCounts.Select(f => f.LeagueId).Distinct();
+            var allYears = db.League_GameCounts.Select(f => f.Year).Distinct();
+            var allMonths = db.League_GameCounts.Select(f => f.Month).Distinct();
             foreach (int month in allMonths)
-                foreach (int level in allLevels)
+                foreach (int league in allLeagues)
                     foreach (int year in allYears)
                     {
-                        GamesAtLevelDict.Add((month, level, year), Utilities.GamesAtLevel(month, level, year, db));
-                        GamesFracDict.Add((month, level, year), Utilities.GetGamesFrac(month, level, year, db));
+                        GamesAtLeagueDict.Add((month, league, year), Utilities.GamesAtLeague(month, league, year, db));
+                        GamesFracDict.Add((month, league, year), Utilities.GetGamesFrac(month, league, year, db));
                     }
 
             foreach (int id in ids)
@@ -475,10 +498,12 @@ namespace DataAquisition
                 int prevYear = 0;
                 int prevMonth = 0;
                 float prevLevel = -1;
+                int prevLeague = -1;
                 Model_PitcherStats currentData = new()
                 {
                     MlbId = player.MlbId,
                     Age = -1,
+                    LeagueAverageAge = -1,
                     BF = -1,
                     TrainMask = -1,
                     InjStatus = -1,
@@ -502,16 +527,21 @@ namespace DataAquisition
                 // Generate Hitter Stats
                 foreach (var r in ratios)
                 {
+                    prevLeague = r.LeagueId;
                     int level = r.LevelId == 1 ? 1 : r.LevelId - 9;
+
+                    float leagueAge = leagueAgeDict[(r.LeagueId, r.Year, r.Month)];
+
                     var stat = db.Player_Pitcher_MonthStats.Where(f => f.MlbId == r.MlbId && f.Year == r.Year && f.Month == r.Month && f.LeagueId == r.LeagueId).Single();
                     if (r.Year == prevYear && r.Month == prevMonth)
                     {
 
-                        float prop = (currentData.BF + stat.BattersFaced) > 0 ? (float)(stat.BattersFaced) / (currentData.BF + stat.BattersFaced) : 0.5f;
+                        float prop = currentData.BF + stat.BattersFaced > 0 ? (float)stat.BattersFaced / (currentData.BF + stat.BattersFaced) : 0.5f;
                         float invProp = 1 - prop;
 
                         currentData.BF += stat.BattersFaced;
-                        currentData.MonthFrac = (GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(level), prevYear)] * prop) + (currentData.MonthFrac * invProp);
+                        currentData.LeagueAverageAge = (leagueAge * prop) + (currentData.LeagueAverageAge * invProp);
+                        currentData.MonthFrac = (GamesFracDict[(prevMonth, r.LeagueId, prevYear)] * prop) + (currentData.MonthFrac * invProp);
                         currentData.ParkHRFactor = (stat.ParkHRFactor * prop) + (currentData.ParkHRFactor * invProp);
                         currentData.ParkRunFactor = (stat.ParkRunFactor * prop) + (currentData.ParkRunFactor * invProp);
                         currentData.SpPerc = (stat.SPPerc * prop) + (currentData.SpPerc * invProp);
@@ -541,19 +571,18 @@ namespace DataAquisition
                             while (prevYear < r.Year || (prevYear == r.Year && prevMonth < r.Month))
                             {
                                 // Fill Hitter Gaps
-                                //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
-
-                                if (GamesAtLevelDict[(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear)])
+                                if (GamesAtLeagueDict[(prevMonth, prevLeague, prevYear)])
                                     output.Add(new Model_PitcherStats
                                     {
                                         MlbId = r.MlbId,
                                         Year = prevYear,
                                         Month = prevMonth,
                                         Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                        LeagueAverageAge = leagueAgeDict[(r.LeagueId, prevYear, prevMonth)],
                                         BF = 0,
                                         TrainMask = Utilities.GetModelMask(pitcher, prevYear, prevMonth),
                                         InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, r.MlbId, db),
-                                        MonthFrac = GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(prevLevelInt), prevYear)],
+                                        MonthFrac = GamesFracDict[(prevMonth, prevLeague, prevYear)],
                                         LevelId = prevLevelInt,
                                         ParkHRFactor = 1,
                                         ParkRunFactor = 1,
@@ -579,6 +608,7 @@ namespace DataAquisition
 
 
                         currentData.Age = Utilities.GetAge1MinusAge0(r.Year, r.Month, 15, player.BirthYear, player.BirthMonth, player.BirthDate);
+                        currentData.LeagueAverageAge = leagueAge;
                         currentData.BF = stat.BattersFaced;
                         currentData.TrainMask = Utilities.GetModelMask(pitcher, r.Year, r.Month);
                         currentData.InjStatus = Utilities.GetInjStatus(r.Month, r.Year, r.MlbId, db);
@@ -588,7 +618,7 @@ namespace DataAquisition
                         currentData.Year = r.Year;
                         currentData.Month = r.Month;
                         currentData.LevelId = level;
-                        currentData.MonthFrac = GamesFracDict[(r.Month, Utilities.ModelLevelToMlbLevel(level), r.Year)];
+                        currentData.MonthFrac = GamesFracDict[(r.Month, r.LeagueId, r.Year)];
                         currentData.WOBARatio = r.WOBARatio;
                         currentData.HRPercRatio = r.HRPercRatio;
                         currentData.BBPercRatio = r.BBPercRatio;
@@ -623,20 +653,19 @@ namespace DataAquisition
 
                     while (prevYear <= Math.Min(lastYear + 2, endYear))
                     {
-                        // Fill Hitter Gaps
-                        //Console.WriteLine($"{prevMonth}, {level}, {prevYear}");
-
-                        if (GamesAtLevelDict[(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear)])
+                        // Fill Pitcher Gaps
+                        if (GamesAtLeagueDict[(prevMonth, prevLeague, prevYear)])
                             output.Add(new Model_PitcherStats
                             {
                                 MlbId = pitcher.MlbId,
                                 Year = prevYear,
                                 Month = prevMonth,
                                 Age = Utilities.GetAge1MinusAge0(prevYear, prevMonth, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                LeagueAverageAge = leagueAgeDict[(prevLeague, prevYear, prevMonth)],
                                 BF = 0,
                                 TrainMask = Utilities.GetModelMask(pitcher, prevYear, prevMonth),
                                 InjStatus = Utilities.GetInjStatus(prevMonth, prevYear, pitcher.MlbId, db),
-                                MonthFrac = GamesFracDict[(prevMonth, Utilities.ModelLevelToMlbLevel(pLevelInt), prevYear)],
+                                MonthFrac = GamesFracDict[(prevMonth, prevLeague, prevYear)],
                                 LevelId = pLevelInt,
                                 ParkHRFactor = 1,
                                 ParkRunFactor = 1,
@@ -668,20 +697,22 @@ namespace DataAquisition
 
                     int y = signingYear + 1;
                     int m = 4;
+                    const int MISSING_LEAGUE = 124; // Florida complex league
                     const int MISSING_LEVEL = 7;
-                    while ((y < endYear || (y == endYear && m <= endMonth)) && (y < (signingYear + 7)))
+                    while ((y < endYear || (y == endYear && m <= endMonth)) && y < signingYear + 7)
                     {
-                        if (GamesAtLevelDict[(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y)])
+                        if (GamesAtLeagueDict[(m, MISSING_LEAGUE, y)])
                             output.Add(new Model_PitcherStats
                             {
                                 MlbId = pitcher.MlbId,
                                 Year = y,
                                 Month = m,
                                 Age = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
+                                LeagueAverageAge = Utilities.GetAge1MinusAge0(y, m, 15, player.BirthYear, player.BirthMonth, player.BirthDate),
                                 BF = 0,
                                 TrainMask = Utilities.GetModelMask(pitcher, y, m),
                                 InjStatus = Utilities.GetInjStatus(m, y, pitcher.MlbId, db),
-                                MonthFrac = GamesFracDict[(m, Utilities.ModelLevelToMlbLevel(MISSING_LEVEL), y)],
+                                MonthFrac = GamesFracDict[(m, MISSING_LEAGUE, y)],
                                 LevelId = MISSING_LEVEL,
                                 SpPerc = 0.5f,
                                 ParkHRFactor = 1,

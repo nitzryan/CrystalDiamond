@@ -97,12 +97,12 @@ CREATE TABLE "League_PitcherYearStats" (
 	PRIMARY KEY("Year","Month", "LeagueId")
 );
 
-CREATE TABLE "Level_GameCounts" (
-	"LevelId" INTEGER NOT NULL,
+CREATE TABLE "League_GameCounts" (
+	"LeagueId" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"Month" INTEGER NOT NULL,
 	"MaxPA" INTEGER NOT NULL,
-	PRIMARY KEY("LevelId", "Year", "Month")
+	PRIMARY KEY("LeagueId", "Year", "Month")
 );
 
 CREATE TABLE "Model_HitterStats" (
@@ -110,6 +110,7 @@ CREATE TABLE "Model_HitterStats" (
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"Age"	REAL NOT NULL,
+	"LeagueAverageAge" REAL NOT NULL,
 	"PA"	INTEGER NOT NULL,
 	"InjStatus" INTEGER NOT NULL,
 	"TrainMask" INTEGER NOT NULL,
@@ -157,6 +158,7 @@ CREATE TABLE "Model_PitcherStats" (
 	"Year"	INTEGER NOT NULL,
 	"Month"	INTEGER NOT NULL,
 	"Age"	REAL NOT NULL,
+	"LeagueAverageAge" REAL NOT NULL,
 	"BF"	INTEGER NOT NULL,
 	"InjStatus" INTEGER NOT NULL,
 	"TrainMask" INTEGER NOT NULL,
@@ -1108,6 +1110,16 @@ CREATE TABLE "LeagueStats" (
 	"FIPR9Adjustment" REAL NOT NULL,
 	"LeagueERA" REAL NOT NULL,
 	PRIMARY KEY ("LeagueId", "Year")
+);
+
+CREATE TABLE "LeagueAverageAge" (
+	"LeagueId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
+	"Month" INTEGER NOT NULL,
+	"HitterAge" REAL NOT NULL,
+	"PitcherAge" REAL NOT NULL,
+
+	PRIMARY KEY("LeagueId", "Year", "Month")
 );
 
 CREATE TABLE "LeagueRunMatrix" (

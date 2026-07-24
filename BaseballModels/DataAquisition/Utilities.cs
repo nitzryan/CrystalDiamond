@@ -387,12 +387,12 @@ namespace DataAquisition
             return deltaYears + (deltaMonths / 12.0f) + (deltaDays / 365.0f);
         }
 
-        public static bool GamesAtLevel(int month, int level, int year, SqliteDbContext db)
+        public static bool GamesAtLeague(int month, int leagueId, int year, SqliteDbContext db)
         {
-            int monthPA = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year && f.Month == month)
+            int monthPA = db.League_GameCounts.Where(f => f.LeagueId == leagueId && f.Year == year && f.Month == month)
                 .Select(f => f.MaxPA).SingleOrDefault();
 
-            var playerPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
+            var playerPAs = db.League_GameCounts.Where(f => f.LeagueId == leagueId && f.Year == year)
                 .Select(f => f.MaxPA);
 
             if (!playerPAs.Any())
@@ -400,15 +400,15 @@ namespace DataAquisition
 
             int yearMaxPAs = playerPAs.Max();
 
-            return GetGamesFrac(month, level, year, db) >= 0.2f;
+            return GetGamesFrac(month, leagueId, year, db) >= 0.2f;
         }
 
-        public static float GetGamesFrac(int month, int level, int year, SqliteDbContext db)
+        public static float GetGamesFrac(int month, int leagueId, int year, SqliteDbContext db)
         {
-            int monthPA = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year && f.Month == month)
+            int monthPA = db.League_GameCounts.Where(f => f.LeagueId == leagueId && f.Year == year && f.Month == month)
                 .Select(f => f.MaxPA).SingleOrDefault();
 
-            var playerPAs = db.Level_GameCounts.Where(f => f.LevelId == level && f.Year == year)
+            var playerPAs = db.League_GameCounts.Where(f => f.LeagueId == leagueId && f.Year == year)
                 .Select(f => f.MaxPA);
             if (!playerPAs.Any())
                 return 0.0f;

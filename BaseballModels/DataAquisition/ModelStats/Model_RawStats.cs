@@ -3,7 +3,7 @@ using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
-namespace DataAquisition
+namespace DataAquisition.ModelStats
 {
     internal class Model_RawStats
     {
@@ -58,8 +58,8 @@ namespace DataAquisition
             if (!nextStadium.Any())
                 return thisStadium.Select(f => f.parkFactor).Average();
 
-            return (thisStadium.Select(f => f.parkFactor).Average() * thisYearFraction) +
-                                (nextStadium.Select(f => f.parkFactor).Average() * nextYearFraction);
+            return thisStadium.Select(f => f.parkFactor).Average() * thisYearFraction +
+                                nextStadium.Select(f => f.parkFactor).Average() * nextYearFraction;
         }
 
         private static int[] GetMonthGames(IEnumerable<Team_OrganizationMap> thisYearOrgMap, IEnumerable<Team_OrganizationMap> nextYearOrgMap, IQueryable<Player_Hitter_GameLog> thisYearLogs, IQueryable<Player_Hitter_GameLog> nextYearLogs, int orgId)
@@ -103,7 +103,7 @@ namespace DataAquisition
 
                 // Determine number of games played at each level
                 var thisYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year && f.Month > month);
-                var nextYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == (year + 1) && f.Month <= month);
+                var nextYearGames = db.Player_Hitter_GameLog.Where(f => f.Year == year + 1 && f.Month <= month);
 
                 // Get parkFactors for each level
                 Model_LevelYearGames lyg = new Model_LevelYearGames
@@ -149,8 +149,8 @@ namespace DataAquisition
                 db.Model_LeagueHittingBaselines.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
                 db.Model_LeaguePitchingBaselines.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-                var games = db.Player_Hitter_MonthStats.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
-                var pitchingGames = db.Player_Pitcher_MonthStats.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
+                var games = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
+                var pitchingGames = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
 
                 // Get fraction of games that are in this year vs next
                 float thisYearFraction = (9 - month) / 6.0f;
@@ -187,7 +187,7 @@ namespace DataAquisition
                     else if (nextYearCFIP == 0)
                         cfip = thisYearCFIP;
                     else
-                        cfip = (thisYearFraction * thisYearCFIP) + (nextYearFraction * nextYearCFIP);
+                        cfip = thisYearFraction * thisYearCFIP + nextYearFraction * nextYearCFIP;
 
                     var lps = pitchingGames.Where(f => f.LeagueId == leagueId).Aggregate(Utilities.PitcherMonthStatsAggregation);
                     db.Model_LeaguePitchingBaselines.Add(new Model_LeaguePitchingBaselines
@@ -226,7 +226,7 @@ namespace DataAquisition
 
                 db.Model_HitterLevelStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-                var games = db.Player_Hitter_MonthStats.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
+                var games = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
                 var leagueBaselines = db.Model_LeagueHittingBaselines.Where(f => f.Year == year && f.Month == month);
                 var playerIds = games.Select(f => f.MlbId).Distinct();
                 var modelHitterStats = db.Model_HitterStats.Where(f => f.Year == year && f.Month == month);
@@ -251,9 +251,9 @@ namespace DataAquisition
                     {
                         // Group by level
                         var leagueGroups = lvlG.GroupBy(f => f.LeagueId);
-                        var defStats = db.Player_Fielder_MonthStats.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)) && f.LevelId == lvlG.Key)
+                        var defStats = db.Player_Fielder_MonthStats.Where(f => f.MlbId == mlbId && (f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month) && f.LevelId == lvlG.Key)
                             .Select(f => new { f.ScaledDRAA, f.PosAdjust, f.LevelId }).ToArray();
-                        var proFieldingStats = db.Player_MonthlyWar.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)))
+                        var proFieldingStats = db.Player_MonthlyWar.Where(f => f.MlbId == mlbId && (f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month))
                             .Select(f => f.DRAA);
                         int totalPa = leagueGroups.Sum(f => f.Sum(g => g.PA));
                         Model_HitterLevelStats mhls = new Model_HitterLevelStats
@@ -273,7 +273,7 @@ namespace DataAquisition
                             SB = 1,
                             CS = 1,
                             ParkRunFactor = 1,
-                            BSR = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * db.Player_Hitter_MonthBaserunning.Where(f => f.MlbId == mlbId && ((f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month)) && f.LevelId == lvlG.Key)
+                            BSR = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * db.Player_Hitter_MonthBaserunning.Where(f => f.MlbId == mlbId && (f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month) && f.LevelId == lvlG.Key)
                                 .Sum(f => f.RBSR), totalPa, 0),
                             DRAA = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * (defStats.Where(f => f.LevelId != 1).Sum(f => f.ScaledDRAA) + proFieldingStats.Sum()), totalPa, 0),
                             DPOS = Utilities.SafeDivide(DEF_BSR_STAT_PA_RATES * defStats.Sum(f => f.PosAdjust), totalPa, 0),
@@ -318,16 +318,16 @@ namespace DataAquisition
                             float thisProp = mhls.Pa == 0 ? 1.0f : (float)stats.PA / (mhls.Pa + stats.PA);
                             float otherProp = 1.0f - thisProp;
                             mhls.Pa += stats.PA;
-                            mhls.Hit1B = (otherProp * mhls.Hit1B) + (thisProp * statRates.Hit1B);
-                            mhls.Hit2B = (otherProp * mhls.Hit2B) + (thisProp * statRates.Hit2B);
-                            mhls.Hit3B = (otherProp * mhls.Hit3B) + (thisProp * statRates.Hit3B);
-                            mhls.HitHR = (otherProp * mhls.HitHR) + (thisProp * statRates.HitHR);
-                            mhls.BB = (otherProp * mhls.BB) + (thisProp * statRates.BB);
-                            mhls.HBP = (otherProp * mhls.HBP) + (thisProp * statRates.HBP);
-                            mhls.K = (otherProp * mhls.K) + (thisProp * statRates.K);
-                            mhls.SB = (otherProp * mhls.SB) + (thisProp * statRates.SB);
-                            mhls.CS = (otherProp * mhls.CS) + (thisProp * statRates.CS);
-                            mhls.ParkRunFactor = (otherProp * mhls.ParkRunFactor) + (thisProp * stats.ParkRunFactor);
+                            mhls.Hit1B = otherProp * mhls.Hit1B + thisProp * statRates.Hit1B;
+                            mhls.Hit2B = otherProp * mhls.Hit2B + thisProp * statRates.Hit2B;
+                            mhls.Hit3B = otherProp * mhls.Hit3B + thisProp * statRates.Hit3B;
+                            mhls.HitHR = otherProp * mhls.HitHR + thisProp * statRates.HitHR;
+                            mhls.BB = otherProp * mhls.BB + thisProp * statRates.BB;
+                            mhls.HBP = otherProp * mhls.HBP + thisProp * statRates.HBP;
+                            mhls.K = otherProp * mhls.K + thisProp * statRates.K;
+                            mhls.SB = otherProp * mhls.SB + thisProp * statRates.SB;
+                            mhls.CS = otherProp * mhls.CS + thisProp * statRates.CS;
+                            mhls.ParkRunFactor = otherProp * mhls.ParkRunFactor + thisProp * stats.ParkRunFactor;
                         }
 
                         output.Add(mhls);
@@ -353,7 +353,7 @@ namespace DataAquisition
 
                 db.Model_PitcherLevelStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-                var games = db.Player_Pitcher_GameLog.Where(f => (f.Year == year && f.Month > month) || (f.Year == year + 1 && f.Month <= month));
+                var games = db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month > month || f.Year == year + 1 && f.Month <= month);
                 var leagueBaselines = db.Model_LeaguePitchingBaselines.Where(f => f.Year == year && f.Month == month);
                 var playerIds = games.Select(f => f.MlbId).Distinct();
                 var modelPitcherStats = db.Model_PitcherStats.Where(f => f.Year == year && f.Month == month);
@@ -434,13 +434,13 @@ namespace DataAquisition
                             float thisProp = battersFaced == 0 ? 1.0f : (float)teamStats.BattersFaced / (battersFaced + teamStats.BattersFaced);
                             float otherProp = 1.0f - thisProp;
                             battersFaced += teamStats.BattersFaced;
-                            mhls.ERA = (otherProp * mhls.ERA) + (thisProp * statRates.ERA);
-                            mhls.FIP = (otherProp * mhls.FIP) + (thisProp * statRates.FIP);
-                            mhls.HR = (otherProp * mhls.HR) + (thisProp * statRates.HR);
-                            mhls.BB = (otherProp * mhls.BB) + (thisProp * statRates.BB);
-                            mhls.HBP = (otherProp * mhls.HBP) + (thisProp * statRates.HBP);
-                            mhls.K = (otherProp * mhls.K) + (thisProp * statRates.K);
-                            mhls.ParkRunFactor = (otherProp * mhls.ParkRunFactor) + (thisProp * parkFactor);
+                            mhls.ERA = otherProp * mhls.ERA + thisProp * statRates.ERA;
+                            mhls.FIP = otherProp * mhls.FIP + thisProp * statRates.FIP;
+                            mhls.HR = otherProp * mhls.HR + thisProp * statRates.HR;
+                            mhls.BB = otherProp * mhls.BB + thisProp * statRates.BB;
+                            mhls.HBP = otherProp * mhls.HBP + thisProp * statRates.HBP;
+                            mhls.K = otherProp * mhls.K + thisProp * statRates.K;
+                            mhls.ParkRunFactor = otherProp * mhls.ParkRunFactor + thisProp * parkFactor;
 
                             // Add started/relief stats
                             var startedGames = tg.Where(f => f.Started == 1);

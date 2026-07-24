@@ -63,7 +63,7 @@
 
                     foreach (int month in months)
                     {
-                        CreateLevelGameCounts.Update(year, month);
+                        CreateLeagueGameCounts.Update(year, month);
                         CalculateMonthStats.Update(year, month);
                         CalculateLeagueBaselines.Update(year, month);
                         CalculateMonthStats.UpdateAdvanced(year, month);
@@ -132,21 +132,22 @@
                 College.ProData.CreatePitchersData(END_YEAR);
             }
 
-            if (DATA_UPDATE || FULL_REFRESH)
+            if (DATA_UPDATE || FULL_REFRESH || true)
             {
-                UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
-                ModelPlayers.Update();
-                ModelPlayerWar.Update();
+                ModelStats.LeagueAveragePlayerAge.Update();
+                ModelStats.UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
+                ModelStats.ModelPlayers.Update();
+                ModelStats.ModelPlayerWar.Update();
 
                 while (!await TransactionLog.Update())
                 { }
 
                 UpdatePlayerOrgMap.Update();
 
-                while (!await ModelMonthStats.Update(END_YEAR, months.Last()))
+                while (!await ModelStats.ModelMonthStats.Update(END_YEAR, months.Last()))
                 { }
 
-                Model_MonthValue.Update();
+                ModelStats.Model_MonthValue.Update();
 
                 while (!await GetLeagues.Update())
                 { }
@@ -162,7 +163,7 @@
                         if (year == years.Last() || (year == (years.Last() - 1) && month > END_MONTH))
                             break;
 
-                        Model_RawStats.UpdateRawStats(year, month);
+                        ModelStats.Model_RawStats.UpdateRawStats(year, month);
                     }
                 }
             }

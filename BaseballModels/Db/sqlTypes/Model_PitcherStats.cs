@@ -6,6 +6,7 @@ namespace Db
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required float Age {get; set;}
+		public required float LeagueAverageAge {get; set;}
 		public required int BF {get; set;}
 		public required int InjStatus {get; set;}
 		public required int TrainMask {get; set;}
@@ -31,6 +32,7 @@ namespace Db
 				Year = this.Year,
 				Month = this.Month,
 				Age = this.Age,
+				LeagueAverageAge = this.LeagueAverageAge,
 				BF = this.BF,
 				InjStatus = this.InjStatus,
 				TrainMask = this.TrainMask,
