@@ -6,7 +6,7 @@ from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Combined.Model.Model_Train import TrainAndGraph
-from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
 from Model.Constants import device, model_db
 from Model.Utilities import GetModelMaps

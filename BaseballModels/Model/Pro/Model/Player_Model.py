@@ -29,7 +29,8 @@ class LayerArch(nn.Module):
         nonlin_dict = {
             F.leaky_relu : 'leaky_relu',
             F.relu : 'relu',
-            F.tanh : "tanh"
+            F.tanh : "tanh",
+            F.silu : "silu",
         }
         return {
             "layer_size" : self.layer_size,
@@ -42,7 +43,8 @@ class LayerArch(nn.Module):
         nonlin_dict = {
             'leaky_relu' : F.leaky_relu,
             'relu' : F.relu,
-            "tanh" : F.tanh
+            "tanh" : F.tanh,
+            "silu" : F.silu,
         }
         return cls(
             args_dict["layer_size"], 
@@ -380,7 +382,6 @@ class Recurrent_Model(nn.Module):
                 num_layers=args_dict["num_layers"],
                 hidden_size=args_dict["hidden_size"],
                 rnn_nonlinearity=args_dict["rnn_nonlinearity"],
-                recurrent_type=args_dict["recurrent_type"],
                 input_noise=args_dict["input_noise"],
                 
                 # Initial Hidden State Calculation

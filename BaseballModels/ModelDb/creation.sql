@@ -16,6 +16,18 @@ CREATE TABLE "Output_PlayerWar" (
 	PRIMARY KEY("mlbId", "ModelId", "isHitter", "ModelRun","year","month")
 );
 
+CREATE TABLE "WarBucketAverages" (
+	"isHitter" INTEGER NOT NULL,
+	"war1" REAL NOT NULL,
+	"war2" REAL NOT NULL,
+	"war3" REAL NOT NULL,
+	"war4" REAL NOT NULL,
+	"war5" REAL NOT NULL,
+	"war6" REAL NOT NULL,
+	
+	PRIMARY KEY("isHitter")
+);
+
 CREATE INDEX "idx_Output_PlayerWar" ON "Output_PlayerWar" (
 	"ModelId",
 	"ModelRun",

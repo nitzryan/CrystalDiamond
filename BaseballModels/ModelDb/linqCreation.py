@@ -19,7 +19,9 @@ boolean_types = [
                 ("Output_PlayerWar", ["IsHitter"]),
                 ("Output_PlayerWarAggregation", ["IsHitter"]),
                 ("Output_PlayerHighestLevel", ["IsHitter"]),
-                ("Output_PlayerHighestLevelAggregation", ["IsHitter"])]
+                ("Output_PlayerHighestLevelAggregation", ["IsHitter"]),
+                ("WarBucketAverages", ["IsHitter"]),
+                ]
 
 
 

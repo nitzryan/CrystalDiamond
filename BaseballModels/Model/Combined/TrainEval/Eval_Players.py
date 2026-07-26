@@ -8,7 +8,7 @@ import gc
 from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
 from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
-from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
 from Model.Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
 from Model.Utilities import GetModelMaps
@@ -59,6 +59,18 @@ def Eval_Players(eval_update : bool, is_hitter : bool):
             bucket_min = TOTAL_WAR_BUCKETS[i - 1].item()
             bucket_max = min(TOTAL_WAR_BUCKETS[i].item(), 100)
             war_bucket_averages.append(base_db.execute(f"SELECT AVG({war_col}) FROM Model_Players WHERE IsEligible=1 AND {eligible_col}=1 AND {war_col}>{bucket_min} AND {war_col}<={bucket_max}").fetchone()[0])
+        if not eval_update:
+            cursor.execute(f"DELETE FROM WarBucketAverages WHERE isHitter={is_hitter_int}")
+            cursor.execute("INSERT INTO WarBucketAverages VALUES (?,?,?,?,?,?,?)", 
+                (is_hitter_int, 
+                 war_bucket_averages[1], 
+                 war_bucket_averages[2],
+                 war_bucket_averages[3],
+                 war_bucket_averages[4],
+                 war_bucket_averages[5],
+                 war_bucket_averages[6],))
+            model_db.commit()
+            cursor = model_db.cursor()
         
         for model_name, model_id in tqdm(model_list, desc=arch_desc):
             # Get data for model
