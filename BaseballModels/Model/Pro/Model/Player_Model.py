@@ -57,6 +57,7 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
+DEFAULT_DATA_ARCH = LayerArch(layer_size=47, num_layers=2, nonlin=F.silu)
 DEFAULT_WAR_ARCH = LayerArch(layer_size=126, num_layers=5, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -66,7 +67,8 @@ DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
-DEFAULT_WAR_ARCH_P = LayerArch(layer_size=43, num_layers=5, nonlin=F.leaky_relu)
+DEFAULT_DATA_ARCH_P = LayerArch(layer_size=113, num_layers=2, nonlin=F.silu)
+DEFAULT_WAR_ARCH_P = LayerArch(layer_size=46, num_layers=4, nonlin=F.tanh)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
@@ -78,25 +80,25 @@ DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 DEFAULT_PRO_HIDDEN_SIZE = 71
 DEFAULT_PRO_NUM_LAYERS = 2
 
-DEFAULT_PRO_HIDDEN_SIZE_P = 51
-DEFAULT_PRO_NUM_LAYERS_P = 3
+DEFAULT_PRO_HIDDEN_SIZE_P = 89
+DEFAULT_PRO_NUM_LAYERS_P = 2
 
 DEFAULT_DROPOUT = 0.4696
-DEFAULT_DROPOUT_P = 0.283
+DEFAULT_DROPOUT_P = 0.0775
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
-DEFAULT_PRO_WEIGHT_DECAY_P = [9.7e-4,8.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
+DEFAULT_PRO_WEIGHT_DECAY_P = [2.8e-2,1.5e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,4.1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0029,0.077,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
-DEFAULT_LEARNING_RATES_P = [0.0076,0.018,0.003,0.003,0.003,0.003,0.003,0.003,0.003]
+DEFAULT_LEARNING_RATES = [0.0029,0.077,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
+DEFAULT_LEARNING_RATES_P = [0.0021,0.0018,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.017]
 
 DEFAULT_INIT_STATE_SIZE = 40
-DEFAULT_INIT_STATE_SIZE_P = 16
+DEFAULT_INIT_STATE_SIZE_P = 93
 DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
-DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=32, num_layers=4)
+DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=119, num_layers=4, nonlin=F.silu)
 
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
@@ -119,6 +121,7 @@ class Recurrent_Model(nn.Module):
                 
                 input_noise : float | None = None,
                 
+                data_arch : LayerArch | None = None,
                 stats_arch : LayerArch | None = None,
                 war_arch : LayerArch | None = None,
                 pt_arch : LayerArch | None = None,
@@ -144,6 +147,7 @@ class Recurrent_Model(nn.Module):
         rnn_nonlinearity = GetPropertyValue(rnn_nonlinearity, is_hitter, DEFAULT_RNN_NONLINEARITY, DEFAULT_RNN_NONLINEARITY_P)
         input_noise = GetPropertyValue(input_noise, is_hitter, DEFAULT_INPUT_NOISE, DEFAULT_INPUT_NOISE_P)
 
+        data_arch = GetPropertyValue(data_arch, is_hitter, DEFAULT_DATA_ARCH, DEFAULT_DATA_ARCH_P)
         stats_arch = GetPropertyValue(stats_arch, is_hitter, DEFAULT_STATS_ARCH, DEFAULT_STATS_ARCH_P)
         war_arch = GetPropertyValue(war_arch, is_hitter, DEFAULT_WAR_ARCH, DEFAULT_WAR_ARCH_P)
         pt_arch = GetPropertyValue(pt_arch, is_hitter, DEFAULT_PT_ARCH, DEFAULT_PT_ARCH_P)
@@ -177,6 +181,7 @@ class Recurrent_Model(nn.Module):
                     "init_state_arch" : init_state_arch.ToDict(),
                     
                     # LayerArch definitions
+                    "data_arch" : data_arch.ToDict(),
                     "stats_arch": stats_arch.ToDict(),
                     "war_arch": war_arch.ToDict(),
                     "pt_arch": pt_arch.ToDict(),
@@ -208,6 +213,7 @@ class Recurrent_Model(nn.Module):
         
         # Taking RNN output and making predictions
         num_war_classes = len(output_map.buckets_hitter_war)
+        self.data_init = data_arch.Build(input_size, input_size)
         self.war = war_arch.Build(hidden_size, num_war_classes)
         self.level = lvl_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS))
         self.pa = pa_arch.Build(hidden_size, len(HITTER_PA_BUCKETS))
@@ -238,12 +244,11 @@ class Recurrent_Model(nn.Module):
         self.pa_offset1, self.pa_offset2, self.pa_offset3 = data_prep.Get_Pa_Offsets()
         self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
         self.is_hitter = is_hitter
-        #self.nonlin = F.leaky_relu
         
         # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Linear):
-                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='tanh')
+                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
         
@@ -277,7 +282,8 @@ class Recurrent_Model(nn.Module):
                                            {'params': self.pos.parameters(), 'lr': learning_rates[5], 'weight_decay': weight_decay[5]},
                                            {'params': self.value.parameters(), 'lr': learning_rates[6], 'weight_decay': weight_decay[6]},
                                            {'params': self.pt.parameters(), 'lr': learning_rates[7], 'weight_decay': weight_decay[7]},
-                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]}])
+                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]},
+                                           {'params': self.data_init.parameters(), 'lr': learning_rates[9], 'weight_decay': weight_decay[9]}])
 
         
     def to(self, *args, **kwargs):
@@ -318,13 +324,16 @@ class Recurrent_Model(nn.Module):
         h0 = h0.reshape(h0.shape[0], self.num_layers, self.hidden_size)
         h0 = h0.transpose(0, 1)
         
-        # Compute
+        
+        # Allow data to be transformed before entering RNN
+        x = self.data_init(x)
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Generate Player State
         packedOutput, _ = self.recurrent(packedInput, h0)
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
+        # Output heads
         output_war          = self.war(output)
         output_level        = self.level(output)
         output_pa           = self.pa(output)
@@ -379,6 +388,7 @@ class Recurrent_Model(nn.Module):
                 init_state_arch=LayerArch.LoadFromDict(args_dict["init_state_arch"]),
                 
                 # LayerArch (reconstructed)
+                data_arch=LayerArch.LoadFromDict(args_dict["data_arch"]),
                 stats_arch=LayerArch.LoadFromDict(args_dict["stats_arch"]),
                 war_arch=LayerArch.LoadFromDict(args_dict["war_arch"]),
                 pt_arch=LayerArch.LoadFromDict(args_dict["pt_arch"]),

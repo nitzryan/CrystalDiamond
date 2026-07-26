@@ -11,7 +11,6 @@ from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Pro.Model.Player_Model import *
 from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep, Combined_IO
 from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
-from Model.Combined.Utilities.GetVariableLossIndex import GetVariableLossIndex
 from Model.Constants import device
 
 _ACTIVATION_FUNCTIONS = ["ReLU", "LeakyReLU", "GELU", "SiLU", "Tanh"]
@@ -32,7 +31,10 @@ class SearchWidth(Enum):
 class ProModelTuningRecipe(Flag):
     RECURRENT = auto()
     INIT_HIDDEN = auto()
+    
+    DATAINIT_ARCH = auto()
     WAR_ARCH = auto()
+    
     BATCH_PARAMS = auto()
     LOSS_SCALES = auto()
 
@@ -58,7 +60,7 @@ class ParamSpec:
 
         low, high = self.low, self.high
         if width is SearchWidth.NARROW:
-            span = self.narrow_frac * (self.high - self.low)
+            span = self.narrow_frac * default
             low = max(low, default - span)
             high = min(high, default + span)
             
@@ -79,6 +81,13 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
         ParamSpec("wd_shared", 1e-3, 1e-1, log=True),
         ParamSpec("lr_shared", 5e-4, 1e-2, log=True),
         ParamSpec("rnn_activation", choices=["relu", "tanh"]),
+    ],
+    ProModelTuningRecipe.DATAINIT_ARCH: [
+        ParamSpec("datainit_layers", 2, 8, is_int=True),
+        ParamSpec("datainit_size", 4, 128, is_int=True),
+        ParamSpec("datainit_activation", choices=_ACTIVATION_FUNCTIONS),
+        ParamSpec("lr_datainit", 1e-4, 1e-1, log=True),
+        ParamSpec("wd_datainit", 1e-7, 1e-2, log=True),
     ],
     ProModelTuningRecipe.WAR_ARCH: [
         ParamSpec("war_layers", 2, 6, is_int=True),
@@ -111,11 +120,19 @@ HITTER_DEFAULTS = {
     "wd_shared": DEFAULT_PRO_WEIGHT_DECAY[0],
     "lr_shared": DEFAULT_LEARNING_RATES[0],
     "rnn_activation": DEFAULT_RNN_NONLINEARITY,
+    
     "war_layers": DEFAULT_WAR_ARCH.num_layers,
     "war_size": DEFAULT_WAR_ARCH.layer_size,
     "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH.nonlin],
     "lr_war": DEFAULT_LEARNING_RATES[1],
     "wd_war": DEFAULT_PRO_WEIGHT_DECAY[1],
+    
+    "datainit_layers": DEFAULT_DATA_ARCH.num_layers,
+    "datainit_size": DEFAULT_DATA_ARCH.layer_size,
+    "datainit_activation": _ACTIVATION_NAME[DEFAULT_DATA_ARCH.nonlin],
+    "lr_datainit": DEFAULT_LEARNING_RATES[9],
+    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY[9],
+    
     "init_input_size": DEFAULT_INIT_STATE_SIZE,
     "init_layers": DEFAULT_INIT_STATE_ARCH.num_layers,
     "init_size": DEFAULT_INIT_STATE_ARCH.layer_size,
@@ -135,15 +152,23 @@ PITCHER_DEFAULTS = {
     "wd_shared": DEFAULT_PRO_WEIGHT_DECAY_P[0],
     "lr_shared": DEFAULT_LEARNING_RATES_P[0],
     "rnn_activation": DEFAULT_RNN_NONLINEARITY_P,
+    
     "war_layers": DEFAULT_WAR_ARCH_P.num_layers,
     "war_size": DEFAULT_WAR_ARCH_P.layer_size,
-    "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH.nonlin],
+    "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH_P.nonlin],
     "lr_war": DEFAULT_LEARNING_RATES_P[1],
     "wd_war": DEFAULT_PRO_WEIGHT_DECAY_P[1],
+    
+    "datainit_layers": DEFAULT_DATA_ARCH_P.num_layers,
+    "datainit_size": DEFAULT_DATA_ARCH_P.layer_size,
+    "datainit_activation": _ACTIVATION_NAME[DEFAULT_DATA_ARCH_P.nonlin],
+    "lr_datainit": DEFAULT_LEARNING_RATES_P[9],
+    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY_P[9],
+    
     "init_input_size": DEFAULT_INIT_STATE_SIZE_P,
     "init_layers": DEFAULT_INIT_STATE_ARCH_P.num_layers,
     "init_size": DEFAULT_INIT_STATE_ARCH_P.layer_size,
-    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH.nonlin],
+    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH_P.nonlin],
     "batch_size": DEFAULT_BATCH_SIZE_P,
     "num_epochs": DEFAULT_NUM_EPOCHS_P,
     
@@ -172,6 +197,7 @@ def run_evaluation(
             is_hitter: bool,
             p: dict,
             war_arch: LayerArch,
+            datainit_arch : LayerArch,
             init_arch: LayerArch,
             lr_list: list[float],
             wd_list: list[float],
@@ -198,6 +224,7 @@ def run_evaluation(
             num_layers=p["num_layers"],
             hidden_size=p["hidden_size"],
             
+            data_arch=datainit_arch,
             war_arch=war_arch,
             
             weight_decay=wd_list,
@@ -259,6 +286,8 @@ def objective(
     loss_scales = [p[f"loss_scale_{i}"]
         for i in range(len(DEFAULT_PRO_ELEMENT_LOSS_SCALES))]
 
+    datainit_arch = LayerArch(num_layers=p["datainit_layers"], layer_size=p["datainit_size"],
+                        nonlin=_ACTIVATION_MAP[p["datainit_activation"]])
     war_arch = LayerArch(num_layers=p["war_layers"], layer_size=p["war_size"],
                          nonlin=_ACTIVATION_MAP[p["war_activation"]])
     init_arch = LayerArch(num_layers=p["init_layers"], layer_size=p["init_size"],
@@ -268,9 +297,10 @@ def objective(
     wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
     lr_list[0], lr_list[1] = p["lr_shared"], p["lr_war"]
     wd_list[0], wd_list[1] = p["wd_shared"], p["wd_war"]
+    lr_list[9], wd_list[9] = p["lr_datainit"], p["wd_datainit"]
 
     return run_evaluation(
         io_list=io_list, data_prep=data_prep, is_hitter=is_hitter,
-        p=p, war_arch=war_arch, init_arch=init_arch,
+        p=p, war_arch=war_arch, init_arch=init_arch, datainit_arch=datainit_arch,
         loss_scales=loss_scales,
         lr_list=lr_list, wd_list=wd_list, max_repeats=max_repeats)

@@ -19,7 +19,7 @@ def GetLossesPro(
   i0 : torch.Tensor, 
   shouldBackprop : bool, 
   is_hitter: bool,
-  pro_element_loss_scales : list[int] = [1] * NUM_ELEMENTS) -> ProLossResult | None:
+  pro_element_loss_scales : list[float]) -> ProLossResult | None:
   
   # Get Model Output
   data, length, pt_levelYearGames, player_demo, player_bios = data

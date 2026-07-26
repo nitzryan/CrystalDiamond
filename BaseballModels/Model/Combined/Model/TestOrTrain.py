@@ -16,7 +16,7 @@ def TestOrTrain(
     col_elements : int,
     batch_size : int,
     is_train : bool,
-    pro_element_loss_scales : list[int],
+    pro_element_loss_scales : list[float],
     pro_optimizer : torch.optim.Optimizer | None = None,
     col_optimizer : torch.optim.Optimizer | None = None,
 ) -> EpochResult:
