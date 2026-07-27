@@ -214,7 +214,7 @@ def run_evaluation(
             is_hitter=is_hitter,
             train_idx=i)
         
-        
+        # Create variant to test
         pro_network = Pro_Model(
             input_size=train_dataset.GetProInputSize(),
             data_prep=data_prep.pro_data_prep,
@@ -235,7 +235,6 @@ def run_evaluation(
             init_state_arch=init_arch,
             init_state_size=p["init_input_size"],
         ).to(device)
-        # Create variant to test
         col_network = Col_Model(
             input_size=train_dataset.GetColInputSize(),
             data_prep=data_prep.college_data_prep,
@@ -270,6 +269,8 @@ def run_evaluation(
         if i == 0 and sum_war > cutoff_fold_1:
             sum_war += exit_values_23
             break
+        
+        
         
     return min(sum_war, WAR_MAX)
 

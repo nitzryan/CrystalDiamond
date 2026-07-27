@@ -31,7 +31,7 @@ def GetPropertyValue(val : Type[_T] | None, is_hitter : bool, hit_default : Type
     return hit_default if is_hitter else pit_default
 
 from Model.Pro.DataPrep.Output_Map import Output_Map, base_output_map, meanregression_output_map
-from Model.Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map, meanrregression_prep_map
+from Model.Pro.DataPrep.Prep_Map import Prep_Map, base_prep_map, statsonly_prep_map
 from Model.College.DataPrep.Output_Map import College_Output_Map, college_output_map
 from Model.College.DataPrep.Prep_Map import College_Prep_Map, college_base_prep_map, college_meanrevert_prep_map
 def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map, College_Prep_Map, College_Output_Map]:
