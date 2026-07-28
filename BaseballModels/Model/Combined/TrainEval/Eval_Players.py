@@ -15,7 +15,7 @@ from Model.Utilities import GetModelMaps
 from Model.EvalStats import getOutputHitterStats as getOutputStats
 from Model.ModelDBTypes import *
 
-def Eval_Players(eval_update : bool, is_hitter : bool):
+def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
     with torch.no_grad():
         BATCH_SIZE = 4000
         
@@ -87,8 +87,8 @@ def Eval_Players(eval_update : bool, is_hitter : bool):
                 io_list = data_prep.Generate_IO_Hitters_Update(year, month, college_year) if is_hitter \
                         else data_prep.Generate_IO_Pitchers_Update(year, month, college_year)
             else:
-                io_list = data_prep.Generate_IO_Hitters(is_training=False) if is_hitter \
-                        else data_prep.Generate_IO_Pitchers(is_training=False)
+                io_list = data_prep.Generate_IO_Hitters(is_training=train_only) if is_hitter \
+                        else data_prep.Generate_IO_Pitchers(is_training=train_only)
             
             # Data to unnormalize values from model
             pro_pt_mean : torch.Tensor = data_prep.pro_data_prep.__getattribute__(pt_means_attr).to(device)

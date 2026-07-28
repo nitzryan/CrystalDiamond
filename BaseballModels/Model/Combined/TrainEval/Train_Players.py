@@ -64,17 +64,23 @@ def Train_Players(num_models : int, is_hitter : bool):
                 output_init_state_size=pro_network.GetInitStateSize(),
             ).to(device)
             
-            train_results = TrainAndGraph(
-                pro_network=pro_network,
-                col_network=col_network,
-                train_dataset=train_dataset,
-                test_dataset=test_dataset,
-                pro_model_name=f"Model/Models/pro_{model_name_pt}_{player_type}",
-                col_model_name=f"Model/Models/col_{model_name_pt}_{player_type}",
-                is_hitter=is_hitter,
-                should_output=False,
-                show_progress_bar=True,
-            )
+            # Train until it doesn't blow up
+            while True:
+                train_results = TrainAndGraph(
+                    pro_network=pro_network,
+                    col_network=col_network,
+                    train_dataset=train_dataset,
+                    test_dataset=test_dataset,
+                    pro_model_name=f"Model/Models/pro_{model_name_pt}_{player_type}",
+                    col_model_name=f"Model/Models/col_{model_name_pt}_{player_type}",
+                    is_hitter=is_hitter,
+                    should_output=False,
+                    show_progress_bar=True,
+                )
+            
+                if train_results.best_loss < 50:
+                    break
+                
             
             model_cursor = model_db.cursor()
             loss_index = GetVariableLossIndex(name="WAR", is_pro=False, is_hitter=is_hitter)

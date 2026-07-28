@@ -1,6 +1,6 @@
 import torch
 from Model.Combined.DataPrep.Data_Prep import Combined_IO
-from Model.Constants import TOTAL_WAR_BUCKETS
+from Model.Constants import TOTAL_WAR_BUCKETS, NUM_MODEL_VARIANTS
 
 class Combined_Player_Dataset(torch.utils.data.Dataset):
     def __init__(self,
@@ -201,7 +201,7 @@ def Create_Test_Train_Datasets(
     device = 'cuda',
     eval_mode : bool = False,
     train_test_ratio : int = 3,
-    total_training_runs : int = 12,
+    total_training_runs : int = NUM_MODEL_VARIANTS,
     train_idx : int = 0) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
     
     
@@ -230,8 +230,8 @@ def Create_Test_Train_Datasets(
                 output_class : int = player.college_io.output_war.item() if player.college_io.player is not None else player.pro_io.output[0].item()
                 player_buckets_list[output_class].append(player)
                
-        if total_training_runs % train_test_ratio != 0:
-            raise ValueError("M must be divisible by N (as specified)")
+        if total_training_runs % (train_test_ratio + 1) != 0:
+            raise ValueError("M must be divisible by N")
         if not (0 <= train_idx < total_training_runs):
             raise ValueError("C must satisfy 0 <= C < M")
                 
