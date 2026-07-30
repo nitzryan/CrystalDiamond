@@ -1,4 +1,5 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
 namespace DataAquisition.ModelStats
@@ -9,8 +10,7 @@ namespace DataAquisition.ModelStats
         {
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Model_PlayerWar.RemoveRange(db.Model_PlayerWar);
-                db.SaveChanges();
+                db.Model_PlayerWar.ExecuteDelete();
 
                 using (ProgressBar progressBar = new ProgressBar(db.Model_Players.Count(), $"Creating Model_PlayerWar"))
                 {
