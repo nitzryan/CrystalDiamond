@@ -2,3 +2,5 @@ Experiments/
 Binaries/
 *.prof
 *.lprof
+*.png
+*.gif
