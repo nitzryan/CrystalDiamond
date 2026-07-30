@@ -1,13 +1,35 @@
 from dataclasses import dataclass
 import torch
+import numpy as np
 
 @dataclass
-class FoldSweepResult:
+class FoldAccuracyResult:
     num_folds : list[int]    # (N,) long, 1..N
     loss_war : list[float]   # (N,) float, per-sample
     brier : list[float]      # (N,) float, per-sample
+    
     num_observations : int
     num_players : int
+    
+@dataclass
+class FoldRepeatabilityResult:
+    num_folds : list[int]           # (N,) 1..max_folds // 2
+    corr : list[float]              # mean Pearson r between disjoint groups
+    mae : list[float]               # mean |warA - warB|
+    noise_sd : list[float]          # per-prediction fold-noise SD
+    signal_sd : list[float]         # noise-corrected SD of true prediction spread
+    reliability : list[float]       # signal_var / total_var, in [0, 1]
+    paired_war : dict[int, np.ndarray]  # K -> (M, 2) array of paired expected WAR
+    num_observations : int
+    num_players : int
+    
+@dataclass
+class FoldAgreementStats:
+    corr : float         # Pearson r between the two disjoint group predictions
+    mae : float          # mean |warA - warB|
+    noise_sd : float     # per-prediction fold-noise SD
+    signal_sd : float    # noise-corrected SD of the true prediction spread
+    reliability : float  # signal var / total var, in [0, 1]
     
 @dataclass
 class FoldEnsembleResult:

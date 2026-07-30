@@ -1,8 +1,8 @@
 from matplotlib import pyplot as plt
 
-from Model.Evaluation.Classes import FoldSweepResult
+from Model.Evaluation.Classes import FoldAccuracyResult
 
-def PlotFoldSweep(result : FoldSweepResult, is_hitter : bool):
+def PlotFoldSweep(result : FoldAccuracyResult, is_hitter : bool):
     player_type = "Hitter" if is_hitter else "Pitcher"
     folds = result.num_folds
     
