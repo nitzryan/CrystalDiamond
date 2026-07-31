@@ -21,7 +21,6 @@ namespace ModelDb
 				War4 = this.War4,
 				War5 = this.War5,
 				War6 = this.War6,
-				
 			};
 		}
 	}

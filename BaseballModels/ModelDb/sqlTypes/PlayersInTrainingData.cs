@@ -19,7 +19,6 @@ namespace ModelDb
 				ModelRun = this.ModelRun,
 				IsHitter = this.IsHitter,
 				IsTrain = this.IsTrain,
-				
 			};
 		}
 	}

@@ -63,7 +63,6 @@ namespace ModelDb
 				PercCF = this.PercCF,
 				PercRF = this.PercRF,
 				PercDH = this.PercDH,
-				
 			};
 		}
 	}

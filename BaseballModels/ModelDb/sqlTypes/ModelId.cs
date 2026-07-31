@@ -11,7 +11,6 @@ namespace ModelDb
 			{
 				Id = this.Id,
 				ModelName = this.ModelName,
-				
 			};
 		}
 	}

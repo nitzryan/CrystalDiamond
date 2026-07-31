@@ -11,7 +11,6 @@ namespace SiteDb
 			{
 				Type = this.Type,
 				Name = this.Name,
-				
 			};
 		}
 	}

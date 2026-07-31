@@ -15,7 +15,6 @@ namespace SiteDb
 				Year = this.Year,
 				IsHitter = this.IsHitter,
 				Position = this.Position,
-				
 			};
 		}
 	}

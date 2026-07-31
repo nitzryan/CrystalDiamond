@@ -35,7 +35,6 @@ namespace SiteDb
 				DraftPick = this.DraftPick,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,
-				
 			};
 		}
 	}

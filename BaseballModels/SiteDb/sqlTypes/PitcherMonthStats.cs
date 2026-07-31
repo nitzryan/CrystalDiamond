@@ -37,7 +37,6 @@ namespace SiteDb
 				BBPerc = this.BBPerc,
 				KPerc = this.KPerc,
 				GOPerc = this.GOPerc,
-				
 			};
 		}
 	}

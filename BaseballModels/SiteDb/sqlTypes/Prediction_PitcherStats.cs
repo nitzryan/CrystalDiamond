@@ -57,7 +57,6 @@ namespace SiteDb
 				RP_Perc = this.RP_Perc,
 				CrRAA = this.CrRAA,
 				CrWAR = this.CrWAR,
-				
 			};
 		}
 	}

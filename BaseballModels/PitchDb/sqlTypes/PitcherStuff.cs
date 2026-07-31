@@ -41,7 +41,6 @@ namespace PitchDb
 				Vel = this.Vel,
 				BreakHoriz = this.BreakHoriz,
 				BreakVert = this.BreakVert,
-				
 			};
 		}
 	}

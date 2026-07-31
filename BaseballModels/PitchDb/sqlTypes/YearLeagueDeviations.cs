@@ -19,7 +19,6 @@ namespace PitchDb
 				Strikes = this.Strikes,
 				StuffDev = this.StuffDev,
 				PitchDev = this.PitchDev,
-				
 			};
 		}
 	}

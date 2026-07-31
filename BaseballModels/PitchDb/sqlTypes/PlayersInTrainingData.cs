@@ -15,7 +15,6 @@ namespace PitchDb
 				ModelId = this.ModelId,
 				ModelRun = this.ModelRun,
 				IsTrain = this.IsTrain,
-				
 			};
 		}
 	}

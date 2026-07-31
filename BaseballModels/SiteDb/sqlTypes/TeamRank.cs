@@ -31,7 +31,6 @@ namespace SiteDb
 				Top500 = this.Top500,
 				Rank = this.Rank,
 				War = this.War,
-				
 			};
 		}
 	}

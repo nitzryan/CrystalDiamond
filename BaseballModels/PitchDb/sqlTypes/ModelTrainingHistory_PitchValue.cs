@@ -25,7 +25,6 @@ namespace PitchDb
 				LossCombinedSwing = this.LossCombinedSwing,
 				LossCombinedInplay = this.LossCombinedInplay,
 				Arch = this.Arch,
-				
 			};
 		}
 	}

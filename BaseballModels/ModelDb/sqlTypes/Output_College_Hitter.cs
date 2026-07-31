@@ -111,7 +111,6 @@ namespace ModelDb
 				ProbCF = this.ProbCF,
 				ProbRF = this.ProbRF,
 				ProbDH = this.ProbDH,
-				
 			};
 		}
 	}

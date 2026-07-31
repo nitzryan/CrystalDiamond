@@ -23,7 +23,6 @@ namespace SiteDb
 				MlbId = this.MlbId,
 				Data = this.Data,
 				Rank = this.Rank,
-				
 			};
 		}
 	}

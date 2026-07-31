@@ -79,7 +79,6 @@ namespace SiteDb
 				CrDPOS = this.CrDPOS,
 				CrDRAA = this.CrDRAA,
 				CrWAR = this.CrWAR,
-				
 			};
 		}
 	}

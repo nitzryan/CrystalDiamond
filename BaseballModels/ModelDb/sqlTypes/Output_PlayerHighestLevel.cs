@@ -35,7 +35,6 @@ namespace ModelDb
 				AA = this.AA,
 				AAA = this.AAA,
 				MLB = this.MLB,
-				
 			};
 		}
 	}

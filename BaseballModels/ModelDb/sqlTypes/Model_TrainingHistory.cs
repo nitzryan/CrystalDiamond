@@ -17,7 +17,6 @@ namespace ModelDb
 				TestLoss = this.TestLoss,
 				TestLossCollege = this.TestLossCollege,
 				ModelRun = this.ModelRun,
-				
 			};
 		}
 	}

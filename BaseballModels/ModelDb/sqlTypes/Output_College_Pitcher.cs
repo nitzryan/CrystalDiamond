@@ -51,7 +51,6 @@ namespace ModelDb
 				War = this.War,
 				ProbSP = this.ProbSP,
 				ProbRP = this.ProbRP,
-				
 			};
 		}
 	}

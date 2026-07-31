@@ -33,7 +33,6 @@ namespace ModelDb
 				War5 = this.War5,
 				War6 = this.War6,
 				War = this.War,
-				
 			};
 		}
 	}

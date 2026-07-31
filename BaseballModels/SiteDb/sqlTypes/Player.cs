@@ -39,7 +39,6 @@ namespace SiteDb
 				IsHitter = this.IsHitter,
 				IsPitcher = this.IsPitcher,
 				InTraining = this.InTraining,
-				
 			};
 		}
 	}

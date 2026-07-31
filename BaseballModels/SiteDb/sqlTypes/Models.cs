@@ -11,7 +11,6 @@ namespace SiteDb
 			{
 				ModelId = this.ModelId,
 				Name = this.Name,
-				
 			};
 		}
 	}

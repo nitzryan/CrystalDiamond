@@ -17,7 +17,6 @@ namespace SiteDb
 				Severity = this.Severity,
 				Label = this.Label,
 				Blurb = this.Blurb,
-				
 			};
 		}
 	}

@@ -11,7 +11,6 @@ namespace PitchDb
 			{
 				Id = this.Id,
 				Name = this.Name,
-				
 			};
 		}
 	}

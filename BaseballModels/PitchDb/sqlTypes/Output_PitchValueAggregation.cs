@@ -59,7 +59,6 @@ namespace PitchDb
 				CombinedInPlayExpected = this.CombinedInPlayExpected,
 				StuffRuns = this.StuffRuns,
 				CombinedRuns = this.CombinedRuns,
-				
 			};
 		}
 	}

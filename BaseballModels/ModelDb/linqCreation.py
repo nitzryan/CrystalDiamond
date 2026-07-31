@@ -1,88 +1,28 @@
-import sqlite3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-dbSetStrings = []
-modelBuilderStrings = []
+from DbShared.linqCreation import *
 
-# Get Tables
-db = sqlite3.connect('Model.db')
-cursor = db.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-tables = cursor.fetchall()
-
-# For columns that will be created by insertion to be primary key, and value itself doesn't matter
-# Allows for not being required to create column, but not being nullable
 autoincrement_pairs = []
 
 boolean_types = [
-                ("PlayersInTrainingData", ["IsHitter", "IsTrain"]),
-                ("Model_TrainingHistory", ["IsHitter"]),
-                ("Output_PlayerWar", ["IsHitter"]),
-                ("Output_PlayerWarAggregation", ["IsHitter"]),
-                ("Output_PlayerHighestLevel", ["IsHitter"]),
-                ("Output_PlayerHighestLevelAggregation", ["IsHitter"]),
-                ("WarBucketAverages", ["IsHitter"]),
+    BooleanTypes("PlayersInTrainingData", ["IsHitter", "IsTrain"]),
+    BooleanTypes("Model_TrainingHistory", ["IsHitter"]),
+    BooleanTypes("Output_PlayerWar", ["IsHitter"]),
+    BooleanTypes("Output_PlayerWarAggregation", ["IsHitter"]),
+    BooleanTypes("Output_PlayerHighestLevel", ["IsHitter"]),
+    BooleanTypes("Output_PlayerHighestLevelAggregation", ["IsHitter"]),
+    BooleanTypes("WarBucketAverages", ["IsHitter"]),
                 ]
 
-
-
-for table, in tables:
-    # Get table data
-    cursor.execute(f"PRAGMA table_info({table})")
-    vals = cursor.fetchall()
-    #Setup DbContext string
-    dbSetStrings.append(f"public DbSet<{table}> {table} {{get; set;}}")
-    modelBuilderString = f"modelBuilder.Entity<{table}>().HasKey(f => new " + "{"
-    cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t\t"
-    # Write type to class file
-    with open(f"sqlTypes/{table}.cs", "w") as classFile:
-        classFile.write("namespace ModelDb\n{\n")
-        classFile.write(f"\tpublic class {table}\n" + '\t{\n')
-        for _, name, type, notnull, _, pk in vals:
-            name = name[0].capitalize() + name[1:]
-            cloneFunctionString += f"{name} = this.{name},\n\t\t\t\t"
-            
-            # Need to write primary keys
-            if pk > 0:
-                modelBuilderString += f"f.{name},"
-            # Convert SQLite type to C# type
-            
-            if type == "INTEGER":
-                csharp_type = "int"
-            elif type == "REAL":
-                csharp_type = "float"
-            elif type == "TEXT":
-                csharp_type = "string"
-            else:
-                raise Exception(f"Invalid SQLite type found: {type} for {name}")
-        
-            for (tbl, cols) in boolean_types:
-                if tbl == table:
-                    for col in cols:
-                        if col == name:
-                            csharp_type = "bool"
-                            break
-        
-            if notnull == 0:
-                csharp_type += '?'
-            elif not (table, name) in autoincrement_pairs:
-                csharp_type = "required " + csharp_type
-            classFile.write(f"\t\tpublic {csharp_type} {name} {{get; set;}}\n")
-        
-        modelBuilderString = modelBuilderString[:-1]
-        modelBuilderString += "})"
-        
-        classFile.write(cloneFunctionString + '\n\t\t\t};\n\t\t}\n')
-        classFile.write('\t}\n}')
-        modelBuilderStrings.append(modelBuilderString)
-        
-with open(f"ModelDbContext.cs", "w") as file:
-    file.write("using Microsoft.EntityFrameworkCore;\n\n")
-    file.write("namespace ModelDb\n{\n")
-    file.write("\tpublic class ModelDbContext : DbContext\n\t{\n")
-    for setString in dbSetStrings:
-        file.write("\t\t" + setString + "\n")
-    file.write("\n\t\tpublic ModelDbContext(DbContextOptions<ModelDbContext> options) : base(options) { }\n")
-    file.write("\n\t\tprotected override void OnModelCreating(ModelBuilder modelBuilder)\n\t\t{\n")
-    for mbs in modelBuilderStrings:
-        file.write("\t\t\t" + mbs + ";\n")
-    file.write("\t\t}\n\t}\n}")
+type_overrides = []
+    
+linqCreation(
+    db_name="Model.db",
+    autoincrement_pairs=autoincrement_pairs,
+    type_overrides=type_overrides,
+    boolean_types=boolean_types,
+    namespace="ModelDb",
+    dbContextName='ModelDbContext'
+)

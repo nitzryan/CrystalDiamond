@@ -33,7 +33,6 @@ namespace SiteDb
 				HighestLevel = this.HighestLevel,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,
-				
 			};
 		}
 	}

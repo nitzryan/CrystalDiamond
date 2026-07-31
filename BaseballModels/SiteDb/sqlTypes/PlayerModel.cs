@@ -25,7 +25,6 @@ namespace SiteDb
 				RankWar = this.RankWar,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,
-				
 			};
 		}
 	}

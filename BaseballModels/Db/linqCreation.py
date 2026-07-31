@@ -1,130 +1,73 @@
-import sqlite3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-dbSetStrings = []
-modelBuilderStrings = []
+from DbShared.linqCreation import *
 
-# Get Tables
-db = sqlite3.connect('BaseballStats.db')
-cursor = db.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-tables = cursor.fetchall()
+autoincrement_pairs = [
+    AutoincrementPair("Player_Hitter_GameLog", "GameLogId"), 
+    AutoincrementPair("Player_Pitcher_GameLog", "GameLogId"), 
+    AutoincrementPair("Transaction_Log", "TransactionId"), 
+    AutoincrementPair("GamePlayByPlay", "EventId"),
+    AutoincrementPair("Player_Fielder_GameLog", "GameLogId")
+                    ]
 
-# For columns that will be created by insertion to be primary key, and value itself doesn't matter
-# Allows for not being required to create column, but not being nullable
-autoincrement_pairs = [("Player_Hitter_GameLog", "GameLogId"), 
-                       ("Player_Pitcher_GameLog", "GameLogId"), 
-                       ("Transaction_Log", "TransactionId"), 
-                       ("GamePlayByPlay", "EventId"),
-                       ("Player_Fielder_GameLog", "GameLogId")]
+type_overrides = [
+    TypeOverride("GamePlayByPlay", "Result", "DbEnums.PBP_Events"), 
+    
+    TypeOverride("GamePlayByPlay", "HitTrajectory", "DbEnums.PBP_HitTrajectory"), 
+    TypeOverride("GamePlayByPlay", "HitHardness", "DbEnums.PBP_HitHardness"), 
+    
+    TypeOverride("GamePlayByPlay", "StartBaseOccupancy", "DbEnums.BaseOccupancy"), 
+    TypeOverride("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
+    TypeOverride("PitchStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
+    TypeOverride("PitchStatcast", "PaResultOccupancy", "DbEnums.BaseOccupancy"),
+    TypeOverride("PitchNonStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
+    
+    TypeOverride("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
+    
+    TypeOverride("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
+    TypeOverride("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
+    TypeOverride("Player_Fielder_YearStats", "Position", "DbEnums.Position"),
+    
+    TypeOverride("College_HitterStats", "Pos", "DbEnums.CollegePosition"),
+    TypeOverride("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),
+    
+    TypeOverride("PitchStatcast", "PitchType", "DbEnums.PitchType"),
+    
+    TypeOverride("PitchStatcast", "Result", "DbEnums.PitchResult"),
+    TypeOverride("PitchNonStatcast", "Result", "DbEnums.PitchResult"),
+    TypeOverride("RunExpectancyMatrix", "Result", "DbEnums.PitchResult"),
+    
+    TypeOverride("PitchStatcast", "PaResult", "DbEnums.PitchPaResult"),
+    TypeOverride("PitchNonStatcast", "PaResult", "DbEnums.PitchPaResult"),
+    
+    TypeOverride("PitchStatcast", "Scenario", "DbEnums.PitchScenario"),
+    TypeOverride("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
 
-type_overrides = [("GamePlayByPlay", "Result", "DbEnums.PBP_Events"), 
-                  ("GamePlayByPlay", "HitTrajectory", "DbEnums.PBP_HitTrajectory"), 
-                  ("GamePlayByPlay", "HitHardness", "DbEnums.PBP_HitHardness"), 
-                  
-                  ("GamePlayByPlay", "StartBaseOccupancy", "DbEnums.BaseOccupancy"), 
-                  ("GamePlayByPlay", "EndBaseOccupancy", "DbEnums.BaseOccupancy"),
-                  ("PitchStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
-                  ("PitchStatcast", "PaResultOccupancy", "DbEnums.BaseOccupancy"),
-                  ("PitchNonStatcast", "BaseOccupancy", "DbEnums.BaseOccupancy"),
-                  
-                  ("GamePlayByPlay", "EventFlag", "DbEnums.GameFlags"),
-                  ("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
-                  ("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
-                  ("Player_Fielder_YearStats", "Position", "DbEnums.Position"),
-                  ("College_HitterStats", "Pos", "DbEnums.CollegePosition"),
-                  ("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),
-                  
-                  ("PitchStatcast", "PitchType", "DbEnums.PitchType"),
-                  
-                  ("PitchStatcast", "Result", "DbEnums.PitchResult"),
-                  ("PitchNonStatcast", "Result", "DbEnums.PitchResult"),
-                  ("RunExpectancyMatrix", "Result", "DbEnums.PitchResult"),
-                  
-                  ("PitchStatcast", "PaResult", "DbEnums.PitchPaResult"),
-                  ("PitchNonStatcast", "PaResult", "DbEnums.PitchPaResult"),
-                  
-                  ("PitchStatcast", "Scenario", "DbEnums.PitchScenario"),
-                  ("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
+    TypeOverride("PitchModelResultBasis", "OutputType", "DbEnums.PitchModelOutputType"),
+    
+    TypeOverride("Model_Players", "ProspectType", "DbEnums.ProspectType"),
+                ]
 
-                  ("PitchModelResultBasis", "OutputType", "DbEnums.PitchModelOutputType"),
-                  
-                  ("Model_Players", "ProspectType", "DbEnums.ProspectType"),
-                  ]
+boolean_types = [
+    BooleanTypes("Player_Fielder_GameLog", ["Started", "IsHome"]),
+    BooleanTypes("GamePlayByPlay_GameFielders", ["IsHome"]),
+    BooleanTypes("College_Player", ["IsHitter", "IsPitcher", "IsEligible"]),
+    BooleanTypes("PitchStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
+    BooleanTypes("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
+    BooleanTypes("PitcherStatcastMonth", ["IsValid"]),
+    BooleanTypes("HitterStatcastMonth", ["IsValid"]),
+    BooleanTypes("Model_Players", ["IsEligible", "IsHitter", "IsPitcher"]),
+    BooleanTypes("Player_YearlyWPA", ["IsHitter", "IsStarter"]),
+    BooleanTypes("Player_CareerStatus", ["IsPitcher", "IsHitter", "isActive"])
+                ]
 
-boolean_types = [("Player_Fielder_GameLog", ["Started", "IsHome"]),
-                 ("GamePlayByPlay_GameFielders", ["IsHome"]),
-                 ("College_Player", ["IsHitter", "IsPitcher", "IsEligible"]),
-                 ("PitchStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
-                 ("PitchNonStatcast", ["HadSwing", "HadContact", "IsInPlay", "HitIsR", "PitIsR"]),
-                 ("PitcherStatcastMonth", ["IsValid"]),
-                 ("HitterStatcastMonth", ["IsValid"]),
-                 ("Model_Players", ["IsEligible", "IsHitter", "IsPitcher"]),
-                 ("Player_YearlyWPA", ["IsHitter", "IsStarter"]),
-                 ("Player_CareerStatus", ["IsPitcher", "IsHitter", "isActive"])
-                 ]
-
-for table, in tables:
-    # Get table data
-    cursor.execute(f"PRAGMA table_info({table})")
-    vals = cursor.fetchall()
-    #Setup DbContext string
-    dbSetStrings.append(f"public DbSet<{table}> {table} {{get; set;}}")
-    modelBuilderString = f"modelBuilder.Entity<{table}>().HasKey(f => new " + "{"
-    cloneFunctionString = f"\n\t\tpublic {table} Clone()\n\t\t{{\n\t\t\treturn new {table}\n\t\t\t{{\n\t\t\t"
-    # Write type to class file
-    with open(f"sqlTypes/{table}.cs", "w") as classFile:
-        classFile.write("namespace Db\n{\n")
-        classFile.write(f"\tpublic class {table}\n" + '\t{\n')
-        for _, name, type, notnull, _, pk in vals:
-            name = name[0].capitalize() + name[1:]
-            cloneFunctionString += f"\t{name} = this.{name},\n\t\t\t"
-            
-            # Need to write primary keys
-            if pk > 0:
-                modelBuilderString += f"f.{name},"
-            # Convert SQLite type to C# type
-            
-            if type == "INTEGER":
-                csharp_type = "int"
-            elif type == "REAL":
-                csharp_type = "float"
-            elif type == "TEXT":
-                csharp_type = "string"
-            else:
-                raise Exception(f"Invalid SQLite type found: {type} for {name}")
-        
-            for (tbl, col, typ) in type_overrides:
-                if (tbl == table) and (col == name):
-                    csharp_type = typ
-        
-            for (tbl, cols) in boolean_types:
-                if tbl == table:
-                    for col in cols:
-                        if col == name:
-                            csharp_type = "bool"
-                            break
-        
-            if notnull == 0:
-                csharp_type += '?'
-            elif not (table, name) in autoincrement_pairs:
-                csharp_type = "required " + csharp_type
-            classFile.write(f"\t\tpublic {csharp_type} {name} {{get; set;}}\n")
-        
-        modelBuilderString = modelBuilderString[:-1]
-        modelBuilderString += "})"
-        
-        classFile.write(cloneFunctionString + '};\n\t\t}\n')
-        classFile.write('\t}\n}')
-        modelBuilderStrings.append(modelBuilderString)
-        
-with open(f"SqliteDbContext.cs", "w") as file:
-    file.write("using Microsoft.EntityFrameworkCore;\n\n")
-    file.write("namespace Db\n{\n")
-    file.write("\tpublic class SqliteDbContext : DbContext\n\t{\n")
-    for setString in dbSetStrings:
-        file.write("\t\t" + setString + "\n")
-    file.write("\n\t\tpublic SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }\n")
-    file.write("\n\t\tprotected override void OnModelCreating(ModelBuilder modelBuilder)\n\t\t{\n")
-    for mbs in modelBuilderStrings:
-        file.write("\t\t\t" + mbs + ";\n")
-    file.write("\t\t}\n\t}\n}")
+linqCreation(
+    db_name="BaseballStats.db",
+    autoincrement_pairs=autoincrement_pairs,
+    type_overrides=type_overrides,
+    boolean_types=boolean_types,
+    namespace="Db",
+    dbContextName='SqliteDbContext'
+)

@@ -31,8 +31,6 @@ class DB_SwingDecision:
 		items = cursor.execute("SELECT * FROM SwingDecision " + conditional, values).fetchall()
 		return [DB_SwingDecision(i) for i in items]
 
-
-##############################################################################################
 class DB_SwingResultAggregation:
 	def __init__(self, values : tuple[any]):
 		self.HitterId = values[0]
