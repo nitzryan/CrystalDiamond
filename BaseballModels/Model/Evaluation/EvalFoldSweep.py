@@ -16,12 +16,18 @@ from tqdm import tqdm
 import math
 import torch
 import itertools
+import gc
 
 def EvalFoldSweep(model_id : int, is_hitter : bool, num_draws : int = 16, max_pairs_per_n : int = 200_000) -> tuple[FoldAccuracyResult, FoldRepeatabilityResult]:
     with torch.no_grad():
         targets = GetProWarTargets(model_id, is_hitter)
         predictions = GetProWarPredictions(model_id, is_hitter)
         aligned = AlignWarFolds(predictions, targets)
+        
+        del targets
+        del predictions
+        torch.cuda.empty_cache()
+        gc.collect()
         
         # Every observation has to supply the same number of folds or the curve isn't comparable across n
         fold_counts = aligned.run_mask.sum(dim=1)
@@ -66,6 +72,10 @@ def EvalFoldSweep(model_id : int, is_hitter : bool, num_draws : int = 16, max_pa
                 brier_per_class_sum, brier_count = Brier_Score(output, target_war, sample_mask)
                 brier_sum_total += brier_per_class_sum.sum().item()
                 brier_count_total += float(brier_count)
+                
+                del subset_probs
+                torch.cuda.empty_cache()
+                gc.collect()
             
             loss_war.append(loss_total / (n_obs * draws))
             brier.append(brier_sum_total / brier_count_total)
@@ -128,6 +138,9 @@ def EvalFoldSweep(model_id : int, is_hitter : bool, num_draws : int = 16, max_pa
             rep_signal_sd.append(stats.signal_sd)
             rep_reliability.append(stats.reliability)
             paired_war[n] = pairs
+            
+            torch.cuda.empty_cache()
+            gc.collect()
         
         repeatability = FoldRepeatabilityResult(
             num_folds=rep_folds,

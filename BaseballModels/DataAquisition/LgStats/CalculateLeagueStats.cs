@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using static Db.DbEnums;
 
-namespace DataAquisition.LeagueStats
+namespace DataAquisition.LgStats
 {
     internal class CalculateLeagueStats
     {

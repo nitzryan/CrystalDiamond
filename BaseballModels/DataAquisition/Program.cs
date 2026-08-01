@@ -1,10 +1,12 @@
-﻿namespace DataAquisition
+﻿using DataAquisition.College;
+
+namespace DataAquisition
 {
     internal class Program
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2026;
-        const int END_MONTH = 6;
+        const int END_MONTH = 7;
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
@@ -59,14 +61,14 @@
                     while (!await GameLog.GetPlayByPlay.Update(year))
                     { }
                     GameLog.GetPlayByPlayFlags.UpdateFlags(year);
-                    LeagueStats.ParkFactorUpdate.Update(year, year == END_YEAR);
-                    LeagueStats.CalculateLeagueStats.Update(year);
+                    LgStats.ParkFactorUpdate.Update(year, year == END_YEAR);
+                    LgStats.CalculateLeagueStats.Update(year);
 
                     foreach (int month in months)
                     {
-                        LeagueStats.CreateLeagueGameCounts.Update(year, month);
+                        LgStats.CreateLeagueGameCounts.Update(year, month);
                         MonthStats.CalculateMonthStats.Update(year, month);
-                        LeagueStats.CalculateLeagueBaselines.Update(year, month);
+                        LgStats.CalculateLeagueBaselines.Update(year, month);
                         MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
                         MonthStats.CalculateMonthRatios.Update(year, month);
                         MonthStats.CalculateMonthBaserunning.Update(year, month);
@@ -133,6 +135,13 @@
                 College.ProData.CreatePitchersData(END_YEAR);
             }
 
+            // Need to Set the College_Player draft pick values
+            if (DRAFT_UPDATE)
+            {
+                College.MapDraftedPlayers.Update(END_YEAR);
+                SetPlayerDraftPicks.Update(END_YEAR);
+            }
+
             ////////// Model Data //////////
             if (DATA_UPDATE || FULL_REFRESH)
             {
@@ -161,7 +170,7 @@
 
                 ModelStats.Model_MonthValue.Update();
 
-                while (!await LeagueStats.GetLeagues.Update())
+                while (!await LgStats.GetLeagues.Update())
                 { }
 
                 while (!await SitePrep.SitePlayerBio.Update(END_YEAR))

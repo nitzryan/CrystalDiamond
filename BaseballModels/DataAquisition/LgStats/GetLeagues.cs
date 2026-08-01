@@ -1,7 +1,7 @@
 ﻿using Db;
 using System.Text.Json;
 
-namespace DataAquisition.LeagueStats
+namespace DataAquisition.LgStats
 {
     internal class GetLeagues
     {

@@ -1,7 +1,7 @@
 ﻿using Db;
 using ShellProgressBar;
 
-namespace DataAquisition.LeagueStats
+namespace DataAquisition.LgStats
 {
     internal class ParkFactorUpdate
     {

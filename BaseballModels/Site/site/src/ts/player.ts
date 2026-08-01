@@ -836,15 +836,16 @@ async function main()
     pitcher_title_element.textContent = `Pitcher Stats through ${MONTH_CODES[endMonth]} ${endYear}`
 
     // Load predictions
-    const hitterStatsPredictionPromise = fetch(`/prediction_hitter?id=${id}&year=${endYear}&month=${endMonth}`)
-    const pitcherStatsPredictionPromise = fetch(`/prediction_pitcher?id=${id}&year=${endYear}&month=${endMonth}`)
+    // TODO : Add back in once model doesn't break this
+    // const hitterStatsPredictionPromise = fetch(`/prediction_hitter?id=${id}&year=${endYear}&month=${endMonth}`)
+    // const pitcherStatsPredictionPromise = fetch(`/prediction_pitcher?id=${id}&year=${endYear}&month=${endMonth}`)
 
-    const hitterStatsPredictions = await (await hitterStatsPredictionPromise).json() as JsonArray
-    const pitcherStatsPredictions = await (await pitcherStatsPredictionPromise).json() as JsonArray
-    predHitStats = hitterStatsPredictions.map(f => new DB_Prediction_HitterStats(f as JsonObject)).sort(f => f.LevelId)
-    predPitStats = pitcherStatsPredictions.map(f => new DB_Prediction_PitcherStats(f as JsonObject)).sort(f => f.levelId)
-    updateHitterPredictions(predHitStats.filter(f => f.Model === 1))
-    updatePitcherPredictions(predPitStats.filter(f => f.Model === 1))
+    // const hitterStatsPredictions = await (await hitterStatsPredictionPromise).json() as JsonArray
+    // const pitcherStatsPredictions = await (await pitcherStatsPredictionPromise).json() as JsonArray
+    // predHitStats = hitterStatsPredictions.map(f => new DB_Prediction_HitterStats(f as JsonObject)).sort(f => f.LevelId)
+    // predPitStats = pitcherStatsPredictions.map(f => new DB_Prediction_PitcherStats(f as JsonObject)).sort(f => f.levelId)
+    // updateHitterPredictions(predHitStats.filter(f => f.Model === 1))
+    // updatePitcherPredictions(predPitStats.filter(f => f.Model === 1))
 }
 
 main()
