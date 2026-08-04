@@ -8,30 +8,28 @@ namespace DataAquisition.PitchTracking
 {
     internal class GeneratePitchTrajectory
     {
-        public static void Calculate(int year, bool forceRefresh)
+        public static void Calculate(bool forceRefresh)
         {
             PitchTrackingDbContext pitchDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_OPTIONS);
-            SqliteDbContext db = new(Db.Connection.DB_OPTIONS);
+            SqliteDbContext db = new(Db.Connection.DB_READONLY_OPTIONS);
             
             // Remove old data if refresh
             if (forceRefresh)
-                pitchDb.PitchFlightpath
-                    .Where(f => f.Year == year)
-                    .ExecuteDelete();
+                pitchDb.PitchFlightpath.ExecuteDelete();
 
             // Get all pitch data
             var completedGameIds = pitchDb.PitchFlightpath
-                .Where(f => f.Year == year)
                 .Select(f => f.GameId)
                 .ToHashSet();
             var pitches = db.PitchStatcast
-                .Where(f => f.Year == year && !completedGameIds.Contains(f.GameId))
+                .Where(f => !completedGameIds.Contains(f.GameId))
+                .AsNoTracking()
                 .AsEnumerable();
 
             // Get flightpath from statcast data for each pitch
             int pitchCount = pitches.Count();
             List<PitchFlightpath> flightpaths = new(pitchCount);
-            using (ProgressBar progressBar = new(pitchCount, $"Calculating Pitch Trajectories for {year}"))
+            using (ProgressBar progressBar = new(pitchCount, $"Calculating Pitch Trajectories"))
             {
                 foreach (var pitch in pitches)
                 {
@@ -80,7 +78,8 @@ namespace DataAquisition.PitchTracking
                 pitch.X0 is not null &&
                 pitch.Y0 is not null &&
                 pitch.Z0 is not null &&
-                pitch.PlateTime is not null;
+                pitch.PlateTime is not null &&
+                pitch.PitchType != DbEnums.PitchType.Fastball;
 
             if (!pitchValid)
                 return null;
@@ -102,6 +101,7 @@ namespace DataAquisition.PitchTracking
                 Year = pitch.Year,
                 PitcherId = pitch.PitcherId,
                 PitchClass = Db.DbEnums.StatcastPitchToPitchClass(pitch.PitchType),
+                PitchType = pitch.PitchType,
                 BreakHoriz_05 = -1000,
                 BreakVer_05 = -1000,
                 BreakHoriz_10 = -1000,
@@ -115,6 +115,10 @@ namespace DataAquisition.PitchTracking
                 HAA = -1000,
                 VAA = -1000,
                 TrackingError = -1000,
+                HB = pitch.BreakHorizontal.Value,
+                IVB = pitch.BreakInduced.Value,
+                VB = pitch.BreakVertical.Value,
+                Vel = pitch.VStart.Value
             };
             // Track ball
             const double dt = 0.01f;

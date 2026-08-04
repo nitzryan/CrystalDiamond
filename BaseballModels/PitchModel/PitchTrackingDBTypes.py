@@ -47,26 +47,31 @@ class DB_PitchFlightpath:
 		self.PitchId = values[1]
 		self.Year = values[2]
 		self.PitcherId = values[3]
-		self.PitchClass = values[4]
-		self.BreakHoriz_05 = values[5]
-		self.BreakVer_05 = values[6]
-		self.BreakHoriz_10 = values[7]
-		self.BreakVer_10 = values[8]
-		self.BreakHoriz_15 = values[9]
-		self.BreakVer_15 = values[10]
-		self.BreakHoriz_20 = values[11]
-		self.BreakVer_20 = values[12]
-		self.BreakHoriz_25 = values[13]
-		self.BreakVer_25 = values[14]
-		self.HAA = values[15]
-		self.VAA = values[16]
-		self.TrackingError = values[17]
+		self.PitchType = values[4]
+		self.PitchClass = values[5]
+		self.BreakHoriz_05 = values[6]
+		self.BreakVer_05 = values[7]
+		self.BreakHoriz_10 = values[8]
+		self.BreakVer_10 = values[9]
+		self.BreakHoriz_15 = values[10]
+		self.BreakVer_15 = values[11]
+		self.BreakHoriz_20 = values[12]
+		self.BreakVer_20 = values[13]
+		self.BreakHoriz_25 = values[14]
+		self.BreakVer_25 = values[15]
+		self.HAA = values[16]
+		self.VAA = values[17]
+		self.HB = values[18]
+		self.IVB = values[19]
+		self.VB = values[20]
+		self.Vel = values[21]
+		self.TrackingError = values[22]
 
-	NUM_ELEMENTS = 18
+	NUM_ELEMENTS = 23
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchClass,self.BreakHoriz_05,self.BreakVer_05,self.BreakHoriz_10,self.BreakVer_10,self.BreakHoriz_15,self.BreakVer_15,self.BreakHoriz_20,self.BreakVer_20,self.BreakHoriz_25,self.BreakVer_25,self.HAA,self.VAA,self.TrackingError)
+		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchType,self.PitchClass,self.BreakHoriz_05,self.BreakVer_05,self.BreakHoriz_10,self.BreakVer_10,self.BreakHoriz_15,self.BreakVer_15,self.BreakHoriz_20,self.BreakVer_20,self.BreakHoriz_25,self.BreakVer_25,self.HAA,self.VAA,self.HB,self.IVB,self.VB,self.Vel,self.TrackingError)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchFlightpath']:
@@ -78,7 +83,7 @@ class DB_PitchFlightpathGameDelta:
 		self.GameId = values[0]
 		self.PitchId = values[1]
 		self.PitcherId = values[2]
-		self.PitchType = values[3]
+		self.FastballPitchType = values[3]
 		self.BreakHoriz_05Delta = values[4]
 		self.BreakVer_05Delta = values[5]
 		self.BreakHoriz_10Delta = values[6]
@@ -89,12 +94,16 @@ class DB_PitchFlightpathGameDelta:
 		self.BreakVer_20Delta = values[11]
 		self.BreakHoriz_25Delta = values[12]
 		self.BreakVer_25Delta = values[13]
+		self.BreakHoriz_Delta = values[14]
+		self.BreakVert_Delta = values[15]
+		self.BreakIVB_Delta = values[16]
+		self.Vel_Delta = values[17]
 
-	NUM_ELEMENTS = 14
+	NUM_ELEMENTS = 18
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.PitcherId,self.PitchType,self.BreakHoriz_05Delta,self.BreakVer_05Delta,self.BreakHoriz_10Delta,self.BreakVer_10Delta,self.BreakHoriz_15Delta,self.BreakVer_15Delta,self.BreakHoriz_20Delta,self.BreakVer_20Delta,self.BreakHoriz_25Delta,self.BreakVer_25Delta)
+		return (self.GameId,self.PitchId,self.PitcherId,self.FastballPitchType,self.BreakHoriz_05Delta,self.BreakVer_05Delta,self.BreakHoriz_10Delta,self.BreakVer_10Delta,self.BreakHoriz_15Delta,self.BreakVer_15Delta,self.BreakHoriz_20Delta,self.BreakVer_20Delta,self.BreakHoriz_25Delta,self.BreakVer_25Delta,self.BreakHoriz_Delta,self.BreakVert_Delta,self.BreakIVB_Delta,self.Vel_Delta)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchFlightpathGameDelta']:

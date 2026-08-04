@@ -5,7 +5,7 @@ namespace PitchTrackingDb
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
 		public required int PitcherId {get; set;}
-		public required Db.DbEnums.PitchType PitchType {get; set;}
+		public required Db.DbEnums.PitchType FastballPitchType {get; set;}
 		public required float BreakHoriz_05Delta {get; set;}
 		public required float BreakVer_05Delta {get; set;}
 		public required float BreakHoriz_10Delta {get; set;}
@@ -16,6 +16,10 @@ namespace PitchTrackingDb
 		public required float BreakVer_20Delta {get; set;}
 		public required float BreakHoriz_25Delta {get; set;}
 		public required float BreakVer_25Delta {get; set;}
+		public required float BreakHoriz_Delta {get; set;}
+		public required float BreakVert_Delta {get; set;}
+		public required float BreakIVB_Delta {get; set;}
+		public required float Vel_Delta {get; set;}
 
 		public PitchFlightpathGameDelta Clone()
 		{
@@ -24,7 +28,7 @@ namespace PitchTrackingDb
 				GameId = this.GameId,
 				PitchId = this.PitchId,
 				PitcherId = this.PitcherId,
-				PitchType = this.PitchType,
+				FastballPitchType = this.FastballPitchType,
 				BreakHoriz_05Delta = this.BreakHoriz_05Delta,
 				BreakVer_05Delta = this.BreakVer_05Delta,
 				BreakHoriz_10Delta = this.BreakHoriz_10Delta,
@@ -35,6 +39,10 @@ namespace PitchTrackingDb
 				BreakVer_20Delta = this.BreakVer_20Delta,
 				BreakHoriz_25Delta = this.BreakHoriz_25Delta,
 				BreakVer_25Delta = this.BreakVer_25Delta,
+				BreakHoriz_Delta = this.BreakHoriz_Delta,
+				BreakVert_Delta = this.BreakVert_Delta,
+				BreakIVB_Delta = this.BreakIVB_Delta,
+				Vel_Delta = this.Vel_Delta,
 			};
 		}
 	}

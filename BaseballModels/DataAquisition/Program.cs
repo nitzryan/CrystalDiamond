@@ -217,10 +217,8 @@ namespace DataAquisition
             ////////// Pitch Tracking //////////
             if (DATA_UPDATE || FULL_REFRESH || STATCAST_ONLY_UPDATE || true)
             {
-                foreach (var year in years)
-                {
-                    PitchTracking.GeneratePitchTrajectory.Calculate(year, FULL_REFRESH);
-                }
+                PitchTracking.GeneratePitchTrajectory.Calculate(FULL_REFRESH);
+                PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);
             }
 
             #pragma warning disable CS0162

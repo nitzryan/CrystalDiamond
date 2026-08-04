@@ -14,7 +14,7 @@ namespace PitchTrackingDb
 		{
 			modelBuilder.Entity<PitchData>().HasKey(f => new {f.GameId,f.PitchId});
 			modelBuilder.Entity<PitchFlightpath>().HasKey(f => new {f.GameId,f.PitchId});
-			modelBuilder.Entity<PitchFlightpathGameDelta>().HasKey(f => new {f.GameId,f.PitchId});
+			modelBuilder.Entity<PitchFlightpathGameDelta>().HasKey(f => new {f.GameId,f.PitchId,f.FastballPitchType});
 		}
 	}
 }

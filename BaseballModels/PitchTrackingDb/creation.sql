@@ -75,6 +75,7 @@ CREATE TABLE PitchFlightpath
 
     -- Information to map to a specific player/pitch
     "PitcherId" INTEGER NOT NULL,
+    "PitchType" INTEGER NOT NULL,
     "PitchClass" INTEGER NOT NULL,
 
     -- Pitch Tracking Data (horiz/vert breaks at given timesteps)
@@ -92,6 +93,12 @@ CREATE TABLE PitchFlightpath
     -- Attack Angles
     "HAA" REAL NOT NULL,
     "VAA" REAL NOT NULL,
+
+    -- Final Break
+    "HB" REAL NOT NULL,
+    "IVB" REAL NOT NULL,
+    "VB" REAL NOT NULL,
+    "Vel" REAL NOT NULL,
 
     -- Error from Statcast plate position for validation
     "TrackingError" REAL NOT NULL,
@@ -118,7 +125,7 @@ CREATE TABLE PitchFlightpathGameDelta
     
     -- Information to map to a specific player/pitch
     "PitcherId" INTEGER NOT NULL,
-    "PitchType" INTEGER NOT NULL, -- Only fastballs
+    "FastballPitchType" INTEGER NOT NULL, -- Only fastballs
 
     -- Pitch Tracking Deltas
     "BreakHoriz_05Delta" REAL NOT NULL,
@@ -132,10 +139,15 @@ CREATE TABLE PitchFlightpathGameDelta
     "BreakHoriz_25Delta" REAL NOT NULL,
     "BreakVer_25Delta" REAL NOT NULL,
 
-    PRIMARY KEY("GameId", "PitchId")
+    "BreakHoriz_Delta" REAL NOT NULL,
+    "BreakVert_Delta" REAL NOT NULL,
+    "BreakIVB_Delta" REAL NOT NULL,
+    "Vel_Delta" REAL NOT NULL,
+
+    PRIMARY KEY("GameId", "PitchId", "FastballPitchType")
 );
 
 CREATE INDEX idx_PitchFlightpathGameData_PitcherGamePitch ON PitchFlightpathGameDelta
 (
-    "PitcherId", "GameId", "PitchType"
+    "PitcherId", "GameId", "FastballPitchType"
 );
