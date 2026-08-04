@@ -23,11 +23,10 @@ namespace DataAquisition.PitchTracking
                 .ToHashSet();
             var pitches = db.PitchStatcast
                 .Where(f => !completedGameIds.Contains(f.GameId))
-                .AsNoTracking()
-                .AsEnumerable();
+                .AsNoTracking();
 
             // Get flightpath from statcast data for each pitch
-            int pitchCount = pitches.Count();
+            int pitchCount = db.PitchStatcast.Count();
             List<PitchFlightpath> flightpaths = new(pitchCount);
             using (ProgressBar progressBar = new(pitchCount, $"Calculating Pitch Trajectories"))
             {
@@ -102,6 +101,7 @@ namespace DataAquisition.PitchTracking
                 PitcherId = pitch.PitcherId,
                 PitchClass = Db.DbEnums.StatcastPitchToPitchClass(pitch.PitchType),
                 PitchType = pitch.PitchType,
+                PitIsR = pitch.PitIsR,
                 BreakHoriz_05 = -1000,
                 BreakVer_05 = -1000,
                 BreakHoriz_10 = -1000,
@@ -118,8 +118,13 @@ namespace DataAquisition.PitchTracking
                 HB = pitch.BreakHorizontal.Value,
                 IVB = pitch.BreakInduced.Value,
                 VB = pitch.BreakVertical.Value,
-                Vel = pitch.VStart.Value
+                Vel = pitch.VStart.Value,
+                PlateX = -1000,
+                PlateZ = -1000,
             };
+
+            if (MovementIsInvalid(pf.HB, pf.IVB))
+                return null;
             // Track ball
             const double dt = 0.01f;
             double prevY = actualState.y;
@@ -167,6 +172,9 @@ namespace DataAquisition.PitchTracking
                     float timeProp = (float)((prevY - PLATE_Y) / (prevY - newState.y));
                     newState = UpdateState(actualState, dt * timeProp);
 
+                    pf.PlateX = (float)newState.x;
+                    pf.PlateZ = (float)newState.z;
+
                     // Get how close the measured position is to statcast for validation
                     float deltaX = (float)newState.x - pitch.PX.Value;
                     float deltaZ = (float)newState.z - pitch.PZ.Value;
@@ -191,6 +199,11 @@ namespace DataAquisition.PitchTracking
             }
 
             return pf;
+        }
+
+        private static bool MovementIsInvalid(float hb, float ivb)
+        {
+            return Math.Abs(hb) > 26 || ivb > 26 || ivb < -25;
         }
 
         // Does a single RK4 step using constant accel

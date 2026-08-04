@@ -38,17 +38,13 @@ CREATE TABLE PitchData
     "SpinAxis" REAL NOT NULL,
     "ActiveSpin" REAL NOT NULL,
 
-    -- Release Data
-    "ReleaseHeight" REAL NOT NULL,
-    "ReleaseHorizontal" REAL NOT NULL,
-
     -- Approach Angle
     "VaaAboveAverage" REAL NOT NULL,
     "HaaAboveAverage" REAL NOT NULL,
 
     -- Location Data
     "PlateX" REAL NOT NULL,
-    "PlateY" REAL NOT NULL,
+    "PlateZ" REAL NOT NULL,
 
     PRIMARY KEY("GameId", "PitchId")
 );
@@ -77,6 +73,7 @@ CREATE TABLE PitchFlightpath
     "PitcherId" INTEGER NOT NULL,
     "PitchType" INTEGER NOT NULL,
     "PitchClass" INTEGER NOT NULL,
+    "PitIsR" INTEGER NOT NULL,
 
     -- Pitch Tracking Data (horiz/vert breaks at given timesteps)
     "BreakHoriz_05" REAL NOT NULL,
@@ -102,6 +99,8 @@ CREATE TABLE PitchFlightpath
 
     -- Error from Statcast plate position for validation
     "TrackingError" REAL NOT NULL,
+    "PlateX" REAL NOT NULL,
+    "PlateZ" REAL NOT NULL,
 
     PRIMARY KEY("GameId", "PitchId")
 );

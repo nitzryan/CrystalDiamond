@@ -217,8 +217,9 @@ namespace DataAquisition
             ////////// Pitch Tracking //////////
             if (DATA_UPDATE || FULL_REFRESH || STATCAST_ONLY_UPDATE || true)
             {
-                PitchTracking.GeneratePitchTrajectory.Calculate(FULL_REFRESH);
-                PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);
+                //PitchTracking.GeneratePitchTrajectory.Calculate(FULL_REFRESH);
+                //PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);
+                PitchTracking.GenerateModelPitchData.Generate();
             }
 
             #pragma warning disable CS0162

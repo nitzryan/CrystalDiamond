@@ -23,12 +23,10 @@ namespace PitchTrackingDb
 		public required float SpinRate {get; set;}
 		public required float SpinAxis {get; set;}
 		public required float ActiveSpin {get; set;}
-		public required float ReleaseHeight {get; set;}
-		public required float ReleaseHorizontal {get; set;}
 		public required float VaaAboveAverage {get; set;}
 		public required float HaaAboveAverage {get; set;}
 		public required float PlateX {get; set;}
-		public required float PlateY {get; set;}
+		public required float PlateZ {get; set;}
 
 		public PitchData Clone()
 		{
@@ -55,12 +53,10 @@ namespace PitchTrackingDb
 				SpinRate = this.SpinRate,
 				SpinAxis = this.SpinAxis,
 				ActiveSpin = this.ActiveSpin,
-				ReleaseHeight = this.ReleaseHeight,
-				ReleaseHorizontal = this.ReleaseHorizontal,
 				VaaAboveAverage = this.VaaAboveAverage,
 				HaaAboveAverage = this.HaaAboveAverage,
 				PlateX = this.PlateX,
-				PlateY = this.PlateY,
+				PlateZ = this.PlateZ,
 			};
 		}
 	}

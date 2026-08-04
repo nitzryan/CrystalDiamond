@@ -20,6 +20,7 @@ type_overrides = [
 
 boolean_types = [
     BooleanTypes("PitchData", ["HadSwing", "HadContact", "IsInPlay", "PitIsR", "HitIsR"]),
+    BooleanTypes("PitchFlightpath", ["PitIsR"]),
                 ]
 
 linqCreation(

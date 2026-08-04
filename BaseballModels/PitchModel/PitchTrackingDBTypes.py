@@ -23,18 +23,16 @@ class DB_PitchData:
 		self.SpinRate = values[18]
 		self.SpinAxis = values[19]
 		self.ActiveSpin = values[20]
-		self.ReleaseHeight = values[21]
-		self.ReleaseHorizontal = values[22]
-		self.VaaAboveAverage = values[23]
-		self.HaaAboveAverage = values[24]
-		self.PlateX = values[25]
-		self.PlateY = values[26]
+		self.VaaAboveAverage = values[21]
+		self.HaaAboveAverage = values[22]
+		self.PlateX = values[23]
+		self.PlateZ = values[24]
 
-	NUM_ELEMENTS = 27
+	NUM_ELEMENTS = 25
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.ReleaseHeight,self.ReleaseHorizontal,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateY)
+		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateZ)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchData']:
@@ -49,29 +47,32 @@ class DB_PitchFlightpath:
 		self.PitcherId = values[3]
 		self.PitchType = values[4]
 		self.PitchClass = values[5]
-		self.BreakHoriz_05 = values[6]
-		self.BreakVer_05 = values[7]
-		self.BreakHoriz_10 = values[8]
-		self.BreakVer_10 = values[9]
-		self.BreakHoriz_15 = values[10]
-		self.BreakVer_15 = values[11]
-		self.BreakHoriz_20 = values[12]
-		self.BreakVer_20 = values[13]
-		self.BreakHoriz_25 = values[14]
-		self.BreakVer_25 = values[15]
-		self.HAA = values[16]
-		self.VAA = values[17]
-		self.HB = values[18]
-		self.IVB = values[19]
-		self.VB = values[20]
-		self.Vel = values[21]
-		self.TrackingError = values[22]
+		self.PitIsR = values[6]
+		self.BreakHoriz_05 = values[7]
+		self.BreakVer_05 = values[8]
+		self.BreakHoriz_10 = values[9]
+		self.BreakVer_10 = values[10]
+		self.BreakHoriz_15 = values[11]
+		self.BreakVer_15 = values[12]
+		self.BreakHoriz_20 = values[13]
+		self.BreakVer_20 = values[14]
+		self.BreakHoriz_25 = values[15]
+		self.BreakVer_25 = values[16]
+		self.HAA = values[17]
+		self.VAA = values[18]
+		self.HB = values[19]
+		self.IVB = values[20]
+		self.VB = values[21]
+		self.Vel = values[22]
+		self.TrackingError = values[23]
+		self.PlateX = values[24]
+		self.PlateZ = values[25]
 
-	NUM_ELEMENTS = 23
+	NUM_ELEMENTS = 26
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchType,self.PitchClass,self.BreakHoriz_05,self.BreakVer_05,self.BreakHoriz_10,self.BreakVer_10,self.BreakHoriz_15,self.BreakVer_15,self.BreakHoriz_20,self.BreakVer_20,self.BreakHoriz_25,self.BreakVer_25,self.HAA,self.VAA,self.HB,self.IVB,self.VB,self.Vel,self.TrackingError)
+		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchType,self.PitchClass,self.PitIsR,self.BreakHoriz_05,self.BreakVer_05,self.BreakHoriz_10,self.BreakVer_10,self.BreakHoriz_15,self.BreakVer_15,self.BreakHoriz_20,self.BreakVer_20,self.BreakHoriz_25,self.BreakVer_25,self.HAA,self.VAA,self.HB,self.IVB,self.VB,self.Vel,self.TrackingError,self.PlateX,self.PlateZ)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchFlightpath']:

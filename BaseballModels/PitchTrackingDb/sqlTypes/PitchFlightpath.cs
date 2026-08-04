@@ -8,6 +8,7 @@ namespace PitchTrackingDb
 		public required int PitcherId {get; set;}
 		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchClass PitchClass {get; set;}
+		public required bool PitIsR {get; set;}
 		public required float BreakHoriz_05 {get; set;}
 		public required float BreakVer_05 {get; set;}
 		public required float BreakHoriz_10 {get; set;}
@@ -25,6 +26,8 @@ namespace PitchTrackingDb
 		public required float VB {get; set;}
 		public required float Vel {get; set;}
 		public required float TrackingError {get; set;}
+		public required float PlateX {get; set;}
+		public required float PlateZ {get; set;}
 
 		public PitchFlightpath Clone()
 		{
@@ -36,6 +39,7 @@ namespace PitchTrackingDb
 				PitcherId = this.PitcherId,
 				PitchType = this.PitchType,
 				PitchClass = this.PitchClass,
+				PitIsR = this.PitIsR,
 				BreakHoriz_05 = this.BreakHoriz_05,
 				BreakVer_05 = this.BreakVer_05,
 				BreakHoriz_10 = this.BreakHoriz_10,
@@ -53,6 +57,8 @@ namespace PitchTrackingDb
 				VB = this.VB,
 				Vel = this.Vel,
 				TrackingError = this.TrackingError,
+				PlateX = this.PlateX,
+				PlateZ = this.PlateZ,
 			};
 		}
 	}

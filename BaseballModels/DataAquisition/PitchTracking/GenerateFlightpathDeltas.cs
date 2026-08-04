@@ -37,6 +37,7 @@ namespace DataAquisition.PitchTracking
                             PitcherId = -1,
                             PitchClass = PitchClass.Fastball,
                             PitchType = f.First().PitchType,
+                            PitIsR = false,
                             BreakHoriz_05 = f.Average(g => g.BreakHoriz_05),
                             BreakVer_05 = f.Average(g => g.BreakVer_05),
                             BreakHoriz_10 = f.Average(g => g.BreakHoriz_10),
@@ -54,6 +55,8 @@ namespace DataAquisition.PitchTracking
                             IVB = f.Average(g => g.IVB),
                             VB = f.Average(g => g.VB),
                             Vel = f.Average(g => g.Vel),
+                            PlateX = -1000,
+                            PlateZ = -1000,
                         });
 
                     // Compare each non-fastball to each type of fastball
