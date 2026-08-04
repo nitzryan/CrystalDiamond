@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Db\Db.csproj" />
+    <ProjectReference Include="..\PitchTrackingDb\PitchTrackingDb.csproj" />
   </ItemGroup>
 
 </Project>

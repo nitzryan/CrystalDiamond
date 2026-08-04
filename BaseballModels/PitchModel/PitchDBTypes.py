@@ -185,3 +185,5 @@ class DB_Output_PitchValueAggregation:
 		items = cursor.execute("SELECT * FROM Output_PitchValueAggregation " + conditional, values).fetchall()
 		return [DB_Output_PitchValueAggregation(i) for i in items]
 
+
+##############################################################################################

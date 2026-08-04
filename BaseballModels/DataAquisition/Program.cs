@@ -214,6 +214,15 @@ namespace DataAquisition
                 }
             }
 
+            ////////// Pitch Tracking //////////
+            if (DATA_UPDATE || FULL_REFRESH || STATCAST_ONLY_UPDATE || true)
+            {
+                foreach (var year in years)
+                {
+                    PitchTracking.GeneratePitchTrajectory.Calculate(year, FULL_REFRESH);
+                }
+            }
+
             #pragma warning disable CS0162
         }
     }

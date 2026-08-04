@@ -195,6 +195,40 @@ namespace Db
             Eephus = -1,
         }
 
+        public enum PitchClass
+        {
+            Fastball = 1,
+            Breaking = 2,
+            Changeup = 3,
+            Other = 4,
+        }
+
+        public static PitchClass StatcastPitchToPitchClass(PitchType pitchType)
+        {
+            switch (pitchType)
+            {
+                case Db.DbEnums.PitchType.Sinker:
+                case Db.DbEnums.PitchType.Fourseam:
+                case Db.DbEnums.PitchType.Fastball:
+                case Db.DbEnums.PitchType.Twoseam:
+                    return PitchClass.Fastball;
+                case Db.DbEnums.PitchType.Cutter:
+                case Db.DbEnums.PitchType.Slider:
+                case Db.DbEnums.PitchType.Sweeper:
+                case Db.DbEnums.PitchType.Slurve:
+                case Db.DbEnums.PitchType.Curveball:
+                case Db.DbEnums.PitchType.KnuckleCurve:
+                case Db.DbEnums.PitchType.SlowCurve:
+                    return PitchClass.Breaking;
+                case Db.DbEnums.PitchType.Splitter:
+                case Db.DbEnums.PitchType.Changeup:
+                case Db.DbEnums.PitchType.Forkball:
+                    return PitchClass.Changeup;
+                default:
+                    return PitchClass.Other;
+            }
+        }
+
         public enum PitchResult
         {
             CalledStrike = 1,
