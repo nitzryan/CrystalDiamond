@@ -159,12 +159,12 @@ def GetLosses(
     should_backprop : bool) -> tuple[list[torch.Tensor], list[int]]:
     
     
-    overview, loc, stuff, combined, game, league = data
+    stuff, combined = data
     match network.model_variant_type:
         case ModelVariantType.Stuff:
-            input_data = torch.cat((overview, stuff, league), dim=-1)
+            input_data = stuff
         case ModelVariantType.Combined:
-            input_data = torch.cat((overview, loc, stuff, combined, league), dim=-1)
+            input_data = combined
     
     outputs = network(input_data)
     

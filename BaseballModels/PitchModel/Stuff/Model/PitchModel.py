@@ -2,13 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from PitchModel.Buckets import *
 from PitchModel.DBTypes import *
 from PitchModel.PitchDBTypes import *
 from PitchModel.Stuff.Model.ResnetBlock import ResnetBlock
 from PitchModel.Stuff.Model.Utilities import *
 from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
-from PitchModel.Constants import pitch_db
+from PitchModel.Constants import pitch_db, BUCKET_INPLAY_VALUE
 import warnings
 from PitchModel.Stuff.Model.ModelOutputType import *
         

@@ -5,6 +5,7 @@ namespace PitchTrackingDb
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
 		public required int Year {get; set;}
+		public required int LevelId {get; set;}
 		public required int PitcherId {get; set;}
 		public required Db.DbEnums.PitchClass PitchClass {get; set;}
 		public required int CountBalls {get; set;}
@@ -27,6 +28,8 @@ namespace PitchTrackingDb
 		public required float HaaAboveAverage {get; set;}
 		public required float PlateX {get; set;}
 		public required float PlateZ {get; set;}
+		public required float ZoneTop {get; set;}
+		public required float ZoneBot {get; set;}
 
 		public PitchData Clone()
 		{
@@ -35,6 +38,7 @@ namespace PitchTrackingDb
 				GameId = this.GameId,
 				PitchId = this.PitchId,
 				Year = this.Year,
+				LevelId = this.LevelId,
 				PitcherId = this.PitcherId,
 				PitchClass = this.PitchClass,
 				CountBalls = this.CountBalls,
@@ -57,6 +61,8 @@ namespace PitchTrackingDb
 				HaaAboveAverage = this.HaaAboveAverage,
 				PlateX = this.PlateX,
 				PlateZ = this.PlateZ,
+				ZoneTop = this.ZoneTop,
+				ZoneBot = this.ZoneBot,
 			};
 		}
 	}

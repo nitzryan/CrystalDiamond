@@ -10,10 +10,10 @@ else:
   device = torch.device("cpu")
   
 __BASE_DIR = Path(__file__).parent.resolve()
-DB_PATH = __BASE_DIR / '../Db/BaseballStats.db'
+__TRACKING_DB_PATH = __BASE_DIR / '../PitchTrackingDb/PitchTracking.db'
 __PITCH_DB_PATH = __BASE_DIR / "../PitchDb/Pitch.db"
 
-db = sqlite3.connect(DB_PATH)
+tracking_db = sqlite3.connect(__TRACKING_DB_PATH)
 pitch_db = sqlite3.connect(__PITCH_DB_PATH)
 
 DTYPE = torch.float32
@@ -31,5 +31,7 @@ PITCH_RESULT_HBP = 5
 NUM_TRAINING_VARIANTS = 12
 TRAIN_TEST_RATIO = 3
 assert NUM_TRAINING_VARIANTS % (TRAIN_TEST_RATIO + 1) == 0
+
+BUCKET_INPLAY_VALUE = torch.tensor([-0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.5])
 
 DATA_PREP_BINARY_ALL_FILE = "Binaries/DataPrepAll.pkl"

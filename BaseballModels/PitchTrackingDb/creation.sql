@@ -7,6 +7,7 @@ CREATE TABLE PitchData
     
     -- Allows for easy query for finding specific pitches to train on
     "Year" INTEGER NOT NULL,
+    "LevelId" INTEGER NOT NULL,
 
     -- Map pitch to a pitcher to compare to other pitches
     "PitcherId" INTEGER NOT NULL,
@@ -45,13 +46,15 @@ CREATE TABLE PitchData
     -- Location Data
     "PlateX" REAL NOT NULL,
     "PlateZ" REAL NOT NULL,
+    "ZoneTop" REAL NOT NULL,
+    "ZoneBot" REAL NOT NULL,
 
     PRIMARY KEY("GameId", "PitchId")
 );
 
 CREATE INDEX idx_PitchData_Year ON PitchData
 (
-    "Year", "GameId", "PitchId"
+    "Year", "LevelId", "GameId", "PitchId"
 );
 
 CREATE INDEX idx_PitchData_PitcherId ON PitchData

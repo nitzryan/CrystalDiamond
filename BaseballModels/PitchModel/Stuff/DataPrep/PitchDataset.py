@@ -12,12 +12,8 @@ class PitchIO:
         level_id : int,
                  
         # Data for model
-        data_overview : torch.Tensor,
-        data_loc : torch.Tensor,
         data_stuff : torch.Tensor,
         data_combined : torch.Tensor,
-        data_pitcher_game : torch.Tensor,
-        data_league_avg : torch.Tensor,
         
         # Output for model
         output_type : int,
@@ -33,12 +29,8 @@ class PitchIO:
         self.pitcher_id = pitcher_id
         self.level_id = level_id
         
-        self.data_overview = data_overview
-        self.data_loc = data_loc
         self.data_stuff = data_stuff
         self.data_combined = data_combined
-        self.data_pitcher_game = data_pitcher_game
-        self.data_league_avg = data_league_avg
         
         self.output_type = output_type
         self.output_swing = output_swing
@@ -74,12 +66,8 @@ class PitchDataset(torch.utils.data.Dataset):
                 mapping_pitcher_ids : torch.Tensor,
                 mapping_level_ids : torch.Tensor,
                  
-                data_overview : torch.Tensor,
-                data_loc : torch.Tensor,
                 data_stuff : torch.Tensor,
                 data_combined : torch.Tensor,
-                data_pitcher_game : torch.Tensor,
-                data_league_avg : torch.Tensor,
                 
                 output_type : torch.Tensor,
                 output_swing : torch.Tensor,
@@ -100,12 +88,8 @@ class PitchDataset(torch.utils.data.Dataset):
         self.mapping_pitcher_ids = mapping_pitcher_ids
         self.mapping_level_ids = mapping_level_ids
         
-        self.data_overview = data_overview.t().to(device=dataset_device, non_blocking=True)
-        self.data_loc = data_loc.t().to(device=dataset_device, non_blocking=True)
         self.data_stuff = data_stuff.t().to(device=dataset_device, non_blocking=True)
         self.data_combined = data_combined.t().to(device=dataset_device, non_blocking=True)
-        self.data_pitcher_game = data_pitcher_game.t().to(device=dataset_device, non_blocking=True)
-        self.data_league_avg = data_league_avg.t().to(device=dataset_device, non_blocking=True)
         
         self.output_type = output_type.to(device=dataset_device, non_blocking=True)
         self.output_swing = output_swing.to(device=dataset_device, non_blocking=True)
@@ -122,7 +106,7 @@ class PitchDataset(torch.utils.data.Dataset):
         
         self.output_masks = {
             ModelOutputType.Result: torch.ones(
-                self.data_overview.size(dim=0),
+                self.data_stuff.size(dim=0),
                 dtype=torch.float,
                 device=dataset_device
             ),
@@ -134,7 +118,7 @@ class PitchDataset(torch.utils.data.Dataset):
         self.SetOutputType(current_output_type)
         
     def __len__(self):
-        return self.data_overview.size(dim=0)
+        return self.data_stuff.size(dim=0)
     
     def SetOutputType(self, output_type: ModelOutputType):
         self.current_output_type = output_type
@@ -159,12 +143,8 @@ class PitchDataset(torch.utils.data.Dataset):
         
         # Data used to feed into model
         data = (
-            self.data_overview[filtered_indices],
-            self.data_loc[filtered_indices],
             self.data_stuff[filtered_indices],
             self.data_combined[filtered_indices],
-            self.data_pitcher_game[filtered_indices],
-            self.data_league_avg[filtered_indices]
         )
         
         # Data used to evaluate model
@@ -207,19 +187,11 @@ def CreateTestTrainDatasets(
     
     # ==================== INPUT FEATURES ====================
 
-    data_overview_train     = torch.stack([io.data_overview     for io in io_train], dim=1)
-    data_loc_train          = torch.stack([io.data_loc          for io in io_train], dim=1)
     data_stuff_train        = torch.stack([io.data_stuff        for io in io_train], dim=1)
     data_combined_train     = torch.stack([io.data_combined     for io in io_train], dim=1)
-    data_pitcher_game_train = torch.stack([io.data_pitcher_game for io in io_train], dim=1)
-    data_league_avg_train   = torch.stack([io.data_league_avg   for io in io_train], dim=1)
 
-    data_overview_test      = torch.stack([io.data_overview     for io in io_test], dim=1)
-    data_loc_test           = torch.stack([io.data_loc          for io in io_test], dim=1)
     data_stuff_test         = torch.stack([io.data_stuff        for io in io_test], dim=1)
     data_combined_test      = torch.stack([io.data_combined     for io in io_test], dim=1)
-    data_pitcher_game_test  = torch.stack([io.data_pitcher_game for io in io_test], dim=1)
-    data_league_avg_test    = torch.stack([io.data_league_avg   for io in io_test], dim=1)
 
 
     # ==================== TARGETS / OUTPUTS ====================
@@ -246,12 +218,8 @@ def CreateTestTrainDatasets(
         mapping_pitcher_ids_train,
         mapping_level_ids_train,
         
-        data_overview_train,
-        data_loc_train,
         data_stuff_train,
         data_combined_train,
-        data_pitcher_game_train,
-        data_league_avg_train,
         
         output_type_train,
         output_swing_train,
@@ -271,12 +239,8 @@ def CreateTestTrainDatasets(
         mapping_pitcher_ids_test,
         mapping_level_ids_test,
         
-        data_overview_test,
-        data_loc_test,
         data_stuff_test,
         data_combined_test,
-        data_pitcher_game_test,
-        data_league_avg_test,
         
         output_type_test,
         output_swing_test,

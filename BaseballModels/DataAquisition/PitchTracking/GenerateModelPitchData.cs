@@ -20,7 +20,7 @@ namespace DataAquisition.PitchTracking
             // Fetch data that will need to be queried
             var pitchStatcastDict = db
                 .PitchStatcast
-                .Select(f => new {f.GameId, f.PitchId, f.Year, f.HitterId, f.PX, f.PZ, 
+                .Select(f => new {f.GameId, f.PitchId, f.Year, f.LevelId, f.HitterId, f.PX, f.PZ, 
                         f.PitIsR, f.PitcherId, f.CountBalls, f.CountStrike, f.HitIsR,
                         f.Result, f.HadSwing, f.HadContact, f.IsInPlay, f.RunValueSmoothedHitter,
                         f.Extension, f.SpinRate, f.SpinDirection})
@@ -71,6 +71,7 @@ namespace DataAquisition.PitchTracking
                         GameId = ps.GameId,
                         PitchId = ps.PitchId,
                         Year = ps.Year,
+                        LevelId = ps.LevelId,
                         PitcherId = ps.PitcherId,
                         PitchClass = pitch.PitchClass,
                         CountBalls = ps.CountBalls,
@@ -93,6 +94,8 @@ namespace DataAquisition.PitchTracking
                         HaaAboveAverage = haaaa,
                         PlateX = ps.PX.Value,
                         PlateZ = ps.PZ.Value,
+                        ZoneTop = zoneTop,
+                        ZoneBot = zoneBot,
                     });
                     #pragma warning restore CS8629
 
