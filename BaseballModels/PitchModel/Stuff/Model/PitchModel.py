@@ -21,79 +21,104 @@ class PitchModelArgs:
     def __init__(self,
                 model_variant_type : ModelVariantType,
                 model_output_type : ModelOutputType,
+                batch_size : int,
+                num_epochs : int,
                 learning_rate : float,
                 block_size : int,
                 num_blocks : int,
                 dropout : float,
-                weight_decay : float):
+                weight_decay : float,
+                activation_function : Callable[[torch.Tensor], torch.Tensor] = F.leaky_relu):
         
         self.model_variant_type = model_variant_type
         self.model_output_type = model_output_type
+        
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
         
         self.learning_rate = learning_rate
         self.block_size = block_size
         self.num_blocks = num_blocks
         self.dropout = dropout
         self.weight_decay = weight_decay
+        self.activation_function = activation_function
         
 DEFAULT_STUFF_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.Result,
-    learning_rate=0.001,
-    block_size=64,
-    num_blocks=8,
-    dropout=0.2,
-    weight_decay=1e-2
+    learning_rate=4.4e-4,
+    block_size=90,
+    num_blocks=12,
+    dropout=0.288,
+    weight_decay=2.6e-4,
+    activation_function=F.gelu,
+    num_epochs=228,
+    batch_size=12000
 )
         
 DEFAULT_STUFF_SWINGRESULTS_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.SwingResults,
-    learning_rate=0.001,
-    block_size=128,
-    num_blocks=4,
-    dropout=0.0,
-    weight_decay=3e-3
+    learning_rate=1.0e-3,
+    block_size=84,
+    num_blocks=11,
+    dropout=0.375,
+    weight_decay=4.3e-7,
+    activation_function=F.leaky_relu,
+    num_epochs=78,
+    batch_size=13500
 )
 
 DEFAULT_STUFF_INPLAY_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
     model_output_type=ModelOutputType.InPlay,
-    learning_rate=0.001,
-    block_size=128,
-    num_blocks=4,
-    dropout=0.2,
-    weight_decay=3e-3
+    learning_rate=6.8e-5,
+    block_size=220,
+    num_blocks=6,
+    dropout=0.32,
+    weight_decay=4.0e-6,
+    activation_function=F.relu,
+    num_epochs=124,
+    batch_size=15000
 )
 
 DEFAULT_COMBINED_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.Result,
-    learning_rate=0.001,
-    block_size=256,
-    num_blocks=4,
-    dropout=0.2,
-    weight_decay=1e-5
+    learning_rate=3.2e-4,
+    block_size=126,
+    num_blocks=10,
+    dropout=0.122,
+    weight_decay=1.4e-8,
+    activation_function=F.relu,
+    num_epochs=141,
+    batch_size=17000
 )
         
 DEFAULT_COMBINED_SWINGRESULTS_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.SwingResults,
-    learning_rate=0.001,
-    block_size=64,
+    learning_rate=5.0e-4,
+    block_size=93,
     num_blocks=8,
-    dropout=0.1,
-    weight_decay=1e-4
+    dropout=0.264,
+    weight_decay=1.4e-2,
+    activation_function=F.tanh,
+    num_epochs=243,
+    batch_size=16500
 )
 
 DEFAULT_COMBINED_INPLAY_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.InPlay,
-    learning_rate=0.001,
-    block_size=64,
-    num_blocks=8,
-    dropout=0.3,
-    weight_decay=1e-4
+    learning_rate=1.7e-4,
+    block_size=174,
+    num_blocks=7,
+    dropout=0.363,
+    weight_decay=5.4e-4,
+    activation_function=F.leaky_relu,
+    num_epochs=150,
+    batch_size=21000
 )
         
 DEFAULT_ARGS_MAP = {
@@ -133,7 +158,7 @@ class PitchModel(nn.Module):
         
         self.layers = nn.ModuleList(
             [nn.Linear(input_size, args.block_size)] +
-            [ResnetBlock(dim=args.block_size, dropout=args.dropout) for _ in range(args.num_blocks)] +
+            [ResnetBlock(dim=args.block_size, dropout=args.dropout, activation_function=args.activation_function) for _ in range(args.num_blocks)] +
             [nn.Linear(args.block_size, output_size)]
         )
         

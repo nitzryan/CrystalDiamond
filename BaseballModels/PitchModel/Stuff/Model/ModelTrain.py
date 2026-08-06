@@ -17,11 +17,11 @@ def TrainAndGraph(
     train_dataset : PitchDataset,
     test_dataset : PitchDataset,
     batch_size : int = 30000,
-    num_epochs : int = 1001,
+    num_epochs : int = 101,
     logging_interval : int = 50,
-    early_stopping_cutoff : int = 20,
 
     should_output : bool = True,
+    show_progress : bool = True,
     model_name : str = "no_name",
 ) -> float:
     
@@ -31,11 +31,6 @@ def TrainAndGraph(
     test_loss_history : list[float] = []
     train_loss_history : list[float] = []
     epoch_counter : list[int] = []
-    
-    best_loss = 99999999
-    best_epoch = 0
-    epochs_since_improve = 0
-
     
     match network.model_variant_type:
         case ModelVariantType.Stuff:
@@ -61,7 +56,7 @@ def TrainAndGraph(
     )
     
     iterable = range(num_epochs)
-    if not should_output:
+    if not should_output and show_progress:
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
         train_loss = TrainTest(network=network, 
@@ -77,6 +72,12 @@ def TrainAndGraph(
             total_size=len(test_dataset),
             is_train=False)
         
+        # Check to exit early if model blows up
+        if epoch == 0:
+            first_loss = test_loss
+        elif test_loss > 1.2 * first_loss:
+            break
+        
         LogResults(epoch, num_epochs, train_loss, test_loss, logging_interval, should_output)
         scheduler.step()
         
@@ -84,25 +85,15 @@ def TrainAndGraph(
         test_loss_history.append(test_loss)
         epoch_counter.append(epoch)
         
-        if test_loss < best_loss:
-            best_loss = test_loss
-            best_epoch = epoch
-            torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
-            epochs_since_improve = 0
-        else:
-            epochs_since_improve += 1
-            
-        if epochs_since_improve >= early_stopping_cutoff:
-            if should_output:
-                print("Stopped Training Early")
-            break
+
+    torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
         
     if SHOULD_PROFILE:    
         profiler.disable()
         profiler.dump_stats("train_profile.lprof")
         
     if should_output:
-        print(f"Best result at epoch={best_epoch} with loss={best_loss}")
+        print(f"End result with loss={test_loss}")
         GraphLoss(epoch_counter, train_loss_history, test_loss_history, title=f"{network.model_variant_type.name}_{network.model_output_type.name}", start=1)
         
     return test_loss

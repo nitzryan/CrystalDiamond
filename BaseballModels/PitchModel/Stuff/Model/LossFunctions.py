@@ -8,4 +8,6 @@ def Classification_Loss(pred : torch.Tensor, actual : torch.Tensor) -> tuple[tor
     loss = nn.CrossEntropyLoss(reduction='none')
     l = loss(pred, actual)
     
+    if pred.size(0) == 0:
+        return l.sum(), 0
     return l.sum() / pred.size(0), pred.size(0)

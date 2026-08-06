@@ -164,7 +164,7 @@ class DataPrep:
                 output_swing=swing_bucket,
                 output_inplay=inplay_bucket,
                 mask_swing=swing_mask,
-                mask_inplay = inplay_mask
+                mask_inplay=inplay_mask
             )
             
             if not pitch.PitcherId in pitcher_dict:
