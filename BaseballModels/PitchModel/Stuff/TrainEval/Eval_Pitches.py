@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import warnings
 import gc
 
-from PitchModel.Constants import device, pitch_db, db
+from PitchModel.Constants import device, pitch_db, tracking_db, BUCKET_INPLAY_VALUE
 from PitchModel.Shared import GetDataPrep
 from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
 from PitchModel.Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
@@ -14,8 +14,6 @@ from PitchModel.PitchDBTypes import *
 from line_profiler import LineProfiler
 eval_profiler = LineProfiler()
 _SHOULD_PROFILE = True
-
-from PitchModel.Buckets import *
 
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum
@@ -40,8 +38,7 @@ def Eval_Pitches():
     model_ids = cursor.execute("SELECT Id, Name FROM Models_PitchValue ORDER BY id ASC").fetchall()
     
     # Get last year that has data
-    db_cursor = db.cursor()
-    last_year = db_cursor.execute("SELECT Year FROM PitchStatcast ORDER BY Year DESC LIMIT 1").fetchone()[0]
+    last_year = 2026 # This will get changed
     
     for model_id, model_name in tqdm(model_ids, desc="Evaluating Pitch Architectures"):
         data_prep = GetDataPrep(model_id)
@@ -50,13 +47,10 @@ def Eval_Pitches():
         
         
         for year in tqdm(range(2017, last_year + 1), desc="Years", leave=False):
-            if year == last_year:
-                last_month = db_cursor.execute("SELECT Max(Month) FROM PitchStatcast WHERE Year=?", (last_year,)).fetchone()[0]
-                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=last_month, mlb_only=False)
-            else:
-                pitch_io_list = data_prep.GenerateIOPitches(start_year=year, end_year=year, end_month=13, mlb_only=False)
-            dataset, _ = CreateTestTrainDatasets(pitch_io_list, 
+            pitch_io_data = data_prep.GenerateIOPitches(start_year=year, end_year=year, mlb_only=False)
+            eval_datasets = CreateTestTrainDatasets(pitch_io_data, 
                 eval_mode=True)
+            dataset = eval_datasets.train
             
             n_samples = len(dataset)
             num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE

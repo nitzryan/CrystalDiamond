@@ -10,6 +10,7 @@ from tqdm import tqdm
 from PitchModel.Constants import profiler
 import gc
 import dill
+from PitchModel.Stuff.DataPrep.PitchIO import PitchIOData
         
 _OVERVIEW_STRING = "overview"
 _LOC_STRING = "loc"
@@ -23,6 +24,8 @@ SHOULD_PROFILE = False
    
 if SHOULD_PROFILE:
     profiler.enable()
+        
+
         
 _T = TypeVar('T')
 class DataPrep:
@@ -137,17 +140,9 @@ class DataPrep:
         return 0, 0
     
     @profiler
-    def GenerateIOPitches(self, start_year : int = 2017, end_year : int = 2024, mlb_only : bool = True) -> list[list[PitchIO]]:
-        cursor = tracking_db.cursor()
+    def _PitchesToIO(self, pitches : list[DB_PitchData]) -> list[list[PitchIO]]:
         pitcher_dict : dict[int, list[PitchIO]] = {}
-        
-        level_cond = "AND LevelId=1" if mlb_only else ""
-        pitches = DB_PitchData.Select_From_DB(
-            cursor=cursor,
-            conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
-            values=(start_year, end_year)
-        )
-        
+
         data_stuff, data_combined = self.Transform_PitchStats(pitches)
         for i in range(len(pitches)):
             pitch = pitches[i]
@@ -171,13 +166,42 @@ class DataPrep:
                 pitcher_dict[pitch.PitcherId] = [io]
             else:
                 pitcher_dict[pitch.PitcherId].append(io)
-            
-        
-        if SHOULD_PROFILE:
-            profiler.disable()
-            profiler.dump_stats("data_prep.lprof")
-        
+
         return list(pitcher_dict.values())
+    
+    @profiler
+    def GenerateIOPitches(self, 
+                          start_year : int, 
+                          end_year : int, 
+                          validation_year : int | None,
+                          mlb_only : bool = True) -> PitchIOData:
+        
+        
+        cursor = tracking_db.cursor()
+        
+        level_cond = "AND LevelId=1" if mlb_only else ""
+        pitches = DB_PitchData.Select_From_DB(
+            cursor=cursor,
+            conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
+            values=(start_year, end_year)
+        )
+        
+        data = self._PitchesToIO(pitches)
+           
+        validation_data : list[list[PitchIO]] | None = None
+        if validation_year is not None:
+            val_pitches = DB_PitchData.Select_From_DB(
+                cursor=cursor,
+                conditional=f"WHERE Year=? {level_cond}",
+                values=(validation_year,)
+            )
+            validation_data = self._PitchesToIO(val_pitches)
+            
+            if SHOULD_PROFILE:
+                profiler.disable()
+                profiler.dump_stats("data_prep.lprof")
+        
+        return PitchIOData(data=data, validation_data=validation_data)
     
     # TODO This needs to be rewritten
     # def DbPitchesToModelPitches(self, pitches : list[DB_PitchStatcast]) -> tuple[torch.Tensor, ...]:

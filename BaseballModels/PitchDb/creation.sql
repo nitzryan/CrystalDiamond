@@ -99,14 +99,26 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"ModelId" INTEGER NOT NULL,
 	"ModelRun" INTEGER NOT NULL,
 	
-	"LossStuffResult" REAL NOT NULL,
-	"LossStuffSwing" REAL NOT NULL,
-	"LossStuffInplay" REAL NOT NULL,
-	"LossCombinedResult" REAL NOT NULL,
-	"LossCombinedSwing" REAL NOT NULL,
-	"LossCombinedInplay" REAL NOT NULL,
+	"TestStuffResult" REAL NOT NULL,
+	"TestStuffSwing" REAL NOT NULL,
+	"TestStuffInplay" REAL NOT NULL,
+	"TestCombinedResult" REAL NOT NULL,
+	"TestCombinedSwing" REAL NOT NULL,
+	"TestCombinedInplay" REAL NOT NULL,
 	
-	"Arch" TEXT NOT NULL,
+	"ValSeenStuffResult" REAL NOT NULL,
+	"ValSeenStuffSwing" REAL NOT NULL,
+	"ValSeenStuffInplay" REAL NOT NULL,
+	"ValSeenCombinedResult" REAL NOT NULL,
+	"ValSeenCombinedSwing" REAL NOT NULL,
+	"ValSeenCombinedInplay" REAL NOT NULL,
+
+	"ValUnseenStuffResult" REAL NOT NULL,
+	"ValUnseenStuffSwing" REAL NOT NULL,
+	"ValUnseenStuffInplay" REAL NOT NULL,
+	"ValUnseenCombinedResult" REAL NOT NULL,
+	"ValUnseenCombinedSwing" REAL NOT NULL,
+	"ValUnseenCombinedInplay" REAL NOT NULL,
 
 	PRIMARY KEY("ModelId", "ModelRun")
 );

@@ -21,14 +21,16 @@ def Train_Pitches(num_models : int):
     
     for model_id, model_name in tqdm(model_ids, desc="Training Pitch Architectures"):
         data_prep = GetDataPrep(model_id)
-        pitch_io_list = data_prep.GenerateIOPitches()
+        pitch_io_data = data_prep.GenerateIOPitches()
         
         for i in tqdm(range(num_models), desc="Model Runs", leave=False):
-            train_dataset, test_dataset = CreateTestTrainDatasets(
-                pitch_io_list, 
+            datasets = CreateTestTrainDatasets(
+                pitch_io_data, 
                 train_idx=i)
             
-            losses = []
+            test_losses = []
+            val_seen_losses = []
+            val_unseen_losses = []
             
             for model_variant_type in tqdm(MODEL_VARIANTS, desc="Model Variants", leave=False):
                 for model_output_type in tqdm(MODEL_OUTPUTS, desc="Model Outputs", leave=False):
@@ -38,40 +40,35 @@ def Train_Pitches(num_models : int):
                     model_name_pt = f"{model_name}_{i}"
                     network = PitchModel(args=args, data_prep=data_prep).to(device)
                     
-                    train_dataset.SetOutputType(model_output_type)
-                    test_dataset.SetOutputType(model_output_type)
+                    datasets.SetOutputType(model_output_type)
                     
-                    loss = TrainAndGraph(
+                    result = TrainAndGraph(
                         network=network,
-                        train_dataset=train_dataset,
-                        test_dataset=test_dataset,
+                        datasets=datasets,
                         model_name=f'PitchModel/Models/{model_name_pt}',
                         should_output=False,
                     )
-                    losses.append(loss)
+                    test_losses.append(result.test_loss)
+                    val_seen_losses.append(result.val_seen_loss)
+                    val_unseen_losses.append(result.val_unseen_loss)
             
             # Log Results
             cursor = pitch_db.cursor()
-            cursor.execute("INSERT INTO ModelTrainingHistory_PitchValue VALUES(?,?,?,?,?,?,?,?,?)",
+            cursor.execute("INSERT INTO ModelTrainingHistory_PitchValue VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     model_id,
                     i,
-                    losses[0],
-                    losses[1],
-                    losses[2],
-                    losses[3],
-                    losses[4],
-                    losses[5],
-                    "TODO",
+                    *test_losses,
+                    *val_seen_losses,
+                    *val_unseen_losses
                 )
             )
-            cursor.executemany(f"INSERT INTO PlayersInTrainingData VALUES (?,{model_id},{i},1)", [(x,) for x in train_dataset.ids])
-            cursor.executemany(f"INSERT INTO PlayersInTrainingData VALUES (?,{model_id},{i},0)", [(x,) for x in test_dataset.ids])
+            cursor.executemany(f"INSERT INTO PlayersInTrainingData VALUES (?,{model_id},{i},1)", [(x,) for x in datasets.train.ids])
+            cursor.executemany(f"INSERT INTO PlayersInTrainingData VALUES (?,{model_id},{i},0)", [(x,) for x in datasets.test.ids])
             pitch_db.commit()
             
             # Clear RAM/VRAM
             del network
-            del train_dataset
-            del test_dataset
+            del datasets
             torch.cuda.empty_cache()
             gc.collect()

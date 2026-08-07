@@ -2,20 +2,27 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
+from dataclasses import dataclass
+
 from PitchModel.Constants import device
 from PitchModel.Stuff.Model.PitchModel import PitchModel
 from PitchModel.Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
-from PitchModel.Stuff.DataPrep.PitchDataset import PitchDataset
+from PitchModel.Stuff.DataPrep.PitchDataset import PitchDataset, PitchDatasets
 from PitchModel.Stuff.Model.LossFunctions import *
 from torch.optim.lr_scheduler import CosineAnnealingLR 
 from PitchModel.Constants import profiler
 
 SHOULD_PROFILE = False
 
+@dataclass
+class TrainResult:
+    test_loss : float
+    val_seen_loss : float | None
+    val_unseen_loss : float | None
+
 def TrainAndGraph(
     network : PitchModel,
-    train_dataset : PitchDataset,
-    test_dataset : PitchDataset,
+    datasets : PitchDatasets,
     batch_size : int = 30000,
     num_epochs : int = 101,
     logging_interval : int = 50,
@@ -23,13 +30,15 @@ def TrainAndGraph(
     should_output : bool = True,
     show_progress : bool = True,
     model_name : str = "no_name",
-) -> float:
+) -> TrainResult:
     
     if SHOULD_PROFILE:
         profiler.enable()
     
     test_loss_history : list[float] = []
     train_loss_history : list[float] = []
+    val_seen_loss_history : list[float] | None = [] if datasets.val_seen is not None else None
+    val_unseen_loss_history : list[float] | None = [] if datasets.val_unseen is not None else None
     epoch_counter : list[int] = []
     
     match network.model_variant_type:
@@ -60,23 +69,31 @@ def TrainAndGraph(
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
         train_loss = TrainTest(network=network, 
-            dataset=train_dataset, 
+            dataset=datasets.train, 
             optimizer=network.optimizer, 
             batch_size=batch_size,
-            total_size=len(train_dataset),
+            total_size=len(datasets.train),
             is_train=True)
         test_loss = TrainTest(network=network, 
-            dataset=test_dataset, 
+            dataset=datasets.test, 
             optimizer=None,
             batch_size=batch_size,
-            total_size=len(test_dataset),
+            total_size=len(datasets.test),
             is_train=False)
-        
-        # Check to exit early if model blows up
-        if epoch == 0:
-            first_loss = test_loss
-        elif test_loss > 1.2 * first_loss:
-            break
+        if val_seen_loss_history is not None:
+            val_seen_loss_history.append(TrainTest(network=network,
+                dataset=datasets.val_seen,
+                optimizer=None,
+                batch_size=batch_size,
+                total_size=len(datasets.val_seen),
+                is_train=False))
+        if val_unseen_loss_history is not None:
+            val_unseen_loss_history.append(TrainTest(network=network,
+                dataset=datasets.val_unseen,
+                optimizer=None,
+                batch_size=batch_size,
+                total_size=len(datasets.val_unseen),
+                is_train=False))
         
         LogResults(epoch, num_epochs, train_loss, test_loss, logging_interval, should_output)
         scheduler.step()
@@ -84,6 +101,12 @@ def TrainAndGraph(
         train_loss_history.append(train_loss)
         test_loss_history.append(test_loss)
         epoch_counter.append(epoch)
+        
+        # Check to exit early if model blows up
+        if epoch == 0:
+            first_loss = test_loss
+        elif test_loss > 1.2 * first_loss:
+            break
         
 
     torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
@@ -94,9 +117,13 @@ def TrainAndGraph(
         
     if should_output:
         print(f"End result with loss={test_loss}")
-        GraphLoss(epoch_counter, train_loss_history, test_loss_history, title=f"{network.model_variant_type.name}_{network.model_output_type.name}", start=1)
+        GraphLoss(epoch_counter, train_loss_history, test_loss_history, val_seen_loss_history, val_unseen_loss_history, title=f"{network.model_variant_type.name}_{network.model_output_type.name}", start=1)
         
-    return test_loss
+    return TrainResult(
+        test_loss=test_loss,
+        val_seen_loss=val_seen_loss_history[-1] if val_seen_loss_history else None,
+        val_unseen_loss=val_unseen_loss_history[-1] if val_unseen_loss_history else None,
+    )
 
 
 @profiler
@@ -170,16 +197,37 @@ def LogResults(epoch, num_epochs, train_loss, test_loss, print_interval=1000, sh
     if should_output and (epoch%print_interval == 0):  
         print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch+1, num_epochs, train_loss, test_loss))
         
-def GraphLoss(epoch_counter, train_loss_hist, test_loss_hist, loss_name="Loss", start = 0, graph_y_range=None, title=""):
+def GraphLoss(epoch_counter : list[int],
+            train_loss_hist : list[float],
+            test_loss_hist : list[float],
+            val_seen_loss_hist : list[float] | None = None,
+            val_unseen_loss_hist : list[float] | None = None,
+            loss_name : str = "Loss",
+            start : int = 0,
+            graph_y_range : tuple[float, float] | None = None,
+            title : str = ""
+            ) -> None:
+    
+    # Plot series
     plt.plot(epoch_counter[start:], train_loss_hist[start:], color='blue')
     plt.plot(epoch_counter[start:], test_loss_hist[start:], color='red')
+    
+    legend : list[str] = ['Train Loss', 'Test Loss']
+    
+    if val_seen_loss_hist is not None:
+        plt.plot(epoch_counter[start:], val_seen_loss_hist[start:], color='green')
+        legend.append('Val Seen Loss')
+    if val_unseen_loss_hist is not None:
+        plt.plot(epoch_counter[start:], val_unseen_loss_hist[start:], color='orange')
+        legend.append('Val Unseen Loss')
+    
+    # Format Graph
     plt.title(title)
     if graph_y_range is not None:
         plt.ylim(graph_y_range)
-    plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
+    plt.legend(legend, loc='upper right')
     plt.xlabel('#Epochs')
     plt.ylabel(loss_name)
-    plt.yscale('log')
     plt.gca().yaxis.set_major_formatter(mticker.ScalarFormatter())
     plt.gca().yaxis.get_major_formatter().set_scientific(False)
     plt.gca().yaxis.get_major_formatter().set_useOffset(False)

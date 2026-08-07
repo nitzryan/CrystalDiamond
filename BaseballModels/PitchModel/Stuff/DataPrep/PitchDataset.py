@@ -1,45 +1,13 @@
 import torch
+from dataclasses import dataclass
+
 from PitchModel.Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
 from PitchModel.Stuff.Model.ModelOutputType import ModelOutputType
+from PitchModel.Stuff.DataPrep.PitchIO import PitchIO, PitchIOData
 from PitchModel.DBTypes import *
 
-class PitchIO:
-    def __init__(self,
-        # Data needed to identify in DB
-        game_id : int,
-        pitch_num : int,
-        pitcher_id : int,
-        level_id : int,
-                 
-        # Data for model
-        data_stuff : torch.Tensor,
-        data_combined : torch.Tensor,
-        
-        # Output for model
-        output_type : int,
-        output_swing : int,
-        output_inplay : int,
-        
-        # Masks for model
-        mask_swing : float,
-        mask_inplay : float
-    ):
-        self.game_id = game_id
-        self.pitch_num = pitch_num
-        self.pitcher_id = pitcher_id
-        self.level_id = level_id
-        
-        self.data_stuff = data_stuff
-        self.data_combined = data_combined
-        
-        self.output_type = output_type
-        self.output_swing = output_swing
-        self.output_inplay = output_inplay
-        
-        self.mask_swing = mask_swing
-        self.mask_inplay = mask_inplay
 
-def split_sublist(
+def _split_sublist(
     sublist: list,  # list[DATA_CLASS] for one class
     N: int,         # train points per test point
     M: int,         # total number of training runs
@@ -151,105 +119,105 @@ class PitchDataset(torch.utils.data.Dataset):
         target = self.current_targets[filtered_indices]
         
         return mappings, data, target
+       
+@dataclass
+class PitchDatasets:
+    train : PitchDataset
+    test : PitchDataset
+    val_seen : PitchDataset | None
+    val_unseen : PitchDataset | None
+    
+    def SetOutputType(self, output_type : ModelOutputType) -> None:
+        self.train.SetOutputType(output_type)
+        self.test.SetOutputType(output_type)
+        if self.val_seen is not None:
+            self.val_seen.SetOutputType(output_type)
+        if self.val_unseen is not None:
+            self.val_unseen.SetOutputType(output_type)
             
+def _BuildPitchDataset(io_list : list[PitchIO], dataset_device = device) -> PitchDataset:
+    return PitchDataset(
+        [io.pitcher_id for io in io_list],
+
+        torch.tensor([io.game_id     for io in io_list], dtype=torch.long),
+        torch.tensor([io.pitch_num   for io in io_list], dtype=torch.long),
+        torch.tensor([io.pitcher_id  for io in io_list], dtype=torch.long),
+        torch.tensor([io.level_id    for io in io_list], dtype=torch.long),
+
+        torch.stack([io.data_stuff    for io in io_list], dim=1),
+        torch.stack([io.data_combined for io in io_list], dim=1),
+
+        torch.tensor([io.output_type   for io in io_list]),
+        torch.tensor([io.output_swing  for io in io_list]),
+        torch.tensor([io.output_inplay for io in io_list]),
+
+        torch.tensor([io.mask_swing  for io in io_list]),
+        torch.tensor([io.mask_inplay for io in io_list]),
+
+        dataset_device=dataset_device,
+    )
+          
+# Goes through validation data, looks for pitchers that were in the training data to 
+# segregate them from pitchers unseen by training, whether they were in test or not
+def _SplitValidationByPitcher(
+    validation_data : list[list[PitchIO]],
+    train_pitcher_ids : set[int]) -> tuple[list[list[PitchIO]], list[list[PitchIO]]]:
+
+    val_seen : list[list[PitchIO]] = []
+    val_unseen : list[list[PitchIO]] = []
+    for sublist in validation_data:
+        if len(sublist) == 0:
+            continue
+        if sublist[0].pitcher_id in train_pitcher_ids:
+            val_seen.append(sublist)
+        else:
+            val_unseen.append(sublist)
+
+    return val_seen, val_unseen
+
 def CreateTestTrainDatasets(
-    data : list[list[PitchIO]], 
-    dataset_device = device,
-    eval_mode : bool = False,
-    train_test_ratio : int = TRAIN_TEST_RATIO,
-    total_training_runs : int = NUM_TRAINING_VARIANTS,
-    train_idx : int = 0) -> tuple[PitchDataset, PitchDataset]:
+                io_data : PitchIOData,
+                dataset_device = device,
+                eval_mode : bool = False,
+                train_test_ratio : int = TRAIN_TEST_RATIO,
+                total_training_runs : int = NUM_TRAINING_VARIANTS,
+                train_idx : int = 0) -> PitchDatasets:
     
     
+    data = io_data.data
+    validation_data = io_data.validation_data
     # Create Test/Train keeping a player entirely inside of 1 dataset
     if not eval_mode:
-        io_train, io_test = split_sublist(data, train_test_ratio, total_training_runs, train_idx)
+        io_train, io_test = _split_sublist(data, train_test_ratio, total_training_runs, train_idx)
     else:
         io_train = data
         io_test = [data[0]] # Allow for test code to run without breaking, will discard later
+
+    # Validation year is split on whether the pitcher appeared in the training set.
+    # Anything else (test-set pitchers + pitchers never seen at all) lands in val_unseen.
+    val_seen_dataset : PitchDataset | None = None
+    val_unseen_dataset : PitchDataset | None = None
+    if validation_data is not None:
+        train_pitcher_ids = {sublist[0].pitcher_id for sublist in io_train if len(sublist) > 0}
+        io_val_seen, io_val_unseen = _SplitValidationByPitcher(validation_data, train_pitcher_ids)
+        
+        io_val_seen : list[PitchIO] = [item for sublist in io_val_seen for item in sublist]
+        io_val_unseen : list[PitchIO] = [item for sublist in io_val_unseen for item in sublist]
+        
+        if len(io_val_seen) > 0:
+            val_seen_dataset = _BuildPitchDataset(io_val_seen, dataset_device)
+        if len(io_val_unseen) > 0:
+            val_unseen_dataset = _BuildPitchDataset(io_val_unseen, dataset_device)
+    
     io_train : list[PitchIO] = [item for sublist in io_train for item in sublist]
     io_test : list[PitchIO] = [item for sublist in io_test for item in sublist]
 
-    # =================== PLAYER IDS =========================
-    ids_train = [io.pitcher_id for io in io_train]
-    ids_test = [io.pitcher_id for io in io_test]
-
-    # =================== MAPPING FEATURES ===================
-    mapping_game_ids_train = torch.tensor([io.game_id for io in io_train], dtype=torch.long)
-    mapping_pitch_num_train = torch.tensor([io.pitch_num for io in io_train], dtype=torch.long)
-    mapping_pitcher_ids_train     = torch.tensor([io.pitcher_id for io in io_train], dtype=torch.long)
-    mapping_level_ids_train = torch.tensor([io.level_id for io in io_train], dtype=torch.long)
+    train_dataset = _BuildPitchDataset(io_train, dataset_device)
+    test_dataset = _BuildPitchDataset(io_test, dataset_device)
     
-    mapping_game_ids_test = torch.tensor([io.game_id for io in io_test], dtype=torch.long)
-    mapping_pitch_num_test = torch.tensor([io.pitch_num for io in io_test], dtype=torch.long)
-    mapping_pitcher_ids_test     = torch.tensor([io.pitcher_id for io in io_test], dtype=torch.long)
-    mapping_level_ids_test = torch.tensor([io.level_id for io in io_test], dtype=torch.long)
-    
-    # ==================== INPUT FEATURES ====================
-
-    data_stuff_train        = torch.stack([io.data_stuff        for io in io_train], dim=1)
-    data_combined_train     = torch.stack([io.data_combined     for io in io_train], dim=1)
-
-    data_stuff_test         = torch.stack([io.data_stuff        for io in io_test], dim=1)
-    data_combined_test      = torch.stack([io.data_combined     for io in io_test], dim=1)
-
-
-    # ==================== TARGETS / OUTPUTS ====================
-
-    output_type_train       = torch.tensor([io.output_type     for io in io_train])
-    output_swing_train      = torch.tensor([io.output_swing    for io in io_train])
-    output_inplay_train     = torch.tensor([io.output_inplay     for io in io_train])
-
-    output_type_test        = torch.tensor([io.output_type     for io in io_test])
-    output_swing_test       = torch.tensor([io.output_swing    for io in io_test])
-    output_inplay_test      = torch.tensor([io.output_inplay     for io in io_test])
-    
-    mask_inplay_train       = torch.tensor([io.mask_inplay     for io in io_train])
-    mask_swing_train        = torch.tensor([io.mask_swing      for io in io_train])
-    
-    mask_inplay_test       = torch.tensor([io.mask_inplay     for io in io_test])
-    mask_swing_test        = torch.tensor([io.mask_swing      for io in io_test])
-    
-    train_dataset = PitchDataset(
-        ids_train,
-        
-        mapping_game_ids_train,
-        mapping_pitch_num_train,
-        mapping_pitcher_ids_train,
-        mapping_level_ids_train,
-        
-        data_stuff_train,
-        data_combined_train,
-        
-        output_type_train,
-        output_swing_train,
-        output_inplay_train,
-        
-        mask_swing_train,
-        mask_inplay_train,
-        
-        dataset_device=dataset_device,
+    return PitchDatasets(
+        train=train_dataset,
+        test=test_dataset,
+        val_seen=val_seen_dataset,
+        val_unseen=val_unseen_dataset,
     )
-    
-    test_dataset = PitchDataset(
-        ids_test,
-        
-        mapping_game_ids_test,
-        mapping_pitch_num_test,
-        mapping_pitcher_ids_test,
-        mapping_level_ids_test,
-        
-        data_stuff_test,
-        data_combined_test,
-        
-        output_type_test,
-        output_swing_test,
-        output_inplay_test,
-        
-        mask_swing_test,
-        mask_inplay_test,
-        
-        dataset_device=dataset_device,
-    )
-    
-    return train_dataset, test_dataset
