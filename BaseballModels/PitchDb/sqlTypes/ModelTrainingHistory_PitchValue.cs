@@ -3,6 +3,7 @@ namespace PitchDb
 	public class ModelTrainingHistory_PitchValue
 	{
 		public required int ModelId {get; set;}
+		public required int Year {get; set;}
 		public required int ModelRun {get; set;}
 		public required float TestStuffResult {get; set;}
 		public required float TestStuffSwing {get; set;}
@@ -28,6 +29,7 @@ namespace PitchDb
 			return new ModelTrainingHistory_PitchValue
 			{
 				ModelId = this.ModelId,
+				Year = this.Year,
 				ModelRun = this.ModelRun,
 				TestStuffResult = this.TestStuffResult,
 				TestStuffSwing = this.TestStuffSwing,

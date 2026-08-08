@@ -4,6 +4,7 @@ namespace PitchDb
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}
+		public required int Year {get; set;}
 		public required int ModelRun {get; set;}
 		public required bool IsTrain {get; set;}
 
@@ -13,6 +14,7 @@ namespace PitchDb
 			{
 				MlbId = this.MlbId,
 				ModelId = this.ModelId,
+				Year = this.Year,
 				ModelRun = this.ModelRun,
 				IsTrain = this.IsTrain,
 			};

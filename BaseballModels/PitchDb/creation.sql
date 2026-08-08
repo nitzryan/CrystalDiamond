@@ -3,6 +3,7 @@ CREATE TABLE Output_PitchValue (
 	"model" INTEGER NOT NULL,
 	"gameId" INTEGER NOT NULL,
 	"pitchId" INTEGER NOT NULL,
+	"ModelYear" INTEGER NOT NULL,
 	"ModelRun"	INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"LevelId" INTEGER NOT NULL,
@@ -32,7 +33,7 @@ CREATE TABLE Output_PitchValue (
 
 	"combinedInPlayExpected" REAL NOT NULL,
 
-	PRIMARY KEY("model", "gameId", "pitchId", "ModelRun")
+	PRIMARY KEY("model", "gameId", "pitchId", "ModelYear", "ModelRun")
 );
 
 CREATE INDEX idx_Output_PitchValue ON Output_PitchValue
@@ -44,6 +45,7 @@ CREATE TABLE Output_PitchValueAggregation (
 	"model" INTEGER NOT NULL,
 	"gameId" INTEGER NOT NULL,
 	"pitchId" INTEGER NOT NULL,
+	"ModelYear" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"LevelId" INTEGER NOT NULL,
 	"mlbId" INTEGER NOT NULL,
@@ -78,7 +80,7 @@ CREATE TABLE Output_PitchValueAggregation (
 	"stuffRuns" REAL NOT NULL,
 	"combinedRuns" REAL NOT NULL,
 
-	PRIMARY KEY("model", "gameId", "pitchId")
+	PRIMARY KEY("model", "gameId", "pitchId", "ModelYear")
 );
 
 CREATE INDEX idx_Output_PitchValueAggregation ON Output_PitchValueAggregation
@@ -97,6 +99,7 @@ CREATE TABLE Models_PitchValue
 CREATE TABLE ModelTrainingHistory_PitchValue
 (
 	"ModelId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
 	"ModelRun" INTEGER NOT NULL,
 	
 	"TestStuffResult" REAL NOT NULL,
@@ -120,15 +123,16 @@ CREATE TABLE ModelTrainingHistory_PitchValue
 	"ValUnseenCombinedSwing" REAL NOT NULL,
 	"ValUnseenCombinedInplay" REAL NOT NULL,
 
-	PRIMARY KEY("ModelId", "ModelRun")
+	PRIMARY KEY("ModelId", "Year", "ModelRun")
 );
 
 CREATE TABLE "PlayersInTrainingData" (
 	"mlbId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
+	"Year" INTEGER NOT NULL,
 	"modelRun" INTEGER NOT NULL,
 	"isTrain" INTEGER NOT NULL,
-	PRIMARY KEY ("mlbId", "modelId", "modelRun")
+	PRIMARY KEY ("mlbId", "modelId", "Year", "modelRun")
 );
 
 CREATE TABLE YearLeagueDeviations
@@ -151,7 +155,7 @@ CREATE TABLE PitcherStuff
 	"MlbId" INTEGER NOT NULL,
 	"Year" INTEGER NOT NULL,
 	"Month" INTEGER NOT NULL,
-	"Model" INTEGER NOT NULL,
+	"ModelId" INTEGER NOT NULL,
 	"GameId" INTEGER NOT NULL,
 	"PitchType" INTEGER NOT NULL,
 	"Scenario" INTEGER NOT NULL,
@@ -169,10 +173,35 @@ CREATE TABLE PitcherStuff
 	"BreakHoriz" REAL NOT NULL,
 	"BreakVert" REAL NOT NULL,
 
-	PRIMARY KEY("MlbId", "Year", "Month", "Model", "PitchType", "Scenario", "GameId")
+	PRIMARY KEY("MlbId", "Year", "Month", "ModelId", "PitchType", "Scenario", "GameId")
 );
 
 CREATE INDEX idx_PitcherStuffGame ON PitcherStuff
 (
 	"MlbId", "GameId", "PitchType", "Scenario"
+);
+
+CREATE TABLE PitchValue
+(
+	-- Primary Key
+	"ModelId" INTEGER NOT NULL,
+	"GameId" INTEGER NOT NULL,
+	"PitchId" INTEGER NOT NULL,
+
+	-- For runtime lookup
+	"PitcherId" INTEGER NOT NULL,
+
+	-- Values
+	"StuffPlus" REAL NOT NULL,
+	"StuffRuns" REAL NOT NULL,
+	
+	"PitchPlus" REAL NOT NULL,
+	"PitchRuns" REAL NOT NULL,
+
+	PRIMARY KEY("ModelId", "GameId", "PitchId")
+);
+
+CREATE INDEX idx_PitchValue_PitcherId ON PitchValue
+(
+	"PitcherId", "GameId", "PitchId", "ModelId"
 );

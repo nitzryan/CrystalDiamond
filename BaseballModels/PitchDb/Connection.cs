@@ -7,5 +7,9 @@ namespace PitchDb
         public static readonly DbContextOptions<PitchDbContext> PITCHDB_READONLY_OPTIONS = new DbContextOptionsBuilder<PitchDbContext>()
                 .UseSqlite("Data Source=../../../../PitchDb/Pitch.db;Mode=ReadOnly")
                 .Options;
+
+        public static readonly DbContextOptions<PitchDbContext> PITCHDB_OPTIONS = new DbContextOptionsBuilder<PitchDbContext>()
+        .UseSqlite("Data Source=../../../../PitchDb/Pitch.db;")
+        .Options;
     }
 }

@@ -5,6 +5,7 @@ namespace PitchDb
 		public required int Model {get; set;}
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
+		public required int ModelYear {get; set;}
 		public required int ModelRun {get; set;}
 		public required int Year {get; set;}
 		public required int LevelId {get; set;}
@@ -33,6 +34,7 @@ namespace PitchDb
 				Model = this.Model,
 				GameId = this.GameId,
 				PitchId = this.PitchId,
+				ModelYear = this.ModelYear,
 				ModelRun = this.ModelRun,
 				Year = this.Year,
 				LevelId = this.LevelId,

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import torch
 from tqdm import tqdm
+import math
 from dataclasses import dataclass
 
 from PitchModel.Constants import device
@@ -32,6 +33,9 @@ def TrainAndGraph(
     model_name : str = "no_name",
 ) -> TrainResult:
     
+    if num_epochs <= 0:
+        raise Exception("num_epochs must be positive")
+    
     if SHOULD_PROFILE:
         profiler.enable()
     
@@ -41,27 +45,26 @@ def TrainAndGraph(
     val_unseen_loss_history : list[float] | None = [] if datasets.val_unseen is not None else None
     epoch_counter : list[int] = []
     
-    match network.model_variant_type:
-        case ModelVariantType.Stuff:
-            match network.model_output_type:
-                case ModelOutputType.Result:
-                    t_max = 200
-                case ModelOutputType.SwingResults:
-                    t_max = 200
-                case ModelOutputType.InPlay:
-                    t_max = 200
-        case ModelVariantType.Combined:
-            match network.model_output_type:
-                case ModelOutputType.Result:
-                    t_max = 200
-                case ModelOutputType.SwingResults:
-                    t_max = 200
-                case ModelOutputType.InPlay:
-                    t_max = 200
+    # Helper functions so that val_loss calculations are only set in 1 place
+    def _GetValSeenLoss() -> float:
+        return TrainTest(network=network,
+                        dataset=datasets.val_seen,
+                        optimizer=None,
+                        batch_size=batch_size,
+                        total_size=len(datasets.val_seen),
+                        is_train=False)
+        
+    def _GetValUnseenLoss() -> float:
+        return TrainTest(network=network,
+                        dataset=datasets.val_unseen,
+                        optimizer=None,
+                        batch_size=batch_size,
+                        total_size=len(datasets.val_unseen),
+                        is_train=False)
     
     scheduler = CosineAnnealingLR(
         network.optimizer,
-        T_max=t_max
+        T_max=num_epochs
     )
     
     iterable = range(num_epochs)
@@ -74,26 +77,18 @@ def TrainAndGraph(
             batch_size=batch_size,
             total_size=len(datasets.train),
             is_train=True)
-        test_loss = TrainTest(network=network, 
-            dataset=datasets.test, 
-            optimizer=None,
-            batch_size=batch_size,
-            total_size=len(datasets.test),
-            is_train=False)
-        if val_seen_loss_history is not None:
-            val_seen_loss_history.append(TrainTest(network=network,
-                dataset=datasets.val_seen,
+        with torch.no_grad():
+            test_loss = TrainTest(network=network, 
+                dataset=datasets.test, 
                 optimizer=None,
                 batch_size=batch_size,
-                total_size=len(datasets.val_seen),
-                is_train=False))
-        if val_unseen_loss_history is not None:
-            val_unseen_loss_history.append(TrainTest(network=network,
-                dataset=datasets.val_unseen,
-                optimizer=None,
-                batch_size=batch_size,
-                total_size=len(datasets.val_unseen),
-                is_train=False))
+                total_size=len(datasets.test),
+                is_train=False)
+            if should_output:
+                if val_seen_loss_history is not None:
+                    val_seen_loss_history.append(_GetValSeenLoss())
+                if val_unseen_loss_history is not None:
+                    val_unseen_loss_history.append(_GetValUnseenLoss())
         
         LogResults(epoch, num_epochs, train_loss, test_loss, logging_interval, should_output)
         scheduler.step()
@@ -105,9 +100,16 @@ def TrainAndGraph(
         # Check to exit early if model blows up
         if epoch == 0:
             first_loss = test_loss
-        elif test_loss > 1.2 * first_loss:
+        elif test_loss > 1.2 * first_loss or not math.isfinite(test_loss):
             break
         
+
+    # Calculate Validation loss if not graphing
+    if not should_output:
+        if val_seen_loss_history is not None:
+            val_seen_loss_history.append(_GetValSeenLoss())
+        if val_unseen_loss_history is not None:
+            val_unseen_loss_history.append(_GetValUnseenLoss())
 
     torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
         
