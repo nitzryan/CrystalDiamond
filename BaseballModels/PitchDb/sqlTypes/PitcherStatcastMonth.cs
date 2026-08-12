@@ -1,10 +1,11 @@
-namespace Db
+namespace PitchDb
 {
 	public class PitcherStatcastMonth
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
+		public required int ModelId {get; set;}
 		public required bool IsValid {get; set;}
 		public required float Stuff {get; set;}
 		public required float Pitch {get; set;}
@@ -30,6 +31,7 @@ namespace Db
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
+				ModelId = this.ModelId,
 				IsValid = this.IsValid,
 				Stuff = this.Stuff,
 				Pitch = this.Pitch,

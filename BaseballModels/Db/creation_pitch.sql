@@ -196,37 +196,6 @@ CREATE TABLE HitterYearZoneData
     PRIMARY KEY ("Year", "MlbId")
 );
 
-CREATE TABLE PitcherStatcastMonth
-(
-    "MlbId" INTEGER NOT NULL,
-    "Year" INTEGER NOT NULL,
-    "Month" INTEGER NOT NULL,
-
-    "IsValid" INTEGER NOT NULL,
-
-    "Stuff" REAL NOT NULL,
-    "Pitch" REAL NOT NULL,
-    "Actual" REAL NOT NULL,
-    "NumPitches" INTEGER NOT NULL,
-
-    "StuffFastball" REAL,
-    "PitchFastball" REAL,
-    "ActFastball" REAL,
-    "NumFastballs" INTEGER NOT NULL,
-
-    "StuffBreaking" REAL,
-    "PitchBreaking" REAL,
-    "ActBreaking" REAL,
-    "NumBreaking" INTEGER NOT NULL,
-
-    "StuffChangeup" REAL,
-    "PitchChangeup" REAL,
-    "ActChangeup" REAL,
-    "NumChangeup" INTEGER NOT NULL,
-
-    PRIMARY KEY("MlbId", "Year", "Month")
-);
-
 -- Perc/Exit velo are % of MLB average that month
 CREATE TABLE HitterStatcastMonth
 (
@@ -271,22 +240,4 @@ CREATE TABLE RunExpectancyMatrix
     "DeltaRuns" REAL NOT NULL,
 
     PRIMARY KEY("Year", "LeagueId", "CountBalls", "CountStrikes", "Result")
-);
-
--- Min/Max/Average for different scenarios/outcomes to allow for better plotting
-CREATE TABLE PitchModelResultBasis
-(
-	"Year" INTEGER NOT NULL,
-	"CountBalls" INTEGER NOT NULL,
-	"CountStrikes" INTEGER NOT NULL,
-	"OutputType" INTEGER NOT NULL,
-
-	"Min" REAL NOT NULL,
-	"Perc5" REAL NOT NULL,
-	"Avg" REAL NOT NULL,
-	"Median" REAL NOT NULL,
-	"Perc95" REAL NOT NULL,
-	"Max" REAL NOT NULL,
-
-	PRIMARY KEY("Year", "CountBalls", "CountStrikes", "OutputType")
 );

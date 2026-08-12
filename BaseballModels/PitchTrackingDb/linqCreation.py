@@ -14,6 +14,7 @@ type_overrides = [
     TypeOverride("PitchData", "PitchClass", "Db.DbEnums.PitchClass"),
     TypeOverride("PitchFlightpath", "PitchClass", "Db.DbEnums.PitchClass"),
     
+    TypeOverride("PitchData", "PitchType", "Db.DbEnums.PitchType"),
     TypeOverride("PitchFlightpath", "PitchType", "Db.DbEnums.PitchType"),
     TypeOverride("PitchFlightpathGameDelta", "FastballPitchType", "Db.DbEnums.PitchType"),
                 ]

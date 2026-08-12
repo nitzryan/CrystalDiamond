@@ -44,8 +44,6 @@ type_overrides = [
     
     TypeOverride("PitchStatcast", "Scenario", "DbEnums.PitchScenario"),
     TypeOverride("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
-
-    TypeOverride("PitchModelResultBasis", "OutputType", "DbEnums.PitchModelOutputType"),
     
     TypeOverride("Model_Players", "ProspectType", "DbEnums.ProspectType"),
                 ]

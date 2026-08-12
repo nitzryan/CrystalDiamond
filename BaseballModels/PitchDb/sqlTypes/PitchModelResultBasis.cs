@@ -1,11 +1,12 @@
-namespace Db
+namespace PitchDb
 {
 	public class PitchModelResultBasis
 	{
 		public required int Year {get; set;}
+		public required int ModelId {get; set;}
 		public required int CountBalls {get; set;}
 		public required int CountStrikes {get; set;}
-		public required DbEnums.PitchModelOutputType OutputType {get; set;}
+		public required Db.DbEnums.PitchModelOutputType OutputType {get; set;}
 		public required float Min {get; set;}
 		public required float Perc5 {get; set;}
 		public required float Avg {get; set;}
@@ -18,6 +19,7 @@ namespace Db
 			return new PitchModelResultBasis
 			{
 				Year = this.Year,
+				ModelId = this.ModelId,
 				CountBalls = this.CountBalls,
 				CountStrikes = this.CountStrikes,
 				OutputType = this.OutputType,

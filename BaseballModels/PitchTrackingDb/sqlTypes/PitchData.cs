@@ -7,6 +7,7 @@ namespace PitchTrackingDb
 		public required int Year {get; set;}
 		public required int LevelId {get; set;}
 		public required int PitcherId {get; set;}
+		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchClass PitchClass {get; set;}
 		public required int CountBalls {get; set;}
 		public required int CountStrike {get; set;}
@@ -40,6 +41,7 @@ namespace PitchTrackingDb
 				Year = this.Year,
 				LevelId = this.LevelId,
 				PitcherId = this.PitcherId,
+				PitchType = this.PitchType,
 				PitchClass = this.PitchClass,
 				CountBalls = this.CountBalls,
 				CountStrike = this.CountStrike,

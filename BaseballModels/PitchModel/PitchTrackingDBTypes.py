@@ -7,35 +7,36 @@ class DB_PitchData:
 		self.Year = values[2]
 		self.LevelId = values[3]
 		self.PitcherId = values[4]
-		self.PitchClass = values[5]
-		self.CountBalls = values[6]
-		self.CountStrike = values[7]
-		self.PitIsR = values[8]
-		self.HitIsR = values[9]
-		self.Result = values[10]
-		self.HadSwing = values[11]
-		self.HadContact = values[12]
-		self.IsInPlay = values[13]
-		self.RunValueInPlay = values[14]
-		self.Vel = values[15]
-		self.Extension = values[16]
-		self.BreakInduced = values[17]
-		self.BreakHorizontal = values[18]
-		self.SpinRate = values[19]
-		self.SpinAxis = values[20]
-		self.ActiveSpin = values[21]
-		self.VaaAboveAverage = values[22]
-		self.HaaAboveAverage = values[23]
-		self.PlateX = values[24]
-		self.PlateZ = values[25]
-		self.ZoneTop = values[26]
-		self.ZoneBot = values[27]
+		self.PitchType = values[5]
+		self.PitchClass = values[6]
+		self.CountBalls = values[7]
+		self.CountStrike = values[8]
+		self.PitIsR = values[9]
+		self.HitIsR = values[10]
+		self.Result = values[11]
+		self.HadSwing = values[12]
+		self.HadContact = values[13]
+		self.IsInPlay = values[14]
+		self.RunValueInPlay = values[15]
+		self.Vel = values[16]
+		self.Extension = values[17]
+		self.BreakInduced = values[18]
+		self.BreakHorizontal = values[19]
+		self.SpinRate = values[20]
+		self.SpinAxis = values[21]
+		self.ActiveSpin = values[22]
+		self.VaaAboveAverage = values[23]
+		self.HaaAboveAverage = values[24]
+		self.PlateX = values[25]
+		self.PlateZ = values[26]
+		self.ZoneTop = values[27]
+		self.ZoneBot = values[28]
 
-	NUM_ELEMENTS = 28
+	NUM_ELEMENTS = 29
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.Year,self.LevelId,self.PitcherId,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateZ,self.ZoneTop,self.ZoneBot)
+		return (self.GameId,self.PitchId,self.Year,self.LevelId,self.PitcherId,self.PitchType,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateZ,self.ZoneTop,self.ZoneBot)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchData']:

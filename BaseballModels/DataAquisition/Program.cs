@@ -215,7 +215,7 @@ namespace DataAquisition
             }
 
             ////////// Pitch Tracking //////////
-            if (DATA_UPDATE || FULL_REFRESH || STATCAST_ONLY_UPDATE || true)
+            if (DATA_UPDATE || FULL_REFRESH || STATCAST_ONLY_UPDATE)
             {
                 PitchTracking.GeneratePitchTrajectory.Calculate(FULL_REFRESH);
                 PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);

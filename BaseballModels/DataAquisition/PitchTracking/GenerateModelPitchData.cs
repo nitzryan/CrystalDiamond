@@ -74,6 +74,7 @@ namespace DataAquisition.PitchTracking
                         LevelId = ps.LevelId,
                         PitcherId = ps.PitcherId,
                         PitchClass = pitch.PitchClass,
+                        PitchType = pitch.PitchType,
                         CountBalls = ps.CountBalls,
                         CountStrike = ps.CountStrike,
                         PitIsR = ps.PitIsR,

@@ -11,8 +11,7 @@ CREATE TABLE PitchData
 
     -- Map pitch to a pitcher to compare to other pitches
     "PitcherId" INTEGER NOT NULL,
-
-    -- Train 1 model per pitch class, fastball/breaking/offspeed
+    "PitchType" INTEGER NOT NULL,
     "PitchClass" INTEGER NOT NULL,
 
     -- Situational Data

@@ -9,10 +9,12 @@ autoincrement_pairs = []
 type_overrides = [
     TypeOverride("PitcherStuff", "Scenario", "Db.DbEnums.PitchScenario"), 
     TypeOverride("PitcherStuff", "PitchType", "Db.DbEnums.PitchType"), 
+    TypeOverride("PitchModelResultBasis", "OutputType", "Db.DbEnums.PitchModelOutputType"),
                 ]
 
 boolean_types = [
     BooleanTypes("PlayersInTrainingData", ["IsTrain"]),
+    BooleanTypes("PitcherStatcastMonth", ["IsValid"])
                 ]
 
 linqCreation(

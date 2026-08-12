@@ -22,14 +22,15 @@ namespace PitchAnalysis
             Foul
         }
         private record PitchScenarioResult(PitchScenario scenario, PitchResult result);
-        private record PitDictKey(int model, int run, int mlbId);
+        private record PitDictKey(int Model, int Year, int Run, int MlbId);
 
-        public static void Update()
+        public static void Update(bool forceRefresh)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            pitchDb.Output_PitchValueAggregation.ExecuteDelete();
+            if (forceRefresh)
+                pitchDb.Output_PitchValueAggregation.ExecuteDelete();
 
             // Get expected run values for each scenario each year
             var scenarios = db.PitchStatcast.Select(f => new PitchScenario {
@@ -81,12 +82,22 @@ namespace PitchAnalysis
             // Create PIT dictionary
             Dictionary<PitDictKey, bool> pitDictionary = pitchDb.PlayersInTrainingData
                 .ToDictionary(
-                    f => new PitDictKey(f.ModelId, f.ModelRun, f.MlbId),
+                    f => new PitDictKey(f.ModelId, f.Year, f.ModelRun, f.MlbId),
                     f => f.IsTrain
                 );
 
+            // Only get games that are not currently logged
+            var opvaPitchSet = pitchDb.Output_PitchValueAggregation
+                .AsNoTracking()
+                .Select(f => new { f.GameId, f.PitchId })
+                .ToHashSet();
+
             // Create pitch aggregations
-            var pitchGroups = pitchDb.Output_PitchValue.GroupBy(f => new { f.GameId, f.PitchId, f.Model }).AsNoTracking();
+            var pitchGroups = pitchDb.Output_PitchValue
+                .AsNoTracking()
+                .Where(f => !pitchDb.Output_PitchValueAggregation
+                    .Any(a => a.GameId == f.GameId && a.PitchId == f.PitchId))
+                .GroupBy(f => new { f.GameId, f.PitchId, f.Model });
             List<Output_PitchValueAggregation> pvaList = new(pitchGroups.Count());
             Dictionary<(int, int), PitchScenario> pitchScenarioDict = db.PitchStatcast
                 .AsNoTracking()
@@ -113,7 +124,7 @@ namespace PitchAnalysis
                 {
                     // Filter out any in training data
                     List<Output_PitchValue> pitches = pg.ToList();
-                    List<PitDictKey> pitKeys = pitches.Select(f => new PitDictKey(f.Model, f.ModelRun, f.MlbId)).ToList();
+                    List<PitDictKey> pitKeys = pitches.Select(f => new PitDictKey(f.Model, f.Year, f.ModelRun, f.MlbId)).ToList();
                     for (int i = pitches.Count - 1; i >= 0; i--)
                     {
                         if (pitDictionary.ContainsKey(pitKeys[i]) && pitDictionary[pitKeys[i]])
@@ -179,6 +190,7 @@ namespace PitchAnalysis
                         GameId = first.GameId,
                         PitchId = first.PitchId,
                         Year = first.Year,
+                        ModelYear = first.ModelYear,
                         MlbId = first.MlbId,
                         LevelId = first.LevelId,
 
@@ -208,7 +220,9 @@ namespace PitchAnalysis
                     progressBar.Tick();
                 }
             }
-            pitchDb.BulkInsert(pvaList);
+
+            if (pvaList.Any())
+                pitchDb.BulkInsert(pvaList);
         }
     }
 }

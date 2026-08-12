@@ -222,5 +222,65 @@ class DB_PitchValue:
 		items = cursor.execute("SELECT * FROM PitchValue " + conditional, values).fetchall()
 		return [DB_PitchValue(i) for i in items]
 
+class DB_PitcherStatcastMonth:
+	def __init__(self, values : tuple[any]):
+		self.MlbId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.ModelId = values[3]
+		self.IsValid = values[4]
+		self.Stuff = values[5]
+		self.Pitch = values[6]
+		self.Actual = values[7]
+		self.NumPitches = values[8]
+		self.StuffFastball = values[9]
+		self.PitchFastball = values[10]
+		self.ActFastball = values[11]
+		self.NumFastballs = values[12]
+		self.StuffBreaking = values[13]
+		self.PitchBreaking = values[14]
+		self.ActBreaking = values[15]
+		self.NumBreaking = values[16]
+		self.StuffChangeup = values[17]
+		self.PitchChangeup = values[18]
+		self.ActChangeup = values[19]
+		self.NumChangeup = values[20]
+
+	NUM_ELEMENTS = 21
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.MlbId,self.Year,self.Month,self.ModelId,self.IsValid,self.Stuff,self.Pitch,self.Actual,self.NumPitches,self.StuffFastball,self.PitchFastball,self.ActFastball,self.NumFastballs,self.StuffBreaking,self.PitchBreaking,self.ActBreaking,self.NumBreaking,self.StuffChangeup,self.PitchChangeup,self.ActChangeup,self.NumChangeup)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitcherStatcastMonth']:
+		items = cursor.execute("SELECT * FROM PitcherStatcastMonth " + conditional, values).fetchall()
+		return [DB_PitcherStatcastMonth(i) for i in items]
+
+class DB_PitchModelResultBasis:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.ModelId = values[1]
+		self.CountBalls = values[2]
+		self.CountStrikes = values[3]
+		self.OutputType = values[4]
+		self.Min = values[5]
+		self.Perc5 = values[6]
+		self.Avg = values[7]
+		self.Median = values[8]
+		self.Perc95 = values[9]
+		self.Max = values[10]
+
+	NUM_ELEMENTS = 11
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.ModelId,self.CountBalls,self.CountStrikes,self.OutputType,self.Min,self.Perc5,self.Avg,self.Median,self.Perc95,self.Max)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchModelResultBasis']:
+		items = cursor.execute("SELECT * FROM PitchModelResultBasis " + conditional, values).fetchall()
+		return [DB_PitchModelResultBasis(i) for i in items]
+
 
 ##############################################################################################

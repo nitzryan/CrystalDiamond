@@ -17,7 +17,7 @@ namespace PitchAnalysis
             else
                 pitchDb.YearLeagueDeviations.Where(f => f.Year >= endYear).ExecuteDelete();
 
-                var years = pitchDb.Output_PitchValue.Select(f => f.Year).Distinct();
+            var years = pitchDb.Output_PitchValue.Select(f => f.Year).Distinct();
             years = years.Where(f => !pitchDb.YearLeagueDeviations.Select(f => f.Year).Contains(f));
             var models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct();
 
