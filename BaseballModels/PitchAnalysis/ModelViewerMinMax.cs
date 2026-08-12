@@ -37,7 +37,11 @@ namespace PitchAnalysis
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
 
             if (!forceRefresh && pitchDb.PitchModelResultBasis.Any(f => f.Year == year))
+            {
+                Console.WriteLine($"No data logged in ModelViewMinMax for {year}");
                 return;
+            }
+                
 
             pitchDb.PitchModelResultBasis.Where(f => f.Year == year).ExecuteDelete();
 

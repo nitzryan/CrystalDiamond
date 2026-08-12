@@ -24,27 +24,26 @@ namespace PitchAnalysis
         private record PitchScenarioResult(PitchScenario scenario, PitchResult result);
         private record PitDictKey(int Model, int Year, int Run, int MlbId);
 
-        public static void Update(bool forceRefresh)
+        public static void Update()
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
-            if (forceRefresh)
-                pitchDb.Output_PitchValueAggregation.ExecuteDelete();
-
             // Get expected run values for each scenario each year
-            var scenarios = db.PitchStatcast.Select(f => new PitchScenario {
+            Dictionary<PitchScenarioResult, float> psrDict = new();
+            var pitchStatcastPitches = db.PitchStatcast.Where(f =>
+                f.LevelId == 1
+            )
+            .Select(f => new { f.Year, f.CountBalls, f.CountStrike, f.Result, f.RunValueHitter, f.GameId, f.PitchId })
+            .ToList();
+            
+            var scenarios = pitchStatcastPitches.Select(f => new PitchScenario
+            {
                 balls = f.CountBalls,
                 strikes = f.CountStrike,
                 year = f.Year
             }).Distinct();
 
-            Dictionary<PitchScenarioResult, float> psrDict = new();
-            var pitchStatcastPitches = db.PitchStatcast.Where(f =>
-                f.LevelId == 1
-            )
-            .Select(f => new { f.Year, f.CountBalls, f.CountStrike, f.Result, f.RunValueHitter })
-            .ToList();
             using (ProgressBar progressBar = new ProgressBar(scenarios.Count(), "Creating Year Scenario Pitch Expectancy Dict"))
             {
                 foreach (var scenario in scenarios)
@@ -81,16 +80,12 @@ namespace PitchAnalysis
 
             // Create PIT dictionary
             Dictionary<PitDictKey, bool> pitDictionary = pitchDb.PlayersInTrainingData
+                .AsNoTracking()
                 .ToDictionary(
                     f => new PitDictKey(f.ModelId, f.Year, f.ModelRun, f.MlbId),
                     f => f.IsTrain
                 );
-
-            // Only get games that are not currently logged
-            var opvaPitchSet = pitchDb.Output_PitchValueAggregation
-                .AsNoTracking()
-                .Select(f => new { f.GameId, f.PitchId })
-                .ToHashSet();
+            Console.WriteLine("Created PIT Dictionary");
 
             // Create pitch aggregations
             var pitchGroups = pitchDb.Output_PitchValue
@@ -98,9 +93,10 @@ namespace PitchAnalysis
                 .Where(f => !pitchDb.Output_PitchValueAggregation
                     .Any(a => a.GameId == f.GameId && a.PitchId == f.PitchId))
                 .GroupBy(f => new { f.GameId, f.PitchId, f.Model });
-            List<Output_PitchValueAggregation> pvaList = new(pitchGroups.Count());
+            Console.WriteLine("Created Pitch Groups");
+
+            List<Output_PitchValueAggregation> pvaList = new();
             Dictionary<(int, int), PitchScenario> pitchScenarioDict = db.PitchStatcast
-                .AsNoTracking()
                 .Select(f => new
                 {
                     f.GameId,
@@ -118,6 +114,8 @@ namespace PitchAnalysis
                         year = f.Year
                     }
                 );
+            Console.WriteLine("Created Pitch Scenario Dict");
+
             using (ProgressBar progressBar = new ProgressBar(pitchGroups.Count(), "Creating Pitch Aggregation"))
             {
                 foreach (var pg in pitchGroups)

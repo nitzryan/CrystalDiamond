@@ -147,14 +147,11 @@ namespace PitchAnalysis
             return pitchSideBreakdowns;
         }
 
-        public static void CreateStats(bool forceRefresh, int endYear)
+        public static void CreateStats(int endYear, bool fullUpdate)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using PitchTrackingDbContext trackingDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
-
-            if (forceRefresh)
-                pitchDb.PitcherStuff.ExecuteDelete();
 
             // Preload dictionary
             yldDict = pitchDb.YearLeagueDeviations
@@ -186,12 +183,14 @@ namespace PitchAnalysis
                 ];
 
             // Get Pitches
-            var pvKeys = pvDict.Select(f => new PitchValueKey(f.Key.gameId, f.Key.pitchId)).ToHashSet();
+            var pvKeys = pvDict.Select(f => (f.Key.gameId, f.Key.pitchId)).ToHashSet();
+            int startYear = pitchDb.YearLeagueDeviations.Min(f => f.Year);
             var pitchDataByYear = trackingDb.PitchData
                 .AsNoTracking()
+                .Where(f => (fullUpdate || f.Year == endYear) && f.Year >= startYear)
+                .AsEnumerable()
+                .Where(f => !pvKeys.Contains(new ValueTuple<int, int>(f.GameId, f.PitchId)))
                 .ToList()
-                .Where(f => pvKeys.Contains(new PitchValueKey(f.GameId, f.PitchId))
-                    && (forceRefresh || f.Year == endYear))
                 .GroupBy(f => f.Year);
             Console.WriteLine("Loaded PitchData");
 

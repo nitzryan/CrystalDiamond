@@ -8,16 +8,13 @@ namespace PitchAnalysis
     {
         const float PITCH_CAP = 0.1f;
 
-        public static void Update(int endYear, bool forceRefresh)
+        public static void Update(int endYear)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
 
-            if (forceRefresh)
-                pitchDb.YearLeagueDeviations.ExecuteDelete();
-            else
-                pitchDb.YearLeagueDeviations.Where(f => f.Year >= endYear).ExecuteDelete();
+            pitchDb.YearLeagueDeviations.Where(f => f.Year >= endYear).ExecuteDelete();
 
-            var years = pitchDb.Output_PitchValue.Select(f => f.Year).Distinct();
+            var years = pitchDb.Output_PitchValueAggregation.Select(f => f.Year).Distinct();
             years = years.Where(f => !pitchDb.YearLeagueDeviations.Select(f => f.Year).Contains(f));
             var models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct();
 
@@ -28,24 +25,26 @@ namespace PitchAnalysis
             {
                 foreach (int year in years)
                 {
+                    var yearPitches = pitchDb.Output_PitchValueAggregation
+                        .Where(f => f.Year == year && f.LevelId == 1)
+                        .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes, f.Model })
+                        .AsEnumerable()
+                        .GroupBy(f => f.Model)
+                        .ToDictionary(f => f.Key, f => f.ToList());
                     foreach (int modelId in models)
                     {
-                        var yearModelPitches = pitchDb.Output_PitchValueAggregation
-                            .Where(f => f.Year == year && f.Model == modelId && f.LevelId == 1)
-                            .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes })
-                            .ToList();
+                        var yearModelPitches = yearPitches[modelId];
+
                         foreach (int ball in balls)
                         {
                             var yearModelBallPitches = yearModelPitches
                                 .Where(f => f.CountBalls == ball)
-                                .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountStrikes })
                                 .ToList();
 
                             foreach (int strike in strikes)
                             {
                                 var yearModelCountPitches = yearModelPitches
                                     .Where(f => f.CountStrikes == strike)
-                                    .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns })
                                     .ToArray();
 
                                 double stuffDev = Math.Sqrt(yearModelCountPitches

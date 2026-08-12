@@ -38,19 +38,18 @@ namespace PitchAnalysis
             return new PitchModelOutput(stuffPlus, pitchPlus, actualPlus, count);
         }
 
-        public static void Update(int month, int year, bool forceRefresh)
+        public static void Update(int month, int year)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using PitchTrackingDbContext trackingDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
-            
-            if (forceRefresh)
-                pitchDb.PitcherStatcastMonth
-                    .Where(f => f.Year == year && f.Month == month)
-                    .ExecuteDelete();
 
             if (pitchDb.PitcherStatcastMonth.Any(f => f.Year == year && f.Month == month))
+            {
+                Console.WriteLine($"No data logged in MonthStats for {year}-{month}");
                 return;
+            }
+                
 
             // Deviation values for calculating normalized numbers
             Dictionary<YearLeagueDevationKey, YearLeagueDeviations> yldDict = pitchDb.YearLeagueDeviations
