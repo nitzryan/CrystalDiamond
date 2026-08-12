@@ -23,7 +23,7 @@ namespace DataAquisition.PitchTracking
                 .Select(f => new {f.GameId, f.PitchId, f.Year, f.LevelId, f.HitterId, f.PX, f.PZ, 
                         f.PitIsR, f.PitcherId, f.CountBalls, f.CountStrike, f.HitIsR,
                         f.Result, f.HadSwing, f.HadContact, f.IsInPlay, f.RunValueSmoothedHitter,
-                        f.Extension, f.SpinRate, f.SpinDirection})
+                        f.Extension, f.SpinRate, f.SpinDirection, f.Month, f.RunValueHitter})
                 .ToDictionary(
                     f => (f.GameId, f.PitchId),
                     f => f
@@ -72,6 +72,9 @@ namespace DataAquisition.PitchTracking
                         PitchId = ps.PitchId,
                         Year = ps.Year,
                         LevelId = ps.LevelId,
+                        Month = ps.Month,
+                        RunValueHitter = ps.RunValueHitter,
+                        RunValueSmoothedHitter = ps.RunValueSmoothedHitter,
                         PitcherId = ps.PitcherId,
                         PitchClass = pitch.PitchClass,
                         PitchType = pitch.PitchType,

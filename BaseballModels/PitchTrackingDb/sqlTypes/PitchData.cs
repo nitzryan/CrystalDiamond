@@ -6,6 +6,9 @@ namespace PitchTrackingDb
 		public required int PitchId {get; set;}
 		public required int Year {get; set;}
 		public required int LevelId {get; set;}
+		public required int Month {get; set;}
+		public required float RunValueSmoothedHitter {get; set;}
+		public required float RunValueHitter {get; set;}
 		public required int PitcherId {get; set;}
 		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchClass PitchClass {get; set;}
@@ -40,6 +43,9 @@ namespace PitchTrackingDb
 				PitchId = this.PitchId,
 				Year = this.Year,
 				LevelId = this.LevelId,
+				Month = this.Month,
+				RunValueSmoothedHitter = this.RunValueSmoothedHitter,
+				RunValueHitter = this.RunValueHitter,
 				PitcherId = this.PitcherId,
 				PitchType = this.PitchType,
 				PitchClass = this.PitchClass,

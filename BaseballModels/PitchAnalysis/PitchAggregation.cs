@@ -1,7 +1,7 @@
-﻿using Db;
-using EFCore.BulkExtensions;
+﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
+using PitchTrackingDb;
 using ShellProgressBar;
 
 namespace PitchAnalysis
@@ -27,17 +27,17 @@ namespace PitchAnalysis
         public static void Update()
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
 
             // Get expected run values for each scenario each year
             Dictionary<PitchScenarioResult, float> psrDict = new();
-            var pitchStatcastPitches = db.PitchStatcast.Where(f =>
-                f.LevelId == 1
+            var pitchScenarioPitches = ptDb.PitchData.Where(f =>
+                f.LevelId == 1 && f.Year >= 2017 // Non-comprehensive data before 2017
             )
             .Select(f => new { f.Year, f.CountBalls, f.CountStrike, f.Result, f.RunValueHitter, f.GameId, f.PitchId })
             .ToList();
             
-            var scenarios = pitchStatcastPitches.Select(f => new PitchScenario
+            var scenarios = pitchScenarioPitches.Select(f => new PitchScenario
             {
                 balls = f.CountBalls,
                 strikes = f.CountStrike,
@@ -48,25 +48,25 @@ namespace PitchAnalysis
             {
                 foreach (var scenario in scenarios)
                 {
-                    float ballValue = pitchStatcastPitches.Where(
+                    float ballValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        f.Result == DbEnums.PitchResult.Ball)
+                        f.Result == Db.DbEnums.PitchResult.Ball)
                         .Average(f => f.RunValueHitter);
 
-                    float strikeValue = pitchStatcastPitches.Where(
+                    float strikeValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        (f.Result == DbEnums.PitchResult.CalledStrike || f.Result == DbEnums.PitchResult.SwingingStrike))
+                        (f.Result == Db.DbEnums.PitchResult.CalledStrike || f.Result == Db.DbEnums.PitchResult.SwingingStrike))
                         .Average(f => f.RunValueHitter);
 
-                    float hbpValue = pitchStatcastPitches.Where(
+                    float hbpValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        f.Result == DbEnums.PitchResult.HBP)
+                        f.Result == Db.DbEnums.PitchResult.HBP)
                         .Average(f => f.RunValueHitter);
 
                     psrDict[new PitchScenarioResult(scenario, PitchResult.Ball)] = ballValue;
@@ -96,7 +96,7 @@ namespace PitchAnalysis
             Console.WriteLine("Created Pitch Groups");
 
             List<Output_PitchValueAggregation> pvaList = new();
-            Dictionary<(int, int), PitchScenario> pitchScenarioDict = db.PitchStatcast
+            Dictionary<(int, int), PitchScenario> pitchScenarioDict = ptDb.PitchData
                 .Select(f => new
                 {
                     f.GameId,

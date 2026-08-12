@@ -12,8 +12,8 @@ namespace PitchDb
 		public DbSet<Output_PitchValue> Output_PitchValue {get; set;}
 		public DbSet<Output_PitchValueAggregation> Output_PitchValueAggregation {get; set;}
 		public DbSet<PitchValue> PitchValue {get; set;}
-		public DbSet<PitcherStatcastMonth> PitcherStatcastMonth {get; set;}
 		public DbSet<PitchModelResultBasis> PitchModelResultBasis {get; set;}
+		public DbSet<PitcherStatcastMonth> PitcherStatcastMonth {get; set;}
 
 		public PitchDbContext(DbContextOptions<PitchDbContext> options) : base(options) { }
 
@@ -27,8 +27,8 @@ namespace PitchDb
 			modelBuilder.Entity<Output_PitchValue>().HasKey(f => new {f.Model,f.GameId,f.PitchId,f.ModelYear,f.ModelRun});
 			modelBuilder.Entity<Output_PitchValueAggregation>().HasKey(f => new {f.Model,f.GameId,f.PitchId,f.ModelYear});
 			modelBuilder.Entity<PitchValue>().HasKey(f => new {f.ModelId,f.GameId,f.PitchId});
-			modelBuilder.Entity<PitcherStatcastMonth>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId});
 			modelBuilder.Entity<PitchModelResultBasis>().HasKey(f => new {f.Year,f.ModelId,f.CountBalls,f.CountStrikes,f.OutputType});
+			modelBuilder.Entity<PitcherStatcastMonth>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId});
 		}
 	}
 }

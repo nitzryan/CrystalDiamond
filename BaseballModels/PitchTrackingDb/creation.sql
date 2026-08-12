@@ -9,6 +9,11 @@ CREATE TABLE PitchData
     "Year" INTEGER NOT NULL,
     "LevelId" INTEGER NOT NULL,
 
+    -- Used For UI and Pitch Analysis
+    "Month" INTEGER NOT NULL,
+    "RunValueSmoothedHitter" REAL NOT NULL,
+    "RunValueHitter" REAL NOT NULL,
+
     -- Map pitch to a pitcher to compare to other pitches
     "PitcherId" INTEGER NOT NULL,
     "PitchType" INTEGER NOT NULL,

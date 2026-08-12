@@ -188,21 +188,25 @@ CREATE TABLE PitcherStatcastMonth
     "Stuff" REAL NOT NULL,
     "Pitch" REAL NOT NULL,
     "Actual" REAL NOT NULL,
+	"Smoothed" REAL NOT NULL,
     "NumPitches" INTEGER NOT NULL,
 
     "StuffFastball" REAL,
     "PitchFastball" REAL,
     "ActFastball" REAL,
+	"SmoothedFastball" REAL,
     "NumFastballs" INTEGER NOT NULL,
 
     "StuffBreaking" REAL,
     "PitchBreaking" REAL,
     "ActBreaking" REAL,
+	"SmoothedBreaking" REAL,
     "NumBreaking" INTEGER NOT NULL,
 
     "StuffChangeup" REAL,
     "PitchChangeup" REAL,
     "ActChangeup" REAL,
+	"SmoothedChangeup" REAL,
     "NumChangeup" INTEGER NOT NULL,
 
     PRIMARY KEY("MlbId", "Year", "Month", "ModelId")

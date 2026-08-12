@@ -1,9 +1,9 @@
-﻿using Db;
-using EFCore.BulkExtensions;
+﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using PitchTrackingDb;
 using ShellProgressBar;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
@@ -11,15 +11,14 @@ namespace PitchAnalysis
     {
         private record YearLeagueDevationKey(int modelId, int year, int balls, int strikes);
         private record PitchMonthKey(int gameId, int pitchId);
-        private record PitchStatcastMonthLookup(int Month, float RunValueSmoothedHitter);
-        private record PitchModelInput(int Year, int Month, int PitcherId, DbEnums.PitchType PitchType, int Balls, int Strikes, float ModelStuff, float ModelPitch, float Actual);
-        private record PitchModelOutput(float? stuff, float? pitch, float? actual, int numPitches);
+        private record PitchModelInput(int Year, int Month, int PitcherId, PitchType PitchType, int Balls, int Strikes, float ModelStuff, float ModelPitch, float Actual, float Smoothed);
+        private record PitchModelOutput(float? stuff, float? pitch, float? actual, float? smoothed, int numPitches);
         
         private static PitchModelOutput GetPitchModelOutput(IEnumerable<PitchModelInput> pitches, Dictionary<YearLeagueDevationKey, YearLeagueDeviations> YldDict, int modelId)
         {
             int count = pitches.Count();
             if (count == 0)
-                return new PitchModelOutput(null, null, null, 0);
+                return new PitchModelOutput(null, null, null, null, 0);
         
             double dev = 0;
             foreach (var pitch in pitches)
@@ -30,18 +29,19 @@ namespace PitchAnalysis
             float stuffValue = pitches.Sum(f => f.ModelStuff);
             float pitchValue = pitches.Sum(f => f.ModelPitch);
             float actualValue = pitches.Sum(f => f.Actual);
+            float smoothedValue = pitches.Sum(f => f.Smoothed);
 
             float stuffPlus = 100 - (float)(10 * stuffValue / dev);
             float pitchPlus = 100 - (float)(10 * pitchValue / dev);
             float actualPlus = 100 - (float)(10 * actualValue / dev);
+            float smoothedPlus = 100 - (float)(10 * smoothedValue / dev);
 
-            return new PitchModelOutput(stuffPlus, pitchPlus, actualPlus, count);
+            return new PitchModelOutput(stuffPlus, pitchPlus, actualPlus, smoothedPlus, count);
         }
 
         public static void Update(int month, int year)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using PitchTrackingDbContext trackingDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
 
             if (pitchDb.PitcherStatcastMonth.Any(f => f.Year == year && f.Month == month))
@@ -60,12 +60,6 @@ namespace PitchAnalysis
                 );
 
             // Month/actual-value source
-            var psDict = db.PitchStatcast
-                .AsNoTracking()
-                .Where(f => f.Year == year)
-                .ToDictionary(
-                    f => new PitchMonthKey(f.GameId, f.PitchId),
-                    f => new PitchStatcastMonthLookup(f.Month, f.RunValueSmoothedHitter));
 
             // Pitches in scope for this month
             var monthPitchData = trackingDb.PitchData
@@ -74,10 +68,9 @@ namespace PitchAnalysis
                 .ToList()
                 .Where(f =>
                 {
-                    int m = psDict[new PitchMonthKey(f.GameId, f.PitchId)].Month;
-                    return month == 4 ? m <= 4 :
-                           month == 9 ? m >= 9 :
-                                        m == month;
+                    return month == 4 ? f.Month <= 4 :
+                           month == 9 ? f.Month >= 9 :
+                                        f.Month == month;
                 })
                 .ToDictionary(f => new PitchMonthKey(f.GameId, f.PitchId), f => f);
 
@@ -102,8 +95,7 @@ namespace PitchAnalysis
                         {
                             PitchMonthKey key = new(pv.GameId, pv.PitchId);
                             PitchData pd = monthPitchData[key];
-                            PitchStatcastMonthLookup ps = psDict[key];
-                            return new PitchModelInput(pd.Year, ps.Month, pd.PitcherId, pd.PitchType, pd.CountBalls, pd.CountStrike, pv.StuffRuns, pv.PitchRuns, ps.RunValueSmoothedHitter);
+                            return new PitchModelInput(pd.Year, pd.Month, pd.PitcherId, pd.PitchType, pd.CountBalls, pd.CountStrike, pv.StuffRuns, pv.PitchRuns, pd.RunValueHitter, pd.RunValueSmoothedHitter);
                         })
                         .GroupBy(f => f.PitcherId);
                     foreach (var pitches in modelPitcherPitches)
@@ -112,31 +104,31 @@ namespace PitchAnalysis
                         PitchModelOutput allPitchOutput = GetPitchModelOutput(pitches, yldDict, modelId);
                         PitchModelOutput fastballOutput = GetPitchModelOutput(
                             pitches.Where(f =>
-                                f.PitchType == DbEnums.PitchType.Fastball ||
-                                f.PitchType == DbEnums.PitchType.Fourseam ||
-                                f.PitchType == DbEnums.PitchType.Sinker ||
-                                f.PitchType == DbEnums.PitchType.Twoseam)
+                                f.PitchType == PitchType.Fastball ||
+                                f.PitchType == PitchType.Fourseam ||
+                                f.PitchType == PitchType.Sinker ||
+                                f.PitchType == PitchType.Twoseam)
                             , yldDict, modelId);
                         PitchModelOutput breakingOutput = GetPitchModelOutput(
                             pitches.Where(f =>
-                                f.PitchType == DbEnums.PitchType.Cutter ||
-                                f.PitchType == DbEnums.PitchType.Slider ||
-                                f.PitchType == DbEnums.PitchType.Sweeper ||
-                                f.PitchType == DbEnums.PitchType.Curveball ||
-                                f.PitchType == DbEnums.PitchType.KnuckleCurve ||
-                                f.PitchType == DbEnums.PitchType.Screwball ||
-                                f.PitchType == DbEnums.PitchType.SlowCurve ||
-                                f.PitchType == DbEnums.PitchType.Slurve)
+                                f.PitchType == PitchType.Cutter ||
+                                f.PitchType == PitchType.Slider ||
+                                f.PitchType == PitchType.Sweeper ||
+                                f.PitchType == PitchType.Curveball ||
+                                f.PitchType == PitchType.KnuckleCurve ||
+                                f.PitchType == PitchType.Screwball ||
+                                f.PitchType == PitchType.SlowCurve ||
+                                f.PitchType == PitchType.Slurve)
                             , yldDict, modelId);
                         PitchModelOutput changeupOutput = GetPitchModelOutput(
                         pitches.Where(f =>
-                            f.PitchType == DbEnums.PitchType.Splitter ||
-                            f.PitchType == DbEnums.PitchType.Changeup ||
-                            f.PitchType == DbEnums.PitchType.Forkball)
+                            f.PitchType == PitchType.Splitter ||
+                            f.PitchType == PitchType.Changeup ||
+                            f.PitchType == PitchType.Forkball)
                         , yldDict, modelId);
 
                         // Sanity Check
-                        if (allPitchOutput.stuff == null || allPitchOutput.pitch == null || allPitchOutput.actual == null)
+                        if (allPitchOutput.stuff == null || allPitchOutput.pitch == null || allPitchOutput.actual == null || allPitchOutput.smoothed == null)
                             throw new Exception($"Invalid Pitch Model Data For MlbId={pitches.Key} in {month}-{year}, Model={modelId}");
 
                         // Add month data
@@ -152,21 +144,25 @@ namespace PitchAnalysis
                             Stuff = allPitchOutput.stuff.Value,
                             Pitch = allPitchOutput.pitch.Value,
                             Actual = allPitchOutput.actual.Value,
+                            Smoothed = allPitchOutput.smoothed.Value,
                             NumPitches = allPitchOutput.numPitches,
 
                             StuffFastball = fastballOutput.stuff,
                             PitchFastball = fastballOutput.pitch,
                             ActFastball = fastballOutput.actual,
+                            SmoothedFastball = fastballOutput.smoothed,
                             NumFastballs = fastballOutput.numPitches,
 
                             StuffBreaking = breakingOutput.stuff,
                             PitchBreaking = breakingOutput.pitch,
                             ActBreaking = breakingOutput.actual,
+                            SmoothedBreaking = breakingOutput.smoothed,
                             NumBreaking = breakingOutput.numPitches,
 
                             StuffChangeup = changeupOutput.stuff,
                             PitchChangeup = changeupOutput.pitch,
                             ActChangeup = changeupOutput.actual,
+                            SmoothedChangeup = changeupOutput.smoothed,
                             NumChangeup = changeupOutput.numPitches,
                         });
 

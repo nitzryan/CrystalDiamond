@@ -1,6 +1,6 @@
-﻿using Db;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PitchDb;
+using PitchTrackingDb;
 
 namespace PitchAnalysis
 {
@@ -10,7 +10,7 @@ namespace PitchAnalysis
 
         static void Main()
         {
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
 
             if (FORCE_REFRESH)
@@ -27,7 +27,7 @@ namespace PitchAnalysis
 
             int startYear = pitchDb.Output_PitchValueAggregation.Min(f => f.Year);
             int endYear = pitchDb.Output_PitchValueAggregation.Max(f => f.Year);
-            int endMonth = Math.Min(db.PitchStatcast
+            int endMonth = Math.Min(ptDb.PitchData
                 .Where(f => f.Year == endYear)
                 .Max(f => f.Month), 9);
 

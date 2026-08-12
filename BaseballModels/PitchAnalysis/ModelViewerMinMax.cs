@@ -1,8 +1,8 @@
-﻿using Db;
-using EFCore.BulkExtensions;
+﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using ShellProgressBar;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
@@ -13,7 +13,7 @@ namespace PitchAnalysis
             int modelId,
             int balls,
             int strikes,
-            DbEnums.PitchModelOutputType outputType,
+            PitchModelOutputType outputType,
             List<float> values)
         {
             return new PitchModelResultBasis
@@ -98,35 +98,35 @@ namespace PitchAnalysis
                                 .ToList();
 
                             // Run Values
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.Value,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.Value,
                                 validPitches.Select(f => f.CombinedRuns).Order().ToList()));
                             
                             // CSW
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.CSW,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.CSW,
                                 validPitches.Select(f => f.CombinedCalledStrike + (f.CombinedSwing * f.CombinedWhiff)).Order().ToList()));
                             
                             // Ball
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.Ball,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.Ball,
                                 validPitches.Select(f => f.CombinedBall + f.CombinedHBP).Order().ToList()));
                             
                             // CSWFoul
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.CSWFoul,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.CSWFoul,
                                 validPitches.Select(f => f.CombinedCalledStrike + (f.CombinedSwing * (f.CombinedWhiff + f.CombinedFoul))).Order().ToList()));
                             
                             // In Play Percentage
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.InPlayPerc,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.InPlayPerc,
                                 validPitches.Select(f => f.CombinedSwing * f.CombinedInPlay).Order().ToList()));
                             
                             // In Play Expected
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.InPlayExp,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.InPlayExp,
                                 validPitches.Select(f => f.CombinedInPlayExpected).Order().ToList()));
                             
                             // Whiff Rate
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.WhiffRate,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.WhiffRate,
                                 validPitches.Select(f => f.CombinedWhiff).Order().ToList()));
                             
                             // Swing Strike Percentage
-                            dbData.Add(BuildBasis(year, modelId, balls, strikes, DbEnums.PitchModelOutputType.SwingStrikePerc,
+                            dbData.Add(BuildBasis(year, modelId, balls, strikes, PitchModelOutputType.SwingStrikePerc,
                                 validPitches.Select(f => f.CombinedWhiff * f.CombinedSwing).Order().ToList()));
 
                             progressBar.Tick();

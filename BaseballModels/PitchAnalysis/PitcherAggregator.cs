@@ -16,7 +16,6 @@ namespace PitchAnalysis
         private record PitchValueKey(int gameId, int pitchId);
         private record ModelPitchValueKey(int modelId, int gameId, int pitchId);
         private static Dictionary<YearLeagueDevationKey, YearLeagueDeviations> yldDict = new();
-        private record PitchStatcastLookup(int Month, float RunValueSmoothedHitter);
 
         private static PitchScenario GetScenario(PitchData p)
         {
@@ -41,7 +40,6 @@ namespace PitchAnalysis
         private static List<PitcherStuff> GetPitcherYearMonthStuffByScenarios(
             IEnumerable<PitchData> pitches,
             Dictionary<PitchValueKey, PitchValue> pvDict,
-            Dictionary<PitchValueKey, PitchStatcastLookup> psDict,
             int model,
             bool isFullYear,
             bool isSingleGame,
@@ -55,7 +53,6 @@ namespace PitchAnalysis
             foreach (var pitchGroup in pitchGroupings)
             {
                 var firstPitch = pitchGroup.First();
-                var firstInfo = psDict[new PitchValueKey(firstPitch.GameId, firstPitch.PitchId)];
 
                 var scenarioStats = scenarios.ToDictionary(
                     s => s,
@@ -66,7 +63,7 @@ namespace PitchAnalysis
                             MlbId = firstPitch.PitcherId,
                             Year = isSingleGame ? -1 : firstPitch.Year,
                             Month = isSingleGame ? -1 :
-                                isFullYear ? 13 : firstInfo.Month,
+                                isFullYear ? 13 : firstPitch.Month,
                             GameId = isSingleGame ? firstPitch.GameId : -1,
                             Model = model,
 
@@ -93,7 +90,6 @@ namespace PitchAnalysis
                 {
                     PitchValueKey key = new(p.GameId, p.PitchId);
                     PitchValue pv = pvDict[key];
-                    PitchStatcastLookup ps = psDict[key];
                     YearLeagueDevationKey yldKey = new(model, p.Year, p.CountBalls, p.CountStrike);
                     YearLeagueDeviations yld = yldDict[yldKey];
                     PitchScenario pitchScenario = GetScenario(p);
@@ -104,7 +100,7 @@ namespace PitchAnalysis
                             var (count, stats) = scenarioStats[scen];
                             count += yld.StuffDev;
                             stats.NumPitches++;
-                            stats.ValueActual += ps.RunValueSmoothedHitter;
+                            stats.ValueActual += firstPitch.RunValueHitter;
                             stats.ValueStuff += pv.StuffRuns;
                             stats.ValueCombined += pv.PitchRuns;
                             stats.Vel += p.Vel;
@@ -150,7 +146,6 @@ namespace PitchAnalysis
         public static void CreateStats(int endYear, bool fullUpdate)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
-            using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using PitchTrackingDbContext trackingDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
 
             // Preload dictionary
@@ -161,13 +156,6 @@ namespace PitchAnalysis
                     f => f
                 );
             Console.WriteLine("Loaded YearLeagueDeviations");
-
-            var psDict = db.PitchStatcast
-                .AsNoTracking()
-                .ToDictionary(
-                    f => new PitchValueKey(f.GameId, f.PitchId),
-                    f => new PitchStatcastLookup(f.Month, f.RunValueSmoothedHitter));
-            Console.WriteLine("Loaded PitchStatcast Data");
 
             var pvDict = pitchDb.PitchValue
                 .AsNoTracking()
@@ -217,7 +205,6 @@ namespace PitchAnalysis
                                 (
                                     pitcher,
                                     modelPvDict,
-                                    psDict,
                                     modelId,
                                     true,
                                     false,
@@ -226,14 +213,13 @@ namespace PitchAnalysis
                             );
 
                             // Month Stats
-                            var monthPitcher = pitcher.GroupBy(f => psDict[new PitchValueKey(f.GameId, f.PitchId)].Month);
+                            var monthPitcher = pitcher.GroupBy(f => f.Month);
                             foreach (var mp in monthPitcher)
                             {
                                 stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
                                     (
                                         mp,
                                         modelPvDict,
-                                        psDict,
                                         modelId,
                                         false,
                                         false,
@@ -250,7 +236,6 @@ namespace PitchAnalysis
                                     (
                                         gp,
                                         modelPvDict,
-                                        psDict,
                                         modelId,
                                         false,
                                         true,
