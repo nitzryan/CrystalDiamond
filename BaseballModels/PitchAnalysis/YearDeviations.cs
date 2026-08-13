@@ -33,6 +33,14 @@ namespace PitchAnalysis
                         .ToDictionary(f => f.Key, f => f.ToList());
                     foreach (int modelId in models)
                     {
+                        // Make sure model has data for this year.
+                        if (!yearPitches.ContainsKey(modelId))
+                        {
+                            for (int i = 0; i < balls.Count * strikes.Count; i++)
+                                progressBar.Tick();
+                            continue;
+                        }
+
                         var yearModelPitches = yearPitches[modelId];
 
                         foreach (int ball in balls)

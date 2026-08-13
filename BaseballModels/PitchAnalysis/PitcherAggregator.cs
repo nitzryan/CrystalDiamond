@@ -65,7 +65,7 @@ namespace PitchAnalysis
                             Month = isSingleGame ? -1 :
                                 isFullYear ? 13 : firstPitch.Month,
                             GameId = isSingleGame ? firstPitch.GameId : -1,
-                            Model = model,
+                            ModelId = model,
 
                             PitchType = firstPitch.PitchType,
                             Scenario = s,

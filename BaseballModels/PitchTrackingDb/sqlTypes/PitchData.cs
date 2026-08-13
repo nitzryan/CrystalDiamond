@@ -9,6 +9,9 @@ namespace PitchTrackingDb
 		public required int Month {get; set;}
 		public required float RunValueSmoothedHitter {get; set;}
 		public required float RunValueHitter {get; set;}
+		public required Db.DbEnums.PitchScenario Scenario {get; set;}
+		public required Db.DbEnums.PitchPaResult PaResult {get; set;}
+		public required int PaResultDirectRuns {get; set;}
 		public required int PitcherId {get; set;}
 		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchClass PitchClass {get; set;}
@@ -46,6 +49,9 @@ namespace PitchTrackingDb
 				Month = this.Month,
 				RunValueSmoothedHitter = this.RunValueSmoothedHitter,
 				RunValueHitter = this.RunValueHitter,
+				Scenario = this.Scenario,
+				PaResult = this.PaResult,
+				PaResultDirectRuns = this.PaResultDirectRuns,
 				PitcherId = this.PitcherId,
 				PitchType = this.PitchType,
 				PitchClass = this.PitchClass,

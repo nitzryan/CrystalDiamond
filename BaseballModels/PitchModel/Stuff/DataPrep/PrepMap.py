@@ -31,9 +31,10 @@ __map_pitch_stuff : Callable[[DB_PitchData], list[float]] = \
         p.CountBalls,
         p.CountStrike,
         p.HitIsR,
-        p.PitIsR
+        p.PitIsR,
+        p.LevelId
     ]
-__size_stuff = 13
+__size_stuff = 14
     
 __map_pitch_combined : Callable[[DB_PitchData], list[float]] = \
     lambda p : [
@@ -54,8 +55,9 @@ __map_pitch_combined : Callable[[DB_PitchData], list[float]] = \
             p.PlateZ,
             p.ZoneTop,
             p.ZoneBot,
+            p.LevelId
     ]
-__size_combined = 17
+__size_combined = 18
 
     
 standard_prep_map = Prep_Map(

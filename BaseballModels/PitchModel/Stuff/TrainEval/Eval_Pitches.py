@@ -57,7 +57,8 @@ def Eval_Pitches(end_year : int):
                 start_year=year,
                 end_year=year,
                 validation_year=None,
-                mlb_only=False
+                mlb_only=False,
+                force_mlb=True,
             )
             eval_datasets = CreateTestTrainDatasets(pitch_io_data, eval_mode=True)
             dataset = eval_datasets.train

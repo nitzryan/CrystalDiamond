@@ -13,6 +13,9 @@ CREATE TABLE PitchData
     "Month" INTEGER NOT NULL,
     "RunValueSmoothedHitter" REAL NOT NULL,
     "RunValueHitter" REAL NOT NULL,
+    "Scenario" INTEGER NOT NULL,
+    "PaResult" INTEGER NOT NULL,
+    "PaResultDirectRuns" INTEGER NOT NULL,
 
     -- Map pitch to a pitcher to compare to other pitches
     "PitcherId" INTEGER NOT NULL,

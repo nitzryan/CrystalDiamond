@@ -42,7 +42,7 @@ class DataPrep:
         cursor = tracking_db.cursor()
         pitches = DB_PitchData.Select_From_DB(
             cursor=cursor,
-            conditional=f"WHERE YEAR>={start_year} AND Year<={end_year} AND LevelId=1",
+            conditional=f"WHERE YEAR>={start_year} AND Year<={end_year}",
             values=()
         )
         
@@ -91,6 +91,7 @@ class DataPrep:
         total = torch.tensor([map(h) for h in stats], dtype=DTYPE).float()
         means = torch.mean(total, dim=0, keepdim=False)
         devs = torch.std(total, dim=0, keepdim=False)
+        devs = torch.clamp(devs, min=1e-10) # Prevent divide by 0 for constant value
         setattr(self, "__" + name + "_means", means)
         setattr(self, "__" + name + "_devs", devs)
         
@@ -174,17 +175,24 @@ class DataPrep:
                           start_year : int, 
                           end_year : int, 
                           validation_year : int | None,
-                          mlb_only : bool = True) -> PitchIOData:
+                          mlb_only : bool = True,
+                          force_mlb : bool = False) -> PitchIOData:
         
         
         cursor = tracking_db.cursor()
         
-        level_cond = "AND LevelId=1" if mlb_only else ""
+        # TODO : Either add back the level condition or eliminate this
+        level_cond = "" if mlb_only else ""
         pitches = DB_PitchData.Select_From_DB(
             cursor=cursor,
             conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
             values=(start_year, end_year)
         )
+        
+        # Option to move all pitches to be evaluated as if they were MLB pitches
+        if force_mlb:
+            for p in pitches:
+                p.LevelId = 1
         
         data = self._PitchesToIO(pitches)
            

@@ -17,6 +17,10 @@ type_overrides = [
     TypeOverride("PitchData", "PitchType", "Db.DbEnums.PitchType"),
     TypeOverride("PitchFlightpath", "PitchType", "Db.DbEnums.PitchType"),
     TypeOverride("PitchFlightpathGameDelta", "FastballPitchType", "Db.DbEnums.PitchType"),
+    
+    TypeOverride("PitchData", "Scenario", "Db.DbEnums.PitchScenario"),
+    
+    TypeOverride("PitchData", "PaResult", "Db.DbEnums.PitchPaResult"),
                 ]
 
 boolean_types = [

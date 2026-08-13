@@ -222,6 +222,11 @@ namespace DataAquisition
                 PitchTracking.GenerateModelPitchData.Generate();
             }
 
+            if (DRAFT_UPDATE || FULL_REFRESH)
+            {
+                Misc.GetDraftSlotValues.Update(years);
+            }
+
             #pragma warning disable CS0162
         }
     }

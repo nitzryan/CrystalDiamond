@@ -5,7 +5,7 @@ namespace PitchDb
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}
 		public required int Month {get; set;}
-		public required int Model {get; set;}
+		public required int ModelId {get; set;}
 		public required int GameId {get; set;}
 		public required Db.DbEnums.PitchType PitchType {get; set;}
 		public required Db.DbEnums.PitchScenario Scenario {get; set;}
@@ -27,7 +27,7 @@ namespace PitchDb
 				MlbId = this.MlbId,
 				Year = this.Year,
 				Month = this.Month,
-				Model = this.Model,
+				ModelId = this.ModelId,
 				GameId = this.GameId,
 				PitchType = this.PitchType,
 				Scenario = this.Scenario,

@@ -6,7 +6,7 @@ namespace PitchAnalysis
 {
     internal class Program
     {
-        const bool FORCE_REFRESH = true;
+        const bool FORCE_REFRESH = false;
 
         static void Main()
         {

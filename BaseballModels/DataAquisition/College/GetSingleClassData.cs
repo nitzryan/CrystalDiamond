@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
-using SeleniumUndetectedChromeDriver;
 using ShellProgressBar;
 
 namespace DataAquisition.College
@@ -111,13 +110,10 @@ namespace DataAquisition.College
             options.AddArgument("--disable-extensions");
             options.AddArgument("--disable-popup-blocking");
             options.AddArgument("--disable-blink-features=AutomationControlled");
-            options.AddArgument("--remote-allow-origins=*");           // Important for newer Chrome
+            options.AddArgument("--remote-allow-origins=*");
             options.AddArgument("--disable-features=IsolateOrigins,site-per-process");
             options.AddArgument("--user-data-dir=C:\\SeleniumChromeProfile");
 
-            //_driver = UndetectedChromeDriver.Create(
-            //    driverExecutablePath: "chromedriver.exe",
-            //    options: options);
             _driver = new ChromeDriver("chromedriver.exe", options);
             _driver.Navigate().GoToUrl("https://www.thebaseballcube.com/");
 
