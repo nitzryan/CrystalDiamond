@@ -1,6 +1,5 @@
 ﻿using Db;
 using ModelDb;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ModelEvaluation.PlayerGroupEvaluations
 {

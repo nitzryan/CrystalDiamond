@@ -1,5 +1,4 @@
-﻿using ModelEvaluation.PlayerGroupEvaluations;
-using static ModelEvaluation.PlayerGroupEvaluations.DraftDemoTest;
+﻿using ModelEvaluation.DraftPickBonus;
 
 namespace ModelEvaluation
 {
@@ -9,7 +8,13 @@ namespace ModelEvaluation
         {
             //RunDraftPickBucketTest(1, 2,
             //DraftPlotOptions.LogX | DraftPlotOptions.LogY);
-            DraftInitialRatings.Calculate(1, 2023, "Base");
+            //DraftInitialRatings.Calculate(1, 2023, "Base");
+            //DraftPickBonus.PickBonusRegression.Calculate();
+
+            //DraftValueAnalysis.RunAnalysis(false);
+
+            DraftValueSlidingWindow.RunAnalysis(
+                useSigningBonus: false);
         }
     }
 }
