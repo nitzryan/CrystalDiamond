@@ -534,7 +534,6 @@ function updatePitcherPredictions(pitcherPredictions : DB_Prediction_PitcherStat
     })
 }
 
-const WAR_BUCKETS = [0,0.5,3,7.5,15,25,35]
 const WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
 
 function piePointGenerator(model : Model) : Point[]
@@ -717,9 +716,9 @@ function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
     for (var idx of MODEL_VALUES)
     {
         if (hitterModels.length > 0)
-            hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
+            hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, assetLoader.war_buckets_hitter)))
         if (pitcherModels.length > 0)
-            pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, WAR_BUCKETS)))
+            pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, assetLoader.war_buckets_pitcher)))
     }
 
     let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rank !== null).map(rank_map))

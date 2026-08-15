@@ -160,16 +160,16 @@ async function retrieveJson(filename : string) : Promise<JsonObject>
 
 function getParentId(id : number, year : number) : number
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("Org map null accessing getParentId")
 
     // Check parents
-    const parents = org_map["parents"] as JsonObject
+    const parents = assetLoader.org_map["parents"] as JsonObject
     if (id in parents)
         return id
 
     // Parse through children
-    const children = org_map["children"] as JsonObject
+    const children = assetLoader.org_map["children"] as JsonObject
     const child = children[id] as JsonObject
     const parentArray = child["parents"] as JsonArray
     for (var parent of parentArray)
@@ -185,24 +185,24 @@ function getParentId(id : number, year : number) : number
 
 function getTeamAbbr(id : number, year : number) : string
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("Org map null accessing getTeamAbbr")
     const parentId = getParentId(id, year)
 
-    const parents = org_map["parents"] as JsonObject
+    const parents = assetLoader.org_map["parents"] as JsonObject
     const parent = parents[parentId] as JsonObject
     return parent["abbr"] as string
 }
 
 function getParentAbbr(id: number) : string
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("Org map null accessing getParentAbbr")
 
     if (id === 0)
         return "FA"
 
-    const parents = org_map["parents"] as JsonObject
+    const parents = assetLoader.org_map["parents"] as JsonObject
     const parent = parents[id] as JsonObject
     return parent["abbr"] as string
 }
@@ -219,20 +219,20 @@ function getParentAbbrFallback(id : number, fallback : string) : string
 
 function getParentName(id : number) : string
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("Org map null accessing getParentAbbr")
 
-    const parents = org_map["parents"] as JsonObject
+    const parents = assetLoader.org_map["parents"] as JsonObject
     const parent = parents[id] as JsonObject
     return parent["name"] as string
 }
 
 function getLeagueAbbr(id : number) : string
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("Org map null accessing getLeagueAbbr")
     
-    const leagues = org_map["leagues"] as JsonObject
+    const leagues = assetLoader.org_map["leagues"] as JsonObject
     if (id in leagues)
     {
         const league = leagues[id] as JsonObject
@@ -271,7 +271,6 @@ function formatModelString(val : number) : string
 const MODEL_VALUES = [1,2,3]
 const MODEL_STRINGS = ["Base","Stats Only", "Experimental"]
 
-var org_map : JsonObject | null = null
 const level_map : JsonObject = {1:"MLB",11:"AAA",12:"AA",13:"A+",14:"A",15:"A-",16:"Rk",17:"DSL",20:""}
 const level_map2 : string[] = ["MLB", "AAA", "AA", "A+", "A", "A-", "Rk", "DSL"]
 const MONTH_CODES : string[] = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]

@@ -76,13 +76,13 @@ function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
 
 function setupTeamSelector(teamId : number | null)
 {
-    if (org_map === null)
+    if (assetLoader.org_map === null)
         throw new Error("org_map null at setupSelector")
         
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector')
 
-    var parents = org_map["parents"] as JsonObject
+    var parents = assetLoader.org_map["parents"] as JsonObject
     var teams = [{id: 0, abbr: 'All'}]
     for (var id in parents)
     {

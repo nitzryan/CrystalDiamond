@@ -23,6 +23,7 @@ namespace SitePrep
             SearchIndex.Update();
             Homepage.Update();
             SetTimestepQuality.Create();
+            WriteWarBucketAverages.Update();
             MoveDbToServer.Update();
         }
     }

@@ -119,10 +119,10 @@ function createDraftProspect(obj : JsonObject)
         name : getJsonString(obj, "Name"),
         war : 0,
         id : getJsonNumber(obj, "mlbId"),
-        team : 0, // TODO
+        team : 0,
         position : getJsonString(obj, "Position"),
-        birthYear : 0, // TODO
-        birthMonth : 0, // TODO
+        birthYear : getJsonNumber(obj, "BirthYear"),
+        birthMonth : getJsonNumber(obj, "BirthMonth"),
         level : null,
         rankWar : null,
         playingTime : null,
@@ -303,7 +303,7 @@ function setupRankings(args : PlayerLoaderArgs, num_elements : number)
     playerLoader = new PlayerLoader(args)
 
     // @ts-ignore
-    const teamString : string = args.teamId !== null ? org_map["parents"][args.teamId]["name"] + " " : ""
+    const teamString : string = args.teamId !== null ? assetLoader.org_map["parents"][args.teamId]["name"] + " " : ""
     let typeString : string = "INVALID"
     switch(args.type)
     {

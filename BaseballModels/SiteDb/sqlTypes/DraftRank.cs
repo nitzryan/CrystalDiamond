@@ -8,6 +8,9 @@ namespace SiteDb
 		public required bool IsHitter {get; set;}
 		public string? Name {get; set;}
 		public string? Position {get; set;}
+		public required int BirthYear {get; set;}
+		public required int BirthMonth {get; set;}
+		public required int BirthDate {get; set;}
 		public required int Year {get; set;}
 		public required bool IsEligible {get; set;}
 		public required int RankEligible {get; set;}
@@ -27,6 +30,9 @@ namespace SiteDb
 				IsHitter = this.IsHitter,
 				Name = this.Name,
 				Position = this.Position,
+				BirthYear = this.BirthYear,
+				BirthMonth = this.BirthMonth,
+				BirthDate = this.BirthDate,
 				Year = this.Year,
 				IsEligible = this.IsEligible,
 				RankEligible = this.RankEligible,

@@ -4,6 +4,7 @@ const AssetPath = {
     PlayerSearch : '../../assets/player_search.json.gz',
     IconTraining : '/assets/training.svg',
     IconWarning : '/assets/warning.svg',
+    WarBuckets : "/assets/warbuckets.json.gz",
 } as const;
 type AssetPath = typeof AssetPath[keyof typeof AssetPath];
 
@@ -11,6 +12,7 @@ class AssetLoader {
     private static readonly CRITICAL_ASSETS: AssetPath[] = [
         AssetPath.Dates,
         AssetPath.Map,
+        AssetPath.WarBuckets,
     ];
     private static readonly DEFERRED_ASSETS: AssetPath[] = [
         AssetPath.PlayerSearch,
@@ -53,15 +55,20 @@ class AssetLoader {
         });
 
         const orgMapReady = this.load(AssetPath.Map).then(data => {
-            org_map = data; // TODO : Remove
             this.org_map = data
+        });
+
+        const warBucketsLoaded = this.load(AssetPath.WarBuckets).then(data => {
+            this.war_buckets_hitter = (data["hitter"] as JsonArray).map(Number)
+            this.war_buckets_pitcher = (data["pitcher"] as JsonArray).map(Number)
         });
 
         return Promise.all([
             ...AssetLoader.CRITICAL_ASSETS.map(path => this.load(path)),
             this.loadQualityLegend(),
             this.loadIcons(),
-            orgMapReady, // That map has been written after being received
+            orgMapReady,
+            warBucketsLoaded,
         ]).then(() => undefined);
     }
 
@@ -107,6 +114,11 @@ class AssetLoader {
         };
     }
     org_map : JsonObject | null = null
+
+    ///////////////// WAR buckets /////////////////////////////
+    war_buckets_hitter : number[] = [0,0.5,3,7.5,15,25,35] // Decent defaults if not overwritten
+    war_buckets_pitcher : number[] = [0,0.5,3,7.5,15,25,35]
+
 }
 const assetLoader = new AssetLoader()
 
