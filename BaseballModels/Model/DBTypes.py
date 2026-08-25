@@ -2150,5 +2150,22 @@ class DB_League_GameCounts:
 		items = cursor.execute("SELECT * FROM League_GameCounts " + conditional, values).fetchall()
 		return [DB_League_GameCounts(i) for i in items]
 
+class DB_DraftPickValues:
+	def __init__(self, values : tuple[any]):
+		self.Pick = values[0]
+		self.WarHitter = values[1]
+		self.WarPitcher = values[2]
+
+	NUM_ELEMENTS = 3
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Pick,self.WarHitter,self.WarPitcher)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_DraftPickValues']:
+		items = cursor.execute("SELECT * FROM DraftPickValues " + conditional, values).fetchall()
+		return [DB_DraftPickValues(i) for i in items]
+
 
 ##############################################################################################

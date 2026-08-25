@@ -227,6 +227,12 @@ namespace DataAquisition
                 Misc.GetDraftSlotValues.Update(years);
             }
 
+            ////////// Draft Value Calculation //////////
+            if (FULL_REFRESH)
+            {
+                Misc.CalculateDraftPickValue.Update();
+            }
+
             #pragma warning disable CS0162
         }
     }

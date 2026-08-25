@@ -1463,3 +1463,12 @@ CREATE TABLE Model_College_PitcherProStats
 
 	PRIMARY KEY("TBCId")
 );
+
+CREATE TABLE DraftPickValues
+(
+	"Pick" INTEGER NOT NULL,
+	"WarHitter" REAL NOT NULL,
+	"WarPitcher" REAL NOT NULL,
+
+	PRIMARY KEY("Pick")
+);
