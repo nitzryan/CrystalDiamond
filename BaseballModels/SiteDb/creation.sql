@@ -222,10 +222,13 @@ CREATE INDEX idx_DraftRankMLBID on DraftRank
 );
 
 CREATE TABLE "TeamRank" (
+	-- PK Data
 	"teamId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,
 	"year" INTEGER NOT NULL,
 	"month" INTEGER NOT NULL,
+
+	-- Rank data
 	"highestRank" INTEGER NOT NULL,
 	"top10" INTEGER NOT NULL,
 	"top50" INTEGER NOT NULL,
@@ -234,6 +237,19 @@ CREATE TABLE "TeamRank" (
 	"top500" INTEGER NOT NULL,
 	"rank" INTEGER NOT NULL,
 	"war" REAL NOT NULL,
+
+	-- Breakdown by demo
+	"warHitter" REAL NOT NULL,
+	"warPitcher" REAL NOT NULL,
+	"warDraftHitter" REAL NOT NULL,
+	"warDraftPitcher" REAL NOT NULL,
+	"draftCapitalHitter" REAL NOT NULL,
+	"draftCapitalPitcher" REAL NOT NULL,
+	"warSignHitter" REAL NOT NULL,
+	"warSignPitcher" REAL NOT NULL,
+	"warTradeHitter" REAL NOT NULL,
+	"warTradePitcher" REAL NOT NULL,
+
 	PRIMARY KEY("teamId", "year", "month", "modelId")
 );
 

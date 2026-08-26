@@ -769,6 +769,8 @@ CREATE TABLE "Transaction_Log" (
 	"day" INTEGER NOT NULL,
 	"toIL" INTEGER NOT NULL,
 	"parentOrgId" INTEGER NOT NULL,
+	"prevParentOrgId" INTEGER,
+	"transactionType" INTEGER NOT NULL,
 	PRIMARY KEY("transactionId")
 );
 

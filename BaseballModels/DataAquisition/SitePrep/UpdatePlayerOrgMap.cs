@@ -12,6 +12,8 @@ namespace DataAquisition.SitePrep
             public required int Year;
             public required int Month;
             public required int Day;
+            public int? PrevTeamId;
+            public bool IsTransaction;
         }
 
         public static void Update()
@@ -28,16 +30,16 @@ namespace DataAquisition.SitePrep
                     {
                         // Get all transactions and games
                         List<DateTeam> transactions = db.Transaction_Log.Where(f => f.MlbId == id)
-                            .AsNoTracking()
                             .Select(f => new DateTeam {
                                 TeamId = f.ParentOrgId,
+                                PrevTeamId = f.PrevParentOrgId,
                                 Year = f.Year,
                                 Month = f.Month,
-                                Day = f.Day
+                                Day = f.Day,
+                                IsTransaction = true,
                             }).ToList();
 
                         var hitterGames = db.Player_Hitter_GameLog.Where(f => f.MlbId == id)
-                            .AsNoTracking()
                             .Select(f => new DateTeam
                             {
                                 TeamId = f.TeamId,
@@ -47,7 +49,6 @@ namespace DataAquisition.SitePrep
                             }).AsEnumerable();
 
                         var pitcherGames = db.Player_Pitcher_GameLog.Where(f => f.MlbId == id)
-                            .AsNoTracking()
                             .Select(f => new DateTeam
                             {
                                 TeamId = f.TeamId,
@@ -61,51 +62,40 @@ namespace DataAquisition.SitePrep
 
                         // Map teamIds to parents
                         Dictionary<(int, int), int> teamMap = new();
-                        foreach (var t in transactions)
+                        foreach (var t in transactions.Where(f => !f.IsTransaction))
                         {
                             if (!teamMap.ContainsKey((t.TeamId, t.Year)))
                             {
                                 int tId = Utilities.GetParentOrgId(t.TeamId, t.Year, db);
                                 teamMap.Add((t.TeamId, t.Year), tId > 0 ? tId : 0);
                             }
+                            t.TeamId = teamMap[(t.TeamId, t.Year)];
                         }
 
-                        // Sort
-                        transactions = transactions.OrderBy(f => f.Year)
-                            .ThenBy(f => f.Month)
-                            .ThenBy(f => f.Day)
-                            .ThenByDescending(f => f.TeamId) // makes it so release/sign gives new team first below team 0
-                            .ToList();
-
-                        // Iterate through transactions, searching for team changes
+                        // Group by day, oldest first
+                        var days = transactions
+                            .GroupBy(f => (f.Year, f.Month, f.Day))
+                            .OrderBy(g => g.Key.Year)
+                            .ThenBy(g => g.Key.Month)
+                            .ThenBy(g => g.Key.Day);
+                        // Iterate through days, searching for team changes
                         int currentTeam = 0;
-
-                        // Can have multiple transactions in a day, so take first
-                        int prevYear = 0;
-                        int prevMonth = 0;
-                        int prevDay = 0;
-                        foreach (var t in transactions)
+                        foreach (var day in days)
                         {
-                            int teamId = teamMap[(t.TeamId, t.Year)];
-                            if (teamId != currentTeam && (t.Year != prevYear || t.Month != prevMonth || t.Day != prevDay))
+                            int teamId = ResolveEndOfDayOrg(day);
+                            if (teamId != currentTeam)
                             {
-                                //Console.WriteLine($"{id} {t.Year} {t.Month} {t.Day} {t.TeamId}");
                                 db.Player_OrgMap.Add(new Player_OrgMap
                                 {
                                     MlbId = id,
-                                    Year = t.Year,
-                                    Month = t.Month,
-                                    Day = t.Day,
+                                    Year = day.Key.Year,
+                                    Month = day.Key.Month,
+                                    Day = day.Key.Day,
                                     ParentOrgId = teamId
                                 });
-
                                 currentTeam = teamId;
-                                prevYear = t.Year;
-                                prevDay = t.Day;
-                                prevMonth = t.Month;
                             }
                         }
-
                         progressBar.Tick();
                     }
                 }
@@ -117,6 +107,35 @@ namespace DataAquisition.SitePrep
                 Utilities.LogException(e);
                 throw;
             }
+        }
+
+        // Handles multiple transactions on a same day
+        private static int ResolveEndOfDayOrg(IEnumerable<DateTeam> day)
+        {
+            var txns = day.Where(f => f.IsTransaction).ToList();
+
+            // No transactions, player played in a game
+            if (txns.Count == 0)
+                return day.Max(f => f.TeamId);
+
+            // Only 1 transaction, take that team
+            if (txns.Count == 1)
+                return txns[0].TeamId;
+
+            // Any org that was departed on this day can't be the final state.
+            // Intra-org rows (prev == to) and unknown prevs don't eliminate anything.
+            var departed = txns
+                .Where(f => f.PrevTeamId.HasValue && f.PrevTeamId.Value != f.TeamId)
+                .Select(f => f.PrevTeamId!.Value)
+                .ToHashSet();
+
+            var candidates = txns.Where(f => !departed.Contains(f.TeamId)).ToList();
+            if (candidates.Count == 0)
+                candidates = txns; // inconsistent data (cycle) – fall back to all rows
+
+            // Tie-break when the chain can't fully resolve (e.g. DFA -> 0 and CLW -> B both unrefuted):
+            // prefer a real org over no org
+            return candidates.Max(f => f.TeamId);
         }
     }
 }

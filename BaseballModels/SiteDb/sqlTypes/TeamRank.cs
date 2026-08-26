@@ -14,6 +14,16 @@ namespace SiteDb
 		public required int Top500 {get; set;}
 		public required int Rank {get; set;}
 		public required float War {get; set;}
+		public required float WarHitter {get; set;}
+		public required float WarPitcher {get; set;}
+		public required float WarDraftHitter {get; set;}
+		public required float WarDraftPitcher {get; set;}
+		public required float DraftCapitalHitter {get; set;}
+		public required float DraftCapitalPitcher {get; set;}
+		public required float WarSignHitter {get; set;}
+		public required float WarSignPitcher {get; set;}
+		public required float WarTradeHitter {get; set;}
+		public required float WarTradePitcher {get; set;}
 
 		public TeamRank Clone()
 		{
@@ -31,6 +41,16 @@ namespace SiteDb
 				Top500 = this.Top500,
 				Rank = this.Rank,
 				War = this.War,
+				WarHitter = this.WarHitter,
+				WarPitcher = this.WarPitcher,
+				WarDraftHitter = this.WarDraftHitter,
+				WarDraftPitcher = this.WarDraftPitcher,
+				DraftCapitalHitter = this.DraftCapitalHitter,
+				DraftCapitalPitcher = this.DraftCapitalPitcher,
+				WarSignHitter = this.WarSignHitter,
+				WarSignPitcher = this.WarSignPitcher,
+				WarTradeHitter = this.WarTradeHitter,
+				WarTradePitcher = this.WarTradePitcher,
 			};
 		}
 	}

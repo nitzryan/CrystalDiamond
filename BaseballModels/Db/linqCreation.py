@@ -46,6 +46,8 @@ type_overrides = [
     TypeOverride("PitchNonStatcast", "Scenario", "DbEnums.PitchScenario"),
     
     TypeOverride("Model_Players", "ProspectType", "DbEnums.ProspectType"),
+    
+    TypeOverride("Transaction_Log", "TransactionType", "DbEnums.TransactionType"),
                 ]
 
 boolean_types = [

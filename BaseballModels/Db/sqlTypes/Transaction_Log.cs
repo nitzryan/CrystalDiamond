@@ -9,6 +9,8 @@ namespace Db
 		public required int Day {get; set;}
 		public required int ToIL {get; set;}
 		public required int ParentOrgId {get; set;}
+		public int? PrevParentOrgId {get; set;}
+		public required DbEnums.TransactionType TransactionType {get; set;}
 
 		public Transaction_Log Clone()
 		{
@@ -21,6 +23,8 @@ namespace Db
 				Day = this.Day,
 				ToIL = this.ToIL,
 				ParentOrgId = this.ParentOrgId,
+				PrevParentOrgId = this.PrevParentOrgId,
+				TransactionType = this.TransactionType,
 			};
 		}
 	}

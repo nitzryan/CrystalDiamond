@@ -294,5 +294,23 @@ namespace Db
             HS_JUCO = 2, // TODO: Can probably get college data from MLB profile
             IntlFA = 3,
         }
+
+        public enum TransactionType
+        {
+            Other = 0,
+            Signed = 1,
+            Trade = 2,
+            WaiverClaim = 3,
+            Purchase = 4,
+            Rule5 = 5,
+            Draft = 6,
+            Released = 7,
+            DFA = 8,
+            Waivers = 9,
+            FreeAgency = 10,
+            Retired = 11,
+            Restricted = 12,
+            Loan = 13,
+        }
     }
 }

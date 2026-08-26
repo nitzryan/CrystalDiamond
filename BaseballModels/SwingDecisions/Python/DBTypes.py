@@ -817,27 +817,6 @@ class DB_Player_OrgMap:
 		items = cursor.execute("SELECT * FROM Player_OrgMap " + conditional, values).fetchall()
 		return [DB_Player_OrgMap(i) for i in items]
 
-class DB_Transaction_Log:
-	def __init__(self, values : tuple[any]):
-		self.transactionId = values[0]
-		self.mlbId = values[1]
-		self.year = values[2]
-		self.month = values[3]
-		self.day = values[4]
-		self.toIL = values[5]
-		self.parentOrgId = values[6]
-
-	NUM_ELEMENTS = 7
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.transactionId,self.mlbId,self.year,self.month,self.day,self.toIL,self.parentOrgId)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Transaction_Log']:
-		items = cursor.execute("SELECT * FROM Transaction_Log " + conditional, values).fetchall()
-		return [DB_Transaction_Log(i) for i in items]
-
 class DB_Player_Pitcher_GameLog:
 	def __init__(self, values : tuple[any]):
 		self.gameLogId = values[0]
@@ -2166,6 +2145,29 @@ class DB_DraftPickValues:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_DraftPickValues']:
 		items = cursor.execute("SELECT * FROM DraftPickValues " + conditional, values).fetchall()
 		return [DB_DraftPickValues(i) for i in items]
+
+class DB_Transaction_Log:
+	def __init__(self, values : tuple[any]):
+		self.transactionId = values[0]
+		self.mlbId = values[1]
+		self.year = values[2]
+		self.month = values[3]
+		self.day = values[4]
+		self.toIL = values[5]
+		self.parentOrgId = values[6]
+		self.prevParentOrgId = values[7]
+		self.transactionType = values[8]
+
+	NUM_ELEMENTS = 9
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.transactionId,self.mlbId,self.year,self.month,self.day,self.toIL,self.parentOrgId,self.prevParentOrgId,self.transactionType)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Transaction_Log']:
+		items = cursor.execute("SELECT * FROM Transaction_Log " + conditional, values).fetchall()
+		return [DB_Transaction_Log(i) for i in items]
 
 
 ##############################################################################################

@@ -31,7 +31,6 @@ namespace Db
 		public DbSet<Player_Hitter_MonthlyRatios> Player_Hitter_MonthlyRatios {get; set;}
 		public DbSet<Player_Hitter_YearAdvanced> Player_Hitter_YearAdvanced {get; set;}
 		public DbSet<Player_OrgMap> Player_OrgMap {get; set;}
-		public DbSet<Transaction_Log> Transaction_Log {get; set;}
 		public DbSet<Player_Pitcher_GameLog> Player_Pitcher_GameLog {get; set;}
 		public DbSet<Player_Pitcher_MonthAdvanced> Player_Pitcher_MonthAdvanced {get; set;}
 		public DbSet<Player_Pitcher_MonthStats> Player_Pitcher_MonthStats {get; set;}
@@ -79,6 +78,7 @@ namespace Db
 		public DbSet<Model_PitcherStats> Model_PitcherStats {get; set;}
 		public DbSet<League_GameCounts> League_GameCounts {get; set;}
 		public DbSet<DraftPickValues> DraftPickValues {get; set;}
+		public DbSet<Transaction_Log> Transaction_Log {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -111,7 +111,6 @@ namespace Db
 			modelBuilder.Entity<Player_Hitter_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_Hitter_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Day});
-			modelBuilder.Entity<Transaction_Log>().HasKey(f => new {f.TransactionId});
 			modelBuilder.Entity<Player_Pitcher_GameLog>().HasKey(f => new {f.GameLogId});
 			modelBuilder.Entity<Player_Pitcher_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
@@ -159,6 +158,7 @@ namespace Db
 			modelBuilder.Entity<Model_PitcherStats>().HasKey(f => new {f.MlbId,f.Year,f.Month});
 			modelBuilder.Entity<League_GameCounts>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<DraftPickValues>().HasKey(f => new {f.Pick});
+			modelBuilder.Entity<Transaction_Log>().HasKey(f => new {f.TransactionId});
 		}
 	}
 }

@@ -1,6 +1,8 @@
 ﻿using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
+using static Db.DbEnums;
 
 namespace DataAquisition.SitePrep
 {
@@ -9,6 +11,24 @@ namespace DataAquisition.SitePrep
         private const int NUM_THREADS = 16;
         private static int progress_bar_thread = 0;
         private static List<int> thread_counts = [];
+
+        private static TransactionType GetTransactionType(string code) => code switch
+        {
+            "SGN" or "SFA" => TransactionType.Signed,
+            "TR" => TransactionType.Trade,
+            "CLW" => TransactionType.WaiverClaim,
+            "PUR" => TransactionType.Purchase,
+            "R5" or "R5M" => TransactionType.Rule5,
+            "DR" => TransactionType.Draft,
+            "REL" => TransactionType.Released,
+            "DFA" or "DES" => TransactionType.DFA,
+            "WA" => TransactionType.Waivers,
+            "DEC" => TransactionType.FreeAgency,
+            "RET" => TransactionType.Retired,
+            "RES" => TransactionType.Restricted,
+            "LON" => TransactionType.Loan,
+            _ => TransactionType.Other,
+        };
 
         private static async Task<(IEnumerable<Transaction_Log>, IEnumerable<string>, IEnumerable<(int, int)>)> GetTransaction_Logs(IEnumerable<int> ids, int thread_idx, ProgressBar progressBar, int progressSum)
         {
@@ -32,14 +52,16 @@ namespace DataAquisition.SitePrep
                     string responseBody = await response.Content.ReadAsStringAsync();
                     JsonDocument json = JsonDocument.Parse(responseBody);
                     var transactions = json.RootElement.GetProperty("transactions").EnumerateArray();
+
+                    int? lastParentOrgId = null; // Track the last team the player was on
                     foreach (var t in transactions)
                     {
                         // Determine what the transaction is
                         string code = t.GetProperty("typeCode").GetString() ?? throw new Exception($"Failed to get code for {id}");
 
                         // Get Date
-                        string birthdateFormatted = t.GetProperty("date").GetString() ?? throw new Exception("No birthDate found");
-                        int[] birthdate = Array.ConvertAll(birthdateFormatted.Split("-"), Convert.ToInt32);
+                        string dateFormatted = t.GetProperty("date").GetString() ?? throw new Exception("No birthDate found");
+                        int[] date = Array.ConvertAll(dateFormatted.Split("-"), Convert.ToInt32);
 
                         int teamId = -1;
                         int toIL = 0; // 1 to IL, -1 Activated From IL
@@ -54,7 +76,7 @@ namespace DataAquisition.SitePrep
 
                         // Set Player Retired Status
                         if (code == "RET")
-                            playerRetireLogs.Add((id, birthdate[0]));
+                            playerRetireLogs.Add((id, date[0]));
 
                         if (code == "SU")
                             toIL = Constants.TL_SUSP;
@@ -92,30 +114,57 @@ namespace DataAquisition.SitePrep
                             }
                         }
 
-                        int parentOrgId = teamId == 0 ? teamId : Utilities.GetParentOrgId(teamId, birthdate[0], db);
+                        int parentOrgId = teamId == 0 ? teamId : Utilities.GetParentOrgId(teamId, date[0], db);
                         if (parentOrgId == -2) // Not moved to a valid team (often for pre-draft or AFL transactions
                             continue;
+
+                        TransactionType transactionType = GetTransactionType(code);
+                        
+                        // Previous org: prefer what the API says, fall back to previous value
+                        int ? prevParentOrgId;
+                        if (transactionType is TransactionType.Signed or TransactionType.Draft)
+                        {
+                            prevParentOrgId = 0; // Came from no org
+                        }
+                        else if (t.TryGetProperty("fromTeam", out var fromTeam))
+                        {
+                            int fromParentOrgId = Utilities.GetParentOrgId(fromTeam.GetProperty("id").GetInt32(), date[0], db);
+                            prevParentOrgId = fromParentOrgId == -2 ? null : fromParentOrgId;
+                        }
+                        else
+                        {
+                            // No fromTeam given (typical for OPT/ASG/SC/etc.). These are virtually always
+                            // intra-org, so the last known org is a safe inference. Null if we have no history.
+                            prevParentOrgId = lastParentOrgId;
+                        }
 
                         Transaction_Log tl = new Transaction_Log
                         {
                             MlbId = id,
-                            Year = birthdate[0],
-                            Month = birthdate[1],
-                            Day = birthdate[2],
+                            Year = date[0],
+                            Month = date[1],
+                            Day = date[2],
                             ToIL = toIL,
-                            ParentOrgId = parentOrgId
+                            ParentOrgId = parentOrgId,
+                            PrevParentOrgId = prevParentOrgId,
+                            TransactionType = transactionType
                         };
 
                         // Sometimes has duplicate transactions, so check different than last
-                        if (!logs.Any() 
-                            || tl.Year != logs.Last().Year 
-                            || tl.Month != logs.Last().Month 
+                        if (!logs.Any()
+                            || tl.MlbId != logs.Last().MlbId
+                            || tl.Year != logs.Last().Year
+                            || tl.Month != logs.Last().Month
                             || tl.Day != logs.Last().Day
                             || tl.ToIL != logs.Last().ToIL
-                            || tl.ParentOrgId != logs.Last().ParentOrgId)
+                            || tl.ParentOrgId != logs.Last().ParentOrgId
+                            || tl.PrevParentOrgId != logs.Last().PrevParentOrgId
+                            || tl.TransactionType != logs.Last().TransactionType)
                         {
                             logs.Add(tl);
                         }
+                        
+                        lastParentOrgId = parentOrgId;
                     }
                 }
                 catch (Exception e)
@@ -140,8 +189,7 @@ namespace DataAquisition.SitePrep
             try
             {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
-                db.Transaction_Log.RemoveRange(db.Transaction_Log);
-                db.SaveChanges();
+                db.Transaction_Log.ExecuteDelete();
 
                 HttpClient httpClient = new();
                 StreamWriter file = File.CreateText(Constants.DATA_AQ_DIRECTORY + $"Logs/PlayerOrgMap.txt");
