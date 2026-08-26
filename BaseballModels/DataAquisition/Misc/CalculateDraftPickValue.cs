@@ -91,22 +91,12 @@ namespace DataAquisition.Misc
                 else
                 {
                     // Get log-linear fit
-                    var fit = LinearRegression(
+                    var (Intercept, Slope) = LinearRegression(
                         seg.Select(d => Math.Log(d.Pick)).ToArray(),
                         seg.Select(d => d.War).ToArray());
 
-                    //// Prevent negative slope
-                    //if (fit.Slope > 0)
-                    //{
-                    //    double mean = seg.Average(d => d.War);
-                    //    Console.WriteLine(
-                    //        $"[{label}] picks {segStart}-{segEnd}: fit slope is POSITIVE ({fit.Slope:F4} WAR per ln(pick), " +
-                    //        $"n={seg.Count}). Flattening to mean {mean:F3}.");
-                    //    fit = (mean, 0);
-                    //}
-
-                    double Y0 = fit.Intercept + (Math.Log(segStart) * fit.Slope);
-                    double Y1 = fit.Intercept + (Math.Log(segEnd + 1) * fit.Slope);
+                    double Y0 = Intercept + (Math.Log(segStart) * Slope);
+                    double Y1 = Intercept + (Math.Log(segEnd + 1) * Slope);
 
                     fitPoints[i] = (Y0, Y1);
                 }
