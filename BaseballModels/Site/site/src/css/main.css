@@ -178,3 +178,11 @@ p, details {
     font-size: 1.4em;
 }
 
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable:hover {
+    background-color: var(--color-high);
+}

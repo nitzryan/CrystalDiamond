@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/ts/Global/*.ts", "src/ts/stats.ts", "src/ts/Misc/SortableStatsViewer.ts", "src/ts/Misc/DateSelector.ts"],
+    "include": ["src/ts/Global/*.ts", "src/ts/stats.ts", "src/ts/Misc/SortableStatsViewer.ts", "src/ts/Misc/DateSelector.ts", "src/ts/Misc/SortableTable.ts"],
 }

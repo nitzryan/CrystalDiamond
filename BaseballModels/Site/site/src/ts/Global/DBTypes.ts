@@ -400,6 +400,9 @@ class DB_DraftRank
 	public isHitter : number
 	public Name : string
 	public Position : string
+	public BirthYear : number
+	public BirthMonth : number
+	public BirthDate : number
 	public year : number
 	public isEligible : number
 	public rankEligible : number
@@ -417,6 +420,9 @@ class DB_DraftRank
 		this.isHitter = data['isHitter'] as number
 		this.Name = data['Name'] as string
 		this.Position = data['Position'] as string
+		this.BirthYear = data['BirthYear'] as number
+		this.BirthMonth = data['BirthMonth'] as number
+		this.BirthDate = data['BirthDate'] as number
 		this.year = data['year'] as number
 		this.isEligible = data['isEligible'] as number
 		this.rankEligible = data['rankEligible'] as number
@@ -442,6 +448,16 @@ class DB_TeamRank
 	public top500 : number
 	public rank : number
 	public war : number
+	public warHitter : number
+	public warPitcher : number
+	public warDraftHitter : number
+	public warDraftPitcher : number
+	public draftCapitalHitter : number
+	public draftCapitalPitcher : number
+	public warSignHitter : number
+	public warSignPitcher : number
+	public warTradeHitter : number
+	public warTradePitcher : number
 
 	constructor(data : JsonObject)
 	{
@@ -457,6 +473,16 @@ class DB_TeamRank
 		this.top500 = data['top500'] as number
 		this.rank = data['rank'] as number
 		this.war = data['war'] as number
+		this.warHitter = data['warHitter'] as number
+		this.warPitcher = data['warPitcher'] as number
+		this.warDraftHitter = data['warDraftHitter'] as number
+		this.warDraftPitcher = data['warDraftPitcher'] as number
+		this.draftCapitalHitter = data['draftCapitalHitter'] as number
+		this.draftCapitalPitcher = data['draftCapitalPitcher'] as number
+		this.warSignHitter = data['warSignHitter'] as number
+		this.warSignPitcher = data['warSignPitcher'] as number
+		this.warTradeHitter = data['warTradeHitter'] as number
+		this.warTradePitcher = data['warTradePitcher'] as number
 	}
 }
 

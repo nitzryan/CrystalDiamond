@@ -6,5 +6,5 @@
         "outDir": "dist",
         "rootDir": "src",
     },
-    "include": ["src/ts/Global/*.ts", "src/ts/player.ts", "src/ts/Graphs/*.ts"],
+    "include": ["src/ts/Global/*.ts", "src/ts/player.ts", "src/ts/Graphs/*.ts", "src/ts/Misc/SortableTable.ts"],
 }

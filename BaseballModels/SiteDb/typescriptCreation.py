@@ -9,7 +9,7 @@ cursor = db.cursor()
 cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 tables = cursor.fetchall()
 
-with open(f"../Site/site/src/ts/dbtypes.ts", "w") as file:
+with open(f"../Site/site/src/ts/Global/DBtypes.ts", "w") as file:
     for table, in tables:
         # Get table data
         cursor.execute(f"PRAGMA table_info({table})")
