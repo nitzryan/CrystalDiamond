@@ -48,7 +48,9 @@ async function main()
         split : {
             groupId : 'split_select',
             initial : parseTableSplit(getQueryParamBackupStr('split', 'all'))
-        }
+        },
+        split_filter : (row, split) => true,
+        view_filter : (t, view) => true
     })
 
     setupSelector({
@@ -118,6 +120,7 @@ function rankColumn() : Column
     return {
         header : '',
         cls : 'c_rank',
+        sortable : false,
         value : t => t.rank,
         render : (_, idx) => (idx + 1).toString()
     }
@@ -127,6 +130,7 @@ function nameColumn() : Column
     return {
         header : 'Team',
         cls : 'c_name',
+        sortable : true,
         value : t => getParentName(t.teamId),
         render : (t, _) => `<a href='./rankings?team=${t.teamId}&year=${year}&month=${month}&model=${modelId}'>${getParentName(t.teamId)}</a>`
     }
@@ -136,6 +140,7 @@ function warColumn() : Column
     return {
         header : 'WAR',
         cls : 'c_value',
+        sortable : true,
         value : t => warTotal(t),
         render : (t, _) => warTotal(t).toFixed(1)
     }
@@ -145,6 +150,7 @@ function warDraftColumn() : Column
     return {
         header : 'WAR',
         cls : 'c_value',
+        sortable : true,
         value : t => warDraft(t),
         render : (t, _) => warDraft(t).toFixed(1)
     }
@@ -154,6 +160,7 @@ function countColumn(header : string, get : (t : DB_TeamRank) => number) : Colum
     return {
         header : header,
         cls : 'c_value',
+        sortable : true,
         value : t => get(t),
         render : (t, _) => get(t).toString()
     }
@@ -163,6 +170,7 @@ function warValueColumn(header : string, get : (t : DB_TeamRank) => number) : Co
     return {
         header : header,
         cls : 'c_value',
+        sortable : true,
         value : t => get(t),
         render : (t, _) => get(t).toFixed(1)
     }
@@ -175,6 +183,7 @@ function warShareColumn(header : string, get : (t : DB_TeamRank) => number) : Co
     return {
         header : header,
         cls : 'c_value',
+        sortable : true,
         value : t => get(t),
         render : (t, _) => {
             const v = get(t)
@@ -190,6 +199,7 @@ function warCapitalColumn() : Column
     return {
         header : "Capital",
         cls : "c_value",
+        sortable : true,
         value : t => draftCapital(t),
         render : (t, _) => draftCapital(t).toFixed(1)
     }
@@ -200,6 +210,7 @@ function warDraftPercOfCapital(header : string, get : (t : DB_TeamRank) => numbe
     return {
         header : header,
         cls : 'c_value',
+        sortable : true,
         value : t => get(t),
         render : (t, _) => {
             return `${Math.round(100 * get(t))}%`

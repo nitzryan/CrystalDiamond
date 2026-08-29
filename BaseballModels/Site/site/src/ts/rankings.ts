@@ -2,6 +2,7 @@ let month : number
 let year : number
 let modelId : number
 let teamId : number | null
+let playerTable : PlayerLoaderTable | null = null
 
 async function main()
 {
@@ -27,14 +28,12 @@ async function main()
         level : null
     })
     
-    setupRankings({
-        month : month,
-        year : year,
-        model : modelId,
-        teamId : teamId,
-        period : 0,
-        type: PlayerLoaderType.Prospect
-    }, 100)
+    playerTable = new PlayerLoaderTable({
+         month : month,
+         year : year,
+         model : modelId,
+         teamId : teamId,
+     }, 250)
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value

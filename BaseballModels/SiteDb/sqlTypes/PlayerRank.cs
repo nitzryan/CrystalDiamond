@@ -15,6 +15,8 @@ namespace SiteDb
 		public required int HighestLevel {get; set;}
 		public required bool TrainingBias {get; set;}
 		public required DbEnums.TimestepQuality TimestepQuality {get; set;}
+		public required DbEnums.AcquisitionType AcqType {get; set;}
+		public int? DraftPick {get; set;}
 
 		public PlayerRank Clone()
 		{
@@ -33,6 +35,8 @@ namespace SiteDb
 				HighestLevel = this.HighestLevel,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,
+				AcqType = this.AcqType,
+				DraftPick = this.DraftPick,
 			};
 		}
 	}

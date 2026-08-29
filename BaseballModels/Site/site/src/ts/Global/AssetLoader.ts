@@ -124,3 +124,25 @@ const assetLoader = new AssetLoader()
 
 // Quality Rankings
 type QualityLegendEntry = { label : string, blurb : string, severity : number }
+function renderQualityIcon(timestepQuality : number | null, trainingBias : boolean) : string
+{
+    if (timestepQuality === null)
+        return ""
+
+    if (trainingBias)
+    {
+        const entry = assetLoader.qualityLegend.get(`trainingBias:1`)
+        const blurb = entry !== undefined ? entry.blurb : ""
+        return `<img class='c_quality_icon' src='/assets/training.svg' title="${blurb}" alt='In Training'>`
+    }
+
+    const entry = assetLoader.qualityLegend.get(`timestepQuality:${timestepQuality}`)
+    if (entry === undefined)
+        return ""
+
+    // Severity.VeryLow = 0, Severity.Low = 1
+    if (entry.severity === 0 || entry.severity === 1)
+        return `<img class='c_quality_icon' src='/assets/warning.svg' title="${entry.blurb}" alt='Low Quality'>`
+
+    return ""
+}

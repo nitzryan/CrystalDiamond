@@ -163,29 +163,12 @@ app.get('/draft_rank', (req, res) => {
     try {
         const year = req.query.year
         const model = req.query.model
-        const reqType = req.query.reqType
-
-        let order_string
-        let conditional_string
-
-        if (reqType == 4)
-        {
-            order_string = "ORDER BY rankEligible"
-            conditional_string = "AND rankEligible > 0"
-        } else if (reqType == 5)
-        {
-            order_string = "ORDER BY DraftPick"
-            conditional_string = "AND DraftPick IS NOT NULL"
-        } else {
-            throw Error(`Unexpected ReqType: ${reqType} recieved, 4 or 5 expected`)
-        }
 
         db.all(`
             SELECT *
             FROM DraftRank
             WHERE Year=? AND ModelId=?
-            ${conditional_string}
-            ${order_string}
+            AND ((isEligible=1) OR (draftPick IS NOT NULL))
         `, [year, model], (err, rows) => {
             res.json(rows)
         })

@@ -192,6 +192,8 @@ CREATE TABLE "PlayerRank" (
 	"highestLevel" INTEGER NOT NULL,
 	"trainingBias" INTEGER NOT NULL,
 	"timestepQuality" INTEGER NOT NULL,
+	"acqType" INTEGER NOT NULL,
+	"draftPick" INTEGER,
 	PRIMARY KEY("mlbId", "year", "month", "modelId", "isHitter")
 );
 

@@ -4,6 +4,7 @@ type TableSplit = 'all' | 'hitters' | 'pitchers'
 type SortableColumn<T> = {
     header : string
     cls : string
+    sortable : boolean
     value : (t : T) => SortValue
     render : (t : T, idx : number) => string
 }
@@ -31,6 +32,8 @@ type SortableTableConfig<T, V extends string> = {
         initial : TableSplit
         onChange? : (split : TableSplit) => void
     }
+    split_filter : (row : T, split : TableSplit) => boolean
+    view_filter : (t : T, view : V) => boolean
 }
 
 class SortableTable<T, V extends string>
@@ -47,6 +50,9 @@ class SortableTable<T, V extends string>
     private sortColumn : number | null = null
     private sortAsc : boolean = false
 
+    private split_filter : (row : T, split : TableSplit) => boolean
+    private view_filter : (t : T, view : V) => boolean
+
     constructor(config : SortableTableConfig<T, V>)
     {
 
@@ -57,6 +63,9 @@ class SortableTable<T, V extends string>
 
         this.view = config.view.initial
         this.split = config.split.initial
+
+        this.split_filter = config.split_filter
+        this.view_filter = config.view_filter
 
         this.setupViewToggle(config.view.groupId, config.view.parse, config.view.onChange)
         this.setupSplitToggle(config.split.groupId, config.split.onChange)
@@ -128,6 +137,14 @@ class SortableTable<T, V extends string>
         for (let i = 0; i < columns.length; i++)
         {
             const c = columns[i]
+            
+            // Create sortable or non-sortable header
+            if (c.sortable === false)
+            {
+                head += `<th>${c.header}</th>`
+                continue
+            }
+
             let arrow = ''
             if (i === this.sortColumn)
                 arrow = this.sortAsc ? ' ▲' : ' ▼'
@@ -168,11 +185,13 @@ class SortableTable<T, V extends string>
 
     private sortedRows(columns : SortableColumn<T>[]) : T[]
     {
+        const rows = this.rows.filter(r => this.split_filter(r, this.split) && this.view_filter(r, this.view))
+        
         if (this.sortColumn === null || this.sortColumn >= columns.length)
-            return this.rows
+            return rows
 
         const col = columns[this.sortColumn]
-        const sorted = [...this.rows]
+        const sorted = [...rows]
         sorted.sort((a, b) => {
             const av = col.value(a)
             const bv = col.value(b)

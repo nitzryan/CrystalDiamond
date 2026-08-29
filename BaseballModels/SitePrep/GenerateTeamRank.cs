@@ -2,10 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using SiteDb;
-using static Db.DbEnums;
+using SitePrep.Helpers;
 
 namespace SitePrep
 {
+    using AcqType = SiteDb.DbEnums.AcquisitionType;
+
     internal class GenerateTeamRank
     {
         public static void Update()
@@ -20,30 +22,13 @@ namespace SitePrep
 
                 // Pre-load data from Base DB
                 // Drafted players and their pick
-                Dictionary<int, int> draftPicks = db.Player
-                    .Where(f => f.DraftPick != null)
-                    .Select(f => new { f.MlbId, Pick = f.DraftPick!.Value })
-                    .ToDictionary(f => f.MlbId, f => f.Pick);
+                Dictionary<int, int> draftPicks = new AcquisitionLookup(db).DraftPicks;
 
                 // Expected WAR by pick
                 Dictionary<int, (float Hitter, float Pitcher)> pickValues = db.DraftPickValues
                     .Select(f => new { f.Pick, f.WarHitter, f.WarPitcher })
                     .ToList()
                     .ToDictionary(f => f.Pick, f => (f.WarHitter, f.WarPitcher));
-
-                // Track how player arrived to each organization each time they arrived
-                Dictionary<int, List<Arrival>> arrivals = db.Transaction_Log
-                   .Where(f => f.ParentOrgId != 0
-                            && (f.PrevParentOrgId == null || f.PrevParentOrgId != f.ParentOrgId))
-                   .Select(f => new { f.MlbId, f.Year, f.Month, f.Day, f.ParentOrgId, f.TransactionType })
-                   .ToList()
-                   .GroupBy(f => f.MlbId)
-                   .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(f => new Arrival(f.Year, f.Month, f.Day, f.ParentOrgId, f.TransactionType))
-                             .OrderBy(f => f.Year).ThenBy(f => f.Month).ThenBy(f => f.Day)
-                        .ToList()
-                );
 
                 // Caches Aquisition types, because they will be the same across different models
                 Dictionary<(int, int, int, int), AcqType> acqCache = new();
@@ -60,7 +45,7 @@ namespace SitePrep
                         // Get ranks, group with how aquired and draft capital
                         var playerRanks = siteDb.PlayerRank.AsNoTracking()
                             .Where(f => f.Year == year && f.Month == month && f.TeamId != 0 && f.ModelId == model)
-                            .Select(f => new { f.MlbId, f.TeamId, f.IsHitter, f.War, f.RankWar })
+                            .Select(f => new { f.MlbId, f.TeamId, f.IsHitter, f.War, f.RankWar, f.AcqType })
                             .ToList()
                             .Select(f => new
                             {
@@ -68,7 +53,7 @@ namespace SitePrep
                                 f.IsHitter,
                                 f.War,
                                 f.RankWar,
-                                Acq = GetAcqType(f.MlbId, f.TeamId, year, month, arrivals, draftPicks, acqCache),
+                                Acq = f.AcqType,
                                 DraftCapital = GetDraftCapital(f.MlbId, f.IsHitter, draftPicks, pickValues)
                             })
                             .GroupBy(f => f.TeamId);
@@ -94,10 +79,10 @@ namespace SitePrep
                                 WarDraftPitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Draft).Sum(f => f.War),
                                 DraftCapitalHitter = g.Where(f => f.IsHitter && f.Acq == AcqType.Draft).Sum(f => f.DraftCapital),
                                 DraftCapitalPitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Draft).Sum(f => f.DraftCapital),
-                                WarTradeHitter = g.Where(f => f.IsHitter && f.Acq == AcqType.Trade).Sum(f => f.War),
-                                WarTradePitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Trade).Sum(f => f.War),
-                                WarSignHitter = g.Where(f => f.IsHitter && f.Acq == AcqType.Sign).Sum(f => f.War),
-                                WarSignPitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Sign).Sum(f => f.War)
+                                WarTradeHitter = g.Where(f => f.IsHitter && f.Acq == AcqType.Traded).Sum(f => f.War),
+                                WarTradePitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Traded).Sum(f => f.War),
+                                WarSignHitter = g.Where(f => f.IsHitter && f.Acq == AcqType.Signed).Sum(f => f.War),
+                                WarSignPitcher = g.Where(f => !f.IsHitter && f.Acq == AcqType.Signed).Sum(f => f.War)
                             })
                             .OrderByDescending(g => g.War)
                             .ToList();
@@ -124,42 +109,6 @@ namespace SitePrep
                 Utilities.LogException(e);
                 throw;
             }
-        }
-
-        private enum AcqType { Draft, Trade, Sign }
-
-        // Data for when/how a player arrived to an org
-        private sealed record Arrival(int Year, int Month, int Day, int OrgId, TransactionType Type);
-
-        // Set of transaction types that are considered as traded for
-        private static readonly HashSet<TransactionType> TRADE_TYPES = [TransactionType.Trade];
-
-        // Get how a player was aquired for a given team on a given date
-        private static AcqType GetAcqType(int mlbId, int teamId, int year, int month,
-            Dictionary<int, List<Arrival>> arrivals,
-            Dictionary<int, int> draftPicks,
-            Dictionary<(int, int, int, int), AcqType> cache)
-        {
-            if (cache.TryGetValue((mlbId, teamId, year, month), out AcqType cached))
-                return cached;
-
-            AcqType result = draftPicks.ContainsKey(mlbId) ? AcqType.Draft : AcqType.Sign;
-            if (arrivals.TryGetValue(mlbId, out var events))
-            {
-                // Most recent arrival at this org on or before the end of the snapshot month
-                Arrival? latest = null;
-                foreach (var e in events) // ascending by date
-                {
-                    if (e.Year > year || (e.Year == year && e.Month > month))
-                        break;
-                    if (e.OrgId == teamId)
-                        latest = e;
-                }
-                if (latest != null && TRADE_TYPES.Contains(latest.Type))
-                    result = AcqType.Trade;
-            }
-            cache[(mlbId, teamId, year, month)] = result;
-            return result;
         }
 
         // Get the expected WAR for a player's draft slot

@@ -186,3 +186,35 @@ th.sortable {
 th.sortable:hover {
     background-color: var(--color-high);
 }
+
+#rankings_views {
+    gap: 2em;
+    margin-top: 0.75em;
+}
+
+.toggle_group {
+    display: flex;
+}
+
+.toggle_group button {
+    background-color: var(--background-high);
+    color: var(--text-low);
+    border: 1px solid var(--text-low);
+    padding: 0.2em 0.8em;
+}
+
+.toggle_group button + button {
+    border-left: none;
+}
+
+.toggle_group button.selected {
+    background-color: var(--color-med);
+    color: var(--text-high);
+    border-color: var(--text-high);
+}
+
+#rankings_table .c_share {
+    font-size: 1rem;
+    color: var(--text-low);
+    padding-left: 0.3em;
+}

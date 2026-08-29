@@ -31,5 +31,12 @@
             High = 3,
             VeryHigh = 4
         }
+
+        public enum AcquisitionType
+        { 
+            Signed = 1,
+            Draft = 2,
+            Traded = 3
+        }
     }
 }

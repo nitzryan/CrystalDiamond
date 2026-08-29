@@ -19,7 +19,8 @@ type_overrides = [
     TypeOverride("PlayerModel", "TimestepQuality", "DbEnums.TimestepQuality"), 
     TypeOverride("PlayerRank", "TimestepQuality", "DbEnums.TimestepQuality"), 
     TypeOverride("QualityCode", "Code", "DbEnums.TimestepQuality"), 
-    TypeOverride("QualityCode", "Severity", "DbEnums.Severity"), 
+    TypeOverride("QualityCode", "Severity", "DbEnums.Severity"),
+    TypeOverride("PlayerRank", "AcqType", "DbEnums.AcquisitionType"),
                 ]
 
 linqCreation(

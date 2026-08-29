@@ -7,6 +7,7 @@ using SiteDb;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using SitePrep.Helpers;
 
 namespace SitePrep
 {
@@ -26,7 +27,7 @@ namespace SitePrep
         }
 
         internal class PlayerMonthWar {
-            public required int MLbId;
+            public required int MlbId;
             public required int ModelId;
             public required bool isHitter;
             public required string position;
@@ -36,8 +37,14 @@ namespace SitePrep
             public required int TimestepN;
         }
 
-        private static void GenFunc(SqliteDbContext db, ModelDbContext modelDb, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear, HashSet<int> trainedMlbIds)
+        private static void GenFunc(SqliteDbContext db, ModelDbContext modelDb, SiteDbContext siteDb, ProgressBar progressBar, List<PlayerWar> initial_pwa, List<(int, int)> dates, int endMonth, int endYear, HashSet<int> trainedMlbIds, AcquisitionLookup acq)
         {
+            // Pre-load draft picks into dict
+            Dictionary<int, int?> draftPickDict = db.Player
+                .AsNoTracking()
+                .ToDictionary(f => f.MlbId,
+                f => f.DraftPick);
+        
             // Get ordered list of values for players
             List<List<PlayerWar>> playersWarList = new(initial_pwa.Count());
             using (ChildProgressBar topChild = progressBar.Spawn(initial_pwa.Count(), "Creating PlayersWarList"))
@@ -204,7 +211,7 @@ namespace SitePrep
                         int n = playerWarList.Count(f => f.isHitter == first.isHitter && (f.Year < year || (f.Year == year && f.Month <= month))) - 1;
                         pmwList.Add(new PlayerMonthWar
                         {
-                            MLbId = current.MlbId,
+                            MlbId = current.MlbId,
                             ModelId = current.ModelId,
                             isHitter = current.isHitter,
                             War = current.War,
@@ -228,7 +235,7 @@ namespace SitePrep
                         int r = rank;
                         ranks.Add(new PlayerRank
                         {
-                            MlbId = pmw.MLbId,
+                            MlbId = pmw.MlbId,
                             Year = year,
                             Month = month,
                             ModelId = pmw.ModelId,
@@ -239,10 +246,12 @@ namespace SitePrep
                             TeamId = pmw.ParentOrgId,
                             TeamRankWar = -1,
                             HighestLevel = pmw.HighestLevel,
-                            TrainingBias = trainedMlbIds.Contains(pmw.MLbId),
+                            TrainingBias = trainedMlbIds.Contains(pmw.MlbId),
                             TimestepQuality = pmw.isHitter
                                 ? Utilities.GetProHitterTimestepQuality(pmw.TimestepN)
                                 : Utilities.GetProPitcherTimestepQuality(pmw.TimestepN),
+                            AcqType = acq.Get(pmw.MlbId, pmw.ParentOrgId, year, month),
+                            DraftPick = draftPickDict[pmw.MlbId],
                         });
                         rank++;
                     }
@@ -319,6 +328,8 @@ namespace SitePrep
                 using var writerDates = new Utf8JsonWriter(gzipStreamDates, new JsonWriterOptions { Indented = false });
                 JsonSerializer.Serialize(writerDates, datesJson);
 
+                Helpers.AcquisitionLookup acq = new(db);
+
                 using (ProgressBar progressBar = new ProgressBar(modelDb.ModelId.Count(), "Generating Rankings for Models"))
                 {
                     foreach (var model in modelDb.ModelId)
@@ -353,7 +364,7 @@ namespace SitePrep
                             .Select(f => f.MlbId)
                             .Distinct()
                             .ToHashSet();
-                        GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear, trainedMlbIds);
+                        GenFunc(db, modelDb, siteDb, progressBar, initial_pwa, dates, endMonth, endYear, trainedMlbIds, acq);
 
                         progressBar.Tick();
                     }
