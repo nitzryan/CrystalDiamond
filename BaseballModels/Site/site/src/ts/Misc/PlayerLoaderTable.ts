@@ -164,6 +164,9 @@ class PlayerLoaderTable
                 if (view === 'drafted') return t.draftPick !== null
                 if (view === 'signed') return t.draftPick === null
                 return true
+            },
+            view_split_default_column : (split, view) => {
+                return null
             }
         })
 

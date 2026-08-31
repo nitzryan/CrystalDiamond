@@ -34,6 +34,7 @@ type SortableTableConfig<T, V extends string> = {
     }
     split_filter : (row : T, split : TableSplit) => boolean
     view_filter : (t : T, view : V) => boolean
+    view_split_default_column : (split : TableSplit, v : V) => number | null
 }
 
 class SortableTable<T, V extends string>
@@ -52,6 +53,7 @@ class SortableTable<T, V extends string>
 
     private split_filter : (row : T, split : TableSplit) => boolean
     private view_filter : (t : T, view : V) => boolean
+    private view_split_default_column : (split : TableSplit, v : V) => number | null
 
     constructor(config : SortableTableConfig<T, V>)
     {
@@ -66,6 +68,7 @@ class SortableTable<T, V extends string>
 
         this.split_filter = config.split_filter
         this.view_filter = config.view_filter
+        this.view_split_default_column = config.view_split_default_column
 
         this.setupViewToggle(config.view.groupId, config.view.parse, config.view.onChange)
         this.setupSplitToggle(config.split.groupId, config.split.onChange)
@@ -89,6 +92,7 @@ class SortableTable<T, V extends string>
                 this.split = parseTableSplit(btn.getAttribute('data-split') ?? '')
                 this.syncSplitButtons(groupId)
                 onChange?.(this.split)
+                this.setDefaultColumn()
                 this.render()
             })
         })
@@ -114,6 +118,7 @@ class SortableTable<T, V extends string>
                 this.resetSort()                    // column set changed
                 this.syncViewButtons(groupId)
                 onChange?.(this.view)
+                this.setDefaultColumn()
                 this.render()
             })
         })
@@ -125,6 +130,13 @@ class SortableTable<T, V extends string>
         document.querySelectorAll<HTMLButtonElement>(`#${groupId} button`)
             .forEach(btn => btn.classList.toggle('selected',
                 btn.getAttribute('data-view') === this.view))
+    }
+
+    private setDefaultColumn()
+    {
+        const default_order_column = this.view_split_default_column(this.split, this.view)
+        if (default_order_column != null)
+            this.sortColumn = default_order_column
     }
 
     // Display the table

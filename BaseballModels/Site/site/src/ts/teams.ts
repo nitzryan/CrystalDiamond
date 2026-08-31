@@ -50,7 +50,8 @@ async function main()
             initial : parseTableSplit(getQueryParamBackupStr('split', 'all'))
         },
         split_filter : (row, split) => true,
-        view_filter : (t, view) => true
+        view_filter : (t, view) => true,
+        view_split_default_column : (split, view) => null
     })
 
     setupSelector({

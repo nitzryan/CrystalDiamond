@@ -118,6 +118,12 @@ class DraftLoaderTable
             view_filter : (p, view) => {
                 if (view === 'eligible') return p.isEligible
                 return p.draftPick !== null       // 'results'
+            },
+            view_split_default_column : (split, view) => {
+                if (view === 'eligible')
+                    return 2
+                else
+                    return 4
             }
         })
 
