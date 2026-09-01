@@ -1,97 +1,25 @@
-type HitterStats = {
-    level : number,
-    year : number,
-    month : number | null,
-    team : number,
-    league : number,
-    pa : number,
-    avg : number,
-    obp : number,
-    slg : number,
-    iso : number,
-    wrc : number,
-    hr : number,
-    bbPerc : number,
-    kPerc : number,
-    sb : number,
-    cs : number
-}
+type HitterStatLine = DB_HitterYearStats | DB_HitterMonthStats
+type PitcherStatLine = DB_PitcherYearStats | DB_PitcherMonthStats
 
-type Model = {
-    year : number,
-    month : number,
-    probs : number[],
-    modelId : number,
-    rank: number | null
-}
-
-type Draft = {
-    pick : number,
-    round : string,
-    bonus : number
-}
-
-type Person = {
-    firstName : string;
-    lastName : string;
-    birthDate : Date;
-    signYear : number;
-    draft : Draft | null;
-    position : string;
-    status : string;
-    parentId : number | null;
-    isHitter : boolean;
-    isPitcher : boolean;
-    inTraining : boolean;
-}
-
-type PitcherStats = {
-    level : number,
-    year : number,
-    month : number | null,
-    team : number,
-    league : number,
-    ip : string,
-    era : number,
-    fip : number,
-    eraminus : number,
-    fipminus : number,
-    hrrate : number,
-    bbperc : number,
-    kperc : number,
-    gorate : number,
-}
-
-function getHitterStats(hitterObject : JsonObject) : HitterStats[]
+function getStatMonth(stat : HitterStatLine | PitcherStatLine) : number | null
 {
-    let stats : HitterStats[] = []
-    let statsArray : JsonArray = getJsonArray(hitterObject, "hit_stats")
-    
-    let statsMonthArray : JsonArray = getJsonArray(hitterObject, "hit_month_stats")
-    statsArray = statsArray.concat(statsMonthArray)
+    if (stat instanceof DB_HitterMonthStats || stat instanceof DB_PitcherMonthStats)
+        return stat.month
+    return null
+}
 
-    statsArray.forEach(f => {
-        const fObj : JsonObject = f as JsonObject;
-        const hs : HitterStats = {
-            level : getJsonNumber(fObj, "levelId"),
-            year : getJsonNumber(fObj, "year"),
-            month : getJsonNumberNullable(fObj, "month"),
-            team : getJsonNumber(fObj, "teamId"),
-            league : getJsonNumber(fObj, "leagueId"),
-            pa : getJsonNumber(fObj, "PA"),
-            avg : getJsonNumber(fObj, "AVG"),
-            obp : getJsonNumber(fObj, "OBP"),
-            slg : getJsonNumber(fObj, "SLG"),
-            iso : getJsonNumber(fObj, "ISO"),
-            wrc : getJsonNumber(fObj, "WRC"),
-            hr : getJsonNumber(fObj, "HR"),
-            bbPerc : getJsonNumber(fObj, "BBPerc"),
-            kPerc : getJsonNumber(fObj, "KPerc"),
-            sb : getJsonNumber(fObj, "SB"),
-            cs : getJsonNumber(fObj, "CS")
-        }
-        stats.push(hs)
-    })
+function getModelProbs(model : DB_PlayerModel) : number[]
+{
+    return model.probsWar.split(',').map(Number)
+}
+
+function getHitterStats(hitterObject : JsonObject) : HitterStatLine[]
+{
+    let stats : HitterStatLine[] = getJsonArray(hitterObject, "hit_stats")
+        .map(f => new DB_HitterYearStats(f as JsonObject))
+
+    stats = stats.concat(getJsonArray(hitterObject, "hit_month_stats")
+        .map(f => new DB_HitterMonthStats(f as JsonObject)))
 
     stats.sort((a,b) => {
         if (a.year < b.year)
@@ -99,48 +27,29 @@ function getHitterStats(hitterObject : JsonObject) : HitterStats[]
         if (a.year > b.year)
             return 1
 
-        if (a.month === null && b.month === null)
-            return b.level - a.level
-        if (a.month === null)
+        const aMonth = getStatMonth(a)
+        const bMonth = getStatMonth(b)
+        if (aMonth === null && bMonth === null)
+            return b.levelId - a.levelId
+        if (aMonth === null)
             return -1
-        if (b.month === null)
+        if (bMonth === null)
             return 1
-        if (a.month === b.month)
-            return b.level - a.level
-        return a.month - b.month
+        if (aMonth === bMonth)
+            return b.levelId - a.levelId
+        return aMonth - bMonth
     })
 
     return stats
 }
 
-function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
+function getPitcherStats(pitcherObject : JsonObject) : PitcherStatLine[]
 {
-    let stats : PitcherStats[] = []
-    let statsArray : JsonArray = getJsonArray(pitcherObject, "pit_stats")
+    let stats : PitcherStatLine[] = getJsonArray(pitcherObject, "pit_stats")
+        .map(f => new DB_PitcherYearStats(f as JsonObject))
 
-    let statsMonthArray : JsonArray = getJsonArray(pitcherObject, "pit_month_stats")
-    statsArray = statsArray.concat(statsMonthArray)
-
-    statsArray.forEach(f => {
-        const fObj : JsonObject = f as JsonObject;
-        const ps : PitcherStats = {
-            level : getJsonNumber(fObj, "levelId"),
-            year : getJsonNumber(fObj, "year"),
-            month : getJsonNumberNullable(fObj, "month"),
-            team : getJsonNumber(fObj, "teamId"),
-            league : getJsonNumber(fObj, "leagueId"),
-            ip : getJsonString(fObj, "IP"),
-            era : getJsonNumber(fObj, "ERA"),
-            fip : getJsonNumber(fObj, "FIP"),
-            eraminus : getJsonNumber(fObj, "ERAMinus"),
-            fipminus : getJsonNumber(fObj, "FIPMinus"),
-            hrrate : getJsonNumber(fObj, "HR9"),
-            bbperc : getJsonNumber(fObj, "BBPerc"),
-            kperc : getJsonNumber(fObj, "KPerc"),
-            gorate : getJsonNumber(fObj, "GOPerc")
-        }
-        stats.push(ps)
-    })
+    stats = stats.concat(getJsonArray(pitcherObject, "pit_month_stats")
+        .map(f => new DB_PitcherMonthStats(f as JsonObject)))
 
     stats.sort((a,b) => {
         if (a.year < b.year)
@@ -148,42 +57,28 @@ function getPitcherStats(pitcherObject : JsonObject) : PitcherStats[]
         if (a.year > b.year)
             return 1
 
-        if (a.month === null && b.month === null)
-            return b.level - a.level
-        if (a.month === null)
+        const aMonth = getStatMonth(a)
+        const bMonth = getStatMonth(b)
+        if (aMonth === null && bMonth === null)
+            return b.levelId - a.levelId
+        if (aMonth === null)
             return -1
-        if (b.month === null)
+        if (bMonth === null)
             return 1
-        if (a.month === b.month)
-            return b.level - a.level
-        return a.month - b.month
+        if (aMonth === bMonth)
+            return b.levelId - a.levelId
+        return aMonth - bMonth
     })
 
     return stats
 }
 
-function getModels(obj : JsonObject, name : string) : Model[][]
+function getModels(obj : JsonObject, name : string) : DB_PlayerModel[][]
 {
-    let models : Model[] = []
-    let modelArray : JsonArray = getJsonArray(obj, name)
+    const models : DB_PlayerModel[] = getJsonArray(obj, name)
+        .map(f => new DB_PlayerModel(f as JsonObject))
 
-    modelArray.forEach(f => {
-        const fObj : JsonObject = f as JsonObject;
-        const probString = getJsonString(fObj, "probsWar");
-        const probArray : number[] = probString.split(',').map(Number)
-
-        const m : Model = {
-            year : getJsonNumber(fObj, "year"),
-            month : getJsonNumber(fObj, "month"),
-            probs : probArray,
-            modelId : getJsonNumber(fObj, "modelId"),
-            // @ts-ignore
-            rank : fObj["rankWar"],
-        }
-        models.push(m);
-    })
-
-    let models_list : Model[][] = []
+    let models_list : DB_PlayerModel[][] = []
     MODEL_VALUES.forEach(f => {
         models_list.push(models.filter(g => g.modelId === f))
     })
@@ -191,357 +86,15 @@ function getModels(obj : JsonObject, name : string) : Model[][]
     return models_list;
 }
 
-function getPerson(obj : JsonObject)
-{
-    const draftPick : number | null = obj["draftPick"] as number | null
-    let draft : Draft | null = null
-    if (draftPick !== null)
-        draft = {
-            pick : draftPick,
-            round : getJsonString(obj, "draftRound"),
-            bonus : getJsonNumber(obj, "draftBonus")
-        }
-    
-    const p : Person = {
-        firstName : getJsonString(obj, "firstName"),
-        lastName : getJsonString(obj, "lastName"),
-        birthDate : new Date(
-            getJsonNumber(obj, "birthYear"),
-            getJsonNumber(obj, "birthMonth"),
-            getJsonNumber(obj, "birthDate")
-        ),
-        signYear : getJsonNumber(obj, "startYear"),
-        position : getJsonString(obj, "position"),
-        status : getJsonString(obj, "status"),
-        draft : draft,
-        parentId : getJsonNumber(obj, "orgId"),
-        isHitter : obj["isHitter"] as boolean,
-        isPitcher : obj["isPitcher"] as boolean,
-        inTraining : obj["inTraining"] as boolean,
-    }
-
-    return p
-}
-
-function tableUpdateCallback(tablebody : HTMLElement, monthcol : HTMLElement, year : string, type : string)
-{
-    var rows = Array.from(tablebody.getElementsByTagName('tr'))
-    rows.forEach(f => {
-        const y = f.dataset.year
-        const t = f.dataset.type
-
-        if (year !== y)
-            return
-
-        if (type === t)
-            f.classList.add('hidden')
-        else
-            f.classList.remove('hidden')
-    })
-
-    // Only show the month column if any monthly values are shown
-    const any_monthly = rows.reduce((a,b) => {
-        if (a)
-            return true
-        
-        const t = b.dataset.type
-        return (t === 'month') && (!b.classList.contains('hidden'))
-    }, false)
-
-    var monthly_elements = document.getElementsByClassName('table_month')
-    if (any_monthly)
-        for (let i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.remove('hidden-col')
-    else
-        for (let i = 0; i < monthly_elements.length; i++)
-            monthly_elements[i].classList.add('hidden-col')
-}
-
-function updateHitterStats(hitterStats : HitterStats[])
-{
-    const stats_body = getElementByIdStrict('h_stats_body')
-    const hcol_month = getElementByIdStrict('hcol_month')
-
-    let prevYear : number | null = null
-    let prevYearMonthly : number | null = null
-
-    hitterStats.forEach(f => {
-        const tr = document.createElement('tr')
-        let isFirst = false
-        if (f.month !== null)
-        {
-            if (f.year != prevYearMonthly)
-            {
-                isFirst = true
-                prevYearMonthly = f.year
-            }
-            tr.classList.add('hidden')
-        }
-        else {
-            if (f.year != prevYear)
-            {
-                isFirst = true
-                prevYear = f.year
-            }
-        }
-        
-        let teamAbbr : string = ""
-        // VSL/DSL has some teams that split orgs
-        try {
-            teamAbbr = getTeamAbbr(f.team, f.year)
-        } catch(e)
-        {
-            if (f.league != 134 && f.league != 130) // If not VSL/DSL, it is an error
-                throw e
-        }
-
-        tr.innerHTML = `
-            <td></td>
-            <td>${f.year}</td>
-            <td class='table_month hidden-col'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
-            <td>${level_map[f.level]}</td>
-            <td>${teamAbbr}</td>
-            <td>${getLeagueAbbr(f.league)}</td>
-            <td class="align_right">${f.pa}</td>
-            <td class="align_right">${f.avg.toFixed(3)}</td>
-            <td class="align_right">${f.obp.toFixed(3)}</td>
-            <td class="align_right">${f.slg.toFixed(3)}</td>
-            <td class="align_right">${f.iso.toFixed(3)}</td>
-            <td class="align_right">${f.wrc}</td>
-            <td class="align_right">${f.hr}</td>
-            <td class="align_right">${f.bbPerc.toFixed(1)}</td>
-            <td class="align_right">${f.kPerc.toFixed(1)}</td>
-            <td class="align_right">${f.sb}</td>
-            <td class="align_right">${f.cs}</td>
-        `
-
-        tr.dataset.year = f.year.toString()
-        tr.dataset.type = f.month === null ? "year" : "month"
-
-        if (isFirst)
-        {
-            tr.classList.add('row_first')
-            
-            let button_td = tr.getElementsByTagName('td')[0]
-            let button = document.createElement('button')
-            
-            button.classList.add('table_button')
-            
-            if (f.month === null)
-            {
-                button.innerText = '+'
-                button.classList.add('table_expand')
-                
-                button.addEventListener('click', () => {
-                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'year')
-                })
-            } else {
-                button.innerText = '-'
-                button.classList.add('table_retract')
-                
-                button.addEventListener('click', () => {
-                    tableUpdateCallback(stats_body, hcol_month, f.year.toString(), 'month')
-                })
-            }
-            
-
-            button_td.appendChild(button)
-        }
-
-        stats_body.appendChild(tr)
-    })
-}
-
-function updateHitterPredictions(hitterPredictions : DB_Prediction_HitterStats[])
-{
-    // Remove existing predictions
-    const stats_body = getElementByIdStrict('h_stats_body')
-    stats_body.querySelectorAll(":scope > .pred").forEach(
-        f => f.remove()
-    )
-
-    const month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
-        "hidden-col" : ""
-
-    let is_first = true
-    hitterPredictions.forEach(f => {
-        const tr = document.createElement('tr')
-        tr.innerHTML = `
-            <td></td>
-            <td>P</td>
-            <td class='table_month ${month_class_hidden}'></td>
-            <td>${level_map2[f.LevelId]}</td>
-            <td></td>
-            <td></td>
-            <td class="align_right">${f.Pa}</td>
-            <td class="align_right">${f.AVG.toFixed(3)}</td>
-            <td class="align_right">${f.OBP.toFixed(3)}</td>
-            <td class="align_right">${f.SLG.toFixed(3)}</td>
-            <td class="align_right">${f.ISO.toFixed(3)}</td>
-            <td class="align_right">${f.wRC.toFixed(0)}</td>
-            <td class="align_right">${f.HitHR.toFixed(1)}</td>
-            <td class="align_right">${(f.BB / f.Pa * 100).toFixed(1)}</td>
-            <td class="align_right">${(f.K / f.Pa * 100).toFixed(1)}</td>
-            <td class="align_right">${f.SB.toFixed(1)}</td>
-            <td class="align_right">${f.CS.toFixed(1)}</td>
-        `
-
-        if (is_first)
-        {
-            tr.classList.add("row_first")
-            is_first = false
-        }
-        tr.classList.add('pred')
-
-        stats_body.appendChild(tr)
-    })
-}
-
-function updatePitcherStats(pitcherStats : PitcherStats[])
-{
-    const stats_body = getElementByIdStrict('p_stats_body')
-    const pcol_month = getElementByIdStrict('pcol_month')
-
-    let prevYear : number | null = null
-    let prevYearMonthly : number | null = null
-
-    pitcherStats.forEach(f => {
-        const tr = document.createElement('tr')
-        let isFirst = false
-        if (f.month !== null)
-        {
-            if (f.year != prevYearMonthly)
-            {
-                isFirst = true
-                prevYearMonthly = f.year
-            }
-            tr.classList.add('hidden')
-        }
-        else {
-            if (f.year != prevYear)
-            {
-                isFirst = true
-                prevYear = f.year
-            }
-        }
-        
-        let teamAbbr : string = ""
-        // VSL/DSL has some teams that split orgs
-        try {
-            teamAbbr = getTeamAbbr(f.team, f.year)
-        } catch(e)
-        {
-            if (f.league != 134 && f.league != 130) // If not VSL/DSL, it is an error
-                throw e
-        }
-
-        tr.innerHTML = `
-            <td></td>
-            <td>${f.year}</td>
-            <td class='table_month hidden-col'>${f.month !== null ? MONTH_CODES[f.month] : ""}</td>
-            <td>${level_map[f.level]}</td>
-            <td>${teamAbbr}</td>
-            <td>${getLeagueAbbr(f.league)}</td>
-            <td class="align_right">${f.ip}</td>
-            <td class="align_right">${f.era.toFixed(2)}</td>
-            <td class="align_right">${f.fip.toFixed(2)}</td>
-            <td class="align_right">${f.eraminus.toFixed(0)}</td>
-            <td class="align_right">${f.fipminus.toFixed(0)}</td>
-            <td class="align_right">${f.hrrate.toFixed(1)}</td>
-            <td class="align_right">${f.bbperc.toFixed(1)}</td>
-            <td class="align_right">${f.kperc.toFixed(1)}</td>
-            <td class="align_right">${f.gorate.toFixed(1)}</td>
-        `
-
-        tr.dataset.year = f.year.toString()
-        tr.dataset.type = f.month === null ? "year" : "month"
-
-        if (isFirst)
-        {
-            tr.classList.add('row_first')
-            
-            let button_td = tr.getElementsByTagName('td')[0]
-            let button = document.createElement('button')
-            
-            button.classList.add('table_button')
-            
-            if (f.month === null)
-            {
-                button.innerText = '+'
-                button.classList.add('table_expand')
-                
-                button.addEventListener('click', () => {
-                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'year')
-                })
-            } else {
-                button.innerText = '-'
-                button.classList.add('table_retract')
-                
-                button.addEventListener('click', () => {
-                    tableUpdateCallback(stats_body, pcol_month, f.year.toString(), 'month')
-                })
-            }
-            
-
-            button_td.appendChild(button)
-        }
-
-        stats_body.append(tr)
-    })
-}
-
-function updatePitcherPredictions(pitcherPredictions : DB_Prediction_PitcherStats[])
-{
-    // Remove existing predictions
-    const stats_body = getElementByIdStrict('p_stats_body')
-    stats_body.querySelectorAll(":scope > .pred").forEach(
-        f => f.remove()
-    )
-    
-    const month_class_hidden = stats_body.querySelector(".table_month.hidden-col") !== null ?
-        "hidden-col" : ""
-
-    let is_first = true
-    pitcherPredictions.forEach(f => {
-        const tr = document.createElement('tr')
-
-        tr.innerHTML = `
-            <td></td>
-            <td>P</td>
-            <td class='table_month ${month_class_hidden}'></td>
-            <td>${level_map2[f.levelId]}</td>
-            <td></td>
-            <td></td>
-            <td class="align_right">${formatOutsToIP(f.Outs_RP + f.Outs_SP)}</td>
-            <td class="align_right">${f.ERA.toFixed(2)}</td>
-            <td class="align_right">${f.FIP.toFixed(2)}</td>
-            <td class="align_right">${f.ERAMinus.toFixed(0)}</td>
-            <td class="align_right">${f.FIPMinus.toFixed(0)}</td>
-            <td class="align_right">${f.HR9.toFixed(1)}</td>
-            <td class="align_right">${f.BBPerc.toFixed(1)}</td>
-            <td class="align_right">${f.KPerc.toFixed(1)}</td>
-            <td class="align_right"></td>
-        `
-
-        if (is_first)
-        {
-            tr.classList.add("row_first")
-            is_first = false
-        }
-        tr.classList.add('pred')
-
-        stats_body.appendChild(tr)
-    })
-}
-
 const WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
 
-function piePointGenerator(model : Model) : Point[]
+function piePointGenerator(model : DB_PlayerModel) : Point[]
 {
     let points : Point[] = []
+    const probs = getModelProbs(model)
     for (let i = 0; i < WAR_LABELS.length; i++)
     {
-        points.push({y: model.probs[i], label:WAR_LABELS[i]})
+        points.push({y: probs[i], label:WAR_LABELS[i]})
     }
     return points
 }
@@ -551,7 +104,7 @@ function lineCallback(index : number, modelId : number)
     if (line_graph === null)
         return
 
-    let model : Model
+    let model : DB_PlayerModel
     if (line_graph.graphIsHitter())
     {
         model = hitterModels[modelId - 1][index]
@@ -569,7 +122,7 @@ function lineCallback(index : number, modelId : number)
             "Iniitial Outcome Distribution" :
             `${model.month}-${model.year} Outcome Distribution`
         
-        pie_graph.updateChart(model.probs, title_text, WAR_LABELS)
+        pie_graph.updateChart(getModelProbs(model), title_text, WAR_LABELS)
     } else {
         throw new Error("Model was not set for hitter or pitcher")
     }
@@ -682,31 +235,32 @@ function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][
         {
             const idx = parseInt(graph_selector.value)
             line_graph.setDataset(idx)
-            updateHitterPredictions(predHitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
-            updatePitcherPredictions(predPitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
+            hitterTable?.setPredictions(predHitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
+            pitcherTable?.setPredictions(predPitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
             line_graph.fireCallback()
         }
     })
 }
 
-function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
+function setupModel(hitterModels : DB_PlayerModel[][], pitcherModels : DB_PlayerModel[][]) : void
 {
-    let war_map = (f: Model, buckets : number[]) => {
+    let war_map = (f: DB_PlayerModel, buckets : number[]) => {
+        const probs = getModelProbs(f)
         let war = 0;
-        for (let i = 0; i < f.probs.length; i++)
-            war += f.probs[i] * buckets[i];
+        for (let i = 0; i < probs.length; i++)
+            war += probs[i] * buckets[i];
 
         const label : string = f.month == 0 ? 'Initial' : `${f.month}-${f.year}`
         const p : Point = {y: war, label : label}
         return p;
     }
 
-    let rank_map = (f : Model) => {
+    let rank_map = (f : DB_PlayerModel) => {
         let month = f.month
         let year = f.year
-        if (f.rank === null)
+        if (f.rankWar === null)
             throw new Error("No Rank")
-        const p : Point = {y: f.rank, label: year == 0 ? "Initial" : `${month}-${year}`}
+        const p : Point = {y: f.rankWar, label: year == 0 ? "Initial" : `${month}-${year}`}
         return p
     }
     
@@ -721,8 +275,8 @@ function setupModel(hitterModels : Model[][], pitcherModels : Model[][]) : void
             pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, assetLoader.war_buckets_pitcher)))
     }
 
-    let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
-    let pitcher_rank_points : Point[][] = pitcherModels.map(m => m.filter(f => f.rank !== null).map(rank_map))
+    let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rankWar !== null).map(rank_map))
+    let pitcher_rank_points : Point[][] = pitcherModels.map(m => m.filter(f => f.rankWar !== null).map(rank_map))
 
     
     const datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
@@ -751,12 +305,15 @@ let line_graph : LineGraph | null
 let pie_graph : PieGraph
 let keyControls : KeyControls
 
-let person : Person
-let hitterModels : Model[][]
-let pitcherModels : Model[][]
+let person : DB_Player
+let hitterModels : DB_PlayerModel[][]
+let pitcherModels : DB_PlayerModel[][]
 
-let predHitStats : DB_Prediction_HitterStats[]
-let predPitStats : DB_Prediction_PitcherStats[]
+let hitterTable : HitterStatsTable | null = null
+let pitcherTable : PitcherStatsTable | null = null
+
+let predHitStats : DB_Prediction_HitterStats[] = []
+let predPitStats : DB_Prediction_PitcherStats[] = []
 
 async function main()
 {
@@ -765,22 +322,16 @@ async function main()
 
     await assetLoader.ready
     const pd = await (await player_data).json() as JsonObject
-    person = getPerson(pd)
+    person = new DB_Player(pd)
 
     // Include stats
     let hitterStats = person.isHitter ? getHitterStats(pd) : []
     let pitcherStats = person.isPitcher ? getPitcherStats(pd) : []
 
     if (hitterStats.length > 0)
-    {
-        updateHitterStats(hitterStats)
-        getElementByIdStrict('hitter_stats').classList.remove('hidden')
-    }
+        hitterTable = new HitterStatsTable(hitterStats)
     if (pitcherStats.length > 0)
-    {
-        updatePitcherStats(pitcherStats)
-        getElementByIdStrict('pitcher_stats').classList.remove('hidden')
-    }
+        pitcherTable = new PitcherStatsTable(pitcherStats)
     
     // Get Models
     hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
@@ -802,21 +353,26 @@ async function main()
         trainingWarning.classList.add('hidden')
     }
 
-    if (person.parentId !== null && person.parentId !== 0)
+    if (person.orgId !== null && person.orgId !== 0)
     {
         const player_team = getElementByIdStrict("player_team") as HTMLLinkElement
-        player_team.innerText = getParentName(person.parentId)
-        player_team.href = `teams?team=${person.parentId}`
+        player_team.innerText = getParentName(person.orgId)
+        player_team.href = `teams?team=${person.orgId}`
     } else 
     {
         updateElementText("player_team", "Free Agent")
     }
-    const age = getDateDelta(person.birthDate, new Date())
+
+    const birthDate = new Date(person.birthYear, person.birthMonth, person.birthDate)
+    const age = getDateDelta(birthDate, new Date())
     updateElementText("player_age", `${age[0]}y, ${age[1]}m, ${age[2]}d`)
-    if (person.draft !== null)
+    if (person.draftPick !== null)
     {
-        const round : string = isNaN(parseFloat(person.draft.round)) ? person.draft.round : "Round " + person.draft.round
-        updateElementText("player_draft", `${person.signYear} Draft, ${round} (${getOrdinalNumber(person.draft.pick)} Overall)\n$${person.draft.bonus.toLocaleString()} Bonus`)
+        if (person.draftRound === null || person.draftBonus === null)
+            throw new Error(`Player ${person.mlbId} has draftPick=${person.draftPick} but draftRound=${person.draftRound}, draftBonus=${person.draftBonus}; both should be non-null`)
+
+        const round : string = isNaN(parseFloat(person.draftRound)) ? person.draftRound : "Round " + person.draftRound
+        updateElementText("player_draft", `${person.startYear} Draft, ${round} (${getOrdinalNumber(person.draftPick)} Overall)\n$${person.draftBonus.toLocaleString()} Bonus`)
     }
     document.title = person.firstName + " " + person.lastName
 
@@ -843,8 +399,8 @@ async function main()
     // const pitcherStatsPredictions = await (await pitcherStatsPredictionPromise).json() as JsonArray
     // predHitStats = hitterStatsPredictions.map(f => new DB_Prediction_HitterStats(f as JsonObject)).sort(f => f.LevelId)
     // predPitStats = pitcherStatsPredictions.map(f => new DB_Prediction_PitcherStats(f as JsonObject)).sort(f => f.levelId)
-    // updateHitterPredictions(predHitStats.filter(f => f.Model === 1))
-    // updatePitcherPredictions(predPitStats.filter(f => f.Model === 1))
+    // hitterTable?.setPredictions(predHitStats.filter(f => f.Model === 1))
+    // pitcherTable?.setPredictions(predPitStats.filter(f => f.Model === 1))
 }
 
 main()

@@ -69,7 +69,11 @@ function plPositionColumn() : DraftColumn
         cls : 'c_pos',
         sortable : false,
         value : p => p.Position,
-        render : (p, _) => p.Position
+        render : (p, _) => {
+            if (p.Position == null)
+                return ""
+            return p.Position
+        }
     }
 }
 function plAgeColumn(year : number, month : number) : DraftColumn

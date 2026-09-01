@@ -10,9 +10,9 @@ class DB_Player
 	public position : string
 	public status : string
 	public orgId : number
-	public draftPick : number
-	public draftRound : string
-	public draftBonus : number
+	public draftPick : number | null
+	public draftRound : string | null
+	public draftBonus : number | null
 	public isHitter : boolean
 	public isPitcher : boolean
 	public inTraining : boolean
@@ -29,9 +29,9 @@ class DB_Player
 		this.position = data['position'] as string
 		this.status = data['status'] as string
 		this.orgId = data['orgId'] as number
-		this.draftPick = data['draftPick'] as number
-		this.draftRound = data['draftRound'] as string
-		this.draftBonus = data['draftBonus'] as number
+		this.draftPick = data['draftPick'] as number | null
+		this.draftRound = data['draftRound'] as string | null
+		this.draftBonus = data['draftBonus'] as number | null
 		this.isHitter = data['isHitter'] as boolean
 		this.isPitcher = data['isPitcher'] as boolean
 		this.inTraining = data['inTraining'] as boolean
@@ -340,7 +340,7 @@ class DB_PlayerModel
 	public modelId : number
 	public isHitter : boolean
 	public probsWar : string
-	public rankWar : number
+	public rankWar : number | null
 	public trainingBias : boolean
 	public timestepQuality : number
 
@@ -352,7 +352,7 @@ class DB_PlayerModel
 		this.modelId = data['modelId'] as number
 		this.isHitter = data['isHitter'] as boolean
 		this.probsWar = data['probsWar'] as string
-		this.rankWar = data['rankWar'] as number
+		this.rankWar = data['rankWar'] as number | null
 		this.trainingBias = data['trainingBias'] as boolean
 		this.timestepQuality = data['timestepQuality'] as number
 	}
@@ -374,7 +374,7 @@ class DB_PlayerRank
 	public trainingBias : boolean
 	public timestepQuality : number
 	public acqType : number
-	public draftPick : number
+	public draftPick : number | null
 
 	constructor(data : JsonObject)
 	{
@@ -392,7 +392,7 @@ class DB_PlayerRank
 		this.trainingBias = data['trainingBias'] as boolean
 		this.timestepQuality = data['timestepQuality'] as number
 		this.acqType = data['acqType'] as number
-		this.draftPick = data['draftPick'] as number
+		this.draftPick = data['draftPick'] as number | null
 	}
 }
 
@@ -402,17 +402,17 @@ class DB_DraftRank
 	public mlbId : number
 	public modelId : number
 	public isHitter : boolean
-	public Name : string
-	public Position : string
+	public Name : string | null
+	public Position : string | null
 	public BirthYear : number
 	public BirthMonth : number
 	public BirthDate : number
 	public year : number
 	public isEligible : boolean
 	public rankEligible : number
-	public warPre : number
-	public warPost : number
-	public draftPick : number
+	public warPre : number | null
+	public warPost : number | null
+	public draftPick : number | null
 	public trainingBias : boolean
 	public timestepQuality : number
 
@@ -422,17 +422,17 @@ class DB_DraftRank
 		this.mlbId = data['mlbId'] as number
 		this.modelId = data['modelId'] as number
 		this.isHitter = data['isHitter'] as boolean
-		this.Name = data['Name'] as string
-		this.Position = data['Position'] as string
+		this.Name = data['Name'] as string | null
+		this.Position = data['Position'] as string | null
 		this.BirthYear = data['BirthYear'] as number
 		this.BirthMonth = data['BirthMonth'] as number
 		this.BirthDate = data['BirthDate'] as number
 		this.year = data['year'] as number
 		this.isEligible = data['isEligible'] as boolean
 		this.rankEligible = data['rankEligible'] as number
-		this.warPre = data['warPre'] as number
-		this.warPost = data['warPost'] as number
-		this.draftPick = data['draftPick'] as number
+		this.warPre = data['warPre'] as number | null
+		this.warPost = data['warPost'] as number | null
+		this.draftPick = data['draftPick'] as number | null
 		this.trainingBias = data['trainingBias'] as boolean
 		this.timestepQuality = data['timestepQuality'] as number
 	}

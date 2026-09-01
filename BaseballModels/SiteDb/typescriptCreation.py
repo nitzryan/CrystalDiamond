@@ -46,6 +46,9 @@ with open(f"../Site/site/src/ts/Global/DBtypes.ts", "w") as file:
             else:
                 raise Exception(f"Invalid SQLite type found: {type} for {name}")
             
+            if notnull == 0:
+                typescript_type += " | null"
+            
             file.write(f"\tpublic {name} : {typescript_type}\n")
             constructorText += f"\t\tthis.{name} = data['{name}'] as {typescript_type}\n"
             
