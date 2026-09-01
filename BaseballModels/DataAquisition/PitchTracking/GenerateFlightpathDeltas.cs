@@ -15,9 +15,16 @@ namespace DataAquisition.PitchTracking
             if (forceRefresh)
                 pitchDb.PitchFlightpathGameDelta.ExecuteDelete();
 
+            var gameIds = pitchDb.PitchFlightpathGameDelta
+                .Select(f => f.GameId)
+                .Distinct()
+                .ToHashSet();
+
             var pitcherGames = pitchDb.PitchFlightpath
                 .GroupBy(f => new { f.GameId, f.PitcherId })
                 .AsNoTracking()
+                .AsEnumerable()
+                .Where(f => !gameIds.Contains(f.Key.GameId))
                 .ToList();
 
             List<PitchFlightpathGameDelta> deltas = new(pitchDb.PitchFlightpath.Count() * 3);

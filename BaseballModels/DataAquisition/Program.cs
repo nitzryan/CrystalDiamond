@@ -6,7 +6,7 @@ namespace DataAquisition
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2026;
-        const int END_MONTH = 7;
+        const int END_MONTH = 8;
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
