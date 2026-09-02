@@ -1,14 +1,24 @@
-import torch.nn as nn
+from dataclasses import dataclass
 import torch
 import torch.nn.functional as F
 import warnings
 
-from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep
+from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep, Combined_IO
 from Model.DBTypes import *
 from Model.ModelDBTypes import *
-from Model.Pro.Model.Player_Model import RNN_Model as ProModel
+from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
 from Model.Constants import DRAFT_MEANS, TOTAL_WAR_BUCKETS, db, model_db
+from Model.EvalStats import getOutputHitterStats as getOutputStats
+
+@dataclass
+class ModelResults:
+    combined_io : Combined_IO
+    col_output : list[DB_Output_College_HitterAggregation]
+    pro_war : list[DB_Output_PlayerWarAggregation]
+    # hitter_stats : list[list[DB_Output_HitterStatsAggregation]] | None
+    # pitcher_stats : list[list[DB_Output_PitcherStatsAggregation]] | None
+    
 
 class Test_Model_Runner:
     def __init__(self,
@@ -21,6 +31,7 @@ class Test_Model_Runner:
         pos_str = "hit" if is_hitter else "pit"
         model_cursor = model_db.cursor()
         self.model_name = DB_ModelId.Select_From_DB(model_cursor, "WHERE id=?", (model_id,))[0].modelName
+        self.model_dir = model_dir
 
         self.data_prep = data_prep
         self.col_network = ColModel.LoadFromFile(model_dir + f"{self.model_name}_{pos_str}_col.json", data_prep.college_data_prep)
@@ -54,21 +65,30 @@ class Test_Model_Runner:
 
             col_player : DB_College_Player | None,
             col_stats : list[DB_Model_College_HitterYear] | None
-            ) -> tuple[list[DB_Output_College_HitterAggregation], list[DB_Output_PlayerWarAggregation]]:
+            ) -> ModelResults:
 
         self.col_network.eval()
         self.pro_network.eval()
         
-        # Get model runs where player is not in training
-        model_cursor = model_db.cursor()
-        if pro_player is not None:
-            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE mlbId=? AND modelId=? AND isHitter=1 ORDER BY modelRun ASC", (pro_player.mlbId, self.model_id)).fetchall()]
-        elif col_player is not None:
-            model_runs = [x[0] for x in model_cursor.execute(f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE tbcId=? AND modelId=? AND isHitter=1 ORDER BY modelRun ASC", (col_player.TBCId, self.model_id)).fetchall()]
-        else:
-            raise Exception("Expected at least 1 of Pro and College Player to not be None")
         
-        # If not in PITD, run on all models
+        # Ensure player has either college or pro data
+        pro_valid = pro_player is not None and pro_stats is not None and pro_month_war is not None
+        col_valid = col_player is not None and col_stats is not None and len(col_stats) > 0
+        if not pro_valid and not col_valid:
+            raise Exception("Expected at least 1 of Pro (player, stats, monthly war) and College (player, stats) to be fully provided")
+
+        # Get test runs for the player, if they exist
+        model_cursor = model_db.cursor()
+        train_runs : set[int] = set()
+        if pro_player is not None:
+            id_col, id_val = "mlbId", pro_player.mlbId
+        else:
+            id_col, id_val = "tbcId", col_player.TBCId
+        model_runs = [x[0] for x in model_cursor.execute(
+            f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE {id_col}=? AND modelId=? AND isHitter=1 AND isTrain=0 ORDER BY modelRun ASC",
+            (id_val, self.model_id)).fetchall()]
+
+        # Player wasn't in any test runs, therefore they aren't in any train runs so should be evaluated on all runs
         if len(model_runs) == 0:
             model_runs = self.model_runs
         num_runs = len(model_runs)
@@ -95,41 +115,52 @@ class Test_Model_Runner:
             )
         ) for cs in col_stats] if col_stats is not None else []
         
-        pro_results_list = [DB_Output_PlayerWarAggregation((
-                pro_stats[0].mlbId,
+        pro_results_list : list[DB_Output_PlayerWarAggregation] = []
+        if pro_valid:
+            pro_results_list = [DB_Output_PlayerWarAggregation((
+                    pro_player.mlbId,
+                    self.model_id,
+                    1,
+                    0,
+                    0,
+                    0,0,0,0,0,0,0,0
+                ))] + [DB_Output_PlayerWarAggregation(
+                (
+                pro_player.mlbId,
                 self.model_id,
                 1,
-                0,
-                0,
-                0,0,0,0,0,0,0,0
-            ))] + [DB_Output_PlayerWarAggregation(
-            (
-            ps.mlbId,
-            self.model_id,
-            1,
-            ps.Year,
-            ps.Month,
-            0,0,0,0,0,0,0,0 # War
-            )
-        ) for ps in pro_stats] if pro_stats is not None else [] 
+                ps.Year,
+                ps.Month,
+                0,0,0,0,0,0,0,0 # War
+                )
+            ) for ps in pro_stats]
+        
+        # Generate input tensors
+        col_data = col_io.input.unsqueeze(0).to(self.device)
+        col_length_cpu = torch.tensor([col_io.length], dtype=torch.long)
+        col_length = col_length_cpu.to(self.device)
+        if col_data.shape[1] == 0:
+            # Create a 0-padded input tensor, will get masked out
+            col_data = torch.zeros(1, 1, col_data.shape[2], dtype=col_data.dtype, device=self.device)
+
+        if pro_valid:
+            pro_data = pro_io.input.unsqueeze(0).to(self.device)
+            pro_length = torch.tensor([pro_io.length], dtype=torch.long).to(self.device)
+            pro_pt_levelYearGames = pro_io.pt_levelYearGames.unsqueeze(0).to(self.device)
+            player_demo = torch.tensor([pro_io.player_demo], dtype=torch.long).to(self.device)
+            player_bios = pro_io.player_bio.reshape(1, -1).to(self.device)
         
         for run in model_runs:
             # Load Models
             with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                self.pro_network.load_state_dict(torch.load(f"../Models/pro_{self.model_name}_{run}_hit.pt"))
-                self.col_network.load_state_dict(torch.load(f"../Models/col_{self.model_name}_{run}_hit.pt"))
-            
+                self.pro_network.load_state_dict(torch.load(f"{self.model_dir}pro_{self.model_name}_{run}_hit.pt", map_location=self.device))
+                self.col_network.load_state_dict(torch.load(f"{self.model_dir}col_{self.model_name}_{run}_hit.pt", map_location=self.device))
+            self.pro_network.eval()
+            self.col_network.eval()
+
             # College Model
-            col_data = col_io.input.unsqueeze(0).to(self.device)
-            col_length = torch.tensor([col_io.length])
-            
-            if col_data.shape[1] == 0:
-                col_data = torch.zeros(1, 1, col_data.shape[2], dtype=col_data.dtype)
-
-            col_output_draft, col_output_war, col_output_off, col_output_def, col_output_pa, col_output_pos, h0 = \
+            col_output_draft, col_output_war, col_output_off, col_output_def, col_output_pa, col_output_pos, i0 = \
                 self.col_network(col_data, col_length)
-
-            h0 = h0.transpose(0, 1).contiguous()
 
             college_results = self.__Build_College_Outputs(
                 col_io, col_length,
@@ -137,16 +168,11 @@ class Test_Model_Runner:
 
             # Pro Model
             pro_results : list[DB_Output_PlayerWar] = []
-            pro_valid = all(v is not None for v in
-                            (pro_player, pro_stats, pro_month_war))
+            pro_hitter_stats : list[list[DB_Output_HitterStats]] = []
             if pro_valid:
-                pro_data = pro_io.input.unsqueeze(0).to(self.device)                  # (1, L, F)
-                pro_length = torch.tensor([pro_io.length])                           # CPU
-                pro_pt_levelYearGames = pro_io.pt_levelYearGames.unsqueeze(0).to(self.device)
-
                 pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, \
                 pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = \
-                    self.pro_network(pro_data, pro_length, pro_pt_levelYearGames, h0, col_length)
+                    self.pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios)
 
                 pro_results = self.__Build_Pro_Outputs(pro_io, pro_output_war)
 
@@ -155,11 +181,15 @@ class Test_Model_Runner:
                 for time_step, col_result in enumerate(college_results):
                     _Update_College_Aggregation(col_results_list[time_step], col_result, 1 / num_runs)
     
-            if pro_player is not None:
+            if pro_valid:
                 for time_step, pro_result in enumerate(pro_results):
                     _Update_PlayerWar_Aggregation(pro_results_list[time_step], pro_result, 1 / num_runs)
                     
-        return col_results_list, pro_results_list
+        return ModelResults(
+            combined_io=combined_io,
+            col_output=college_results,
+            pro_war=pro_results,
+        )
     
     def __Build_College_Outputs(self, col_io, col_length,
             draft, war, off, deff, pa, pos) -> list[DB_Output_College_Hitter]:
@@ -208,7 +238,7 @@ class Test_Model_Runner:
         return results
     
     def __Build_Pro_Outputs(self, pro_io, pro_output_war) -> list[DB_Output_PlayerWar]:
-        war = F.softmax(pro_output_war, dim=2)   # (1, L, 7)
+        war = F.softmax(pro_output_war, dim=2)
         L = war.size(1)
         dtype = war.dtype
 
@@ -216,7 +246,7 @@ class Test_Model_Runner:
         for i in range(1, len(self.war_bucket_averages)):
             warMean[:, :] += war[:, :, i] * self.war_bucket_averages[i]
 
-        dates = pro_io.dates.to(war.device).unsqueeze(0)[:, :L, :].to(dtype)   # (1, L, 3) = (mlbId, year, month)
+        dates = pro_io.dates.to(war.device).unsqueeze(0)[:, :L, :].to(dtype)
         mlbIds = dates[:, :, 0].unsqueeze(2)
         model_idxs = torch.zeros_like(mlbIds)
         year_month = dates[:, :, 1:]
@@ -227,7 +257,6 @@ class Test_Model_Runner:
         results : list[DB_Output_PlayerWar] = []
         for d in db_data:
             for row in d.tolist():
-                # (mlbId, model, isHitter, modelIdx, year, month, war0..war6, war)
                 values = (int(row[0]), self.model_id, 1, int(row[1]), int(row[2]), int(row[3]), *row[4:])
                 results.append(DB_Output_PlayerWar(values))
         return results

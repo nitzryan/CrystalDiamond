@@ -475,7 +475,6 @@ class Data_Prep:
             mlb_value_stats = None
             mlb_stat_buckets = None
             mlb_stat_mask = None
-            player_bio = None
 
         return Player_IO(player=hitter,
                             input=input,
@@ -686,7 +685,6 @@ class Data_Prep:
             mlb_value_stats = None
             mlb_stat_buckets = None
             mlb_stat_mask = None
-            player_bio = None
                 
         return Player_IO(player=pitcher, 
             input=input, 
