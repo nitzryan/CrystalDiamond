@@ -55,6 +55,12 @@ class College_Hitter_Data:
     player: DB_College_Player
     stats: list[DB_Model_College_HitterYear]
     proStats: DB_Model_College_HitterProStats
+   
+@dataclass
+class College_Pitcher_Data:
+    player: DB_College_Player
+    stats: list[DB_Model_College_PitcherYear]
+    proStats: DB_Model_College_PitcherProStats
             
 _T = TypeVar('T')
 class College_Data_Prep:
@@ -134,9 +140,7 @@ class College_Data_Prep:
     def Get_Pitcher_Size(self) -> int:
         return self.prep_map.bio_size + self.prep_map.pitstats_size
     
-    def Load_Hitter_Data(self, tbcId: int, use_cutoff: bool = True,
-            player: DB_College_Player | None = None) -> College_Hitter_Data:
-        
+    def Load_Hitter_Data(self, tbcId: int, use_cutoff: bool, player: DB_College_Player | None) -> College_Hitter_Data:
         cursor = db.cursor()
         cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         if player is None:
@@ -152,8 +156,27 @@ class College_Data_Prep:
             proStats=DB_Model_College_HitterProStats.Select_From_DB(cursor, "WHERE tbcId=?", (tbcId,))[0]
         )
     
-    def Generate_IO_From_Data(self, data: College_Hitter_Data) -> College_IO | None:
+    def Load_Pitcher_Data(self, tbcId: int, use_cutoff: bool, player : DB_College_Player | None) -> College_Pitcher_Data:
+        cursor = db.cursor()
+        cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
+        if player is None:
+            players = DB_College_Player.Select_From_DB(cursor, "WHERE TBCId=?", (tbcId,))
+            if len(players) == 0:
+                raise ValueError(f"No College_Player row for tbcId={tbcId}")
+            player = players[0]
+            
+        return College_Pitcher_Data(
+            player=player,
+            stats=DB_Model_College_PitcherYear.Select_From_DB(cursor,
+                "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (tbcId, cutoff_year)),
+            proStats=DB_Model_College_PitcherProStats.Select_From_DB(cursor, "WHERE tbcId=?", (tbcId,))[0]
+        )
+    
+    def Generate_Hitter_IO_From_Data(self, data: College_Hitter_Data) -> College_IO | None:
         return self.Generate_IO_Single_Hitter(data.player, data.stats, data.proStats)
+    
+    def Generate_Pitcher_IO_From_Data(self, data : College_Pitcher_Data) -> College_IO | None:
+        return self.Generate_IO_Single_Pitcher(data.player, data.stats, data.proStats)
     
     def Generate_IO_Single_Hitter(self,
             hitter : DB_College_Player,
@@ -206,6 +229,48 @@ class College_Data_Prep:
             length=l,
             dates=dates
         )
+        
+    def Generate_IO_Single_Pitcher(self,
+                pitcher : DB_College_Player,
+                stats : list[DB_Model_College_PitcherYear],
+                proStats : DB_Model_College_PitcherProStats) -> College_IO | None:
+        
+        l = len(stats)
+        if l == 0:
+            return None
+
+        # Dates
+        dates = torch.tensor([(pitcher.TBCId, x.Year,) for x in stats], dtype=torch.long)
+        
+        # Input
+        input = torch.zeros(l, self.Get_Pitcher_Size())
+        input[:, :self.prep_map.bio_size] = self.__Transform_PitcherData(pitcher)
+        input[:, self.prep_map.bio_size:] = self.__TransformPitcherStats(stats)
+        
+        # Draft
+        output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
+        output_war = torch.bucketize(torch.tensor(self.output_map.map_war_p(proStats)), TOTAL_WAR_BUCKETS)
+        
+        # Pos
+        output_pos = torch.tensor(self.output_map.map_pos_p(proStats))
+        mask_pos = self.output_map.mask_pos_p(proStats)
+        
+        return College_IO(
+            player=pitcher,
+            input=input,
+            output_draft=output_draft,
+            output_war=output_war,
+            
+            output_def=None,
+            output_off=None,
+            output_pa=None,
+            
+            output_pos = output_pos,
+            mask_pos=mask_pos,
+            
+            length=l,
+            dates=dates
+        )
     
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
         cursor = db.cursor()
@@ -215,9 +280,10 @@ class College_Data_Prep:
         
         for hitter in tqdm(hitters, desc="Generating College Hitters", leave=False):
             data = self.Load_Hitter_Data(hitter.TBCId, use_cutoff, player=hitter)
-            result = self.Generate_IO_From_Data(data)
+            result = self.Generate_Hitter_IO_From_Data(data)
             if result is not None:
                 io.append(result)
+                
         return io
     
     def Generate_IO_Pitchers(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[College_IO]:
@@ -225,46 +291,10 @@ class College_Data_Prep:
         pitchers = DB_College_Player.Select_From_DB(cursor, player_condition, player_values)
         
         io : list[College_IO] = []
-        cutoff_year = College_Data_Prep.__Cutoff_Year if use_cutoff else 1000000
-        
         for pitcher in tqdm(pitchers, desc="Generating College Pitchers", leave=False):
-            stats = DB_Model_College_PitcherYear.Select_From_DB(cursor, "WHERE tbcId=? AND year<=? ORDER BY Year ASC", (pitcher.TBCId, cutoff_year))
-            proStats = DB_Model_College_PitcherProStats.Select_From_DB(cursor, "WHERE tbcId=?", (pitcher.TBCId,))[0]
-            l = len(stats)
-            if l == 0:
-                continue
-            
-            # Dates
-            dates = torch.tensor([(pitcher.TBCId, x.Year,) for x in stats], dtype=torch.long)
-            
-            # Input
-            input = torch.zeros(l, self.Get_Pitcher_Size())
-            input[:, :self.prep_map.bio_size] = self.__Transform_PitcherData(pitcher)
-            input[:, self.prep_map.bio_size:] = self.__TransformPitcherStats(stats)
-            
-            # Draft
-            output_draft = torch.bucketize(torch.tensor(self.output_map.map_draft_p(pitcher)), DRAFT_BUCKETS)
-            output_war = torch.bucketize(torch.tensor(self.output_map.map_war_p(proStats)), TOTAL_WAR_BUCKETS)
-            
-            # Pos
-            output_pos = torch.tensor(self.output_map.map_pos_p(proStats))
-            mask_pos = self.output_map.mask_pos_p(proStats)
-            
-            io.append(College_IO(
-                player=pitcher,
-                input=input,
-                output_draft=output_draft,
-                output_war=output_war,
-                
-                output_def=None,
-                output_off=None,
-                output_pa=None,
-                
-                output_pos = output_pos,
-                mask_pos=mask_pos,
-                
-                length=l,
-                dates=dates
-            ))
+            data = self.Load_Pitcher_Data(pitcher.TBCId, use_cutoff, player=pitcher)
+            result = self.Generate_Pitcher_IO_From_Data(data)
+            if result is not None:
+                io.append(result)
         
         return io

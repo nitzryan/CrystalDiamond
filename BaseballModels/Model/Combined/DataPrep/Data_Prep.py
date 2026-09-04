@@ -4,8 +4,8 @@ import torch
 from Model.Pro.DataPrep.Prep_Map import Prep_Map
 from Model.Pro.DataPrep.Output_Map import Output_Map
 
-from Model.College.DataPrep.Data_Prep import College_Data_Prep, College_IO, College_Hitter_Data
-from Model.Pro.DataPrep.Data_Prep import Data_Prep, Player_IO, Pro_Hitter_Data
+from Model.College.DataPrep.Data_Prep import College_Data_Prep, College_IO, College_Hitter_Data, College_Pitcher_Data
+from Model.Pro.DataPrep.Data_Prep import Data_Prep, Player_IO, Pro_Hitter_Data, Pro_Pitcher_Data
 from Model.College.DataPrep.Prep_Map import College_Prep_Map
 from Model.College.DataPrep.Output_Map import College_Output_Map
 from Model.Pro.DataPrep.Prep_Map import Prep_Map
@@ -141,14 +141,30 @@ class Combined_Data_Prep:
                 col_data : College_Hitter_Data | None) -> Combined_IO:
         
         if pro_data is not None:
-            pro_io = self.pro_data_prep.Generate_IO_From_Data(pro_data, modelLevelYearGamesDict = None)
+            pro_io = self.pro_data_prep.Generate_Hitter_IO_From_Data(pro_data, modelLevelYearGamesDict = None)
         else:
             pro_io = self.GetEmptyProIO(True)
             
         if col_data is not None:
-            col_io = self.college_data_prep.Generate_IO_From_Data(col_data)
+            col_io = self.college_data_prep.Generate_Hitter_IO_From_Data(col_data)
         else:
             col_io = self.GetEmptyCollegeIO(is_hitter=True)
+            
+        return Combined_IO(pro_io, col_io)
+        
+    def Generate_IO_Test_Pitcher(self,
+                pro_data: Pro_Pitcher_Data | None,
+                col_data: College_Pitcher_Data | None) -> Combined_IO:
+        
+        if pro_data is not None:
+            pro_io = self.pro_data_prep.Generate_Pitcher_IO_From_Data(pro_data, modelLevelYearGamesDict = None)
+        else:
+            pro_io = self.GetEmptyProIO(True)
+            
+        if col_data is not None:
+            col_io = self.college_data_prep.Generate_Pitcher_IO_From_Data(col_data)
+        else:
+            col_io = self.GetEmptyCollegeIO(is_hitter=False)
             
         return Combined_IO(pro_io, col_io)
         
