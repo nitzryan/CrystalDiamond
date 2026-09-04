@@ -4,8 +4,8 @@ import torch
 from Model.Pro.DataPrep.Prep_Map import Prep_Map
 from Model.Pro.DataPrep.Output_Map import Output_Map
 
-from Model.College.DataPrep.Data_Prep import College_Data_Prep, College_IO
-from Model.Pro.DataPrep.Data_Prep import Data_Prep, Player_IO
+from Model.College.DataPrep.Data_Prep import College_Data_Prep, College_IO, College_Hitter_Data
+from Model.Pro.DataPrep.Data_Prep import Data_Prep, Player_IO, Pro_Hitter_Data
 from Model.College.DataPrep.Prep_Map import College_Prep_Map
 from Model.College.DataPrep.Output_Map import College_Output_Map
 from Model.Pro.DataPrep.Prep_Map import Prep_Map
@@ -137,21 +137,16 @@ class Combined_Data_Prep:
         return self._Load_IO_Hitters(pro_io, college_io)
         
     def Generate_IO_Test_Hitter(self,
-            pro_player : DB_Model_Players | None,
-            pro_stats : list[DB_Model_HitterStats] | None,
-            pro_month_war : list[DB_Player_MonthlyWar] | None,
-            
-            col_player : DB_College_Player | None,
-            col_stats : list[DB_Model_College_HitterYear] | None
-            ) -> Combined_IO:
+                pro_data: Pro_Hitter_Data | None,
+                col_data : College_Hitter_Data | None) -> Combined_IO:
         
-        if pro_player is not None and pro_stats is not None and pro_month_war is not None:
-            pro_io = self.pro_data_prep.Generate_IO_Single_Hitter(pro_player, pro_stats, pro_month_war)
+        if pro_data is not None:
+            pro_io = self.pro_data_prep.Generate_IO_From_Data(pro_data, modelLevelYearGamesDict = None)
         else:
             pro_io = self.GetEmptyProIO(True)
             
-        if col_player is not None and col_stats is not None:
-            col_io = self.college_data_prep.Generate_IO_Single_Hitter(col_player, col_stats)
+        if col_data is not None:
+            col_io = self.college_data_prep.Generate_IO_From_Data(col_data)
         else:
             col_io = self.GetEmptyCollegeIO(is_hitter=True)
             

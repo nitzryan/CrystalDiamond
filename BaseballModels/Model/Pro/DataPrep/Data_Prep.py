@@ -8,6 +8,7 @@ import math
 import torch
 from tqdm import tqdm
 import random
+from dataclasses import dataclass
 from Model.Pro.DataPrep.Prep_Map import Prep_Map
 from Model.Pro.DataPrep.Output_Map import Output_Map
 from Model.Pro.DataPrep.Output_StatAggregation import Aggregate_HitterStats, Aggregate_PitcherStats, Aggregate_HitterMlbBuckets, NUM_HITTER_STATS, Aggregate_PitcherMlbBuckets, NUM_PITCHER_STATS
@@ -70,6 +71,16 @@ class Player_IO:
         for io in io_list:
             max_length = max(max_length, io.length)
         return max_length
+        
+@dataclass
+class Pro_Hitter_Data:
+    player: DB_Model_Players
+    stats: list[DB_Model_HitterStats]
+    monthly_wars: list[DB_Player_MonthlyWar]
+    level_stats: list[DB_Model_HitterLevelStats]
+    mlb_values: list[DB_Model_HitterValue]
+    player_wars: list[DB_Model_PlayerWar]
+    ignore_player: bool
         
 _T = TypeVar('T')
 class Data_Prep:
@@ -232,6 +243,17 @@ class Data_Prep:
     
     def Get_Pitcher_Size(self) -> int:
         return self.prep_map.pitcherlvl_size + self.prep_map.pit_size + self.prep_map.pitcherpt_size + self.prep_map.mlb_pit_value_size + 1
+    
+    # Getters
+    def GetHitPtMeans(self) -> torch.Tensor :
+        return getattr(self, "__hitlvlpt_means")
+    def GetHitPtDevs(self) -> torch.Tensor :
+        return getattr(self, "__hitlvlpt_devs")
+    def GetHitStatMeans(self) -> torch.Tensor :
+        return getattr(self, "__hitlvlstat_means")
+    def GetHitStatDevs(self) -> torch.Tensor :
+        return getattr(self, "__hitlvlstat_devs")
+    
     
     def __Transform_HitterData(self, hitter : DB_Model_Players) -> torch.Tensor:
         bio_stats = torch.tensor([self.prep_map.map_bio(hitter)], dtype=DTYPE)
@@ -710,49 +732,62 @@ class Data_Prep:
             mlb_stat_mask = mlb_stat_mask,)
             
         
+    def Load_Hitter_Data(self, mlbId: int, use_cutoff: bool = True,
+                     player: DB_Model_Players | None = None) -> Pro_Hitter_Data:
+        cursor = db.cursor()
+        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
+        
+        if player is None:
+            players = DB_Model_Players.Select_From_DB(cursor, "WHERE mlbId=?", (mlbId,))
+            if len(players) == 0:
+                raise ValueError(f"No Model_Players row for mlbId={mlbId}")
+            player = players[0]
+            
+        stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
+                                                                             "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
+                                                                             (mlbId, cutoff_year))
+        
+        return Pro_Hitter_Data(
+            player=player,
+            stats=[mhs for mhs, pmw in stats_monthlywar],
+            monthly_wars=[pmw for mhs, pmw in stats_monthlywar],
+            level_stats=DB_Model_HitterLevelStats.Select_From_DB(cursor,
+                "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (mlbId, cutoff_year)),
+            mlb_values=DB_Model_HitterValue.Select_From_DB(cursor,
+                "WHERE mlbId=:mlbId AND (Year<=:year) ORDER BY Year ASC, MONTH ASC",
+                {'mlbId': mlbId, 'year': cutoff_year}),
+            player_wars=DB_Model_PlayerWar.Select_From_DB(cursor,
+                "WHERE mlbId=? AND isHitter=1", (mlbId,)),
+            ignore_player=cursor.execute(
+                "SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?",
+                (mlbId,)).fetchone()[0] is not None,
+        )
+    
+    def Generate_IO_From_Data(self, data: Pro_Hitter_Data, modelLevelYearGamesDict : dict | None) -> Player_IO:
+        return self.Generate_IO_Single_Hitter(
+            hitter=data.player,
+            stats=data.stats,
+            monthly_wars=data.monthly_wars,
+            level_stats=data.level_stats,
+            mlb_values=data.mlb_values,
+            player_wars=data.player_wars,
+            modelLevelYearGamesDict=modelLevelYearGamesDict,
+            ignore_player=data.ignore_player)
+    
     def Generate_IO_Hitters(self, player_condition : str, player_values : tuple[any], use_cutoff : bool) -> list[Player_IO]:
         # Get Hitters
         cursor = db.cursor()
         hitters = DB_Model_Players.Select_From_DB(cursor, player_condition, player_values)
         
         io : list[Player_IO] = []
-        cutoff_year = Data_Prep.__Cutoff_Year if use_cutoff else 1000000
         
         # Amount of games played each year at each level for pt predictions
         modelLevelYearGamesDict = Data_Prep.__Generate_ModelLevelYearGamesDict(cursor)
         
         np.random.seed(4980)
         for hitter in tqdm(hitters, desc="Generating Pro Hitters", leave=False):
-            # Get Stats
-            stats_monthlywar = DB_AdvancedStatements.Select_LeftJoin(DB_Model_HitterStats, DB_Player_MonthlyWar, cursor,
-                                                                     "SELECT * FROM Model_HitterStats AS mhs LEFT JOIN Player_MonthlyWar AS pmw ON mhs.mlbId=pmw.mlbId AND mhs.month=pmw.month AND mhs.year=pmw.year WHERE mhs.mlbId=? AND mhs.Year<=?",
-                                                                     (hitter.mlbId, cutoff_year))
-            l = len(stats_monthlywar) + 1
-            stats = [mhs for mhs, pmw in stats_monthlywar]
-            monthly_wars = [pmw for mhs, pmw in stats_monthlywar]
-            
-            level_stats = DB_Model_HitterLevelStats.Select_From_DB(cursor, "WHERE mlbId=? AND year<=? ORDER BY Year ASC, Month ASC", (hitter.mlbId, cutoff_year))
-            
-            mlb_values = DB_Model_HitterValue.Select_From_DB(cursor, '''
-                WHERE mlbId=:mlbId AND
-                (
-                    Year<=:year
-                )
-                ORDER BY Year ASC, MONTH ASC''',
-                {'mlbId':hitter.mlbId,'year':cutoff_year})
-            
-            player_wars = DB_Model_PlayerWar.Select_From_DB(cursor, "WHERE mlbId=? AND isHitter=1", (hitter.mlbId,))
-            ignore_player = cursor.execute("SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?", (hitter.mlbId,)).fetchone()[0] is not None
-            
-            io.append(self.Generate_IO_Single_Hitter(
-                hitter=hitter,
-                stats=stats,
-                monthly_wars=monthly_wars,
-                level_stats=level_stats,
-                mlb_values=mlb_values,
-                player_wars=player_wars,
-                modelLevelYearGamesDict=modelLevelYearGamesDict,
-                ignore_player=ignore_player))
+            data = self.Load_Hitter_Data(hitter.mlbId, use_cutoff, player=hitter)
+            io.append(self.Generate_IO_From_Data(data, modelLevelYearGamesDict))
         
         return io
        

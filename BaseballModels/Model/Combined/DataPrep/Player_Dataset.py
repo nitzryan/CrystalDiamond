@@ -202,7 +202,7 @@ def Create_Test_Train_Datasets(
     eval_mode : bool = False,
     train_test_ratio : int = 3,
     total_training_runs : int = NUM_MODEL_VARIANTS,
-    train_idx : int = 0) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset]:
+    train_idx : int = 0) -> tuple[Combined_Player_Dataset, Combined_Player_Dataset | None]:
     
     
     io_train : list[Combined_IO] = []
