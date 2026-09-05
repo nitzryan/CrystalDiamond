@@ -14,6 +14,7 @@ from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
 from Model.Constants import DRAFT_MEANS, NUM_LEVELS, model_db
 from Model.EvalStats import getOutputHitterStats as getOutputStats
+from Model.Combined.TrainEval.ModelCache import ModelCache
 
 VARIANT_BATCH_SIZE = 10000
 
@@ -62,6 +63,7 @@ class Test_Model_Runner:
         self.model_dir = model_dir
         self.data_prep = data_prep
         self.device = device
+        self.model_cache = ModelCache(data_prep, model_dir, self.device)
         
     @torch.no_grad()
     def Run_Variants(self,
@@ -90,17 +92,7 @@ class Test_Model_Runner:
         num_variants = next(iter(override_lens.values()), 1)
 
         # Retrieve Model
-        pos_str = "hit" if is_hitter else "pit"
-        model_cursor = model_db.cursor()
-        model_name = DB_ModelId.Select_From_DB(model_cursor, "WHERE id=?", (modelId,))[0].modelName
-        col_network = ColModel.LoadFromFile(self.model_dir + f"{model_name}_{pos_str}_col.json", self.data_prep.college_data_prep).to(self.device)
-        pro_network = ProModel.LoadFromFile(self.model_dir + f"{model_name}_{pos_str}_pro.json", self.data_prep.pro_data_prep).to(self.device)
-        
-        col_network.eval()
-        pro_network.eval()
-        
-        wba = DB_WarBucketAverages.Select_From_DB(model_cursor, "WHERE isHitter=?", (1 if is_hitter else 0,))[0]
-        war_bucket_averages = torch.tensor([0, wba.war1, wba.war2, wba.war3, wba.war4, wba.war5, wba.war6]).to(self.device)
+        war_bucket_averages = self.model_cache.war_bucket_averages(is_hitter)
         
         # Get data
         base_pro = None if mlbId is None \
@@ -115,7 +107,7 @@ class Test_Model_Runner:
         # Build data from overrides and determine model runs
         ios = [self._BuildVariants(is_hitter, i, base_pro, base_col, overrides) for i in range(num_variants)]
 
-        model_runs = self._Runs_For_Player(mlbId, tbcId, modelId)
+        model_runs = self._Runs_For_Player(is_hitter, mlbId, tbcId, modelId)
         num_runs = len(model_runs)
 
         dataset, _ = Create_Test_Train_Datasets(ios, is_hitter=is_hitter, device=self.device, eval_mode=True)
@@ -126,9 +118,8 @@ class Test_Model_Runner:
         stat_acc: list[torch.Tensor | None] = [None] * num_variants
 
         for run in model_runs:
-            with warnings.catch_warnings(action='ignore', category=FutureWarning):
-                pro_network.load_state_dict(torch.load(f"{self.model_dir}pro_{model_name}_{run}_{pos_str}.pt", map_location=self.device))
-                col_network.load_state_dict(torch.load(f"{self.model_dir}col_{model_name}_{run}_{pos_str}.pt", map_location=self.device))
+            pro_network = self.model_cache.network(modelId, is_hitter, True, run)
+            col_network = self.model_cache.network(modelId, is_hitter, False, run) if col_valid else None
 
             for start in batch_starts:
                 end = min(start + VARIANT_BATCH_SIZE, num_variants)
@@ -142,6 +133,7 @@ class Test_Model_Runner:
                     else:
                         draft, war, pos, i0 = col_network(*col_input)
                         col_values = (draft, war, pos)
+                        col_values = tuple(v.cpu() for v in col_values)
                 else:
                     # Need to create an empty i0, as pro network expects the tensor even though
                     # in this scenario it will just overwrite the values
@@ -152,6 +144,8 @@ class Test_Model_Runner:
                     pro_data, pro_length, pro_pt_lyg, player_demo, player_bios = pro_input
                     pro_war, _, _, pro_stats_out, pro_pos, _, pro_pt, _ = pro_network(
                         pro_data, pro_length, pro_pt_lyg, i0, player_demo, player_bios)
+                    pro_war, pro_stats_out, pro_pt, pro_pos = (
+                        t.cpu() for t in (pro_war, pro_stats_out, pro_pt, pro_pos))
                 for b, v in enumerate(range(start, end)):
                     io = ios[v]
                     if col_valid:
@@ -222,7 +216,7 @@ class Test_Model_Runner:
             raise ValueError(f"tbcId={tbcId} exists but has no Model_College_PitcherYear rows")
         return data
     
-    def _Runs_For_Player(self, mlbId: int | None, tbcId: int | None, modelId : int) -> list[int]:
+    def _Runs_For_Player(self, is_hitter : bool, mlbId: int | None, tbcId: int | None, modelId : int) -> list[int]:
         if mlbId is not None:
             id_col, id_val = "mlbId", mlbId
         else:
@@ -231,16 +225,17 @@ class Test_Model_Runner:
         model_cursor = model_db.cursor()
         rows = model_cursor.execute(
             f"SELECT DISTINCT(modelRun) FROM PlayersInTrainingData "
-            f"WHERE {id_col}=? AND modelId=? AND isHitter=1 AND isTrain=0 ORDER BY modelRun ASC",
-            (id_val, modelId)).fetchall()
+            f"WHERE {id_col}=? AND modelId=? AND isHitter=? AND isTrain=0 ORDER BY modelRun ASC",
+            (id_val, modelId, 1 if is_hitter else 0)).fetchall()
         
         if len(rows) > 0:
             return [r[0] for r in rows]
         
-        model_runs = model_cursor.execute("SELECT DISTINCT(modelRun) FROM PlayersInTrainingData WHERE modelId=? ORDER BY ModelRun ASC", (modelId,)).fetchall()
-        return [mr[0] for mr in model_runs]
-    
-    
+        name = self.model_cache.model_name(modelId)
+        hist = DB_Model_TrainingHistory.Select_From_DB(
+            model_cursor, "WHERE ModelName=? AND IsHitter=? ORDER BY ModelRun ASC",
+            (name, 1 if is_hitter else 0))
+        return [h.ModelRun for h in hist]
     
     # Building tensors from output
     def _College_Values(self,
@@ -304,9 +299,9 @@ class Test_Model_Runner:
         assert pt.size(-1)    == NUM_LEVELS * pt_count
         assert pos.size(-1)   == NUM_LEVELS * num_positions
 
-        stats = (stats[b, :length].reshape(length, NUM_LEVELS, num_stats).cpu() * stat_devs) + stat_means
-        pt    = (pt[b, :length].reshape(length, NUM_LEVELS, pt_count).cpu()            * pt_devs)   + pt_means
-        pos   = F.softmax(pos[b, :length].reshape(length, NUM_LEVELS, num_positions).cpu(), dim=-1)
+        stats = (stats[b, :length].reshape(length, NUM_LEVELS, num_stats) * stat_devs) + stat_means
+        pt    = (pt[b, :length].reshape(length, NUM_LEVELS, pt_count)            * pt_devs)   + pt_means
+        pos   = F.softmax(pos[b, :length].reshape(length, NUM_LEVELS, num_positions), dim=-1)
 
         return torch.cat((pt, stats, pos), dim=-1)
     
