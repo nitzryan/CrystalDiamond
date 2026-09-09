@@ -2,6 +2,8 @@
 #include <iostream>
 
 #define NUM_LEVELS 8
+#define PA_THRESHOLD 0
+#define IP_THRESHOLD 0
 
 at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlbIds, const at::Tensor& dates, const at::Tensor& pt, const at::Tensor& stats, const at::Tensor& pos, float modelId, float modelIdx)
 {
@@ -63,7 +65,7 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
       for (int k = 0; k < NUM_LEVELS; k++)
       {
         float pa = pt_acc[i][j][k][0];
-        if (pa > 100)
+        if (pa >= PA_THRESHOLD)
         {
           goodElementsCount++;
         }
@@ -86,7 +88,7 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
       for (int k = 0; k < NUM_LEVELS; k++)
       {
         float pa = pt_acc[i][j][k][0];
-        if (pa > 100)
+        if (pa >= PA_THRESHOLD)
         {
           results[n][0] = mlbId;
           results[n][1] = modelId;
@@ -177,7 +179,7 @@ at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& ml
       {
         float outs_sp = pt_acc[i][j][k][0];
         float outs_rp = pt_acc[i][j][k][1];
-        if (outs_sp + outs_rp > 60)
+        if (outs_sp + outs_rp >= (3 * IP_THRESHOLD))
         {
           goodElementsCount++;
         }
@@ -201,7 +203,7 @@ at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& ml
       {
         float outs_sp = pt_acc[i][j][k][0];
         float outs_rp = pt_acc[i][j][k][1];
-        if (outs_sp + outs_rp > 60)
+        if (outs_sp + outs_rp >= (3 * IP_THRESHOLD))
         {
           results[n][0] = mlbId;
           results[n][1] = modelId;

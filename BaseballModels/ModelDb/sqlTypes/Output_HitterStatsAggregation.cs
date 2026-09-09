@@ -7,7 +7,7 @@ namespace ModelDb
 		public required int Year {get; set;}
 		public required int Month {get; set;}
 		public required int LevelId {get; set;}
-		public required int Pa {get; set;}
+		public required float Pa {get; set;}
 		public required float Hit1B {get; set;}
 		public required float Hit2B {get; set;}
 		public required float Hit3B {get; set;}

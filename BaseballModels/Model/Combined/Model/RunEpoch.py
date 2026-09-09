@@ -4,7 +4,7 @@ from Model.Combined.Model.TestOrTrain import TestOrTrain
 def RunEpoch(
     pro_network, col_network, train_dataset, test_dataset,
     is_hitter: bool, num_pro_elements: int, num_col_elements: int,
-    batch_size: int, pro_element_loss_scales
+    batch_size: int
 ) -> tuple[EpochResult, EpochResult]:
     train_result = TestOrTrain(
             pro_network=pro_network, 
@@ -18,8 +18,7 @@ def RunEpoch(
             pro_elements=num_pro_elements,
             col_elements=num_col_elements,
             is_train=True,
-            batch_size=batch_size,
-            pro_element_loss_scales=pro_element_loss_scales)
+            batch_size=batch_size)
     
     test_result = TestOrTrain(
             pro_network=pro_network,
@@ -31,7 +30,6 @@ def RunEpoch(
             pro_elements=num_pro_elements,
             col_elements=num_col_elements,
             is_train=False,
-            batch_size=batch_size,
-            pro_element_loss_scales=pro_element_loss_scales)
+            batch_size=batch_size)
     
     return train_result, test_result

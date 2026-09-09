@@ -15,8 +15,7 @@ from Model.Combined.Utilities.Types import *
 from Model.Utilities import GetPropertyValue
 
 SHOULD_PROFILE = False
-DEFAULT_PRO_ELEMENT_LOSS_SCALES = [0.24, 2.3, 8.2e-5, 8.6e-6, 1.07e-5, 1.2e-5, 0.86, 3.6e-6]
-DEFAULT_PRO_ELEMENT_LOSS_SCALES_P = [5.1e-3, 2.8e-3, 4.7e-3, 4.4e-6, 2.4e-6, 4.2e-2, 2.0e-6, 6.0e-6]
+
 DEFAULT_BATCH_SIZE = 1038
 DEFAULT_NUM_EPOCHS = 35
 DEFAULT_BATCH_SIZE_P = 1276
@@ -37,7 +36,6 @@ def TrainAndGraph(
     col_model_name : str = "no_name_col",
     element_to_save : int = 0,
     early_stopping_cutoff : int = 20,
-    pro_element_loss_scales : list[float] | None = None,
     timestep_pct_cutoff : float = 1.0,
     save_last=True,
 ) -> TrainResults:
@@ -45,7 +43,6 @@ def TrainAndGraph(
     num_pro_elements = NUM_ELEMENTS
     num_epochs = GetPropertyValue(num_epochs, is_hitter, DEFAULT_NUM_EPOCHS, DEFAULT_NUM_EPOCHS_P)
     batch_size = GetPropertyValue(batch_size, is_hitter, DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_P)
-    pro_element_loss_scales = GetPropertyValue(pro_element_loss_scales, is_hitter, DEFAULT_PRO_ELEMENT_LOSS_SCALES, DEFAULT_PRO_ELEMENT_LOSS_SCALES_P)
     if is_hitter:
         num_col_elements = NUM_ELEMENTS_HITTER
         col_element_list = HITTER_ELEMENT_LIST
@@ -72,7 +69,7 @@ def TrainAndGraph(
     if show_progress_bar:
         iterable = tqdm(iterable, leave=False, desc="Training")
     for epoch in iterable:
-        train_result, test_result = RunEpoch(pro_network, col_network, train_dataset, test_dataset, is_hitter, num_pro_elements, num_col_elements, batch_size, pro_element_loss_scales)
+        train_result, test_result = RunEpoch(pro_network, col_network, train_dataset, test_dataset, is_hitter, num_pro_elements, num_col_elements, batch_size)
         
         pro_scheduler.step()
         col_scheduler.step()

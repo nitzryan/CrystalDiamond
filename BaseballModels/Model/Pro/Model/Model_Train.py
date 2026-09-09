@@ -1,5 +1,5 @@
 import torch
-from Model.Constants import device, TOTAL_WAR_BUCKETS
+from Model.Constants import device
 from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Loss, Classification_Loss, Mlb_Value_Loss_Hitter, Mlb_Value_Loss_Pitcher, MLB_Stat_Classification_Loss, Pt_Loss, Recurrent_Model
 from Model.Combined.Model.GetWarClassCounts import *
 from Model.Combined.Utilities.Types import *
@@ -18,8 +18,7 @@ def GetLossesPro(
   masks : tuple, 
   i0 : torch.Tensor, 
   shouldBackprop : bool, 
-  is_hitter: bool,
-  pro_element_loss_scales : list[float]) -> ProLossResult | None:
+  is_hitter: bool) -> ProLossResult | None:
   
   # Get Model Output
   data, length, pt_levelYearGames, player_demo, player_bios = data
@@ -66,25 +65,16 @@ def GetLossesPro(
   loss_pa = Classification_Loss(output_pa, target_pa, mask_labels)
   
   loss_yearStats = Stats_Loss(output_stats, target_yearStats, mask_stats)
-  loss_yearPt = Pt_Loss(output_pt, target_pt)
+  loss_yearPt = Pt_Loss(output_pt, target_pt, length)
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat, is_hitter)
   
   # Scale how much each loss should effect the model
   losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]
-  for i in range(NUM_ELEMENTS):
-    els = pro_element_loss_scales[i]
-    if els != 1:
-      losses[i] *= els
   
   if shouldBackprop:
     torch.autograd.backward(losses)
-  
-  for i in range(NUM_ELEMENTS):
-    els = pro_element_loss_scales[i]
-    if els != 1:
-      losses[i] /= els
   
   return ProLossResult(
     losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),

@@ -10,9 +10,9 @@ from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
-from Model.Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS
+from Model.Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS, GetDataPrepBinaryFile
 from Model.Utilities import GetModelMaps
-from Model.EvalStats import getOutputHitterStats as getOutputStats
+from Model.EvalStats import getOutputHitterStats, getOutputPitcherStats
 from Model.ModelDBTypes import *
 
 def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
@@ -80,8 +80,9 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                 prep_map=pro_prep_map,
                 output_map=pro_output_map,
                 college_prep_map=col_prep_map,
-                college_output_map=col_output_map
-            )
+                college_output_map=col_output_map,
+                save_name=f"Model/{GetDataPrepBinaryFile(model_id)}",
+            ) if is_hitter else Combined_Data_Prep.Load_From_File(f"Model/{GetDataPrepBinaryFile(model_id)}")
             
             if eval_update:
                 io_list = data_prep.Generate_IO_Hitters_Update(year, month, college_year) if is_hitter \
@@ -179,7 +180,7 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     )
                     db_input = torch.nn.utils.rnn.unpad_sequence(db_input, col_length[col_mask_valid], batch_first=True)
                     
-                    # Handle SQL Query
+                    # SQL Query for college data
                     for d in db_input:
                         if eval_update:
                             vals = [tuple(x) for x in d.tolist() if x[2] == college_year]
@@ -266,7 +267,8 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     pro_length = pro_length.to('cpu')
                     mlbIds = mlbIds.to('cpu')
                     
-                    stats_tensor = getOutputStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_run)
+                    stats_tensor = getOutputHitterStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_run) if is_hitter \
+                            else getOutputPitcherStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_run)
                     if eval_update:
                         mask = (stats_tensor[:, 3] == year) & (stats_tensor[:, 4] == month)
                         stats_tensor = stats_tensor[mask]

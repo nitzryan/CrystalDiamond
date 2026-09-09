@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import math
 from dataclasses import dataclass
 
-from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS, DEFAULT_PRO_ELEMENT_LOSS_SCALES, DEFAULT_PRO_ELEMENT_LOSS_SCALES_P, DEFAULT_BATCH_SIZE_P, DEFAULT_NUM_EPOCHS_P
+from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS, DEFAULT_BATCH_SIZE_P, DEFAULT_NUM_EPOCHS_P
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model, LayerArch
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Pro.Model.Player_Model import *
@@ -22,6 +22,10 @@ _ACTIVATION_MAP = {
         "Tanh": F.tanh,
     }
 
+_NUM_GRAD_SCALES = len(DEFAULT_HITTER_GRAD_SCALES)
+assert _NUM_GRAD_SCALES == len(DEFAULT_PITCHER_GRAD_SCALES), \
+    "hitter/pitcher trunk-grad-scale vectors must be the same length"
+
 # Configurable Explore/Exploit balance
 class SearchWidth(Enum):
     WIDE = auto()
@@ -31,12 +35,13 @@ class SearchWidth(Enum):
 class ProModelTuningRecipe(Flag):
     RECURRENT = auto()
     INIT_HIDDEN = auto()
+    SHARED_OPTIM = auto()
     
     DATAINIT_ARCH = auto()
     WAR_ARCH = auto()
     
     BATCH_PARAMS = auto()
-    LOSS_SCALES = auto()
+    TRUNK_GRAD_SCALES = auto()
 
 @dataclass(frozen=True)
 class ParamSpec:
@@ -78,22 +83,24 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
         ParamSpec("num_layers", 2, 4, is_int=True),
         ParamSpec("hidden_size", 16, 96, is_int=True),
         ParamSpec("dropout", 0.0, 0.5),
-        ParamSpec("wd_shared", 1e-3, 1e-1, log=True),
-        ParamSpec("lr_shared", 5e-4, 1e-2, log=True),
         ParamSpec("rnn_activation", choices=["relu", "tanh"]),
+    ],
+    ProModelTuningRecipe.SHARED_OPTIM: [
+    ParamSpec("lr_shared", 5e-4, 1e-2, log=True),
+    ParamSpec("wd_shared", 1e-3, 1e-1, log=True),
     ],
     ProModelTuningRecipe.DATAINIT_ARCH: [
         ParamSpec("datainit_layers", 2, 8, is_int=True),
         ParamSpec("datainit_size", 4, 128, is_int=True),
         ParamSpec("datainit_activation", choices=_ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_datainit", 1e-4, 1e-1, log=True),
+        ParamSpec("lr_datainit", 1e-4, 1e-2, log=True),
         ParamSpec("wd_datainit", 1e-7, 1e-2, log=True),
     ],
     ProModelTuningRecipe.WAR_ARCH: [
         ParamSpec("war_layers", 2, 6, is_int=True),
         ParamSpec("war_size", 4, 128, is_int=True),
         ParamSpec("war_activation", choices=_ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_war", 1e-4, 1e-1, log=True),
+        ParamSpec("lr_war", 1e-4, 1e-2, log=True),
         ParamSpec("wd_war", 1e-7, 1e-2, log=True),
     ],
     ProModelTuningRecipe.INIT_HIDDEN: [
@@ -106,9 +113,10 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
         ParamSpec("batch_size", 400, 1600, is_int=True),
         ParamSpec("num_epochs", 30, 60, is_int=True),
     ],
-    ProModelTuningRecipe.LOSS_SCALES: [
-        ParamSpec(f"loss_scale_{i}", 1e-6, 10.0, log=True)
-        for i in range(len(DEFAULT_PRO_ELEMENT_LOSS_SCALES))
+    ProModelTuningRecipe.TRUNK_GRAD_SCALES: [
+        ParamSpec(f"grad_scale_{i}", 1e-3, 10, log=True)
+        for i in range(_NUM_GRAD_SCALES)
+        if i != 0 # WAR scale stays at 1.0
     ],
 }
 
@@ -140,9 +148,7 @@ HITTER_DEFAULTS = {
     "batch_size": DEFAULT_BATCH_SIZE,
     "num_epochs": DEFAULT_NUM_EPOCHS,
     
-    # Loss Scale Factor
-    **{f"loss_scale_{i}": v
-       for i, v in enumerate(DEFAULT_PRO_ELEMENT_LOSS_SCALES)},
+    **{f"grad_scale_{i}": v for i, v in enumerate(DEFAULT_HITTER_GRAD_SCALES)},
 }
 
 PITCHER_DEFAULTS = {
@@ -172,16 +178,22 @@ PITCHER_DEFAULTS = {
     "batch_size": DEFAULT_BATCH_SIZE_P,
     "num_epochs": DEFAULT_NUM_EPOCHS_P,
     
-    # Loss Scale Factor
-    **{f"loss_scale_{i}": v
-       for i, v in enumerate(DEFAULT_PRO_ELEMENT_LOSS_SCALES_P)},
+    **{f"grad_scale_{i}": v for i, v in enumerate(DEFAULT_PITCHER_GRAD_SCALES)},
 }
+
+def AssertRecipeValid(recipe : ProModelTuningRecipe) -> None:
+    if recipe & ProModelTuningRecipe.RECURRENT and not recipe & ProModelTuningRecipe.SHARED_OPTIM:
+        assert(False)
+    if recipe & ProModelTuningRecipe.TRUNK_GRAD_SCALES and not recipe & ProModelTuningRecipe.SHARED_OPTIM:
+        assert(False)
 
 def resolve_params(
         trial: optuna.trial.Trial,
         recipe: ProModelTuningRecipe,
         width: SearchWidth,
         is_hitter: bool) -> dict:
+    
+    AssertRecipeValid(recipe)
     
     defaults = HITTER_DEFAULTS if is_hitter else PITCHER_DEFAULTS
     params = dict(defaults)
@@ -201,7 +213,7 @@ def run_evaluation(
             init_arch: LayerArch,
             lr_list: list[float],
             wd_list: list[float],
-            loss_scales: list[float] | None = None,
+            trunk_grad_scales: list[float] | None = None,
             max_repeats: int = 3) -> float:
     
     WAR_MAX = 30
@@ -234,6 +246,8 @@ def run_evaluation(
             
             init_state_arch=init_arch,
             init_state_size=p["init_input_size"],
+            
+            trunk_grad_scales=trunk_grad_scales,
         ).to(device)
         col_network = Col_Model(
             input_size=train_dataset.GetColInputSize(),
@@ -251,7 +265,6 @@ def run_evaluation(
             should_output=False,
             batch_size=p["batch_size"],
             num_epochs=p["num_epochs"],
-            pro_element_loss_scales=loss_scales,
             col_model_name="../../Models/no_name_col",
             pro_model_name="../../Models/no_name_pro",
         )
@@ -284,8 +297,10 @@ def objective(
             max_repeats: int = 3) -> float:
 
     p = resolve_params(trial, recipe, width, is_hitter)
-    loss_scales = [p[f"loss_scale_{i}"]
-        for i in range(len(DEFAULT_PRO_ELEMENT_LOSS_SCALES))]
+    
+    num_grad_scales = len(DEFAULT_HITTER_GRAD_SCALES if is_hitter
+                          else DEFAULT_PITCHER_GRAD_SCALES)
+    trunk_grad_scales = [p[f"grad_scale_{i}"] for i in range(num_grad_scales)]
 
     datainit_arch = LayerArch(num_layers=p["datainit_layers"], layer_size=p["datainit_size"],
                         nonlin=_ACTIVATION_MAP[p["datainit_activation"]])
@@ -303,5 +318,5 @@ def objective(
     return run_evaluation(
         io_list=io_list, data_prep=data_prep, is_hitter=is_hitter,
         p=p, war_arch=war_arch, init_arch=init_arch, datainit_arch=datainit_arch,
-        loss_scales=loss_scales,
+        trunk_grad_scales=trunk_grad_scales,
         lr_list=lr_list, wd_list=wd_list, max_repeats=max_repeats)

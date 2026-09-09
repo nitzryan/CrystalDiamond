@@ -28,6 +28,27 @@ class DB_Output_PlayerWar:
 		items = cursor.execute("SELECT * FROM Output_PlayerWar " + conditional, values).fetchall()
 		return [DB_Output_PlayerWar(i) for i in items]
 
+class DB_WarBucketAverages:
+	def __init__(self, values : tuple[any]):
+		self.isHitter = values[0]
+		self.war1 = values[1]
+		self.war2 = values[2]
+		self.war3 = values[3]
+		self.war4 = values[4]
+		self.war5 = values[5]
+		self.war6 = values[6]
+
+	NUM_ELEMENTS = 7
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.isHitter,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_WarBucketAverages']:
+		items = cursor.execute("SELECT * FROM WarBucketAverages " + conditional, values).fetchall()
+		return [DB_WarBucketAverages(i) for i in items]
+
 class DB_Output_PlayerHighestLevel:
 	def __init__(self, values : tuple[any]):
 		self.mlbId = values[0]
@@ -514,27 +535,6 @@ class DB_Output_College_PitcherAggregation:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Output_College_PitcherAggregation']:
 		items = cursor.execute("SELECT * FROM Output_College_PitcherAggregation " + conditional, values).fetchall()
 		return [DB_Output_College_PitcherAggregation(i) for i in items]
-
-class DB_WarBucketAverages:
-	def __init__(self, values : tuple[any]):
-		self.isHitter = values[0]
-		self.war1 = values[1]
-		self.war2 = values[2]
-		self.war3 = values[3]
-		self.war4 = values[4]
-		self.war5 = values[5]
-		self.war6 = values[6]
-
-	NUM_ELEMENTS = 7
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.isHitter,self.war1,self.war2,self.war3,self.war4,self.war5,self.war6)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_WarBucketAverages']:
-		items = cursor.execute("SELECT * FROM WarBucketAverages " + conditional, values).fetchall()
-		return [DB_WarBucketAverages(i) for i in items]
 
 
 ##############################################################################################

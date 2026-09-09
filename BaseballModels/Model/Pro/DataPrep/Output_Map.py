@@ -2,7 +2,7 @@ from Model.DBTypes import *
 from typing import Callable, Union
 import torch
 import numpy as np
-from Model.Constants import DTYPE, TOTAL_WAR_BUCKETS
+from Model.Constants import DTYPE, TOTAL_WAR_BUCKETS, NUM_LEVELS
 import math
 
 class Output_Map:
@@ -63,7 +63,7 @@ class Output_Map:
         else:
             pa : int = stats.BF
             lvl : float = stats.LevelId
-        masks : list[float] = [0,0,0,0,0,0,0,0]
+        masks : list[float] = [0.0] * NUM_LEVELS
         
         lvlFloor : int = math.floor(lvl)
         lvlFrac = lvl - lvlFloor

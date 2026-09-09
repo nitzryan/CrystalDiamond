@@ -16,7 +16,6 @@ def TestOrTrain(
     col_elements : int,
     batch_size : int,
     is_train : bool,
-    pro_element_loss_scales : list[float],
     pro_optimizer : torch.optim.Optimizer | None = None,
     col_optimizer : torch.optim.Optimizer | None = None,
 ) -> EpochResult:
@@ -51,7 +50,7 @@ def TestOrTrain(
                 pro_optimizer.zero_grad()
             
             col_result = GetLossesCollege(col_network, col_data, col_targets, col_masks, shouldBackprop=is_train, is_hitter=is_hitter)
-            pro_result = GetLossesPro(pro_network, pro_data, pro_targets, pro_masks, col_result.hidden, shouldBackprop=is_train, is_hitter=is_hitter,pro_element_loss_scales=pro_element_loss_scales)
+            pro_result = GetLossesPro(pro_network, pro_data, pro_targets, pro_masks, col_result.hidden, shouldBackprop=is_train, is_hitter=is_hitter)
             
             if pro_result is None:
                 continue

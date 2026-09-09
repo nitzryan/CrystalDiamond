@@ -19,7 +19,7 @@ db = sqlite3.connect(__DB_PATH)
 model_db = sqlite3.connect(__MODEL_DB_PATH)
 experimental_db = sqlite3.connect(__EXP_DB_PATH)
 
-NUM_MODEL_VARIANTS = 12
+NUM_MODEL_VARIANTS = 4
 
 DTYPE = torch.float32
 DTYPE_NUMPY = np.float32
@@ -43,6 +43,7 @@ DRAFT_BUCKETS = torch.tensor(_DRAFT_BUCKETS_LIST + [np.inf], dtype=DTYPE)
 DRAFT_MEANS = torch.tensor(_DRAFT_MEANS_LIST)
 
 NUM_LEVELS = 8
+NUM_POSITIONS = 9
 
 DEFAULT_NUM_LAYERS_HITTER = 1
 DEFAULT_HIDDEN_SIZE_HITTER = 150
@@ -54,4 +55,5 @@ DEFAULT_HIDDEN_SIZE_PITCHER = 30
 DEFAULT_PITCHER_BATCH_SIZE = 800
 DEFAULT_PITCHER_NUM_EPOCHS = 41
 
-DATA_PREP_BINARY_FILE = "Binaries/DataPrep.pkl"
+def GetDataPrepBinaryFile(modelId : int) -> str:
+  return f"Binaries/DataPrep_{modelId}.pkl"

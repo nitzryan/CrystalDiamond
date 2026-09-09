@@ -7,7 +7,7 @@ from Model.Utilities import GetPropertyValue
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
 from Model.Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
-from Model.Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS
+from Model.Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS, NUM_POSITIONS
 
 class LayerArch(nn.Module):
     def __init__(self, layer_size: int, num_layers: int, nonlin=F.leaky_relu):
@@ -60,7 +60,7 @@ class LayerArch(nn.Module):
         return x
 
 DEFAULT_DATA_ARCH = LayerArch(layer_size=47, num_layers=2, nonlin=F.silu)
-DEFAULT_WAR_ARCH = LayerArch(layer_size=126, num_layers=5, nonlin=F.leaky_relu)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=49, num_layers=5, nonlin=F.leaky_relu)
 DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
 DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
 DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
@@ -79,22 +79,23 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 71
-DEFAULT_PRO_NUM_LAYERS = 2
+DEFAULT_PRO_HIDDEN_SIZE = 93
+DEFAULT_PRO_NUM_LAYERS = 4
 
-DEFAULT_PRO_HIDDEN_SIZE_P = 89
-DEFAULT_PRO_NUM_LAYERS_P = 2
+DEFAULT_PRO_HIDDEN_SIZE_P = 93
+DEFAULT_PRO_NUM_LAYERS_P = 4
 
-DEFAULT_DROPOUT = 0.4696
+
+DEFAULT_DROPOUT = 0.21
 DEFAULT_DROPOUT_P = 0.0775
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [6.3e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
+DEFAULT_PRO_WEIGHT_DECAY = [5.1e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
 DEFAULT_PRO_WEIGHT_DECAY_P = [2.8e-2,1.5e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,4.1e-7]
 
-DEFAULT_LEARNING_RATES = [0.0029,0.077,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
+DEFAULT_LEARNING_RATES = [0.00115,0.020,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
 DEFAULT_LEARNING_RATES_P = [0.0021,0.0018,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.017]
 
 DEFAULT_INIT_STATE_SIZE = 40
@@ -102,10 +103,33 @@ DEFAULT_INIT_STATE_SIZE_P = 93
 DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
 DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=119, num_layers=4, nonlin=F.silu)
 
-DEFAULT_RNN_NONLINEARITY = 'relu'
+DEFAULT_RNN_NONLINEARITY = 'tanh'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
+LOSS_IDX_WAR = 0
+LOSS_IDX_LEVEL = 1
+LOSS_IDX_PA = 2
+LOSS_IDX_STATS = 3
+LOSS_IDX_POS = 4
+LOSS_IDX_PT = 5
+LOSS_IDX_MLBVALUE = 6
+LOSS_IDX_MLBSTAT = 7
+DEFAULT_HITTER_GRAD_SCALES = [1, 2.3, 8.2e-5, 8.6e-6, 1.07e-5, 1.2e-5, 0.86, 3.6e-6]
+DEFAULT_PITCHER_GRAD_SCALES = [1, 2.8e-3, 4.7e-3, 4.4e-6, 2.4e-6, 4.2e-2, 2.0e-6, 6.0e-6]
 
+class _ScaleBackboneGradient(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, backbone_features, backbone_grad_scale):
+        ctx.backbone_grad_scale = backbone_grad_scale
+        return backbone_features.view_as(backbone_features)
+    @staticmethod
+    def backward(ctx, grad_from_head):
+        return grad_from_head * ctx.backbone_grad_scale, None
+def ScaleBackboneGradient(backbone_features: torch.Tensor,
+                            backbone_grad_scale: float) -> torch.Tensor:
+    if backbone_grad_scale == 1.0:
+        return backbone_features
+    return _ScaleBackboneGradient.apply(backbone_features, backbone_grad_scale)
 
 class Recurrent_Model(nn.Module):
     def __init__(self, 
@@ -139,6 +163,8 @@ class Recurrent_Model(nn.Module):
                 
                 init_state_size : float | None = None,
                 init_state_arch : LayerArch | None = None,
+                
+                trunk_grad_scales : list[float] | None = None,
                 ):
         super().__init__()
         
@@ -164,6 +190,8 @@ class Recurrent_Model(nn.Module):
 
         init_state_size = GetPropertyValue(init_state_size, is_hitter, DEFAULT_INIT_STATE_SIZE, DEFAULT_INIT_STATE_SIZE_P)
         init_state_arch = GetPropertyValue(init_state_arch, is_hitter, DEFAULT_INIT_STATE_ARCH, DEFAULT_INIT_STATE_ARCH_P)
+        
+        self.trunk_grad_scales = GetPropertyValue(trunk_grad_scales, is_hitter, DEFAULT_HITTER_GRAD_SCALES, DEFAULT_PITCHER_GRAD_SCALES)
         
         if save_name is not None:
             with open(save_name, "w") as f:
@@ -196,6 +224,7 @@ class Recurrent_Model(nn.Module):
                     # Training / other hyperparameters
                     "weight_decay": weight_decay,
                     "learning_rates": learning_rates,
+                    "trunk_grad_scales": self.trunk_grad_scales,
                 }
                 json.dump(config, f, indent=2)
         
@@ -220,8 +249,8 @@ class Recurrent_Model(nn.Module):
         self.level = lvl_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS))
         self.pa = pa_arch.Build(hidden_size, len(HITTER_PA_BUCKETS))
         self.yearStats = stats_arch.Build(hidden_size, NUM_LEVELS * stats_size)
-        self.pos = pos_arch.Build(hidden_size, len(HITTER_LEVEL_BUCKETS) * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
-        self.pt = pt_arch.Build(hidden_size + len(HITTER_LEVEL_BUCKETS), NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
+        self.pos = pos_arch.Build(hidden_size, NUM_LEVELS * (output_map.hitter_positions_size if is_hitter else output_map.pitcher_positions_size))
+        self.pt = pt_arch.Build(hidden_size + NUM_LEVELS, NUM_LEVELS * output_map.hitter_pt_size if is_hitter else NUM_LEVELS * output_map.pitcher_pt_size)
         self.value = val_arch.Build(hidden_size, (output_map.mlb_hitter_values_size if is_hitter else output_map.mlb_pitcher_values_size))
         
         if is_hitter:
@@ -336,13 +365,13 @@ class Recurrent_Model(nn.Module):
         output, _ = nn.utils.rnn.pad_packed_sequence(packedOutput, batch_first=True)
             
         # Output heads
-        output_war          = self.war(output)
-        output_level        = self.level(output)
-        output_pa           = self.pa(output)
-        output_yearStats    = self.yearStats(output)
-        output_yearPositions= self.pos(output)
-        output_mlbValue     = self.value(output)
-        output_mlbStat      = self.mlbstat(output)
+        output_war          = self.war(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_WAR]))
+        output_level        = self.level(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_LEVEL]))
+        output_pa           = self.pa(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_PA]))
+        output_yearStats    = self.yearStats(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_STATS]))
+        output_yearPositions= self.pos(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_POS]))
+        output_mlbValue     = self.value(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_MLBVALUE]))
+        output_mlbStat      = self.mlbstat(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_MLBSTAT]))
         
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
@@ -360,8 +389,9 @@ class Recurrent_Model(nn.Module):
             ], dim=-1)
         
         # Generate PT Predictions
+        pt_shared = ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_PT])
         pt_levelYearGames = pt_levelYearGames[:, :output.size(1), :]
-        output_pt = torch.cat((output, pt_levelYearGames), dim=-1)
+        output_pt = torch.cat((pt_shared, pt_levelYearGames), dim=-1)
         for layer in self.pt.layers[:-1]:
             output_pt = F.tanh(layer(output_pt))
         output_pt = self.softplus(self.pt.layers[-1](output_pt)) + self.pt_offset
@@ -402,6 +432,7 @@ class Recurrent_Model(nn.Module):
                 # Training hyperparameters
                 weight_decay=args_dict["weight_decay"],
                 learning_rates=args_dict["learning_rates"],
+                trunk_grad_scales=args_dict["trunk_grad_scales"],
         )
     
     
@@ -418,27 +449,23 @@ def Stats_Loss(pred_stats, actual_stats, masks):
     actual_stats = actual_stats.reshape((batch_size * time_steps, mask_size, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size))
     
-    #loss = nn.HuberLoss(reduction='none', delta=1)
-    #loss = nn.L1Loss(reduction='none')
     loss = nn.MSELoss(reduction='none')
     l = loss(pred_stats, actual_stats) * masks.unsqueeze(-1)
     return (l * masks.unsqueeze(-1)).sum()
       
-def Pt_Loss(pred_pt, actual_pt):
+def Pt_Loss(pred_pt, actual_pt, lengths : torch.Tensor):
     actual_pt = actual_pt[:, :pred_pt.size(1)]
+    batch_size, time_steps, num_levels, output_size = actual_pt.shape
     
-    batch_size = actual_pt.size(0)
-    time_steps = actual_pt.size(1)
-    num_levels = actual_pt.size(2)
-    output_size = actual_pt.size(3)
+    time_idx = torch.arange(time_steps, device=pred_pt.device).unsqueeze(0)   # (1, T)
+    valid = (time_idx < lengths.unsqueeze(1)).to(pred_pt.dtype) 
     
     pred_pt = pred_pt.reshape((batch_size * time_steps, num_levels, output_size))
     actual_pt = actual_pt.reshape((batch_size * time_steps, num_levels, output_size))
+    valid = valid.reshape(batch_size * time_steps, 1, 1)
     
-    #loss = nn.MSELoss(reduction='none')
-    loss = nn.HuberLoss(reduction='none', delta=0.5)
-    #loss = nn.L1Loss(reduction='none')
-    return loss(pred_pt, actual_pt).sum()
+    per_elem = F.mse_loss(pred_pt, actual_pt, reduction='none')
+    return (per_elem * valid).sum()
       
 def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value[:, :pred_value.size(1)]
@@ -454,7 +481,7 @@ def Mlb_Value_Loss_Hitter(pred_value, actual_value, masks):
     actual_value = actual_value.reshape((batch_size * time_steps, mask_size_years, output_size))
     masks = masks.reshape((batch_size * time_steps, mask_size_years, mask_size_types))
     
-    loss = nn.HuberLoss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     l = 0
     for x in range(3):
         # Rate stats
@@ -482,8 +509,7 @@ def Mlb_Value_Loss_Pitcher(pred_value, actual_value, masks):
     pa_masks = masks[:,:,0].reshape((batch_size * time_steps, mask_size_years))
     war_masks = masks[:,:,1:].reshape((batch_size * time_steps), mask_size_years, 2)
     
-    #loss = nn.L1Loss(reduction='none')
-    loss = nn.HuberLoss(reduction='none')
+    loss = nn.MSELoss(reduction='none')
     
     # War
     l = (loss(pred_war, actual_war) * war_masks).sum()
@@ -506,7 +532,7 @@ def Position_Classification_Loss(pred_positions, actual_positions, masks):
     
     loss = nn.CrossEntropyLoss(reduction='none')
     l = 0
-    for x in range(8):
+    for x in range(mask_size):
         l += (loss(pred_positions[:,x,:], actual_positions[:,x,:]) * masks[:,x]).sum()
     return l
     

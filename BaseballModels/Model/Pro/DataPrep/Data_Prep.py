@@ -316,7 +316,8 @@ class Data_Prep:
         
     def __Generate_ModelLevelYearGamesDict(cursor : sqlite3.Cursor) -> dict[tuple[int, int], torch.Tensor]:
         modelLevelYearGames = DB_Model_LevelYearGames.Select_From_DB(cursor, "", ())
-        gamesDict = {}
+        gamesDict : dict[tuple[int, int], torch.Tensor] = {}
+        
         for g in modelLevelYearGames:
             gamesDict[g.Year, g.Month] = torch.tensor([g.MLB_Games / 500, 
                                               g.AAA_Games / 500, 
@@ -428,7 +429,7 @@ class Data_Prep:
             for i, stat in enumerate(stats):
                 prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
 
-            lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
+            lvl_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
             for i, stat in enumerate(stats):
                 lvl_mask[i,:] = torch.tensor(Output_Map.GetOutputMasks(stat))
 
@@ -460,24 +461,33 @@ class Data_Prep:
                         _p, _ = Aggregate_HitterStats(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     else:
                         _p, stat_start_idx = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
-                    pos_year_output[i,:] = _p
+                    pos_year_output[i + 1,:] = _p
+
+                # print(mask_stats[-1])
+                # print(level_stats[1].Pa)
+                # print(pos_year_output[-1])
 
             # MLB Stat Buckets
             mlb_stat_buckets = torch.zeros(l, NUM_HITTER_STATS, dtype=torch.long)
             mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
-            if len(level_stats) > 1:
+            if len(stats) > 1:
                 start_month = stats[1].Month
                 start_year = stats[1].Year
                 stat_start_idx = 0
 
-                for i in range(l):
+                for i, stat in enumerate(stats):
                     if i == 0:
-                        buckets, mask, _ = Aggregate_HitterMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, stats=level_stats, start_idx=stat_start_idx)
+                        buckets, mask, _ = Aggregate_HitterMlbBuckets(
+                            startMonth=start_month - 1, endMonth=start_month - 1,
+                            startYear=start_year, endYear=start_year + 1,
+                            stats=level_stats, start_idx=stat_start_idx)
                     else:
-                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, stats=level_stats, start_idx=stat_start_idx)
-
-                    mlb_stat_buckets[i,:] = buckets
-                    mlb_stat_mask[i] = mask
+                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(
+                            startMonth=stat.Month, endMonth=stat.Month,
+                            startYear=stat.Year, endYear=stat.Year + 1,
+                            stats=level_stats, start_idx=stat_start_idx)
+                    mlb_stat_buckets[i, :] = buckets
+                    mlb_stat_mask[i]       = mask
 
             # MLB Value stats and mask
             mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.float)
@@ -673,7 +683,7 @@ class Data_Prep:
             # MLB Stat Buckets
             mlb_stat_buckets = torch.zeros(l, NUM_PITCHER_STATS, dtype=torch.long)
             mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
-            if len(level_stats) > 1:
+            if len(level_stats) > 1 and len(stats) > 1:
                 start_month = stats[1].Month
                 start_year = stats[1].Year
                 stat_start_idx = 0

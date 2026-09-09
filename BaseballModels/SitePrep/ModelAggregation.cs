@@ -35,27 +35,15 @@ namespace SitePrep
                         IsHitter = o.Key.IsHitter,
                         Year = o.Key.Year,
                         Month = o.Key.Month,
-                        War0 = 0,
-                        War1 = 0,
-                        War2 = 0,
-                        War3 = 0,
-                        War4 = 0,
-                        War5 = 0,
-                        War6 = 0,
-                        War = 0,
+                        War0 = o.Average(result => result.War0),
+                        War1 = o.Average(result => result.War1),
+                        War2 = o.Average(result => result.War2),
+                        War3 = o.Average(result => result.War3),
+                        War4 = o.Average(result => result.War4),
+                        War5 = o.Average(result => result.War5),
+                        War6 = o.Average(result => result.War6),
+                        War = o.Average(result => result.War),
                     };
-
-                    foreach (var result in o)
-                    {
-                        owa.War0 += result.War0 / size;
-                        owa.War1 += result.War1 / size;
-                        owa.War2 += result.War2 / size;
-                        owa.War3 += result.War3 / size;
-                        owa.War4 += result.War4 / size;
-                        owa.War5 += result.War5 / size;
-                        owa.War6 += result.War6 / size;
-                        owa.War += result.War / size;
-                    }
 
                     items.Add(owa);
                     progressBar.Tick();
@@ -81,117 +69,60 @@ namespace SitePrep
                         TbcId = o.Key.TbcId,
                         ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
-                        Draft0 = 0,
-                        Draft1 = 0,
-                        Draft2 = 0,
-                        Draft3 = 0,
-                        Draft4 = 0,
-                        Draft5 = 0,
-                        Draft6 = 0,
-                        Draft = 0,
+                        Draft0 = o.Average(result => result.Draft0),
+                        Draft1 = o.Average(result => result.Draft1),
+                        Draft2 = o.Average(result => result.Draft2),
+                        Draft3 = o.Average(result => result.Draft3),
+                        Draft4 = o.Average(result => result.Draft4),
+                        Draft5 = o.Average(result => result.Draft5),
+                        Draft6 = o.Average(result => result.Draft6),
+                        Draft = o.Average(result => result.Draft),
 
-                        War0 = 0,
-                        War1 = 0,
-                        War2 = 0,
-                        War3 = 0,
-                        War4 = 0,
-                        War5 = 0,
-                        War6 = 0,
-                        War = 0,
+                        Off0 = o.Average(result => result.Off0),
+                        Off1 = o.Average(result => result.Off1),
+                        Off2 = o.Average(result => result.Off2),
+                        Off3 = o.Average(result => result.Off3),
+                        Off4 = o.Average(result => result.Off4),
+                        Off5 = o.Average(result => result.Off5),
+                        Off6 = o.Average(result => result.Off6),
+                        OffNone = o.Average(result => result.OffNone),
 
-                        Off0 = 0,
-                        Off1 = 0,
-                        Off2 = 0,
-                        Off3 = 0,
-                        Off4 = 0,
-                        Off5 = 0,
-                        Off6 = 0,
-                        OffNone = 0,
+                        Def0 = o.Average(result => result.Def0),
+                        Def1 = o.Average(result => result.Def1),
+                        Def2 = o.Average(result => result.Def2),
+                        Def3 = o.Average(result => result.Def3),
+                        Def4 = o.Average(result => result.Def4),
+                        Def5 = o.Average(result => result.Def5),
+                        Def6 = o.Average(result => result.Def6),
+                        DefNone = o.Average(result => result.DefNone),
 
-                        Def0 = 0,
-                        Def1 = 0,
-                        Def2 = 0,
-                        Def3 = 0,
-                        Def4 = 0,
-                        Def5 = 0,
-                        Def6 = 0,
-                        DefNone = 0,
+                        Pa0 = o.Average(result => result.Pa0),
+                        Pa1 = o.Average(result => result.Pa1),
+                        Pa2 = o.Average(result => result.Pa2),
+                        Pa3 = o.Average(result => result.Pa3),
+                        Pa4 = o.Average(result => result.Pa4),
+                        Pa5 = o.Average(result => result.Pa5),
+                        Pa6 = o.Average(result => result.Pa6),
 
-                        Pa0 = 0,
-                        Pa1 = 0,
-                        Pa2 = 0,
-                        Pa3 = 0,
-                        Pa4 = 0,
-                        Pa5 = 0,
-                        Pa6 = 0,
+                        War0 = o.Average(result => result.War0),
+                        War1 = o.Average(result => result.War1),
+                        War2 = o.Average(result => result.War2),
+                        War3 = o.Average(result => result.War3),
+                        War4 = o.Average(result => result.War4),
+                        War5 = o.Average(result => result.War5),
+                        War6 = o.Average(result => result.War6),
+                        War = o.Average(result => result.War),
 
-                        ProbC = 0,
-                        Prob1B = 0,
-                        Prob2B = 0,
-                        Prob3B = 0,
-                        ProbSS = 0,
-                        ProbLF = 0,
-                        ProbCF = 0,
-                        ProbRF = 0,
-                        ProbDH = 0,
+                        ProbC = o.Average(result => result.ProbC),
+                        Prob1B = o.Average(result => result.Prob1B),
+                        Prob2B = o.Average(result => result.Prob2B),
+                        Prob3B = o.Average(result => result.Prob3B),
+                        ProbSS = o.Average(result => result.ProbSS),
+                        ProbLF = o.Average(result => result.ProbLF),
+                        ProbCF = o.Average(result => result.ProbCF),
+                        ProbRF = o.Average(result => result.ProbRF),
+                        ProbDH = o.Average(result => result.ProbDH),
                     };
-
-                    foreach (var result in o)
-                    {
-                        oca.Draft0 += result.Draft0 / size;
-                        oca.Draft1 += result.Draft1 / size;
-                        oca.Draft2 += result.Draft2 / size;
-                        oca.Draft3 += result.Draft3 / size;
-                        oca.Draft4 += result.Draft4 / size;
-                        oca.Draft5 += result.Draft5 / size;
-                        oca.Draft6 += result.Draft6 / size;
-                        oca.Draft += result.Draft / size;
-
-                        oca.Off0 += result.Off0 / size;
-                        oca.Off1 += result.Off1 / size;
-                        oca.Off2 += result.Off2 / size;
-                        oca.Off3 += result.Off3 / size;
-                        oca.Off4 += result.Off4 / size;
-                        oca.Off5 += result.Off5 / size;
-                        oca.Off6 += result.Off6 / size;
-                        oca.OffNone += result.OffNone / size;
-
-                        oca.Def0 += result.Def0 / size;
-                        oca.Def1 += result.Def1 / size;
-                        oca.Def2 += result.Def2 / size;
-                        oca.Def3 += result.Def3 / size;
-                        oca.Def4 += result.Def4 / size;
-                        oca.Def5 += result.Def5 / size;
-                        oca.Def6 += result.Def6 / size;
-                        oca.DefNone += result.DefNone / size;
-
-                        oca.Pa0 += result.Pa0 / size;
-                        oca.Pa1 += result.Pa1 / size;
-                        oca.Pa2 += result.Pa2 / size;
-                        oca.Pa3 += result.Pa3 / size;
-                        oca.Pa4 += result.Pa4 / size;
-                        oca.Pa5 += result.Pa5 / size;
-                        oca.Pa6 += result.Pa6 / size;
-
-                        oca.War0 += result.War0 / size;
-                        oca.War1 += result.War1 / size;
-                        oca.War2 += result.War2 / size;
-                        oca.War3 += result.War3 / size;
-                        oca.War4 += result.War4 / size;
-                        oca.War5 += result.War5 / size;
-                        oca.War6 += result.War6 / size;
-                        oca.War += result.War / size;
-
-                        oca.ProbC += result.ProbC / size;
-                        oca.Prob1B += result.Prob1B / size;
-                        oca.Prob2B += result.Prob2B / size;
-                        oca.Prob3B += result.Prob3B / size;
-                        oca.ProbSS += result.ProbSS / size;
-                        oca.ProbLF += result.ProbLF / size;
-                        oca.ProbCF += result.ProbCF / size;
-                        oca.ProbRF += result.ProbRF / size;
-                        oca.ProbDH += result.ProbDH / size;
-                    }
 
                     collegeHitterItems.Add(oca);
                     progressBar.Tick();
@@ -217,51 +148,27 @@ namespace SitePrep
                         TbcId = o.Key.TbcId,
                         ModelId = o.Key.ModelId,
                         Year = o.Key.Year,
-                        Draft0 = 0,
-                        Draft1 = 0,
-                        Draft2 = 0,
-                        Draft3 = 0,
-                        Draft4 = 0,
-                        Draft5 = 0,
-                        Draft6 = 0,
-                        Draft = 0,
+                        Draft0 = o.Average(result => result.Draft0),
+                        Draft1 = o.Average(result => result.Draft1),
+                        Draft2 = o.Average(result => result.Draft2),
+                        Draft3 = o.Average(result => result.Draft3),
+                        Draft4 = o.Average(result => result.Draft4),
+                        Draft5 = o.Average(result => result.Draft5),
+                        Draft6 = o.Average(result => result.Draft6),
+                        Draft = o.Average(result => result.Draft),
 
-                        War0 = 0,
-                        War1 = 0,
-                        War2 = 0,
-                        War3 = 0,
-                        War4 = 0,
-                        War5 = 0,
-                        War6 = 0,
-                        War = 0,
+                        War0 = o.Average(result => result.War0),
+                        War1 = o.Average(result => result.War1),
+                        War2 = o.Average(result => result.War2),
+                        War3 = o.Average(result => result.War3),
+                        War4 = o.Average(result => result.War4),
+                        War5 = o.Average(result => result.War5),
+                        War6 = o.Average(result => result.War6),
+                        War = o.Average(result => result.War),
 
-                        ProbSP = 0,
-                        ProbRP = 0,
+                        ProbSP = o.Average(result => result.ProbSP),
+                        ProbRP = o.Average(result => result.ProbRP),
                     };
-
-                    foreach (var result in o)
-                    {
-                        oca.Draft0 += result.Draft0 / size;
-                        oca.Draft1 += result.Draft1 / size;
-                        oca.Draft2 += result.Draft2 / size;
-                        oca.Draft3 += result.Draft3 / size;
-                        oca.Draft4 += result.Draft4 / size;
-                        oca.Draft5 += result.Draft5 / size;
-                        oca.Draft6 += result.Draft6 / size;
-                        oca.Draft += result.Draft / size;
-
-                        oca.War0 += result.War0 / size;
-                        oca.War1 += result.War1 / size;
-                        oca.War2 += result.War2 / size;
-                        oca.War3 += result.War3 / size;
-                        oca.War4 += result.War4 / size;
-                        oca.War5 += result.War5 / size;
-                        oca.War6 += result.War6 / size;
-                        oca.War += result.War / size;
-
-                        oca.ProbSP += result.ProbSP / size;
-                        oca.ProbRP += result.ProbRP / size;
-                    }
 
                     collegePitcherItems.Add(oca);
                     progressBar.Tick();
@@ -299,27 +206,15 @@ namespace SitePrep
                         IsHitter = o.Key.IsHitter,
                         Year = o.Key.Year,
                         Month = o.Key.Month,
-                        DSL = 0,
-                        CPX = 0,
-                        A_LOW = 0,
-                        A = 0,
-                        A_HIGH = 0,
-                        AA = 0,
-                        AAA = 0,
-                        MLB = 0,
+                        DSL = o.Average(result => result.DSL),
+                        CPX = o.Average(result => result.CPX),
+                        A_LOW = o.Average(result => result.A_LOW),
+                        A = o.Average(result => result.A),
+                        A_HIGH = o.Average(result => result.A_HIGH),
+                        AA = o.Average(result => result.AA),
+                        AAA = o.Average(result => result.AAA),
+                        MLB = o.Average(result => result.MLB),
                     };
-
-                    foreach (var result in o)
-                    {
-                        ophla.DSL += result.DSL / size;
-                        ophla.CPX += result.CPX / size;
-                        ophla.A_LOW += result.A_LOW / size;
-                        ophla.A += result.A / size;
-                        ophla.A_HIGH += result.A_HIGH / size;
-                        ophla.AA += result.AA / size;
-                        ophla.AAA += result.AAA / size;
-                        ophla.MLB += result.MLB / size;
-                    }
 
                     items.Add(ophla);
                     progressBar.Tick();
@@ -339,6 +234,8 @@ namespace SitePrep
             var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ohs.Count();
             items.Capacity = count;
+            int maxCount = db.Output_HitterStats.Max(f => f.ModelRun);
+
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Hitter Stats"))
             {
                 foreach (var o in ohs)
@@ -347,6 +244,13 @@ namespace SitePrep
                     if (size == 0)
                         throw new Exception("No elements in model_results, should not happen");
 
+                    // If some models had under the minimum, throw out
+                    if (size < maxCount)
+                    {
+                        progressBar.Tick();
+                        continue;
+                    }
+
                     Output_HitterStatsAggregation ohsa = new()
                     {
                         MlbId = o.Key.MlbId,
@@ -354,55 +258,29 @@ namespace SitePrep
                         Year = o.Key.Year,
                         Month = o.Key.Month,
                         LevelId = o.Key.LevelId,
-                        Pa = 0,
-                        Hit1B = 0,
-                        Hit2B = 0,
-                        Hit3B = 0,
-                        HitHR = 0,
-                        BB = 0,
-                        HBP = 0,
-                        K = 0,
-                        SB = 0,
-                        CS = 0,
-                        BSR = 0,
-                        DRAA = 0,
-                        ParkRunFactor = 0,
-                        PercC = 0,
-                        Perc1B = 0,
-                        Perc2B = 0,
-                        Perc3B = 0,
-                        PercSS = 0,
-                        PercLF = 0,
-                        PercCF = 0,
-                        PercRF = 0,
-                        PercDH = 0,
+                        Pa = o.Average(f => f.Pa),
+                        Hit1B = o.Average(result => result.Hit1B),
+                        Hit2B = o.Average(result => result.Hit2B),
+                        Hit3B = o.Average(result => result.Hit3B),
+                        HitHR = o.Average(result => result.HitHR),
+                        BB = o.Average(result => result.BB),
+                        HBP = o.Average(result => result.HBP),
+                        K = o.Average(result => result.K),
+                        SB = o.Average(result => result.SB),
+                        CS = o.Average(result => result.CS),
+                        BSR = o.Average(result => result.BSR),
+                        DRAA = o.Average(result => result.DRAA),
+                        ParkRunFactor = o.Average(result => result.ParkRunFactor),
+                        PercC = o.Average(result => result.PercC),
+                        Perc1B = o.Average(result => result.Perc1B),
+                        Perc2B = o.Average(result => result.Perc2B),
+                        Perc3B = o.Average(result => result.Perc3B),
+                        PercSS = o.Average(result => result.PercSS),
+                        PercLF = o.Average(result => result.PercLF),
+                        PercCF = o.Average(result => result.PercCF),
+                        PercRF = o.Average(result => result.PercRF),
+                        PercDH = o.Average(result => result.PercDH),
                     };
-
-                    foreach (var result in o)
-                    {
-                        ohsa.Pa += result.Pa / size;
-                        ohsa.Hit1B += result.Hit1B / size;
-                        ohsa.Hit2B += result.Hit2B / size;
-                        ohsa.Hit3B += result.Hit3B / size;
-                        ohsa.HitHR += result.HitHR / size;
-                        ohsa.BB += result.BB / size;
-                        ohsa.HBP += result.HBP / size;
-                        ohsa.K += result.K / size;
-                        ohsa.SB += result.SB / size;
-                        ohsa.CS += result.CS / size;
-                        ohsa.BSR += result.BSR / size;
-                        ohsa.DRAA += result.DRAA / size;
-                        ohsa.ParkRunFactor += result.ParkRunFactor / size;
-                        ohsa.PercC += result.PercC / size;
-                        ohsa.Perc1B += result.Perc1B / size;
-                        ohsa.Perc2B += result.Perc2B / size;
-                        ohsa.Perc3B += result.Perc3B / size;
-                        ohsa.PercSS += result.PercSS / size;
-                        ohsa.PercLF += result.PercLF / size;
-                        ohsa.PercCF += result.PercCF / size;
-                        ohsa.PercRF += result.PercRF / size;
-                        ohsa.PercDH += result.PercDH / size;
-                    }
 
                     items.Add(ohsa);
                     progressBar.Tick();
@@ -422,6 +300,7 @@ namespace SitePrep
             var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ops.Count();
             items.Capacity = count;
+            int maxCount = db.Output_PitcherStats.Max(f => f.ModelRun);
             using (ProgressBar progressBar = new ProgressBar(count, "Aggregating Pitcher Stats"))
             {
                 foreach (var o in ops)
@@ -430,6 +309,12 @@ namespace SitePrep
                     if (size == 0)
                         throw new Exception("No elements in model_results, should not happen");
 
+                    if (size < maxCount)
+                    {
+                        progressBar.Tick();
+                        continue;
+                    }
+
                     Output_PitcherStatsAggregation opsa = new()
                     {
                         MlbId = o.Key.MlbId,
@@ -437,37 +322,20 @@ namespace SitePrep
                         Year = o.Key.Year,
                         Month = o.Key.Month,
                         LevelId = o.Key.LevelId,
-                        Outs_SP = 0,
-                        Outs_RP = 0,
-                        GS = 0,
-                        GR = 0,
-                        ERA = 0,
-                        FIP = 0,
-                        HR = 0,
-                        BB = 0,
-                        HBP = 0,
-                        K = 0,
-                        ParkRunFactor = 0,
-                        SP_Perc = 0,
-                        RP_Perc = 0,
+                        Outs_SP = o.Average(result => result.Outs_SP),
+                        Outs_RP = o.Average(result => result.Outs_RP),
+                        GS = o.Average(result => result.GS),
+                        GR = o.Average(result => result.GR),
+                        ERA = o.Average(result => result.ERA),
+                        FIP = o.Average(result => result.FIP),
+                        HR = o.Average(result => result.HR),
+                        BB = o.Average(result => result.BB),
+                        HBP = o.Average(result => result.HBP),
+                        K = o.Average(result => result.K),
+                        ParkRunFactor = o.Average(result => result.ParkRunFactor),
+                        SP_Perc = o.Average(result => result.SP_Perc),
+                        RP_Perc = o.Average(result => result.RP_Perc),
                     };
-
-                    foreach (var result in o)
-                    {
-                        opsa.Outs_SP += result.Outs_SP / size;
-                        opsa.Outs_RP += result.Outs_RP / size;
-                        opsa.GS += result.GS / size;
-                        opsa.GR += result.GR / size;
-                        opsa.ERA += result.ERA / size;
-                        opsa.FIP += result.FIP / size;
-                        opsa.HR += result.HR / size;
-                        opsa.BB += result.BB / size;
-                        opsa.HBP += result.HBP / size;
-                        opsa.K += result.K / size;
-                        opsa.ParkRunFactor += result.ParkRunFactor / size;
-                        opsa.SP_Perc += result.SP_Perc / size;
-                        opsa.RP_Perc += result.RP_Perc / size;
-                    }
 
                     items.Add(opsa);
                     progressBar.Tick();

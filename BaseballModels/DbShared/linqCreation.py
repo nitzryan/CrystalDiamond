@@ -44,7 +44,7 @@ def linqCreation(
         # Write type to class file
         with open(f"sqlTypes/{table}.cs", "w") as classFile:
             classFile.write(f"namespace {namespace}\n{{\n")
-            classFile.write(f"\tpublic class {table}\n" + '\t{\n')
+            classFile.write(f"\tpublic partial class {table}\n" + '\t{\n')
             for _, name, type, notnull, _, pk in vals:
                 name = name[0].capitalize() + name[1:]
                 cloneFunctionString += f"\t{name} = this.{name},\n\t\t\t"
