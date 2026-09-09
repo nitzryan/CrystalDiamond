@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class GamePlayByPlay
+	public partial class GamePlayByPlay
 	{
 		public int EventId {get; set;}
 		public required int GameId {get; set;}

@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class College_Player
+	public partial class College_Player
 	{
 		public required int TBCId {get; set;}
 		public required int MlbId {get; set;}

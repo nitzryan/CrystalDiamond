@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class HitterYearZoneData
+	public partial class HitterYearZoneData
 	{
 		public required int Year {get; set;}
 		public required int MlbId {get; set;}

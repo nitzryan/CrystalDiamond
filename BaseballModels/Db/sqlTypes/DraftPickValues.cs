@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class DraftPickValues
+	public partial class DraftPickValues
 	{
 		public required int Pick {get; set;}
 		public required float WarHitter {get; set;}

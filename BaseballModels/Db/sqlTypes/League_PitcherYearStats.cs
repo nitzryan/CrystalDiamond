@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class League_PitcherYearStats
+	public partial class League_PitcherYearStats
 	{
 		public required int LeagueId {get; set;}
 		public required int Year {get; set;}

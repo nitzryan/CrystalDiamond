@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Model_College_HitterProStats
+	public partial class Model_College_HitterProStats
 	{
 		public required int TBCId {get; set;}
 		public required float PercC {get; set;}

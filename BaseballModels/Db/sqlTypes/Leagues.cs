@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Leagues
+	public partial class Leagues
 	{
 		public required int Id {get; set;}
 		public required string Abbr {get; set;}

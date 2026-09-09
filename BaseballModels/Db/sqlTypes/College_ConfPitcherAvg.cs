@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class College_ConfPitcherAvg
+	public partial class College_ConfPitcherAvg
 	{
 		public required int ConfId {get; set;}
 		public required int Year {get; set;}

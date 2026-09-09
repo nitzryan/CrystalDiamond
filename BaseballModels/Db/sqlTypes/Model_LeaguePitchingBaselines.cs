@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Model_LeaguePitchingBaselines
+	public partial class Model_LeaguePitchingBaselines
 	{
 		public required int Year {get; set;}
 		public required int Month {get; set;}

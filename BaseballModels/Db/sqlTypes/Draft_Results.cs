@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Draft_Results
+	public partial class Draft_Results
 	{
 		public required int Year {get; set;}
 		public required int Pick {get; set;}

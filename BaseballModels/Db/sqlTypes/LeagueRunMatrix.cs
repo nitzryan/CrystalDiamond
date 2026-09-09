@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class LeagueRunMatrix
+	public partial class LeagueRunMatrix
 	{
 		public required int LeagueId {get; set;}
 		public required int Year {get; set;}

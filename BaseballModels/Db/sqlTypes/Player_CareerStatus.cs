@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Player_CareerStatus
+	public partial class Player_CareerStatus
 	{
 		public required int MlbId {get; set;}
 		public required bool IsPitcher {get; set;}

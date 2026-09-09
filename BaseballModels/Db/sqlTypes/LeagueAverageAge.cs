@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class LeagueAverageAge
+	public partial class LeagueAverageAge
 	{
 		public required int LeagueId {get; set;}
 		public required int Year {get; set;}

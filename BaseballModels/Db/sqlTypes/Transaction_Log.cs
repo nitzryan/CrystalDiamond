@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Transaction_Log
+	public partial class Transaction_Log
 	{
 		public int TransactionId {get; set;}
 		public required int MlbId {get; set;}

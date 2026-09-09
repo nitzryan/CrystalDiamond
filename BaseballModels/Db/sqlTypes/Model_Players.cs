@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Model_Players
+	public partial class Model_Players
 	{
 		public required int MlbId {get; set;}
 		public required bool IsHitter {get; set;}

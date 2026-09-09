@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class College_TeamMap
+	public partial class College_TeamMap
 	{
 		public required int TeamId {get; set;}
 		public required string Name {get; set;}

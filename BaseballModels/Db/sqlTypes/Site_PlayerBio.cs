@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Site_PlayerBio
+	public partial class Site_PlayerBio
 	{
 		public required int Id {get; set;}
 		public required string Position {get; set;}

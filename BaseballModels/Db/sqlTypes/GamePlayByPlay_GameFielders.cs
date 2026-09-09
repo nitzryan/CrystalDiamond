@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class GamePlayByPlay_GameFielders
+	public partial class GamePlayByPlay_GameFielders
 	{
 		public required int GameId {get; set;}
 		public required bool IsHome {get; set;}

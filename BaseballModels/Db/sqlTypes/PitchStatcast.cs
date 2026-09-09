@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class PitchStatcast
+	public partial class PitchStatcast
 	{
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}

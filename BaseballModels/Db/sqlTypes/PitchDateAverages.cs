@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class PitchDateAverages
+	public partial class PitchDateAverages
 	{
 		public required int Year {get; set;}
 		public required int Month {get; set;}

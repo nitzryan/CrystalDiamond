@@ -1,6 +1,6 @@
 namespace Db
 {
-	public class Park_Factors
+	public partial class Park_Factors
 	{
 		public required int StadiumId {get; set;}
 		public required int LeagueId {get; set;}
