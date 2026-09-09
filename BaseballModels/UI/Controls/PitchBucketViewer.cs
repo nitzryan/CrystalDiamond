@@ -17,7 +17,7 @@ namespace UI.Controls
         }
 
         public void ShowPitches(
-            IEnumerable<PitchStatcast> pitches,
+            IEnumerable<PitchAggregation> pitches,
             int modelId,
             PitchValueType pvt,
             PitchGridType pgt,

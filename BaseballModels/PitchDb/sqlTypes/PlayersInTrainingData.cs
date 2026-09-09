@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class PlayersInTrainingData
+	public partial class PlayersInTrainingData
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}

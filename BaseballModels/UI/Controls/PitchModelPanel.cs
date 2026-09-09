@@ -1,11 +1,33 @@
 ﻿using Db;
 using PitchDb;
+using PitchTrackingDb;
 using Python.Runtime;
 using UI.Python;
 using static Db.DbEnums;
 
 namespace UI.Controls
 {
+    public class PitchAggregation
+    {
+        public PitchData Data;
+        public PitchValue Value;
+        private List<PitchValue> Values;
+
+        public PitchAggregation(PitchData Data, List<PitchValue> Values, int modelId)
+        {
+            this.Data = Data;
+            this.Values = Values;
+
+            Value = null!; // Gets set in SetModel
+            SetModel(modelId);
+        }
+
+        public void SetModel(int modelId)
+        {
+            Value = Values.Where(f => f.ModelId == modelId).Single();
+        }
+    }
+
     public partial class PitchModelPanel : UserControl
     {
         private const float BALL_SIZE = 0.24f;
@@ -16,7 +38,7 @@ namespace UI.Controls
         private static List<float> X_GRID_POINTS = Enumerable.Range(-20, 41).Select(f => X_GRID_SIZE * f).ToList();
         private static List<float> Z_GRID_POINTS = Enumerable.Range(0, 51).Select(f => Z_GRID_SIZE * f).ToList();
 
-        private PitchStatcast? Pitch = null;
+        private PitchAggregation? Pitch = null;
 
         private record PitchGridPoint(float X, float Z, float Val);
         List<PitchGridPoint> GridPoints = [];
@@ -52,7 +74,7 @@ namespace UI.Controls
             this.BackColor = SystemColors.Control;
         }
 
-        public void SetPitch(PitchStatcast pitch)
+        public void SetPitch(PitchAggregation pitch)
         {
             Pitch = pitch;
             this.Invalidate();
@@ -87,7 +109,7 @@ namespace UI.Controls
             public required float ZoneBot;
         }
 
-        public async void GenerateLocationGrid(PitchModelData pmd)
+        public async void GenerateLocationGrid(PitchModelData pmd, int modelId)
         {
             if (Pitch == null || PitchPy.DataPrep == null)
                 return;
@@ -95,10 +117,11 @@ namespace UI.Controls
             pitchModelData = pmd;
 
             // Get Color Scales for count/year
-            var resultBasis = Global.db.PitchModelResultBasis
-                .Where(f => f.Year == Pitch.Year &&
+            var resultBasis = Global.pitchDb.PitchModelResultBasis
+                .Where(f => f.Year == Pitch.Data.Year &&
                     f.CountBalls == pmd.CountBalls &&
-                    f.CountStrikes == pmd.CountStrikes)
+                    f.CountStrikes == pmd.CountStrikes **
+                    f.ModelId == modelId)
                 .ToList();
             scaleValues = new PitchScaleValues(
                 resultBasis.Where(f => f.OutputType == PitchModelOutputType.Value).Single().Perc5,
@@ -128,7 +151,8 @@ namespace UI.Controls
             );
 
             // Generate pitches at different points
-            List<PitchStatcast> GridPitches = [];
+            List<PitchData> GridPitches = [];
+            PitchData basePitch = Pitch.Data;
             for (int i = 0; i < Z_GRID_POINTS.Count - 1; i++)
             {
                 for (int j = 0; j < X_GRID_POINTS.Count - 1; j++)
@@ -136,69 +160,43 @@ namespace UI.Controls
                     float x = (X_GRID_POINTS[j] + X_GRID_POINTS[j + 1]) * 0.5f;
                     float z = (Z_GRID_POINTS[i] + Z_GRID_POINTS[i + 1]) * 0.5f;
 
-                    PitchStatcast p = new PitchStatcast
+                    PitchData p = new PitchData
                     {
-                        GameId = Pitch.GameId,
-                        PitchId = Pitch.PitchId,
-                        PaId = Pitch.PaId,
-                        PitcherId = Pitch.PitcherId,
-                        HitterId = Pitch.HitterId,
-                        LeagueId = Pitch.LeagueId,
-                        LevelId = Pitch.LevelId,
-                        Year = Pitch.Year,
-                        Month = Pitch.Month,
-                        PitcherPitchNum = Pitch.PitcherPitchNum,
+                        GameId = basePitch.GameId,
+                        PitchId = basePitch.PitchId,
+                        Year = basePitch.Year,
+                        Month = basePitch.Month,
+                        RunValueHitter = basePitch.RunValueHitter,
+                        RunValueSmoothedHitter = basePitch.RunValueSmoothedHitter,
+                        PaResult = basePitch.PaResult,
+                        PaResultDirectRuns = basePitch.PaResultDirectRuns,
+                        LevelId = basePitch.LevelId,
+                        Scenario = basePitch.Scenario,
+                        PitcherId = basePitch.PitcherId,
+                        PitchType = basePitch.PitchType,
+                        PitchClass = basePitch.PitchClass,
                         CountBalls = pmd.CountBalls,
                         CountStrike = pmd.CountStrikes,
-                        Outs = Pitch.Outs,
-                        BaseOccupancy = Pitch.BaseOccupancy,
-                        PitchType = Pitch.PitchType,
-                        PaResult = Pitch.PaResult,
-                        PaResultOccupancy = Pitch.PaResultOccupancy,
-                        PaResultOuts = Pitch.PaResultOuts,
-                        PaResultDirectRuns = Pitch.PaResultDirectRuns,
-                        RunsAfterPa = Pitch.RunsAfterPa,
-                        Result = Pitch.Result,
-                        HadSwing = true,
-                        HadContact = Pitch.HadContact,
-                        IsInPlay = Pitch.IsInPlay,
-                        HitIsR = pmd.HitIsR,
                         PitIsR = pmd.PitIsR,
-                        VX = 0,
-                        VY = 0,
-                        VZ = 0,
-                        VStart = pmd.Velocity,
-                        VEnd = Pitch.VEnd,
-                        AX = 0,
-                        AY = 0,
-                        AZ = 0,
-                        PfxX = Pitch.PfxX,
-                        PfxZ = Pitch.PfxZ,
-                        BreakAngle = pmd.BreakAngle,
-                        BreakVertical = Pitch.BreakVertical,
+                        HitIsR = pmd.HitIsR,
+                        Result = basePitch.Result,
+                        HadSwing = basePitch.HadSwing,
+                        HadContact = basePitch.HadContact,
+                        IsInPlay = basePitch.IsInPlay,
+                        RunValueInPlay = basePitch.RunValueInPlay,
+                        Vel = pmd.Velocity,
+                        Extension = pmd.Extension,
                         BreakInduced = pmd.MoveVert,
                         BreakHorizontal = pmd.MoveHoriz,
-                        SpinRate = Pitch.SpinRate,
-                        SpinDirection = Pitch.SpinDirection,
-                        PX = x,
-                        PZ = z,
+                        SpinRate = basePitch.SpinRate,
+                        SpinAxis = basePitch.SpinAxis,
+                        ActiveSpin = basePitch.ActiveSpin,
+                        VaaAboveAverage = basePitch.VaaAboveAverage,
+                        HaaAboveAverage = basePitch.HaaAboveAverage,
+                        PlateX = x,
+                        PlateZ = z,
                         ZoneTop = pmd.ZoneTop,
                         ZoneBot = pmd.ZoneBot,
-                        Extension = pmd.Extension,
-                        X0 = pmd.X0,
-                        Y0 = Pitch.Y0,
-                        Z0 = pmd.Z0,
-                        PlateTime = Pitch.PlateTime,
-                        LaunchSpeed = Pitch.LaunchSpeed,
-                        LaunchAngle = Pitch.LaunchAngle,
-                        TotalDist = Pitch.TotalDist,
-                        HitCoordX = Pitch.HitCoordX,
-                        HitCoordY = Pitch.HitCoordY,
-                        RunValueHitter = Pitch.RunValueHitter,
-                        RunValueSmoothedHitter = Pitch.RunValueSmoothedHitter,
-                        Scenario = Pitch.Scenario,
-                        ModelStuff = Pitch.ModelStuff,
-                        ModelPitch = Pitch.ModelPitch,
                     };
                     GridPitches.Add(p);
                 }
@@ -209,7 +207,7 @@ namespace UI.Controls
                 opvaList = await PyThread.InvokeAsync(() =>
                 {
                     var pyPitches = GridPitches
-                        .Select(f => Global.CreateFromCSharp(f, PitchPy.DbTypes.DB_PitchStatcast))
+                        .Select(f => Global.CreateFromCSharp(f, PitchPy.PitchTrackingDBTypes.DB_PitchData))
                         .Select(dyn => (PyObject)dyn)
                         .ToArray();
                     PyList pitchList = new PyList(pyPitches);
@@ -253,7 +251,7 @@ namespace UI.Controls
             // Get Data for current scenario
             GridPoints = [];
             var runExpectancyMatrix = Global.db.RunExpectancyMatrix
-                .Where(f => f.Year == Pitch.Year && f.LeagueId == 1
+                .Where(f => f.Year == Pitch.Data.Year && f.LeagueId == 1
                     && f.CountBalls == pitchModelData.CountBalls && f.CountStrikes == pitchModelData.CountStrikes)
                 .ToArray();
 
@@ -325,7 +323,7 @@ namespace UI.Controls
             Graphics g = e.Graphics;
             g.Clear(this.BackColor);
 
-            if (Pitch == null || Pitch.PX == null || Pitch.PZ == null || Pitch.ZoneTop == null || Pitch.ZoneBot == null)
+            if (Pitch == null)
             {
                 return;
             }
@@ -367,9 +365,9 @@ namespace UI.Controls
             {
                 RectangleF zoneRect = new(
                     ZONE_LEFT,
-                    Pitch.ZoneBot.Value,
+                    Pitch.Data.ZoneBot,
                     ZONE_RIGHT - ZONE_LEFT,
-                    Pitch.ZoneTop.Value - Pitch.ZoneBot.Value
+                    Pitch.Data.ZoneTop - Pitch.Data.ZoneBot
                 );
                 g.DrawRectangle(pen, zoneRect);
             }
@@ -377,8 +375,8 @@ namespace UI.Controls
             using (Pen pen = new Pen(Color.Black, 4.0f / scale))
             {
                 RectangleF pitchRect = new(
-                    Pitch.PX.Value - (BALL_SIZE / 2),
-                    Pitch.PZ.Value - (BALL_SIZE / 2),
+                    Pitch.Data.PlateX - (BALL_SIZE / 2),
+                    Pitch.Data.PlateZ - (BALL_SIZE / 2),
                     BALL_SIZE,
                     BALL_SIZE
 

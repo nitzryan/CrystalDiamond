@@ -4,12 +4,13 @@ namespace UI.Python
 {
     internal static class PitchPy
     {
-        private static dynamic? _constants, _dbTypes, _pitchDbTypes, _pitchModel;
+        private static dynamic? _constants, _dbTypes, _pitchDbTypes, _pitchTrackingDbTypes, _pitchModel;
         private static PyObject? _dataPrep;
 
         public static dynamic Constants => _constants ?? throw NotLoaded("Constants");
         public static dynamic DbTypes => _dbTypes ?? throw NotLoaded("DBTypes");
         public static dynamic PitchDbTypes => _pitchDbTypes ?? throw NotLoaded("PitchDBTypes");
+        public static dynamic PitchTrackingDBTypes => _pitchTrackingDbTypes ?? throw NotLoaded("PitchTrackingDBTypes");
         public static dynamic PitchModel => _pitchModel ?? throw NotLoaded("PitchModel");
         public static PyObject DataPrep => _dataPrep ?? throw NotLoaded("DataPrep");
 
@@ -29,6 +30,7 @@ namespace UI.Python
                 _constants = Py.Import("PitchModel.Constants");
                 _dbTypes = Py.Import("PitchModel.DBTypes");
                 _pitchDbTypes = Py.Import("PitchModel.PitchDBTypes");
+                _pitchTrackingDbTypes = Py.Import("PitchModel.PitchTrackingDBTypes");
                 _pitchModel = Py.Import("PitchModel.Stuff.Model.PitchModel");
 
                 dynamic dataPrepModule = Py.Import("PitchModel.Stuff.DataPrep.DataPrep");

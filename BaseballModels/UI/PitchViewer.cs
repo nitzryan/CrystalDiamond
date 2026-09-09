@@ -1,5 +1,6 @@
 using Db;
-using System.Windows.Forms;
+using PitchDb;
+using PitchTrackingDb;
 using UI.Controls;
 using UI.Python;
 using static Db.DbEnums;
@@ -17,7 +18,7 @@ namespace UI
         }
 
         private Player? player = null;
-        private List<PitchStatcast> PlayerPitches = [];
+        private List<PitchAggregation> PlayerPitches = [];
 
         public PitchViewer()
         {
@@ -80,8 +81,9 @@ namespace UI
             // Output type
             List<(PitchValueType, string)> outputTypes = [
                 (PitchValueType.Actual, "Actual"),
+                (PitchValueType.Expected, "Expected"),
                 (PitchValueType.Stuff, "Stuff Only"),
-                (PitchValueType.Exp, "Pitch Model")
+                (PitchValueType.Pitch, "Pitch Model")
             ];
             cbOutput.Items.Clear();
             foreach (var ot in outputTypes)
@@ -100,17 +102,38 @@ namespace UI
             if (Global.db == null || Global.pitchDb == null)
                 throw new Exception("Failed to load db");
 
+            if (cbModel.SelectedItem is not ComboBoxItem<int> modelComboBox)
+                throw new Exception("Model Combo Box is not an integer");
+
+            int modelId = modelComboBox.Value;
             player = p;
-            PlayerPitches = Global.db.PitchStatcast
-                .Where(
-                    f => f.PitcherId == player.MlbId && 
-                    f.ModelStuff != null &&
-                    f.PitchType != PitchType.Unknown)
+            var pitchData = Global.pitchTrackDb.PitchData
+                .Where(f => f.PitcherId == p.MlbId)
                 .ToList();
+            var pitchValues = Global.pitchDb.PitchValue
+                .Where(f => f.PitcherId == p.MlbId)
+                .GroupBy(f => new { f.GameId, f.PitchId })
+                .ToList();
+
+            PlayerPitches = [];
+            foreach (PitchData pd in pitchData)
+            {
+                var grouping = pitchValues
+                    .SingleOrDefault(f => f.Key.GameId == pd.GameId && f.Key.PitchId == pd.PitchId);
+                if (grouping == null)
+                    continue;
+                    
+                List<PitchValue> pv = grouping.ToList();
+                PlayerPitches.Add(new PitchAggregation(
+                    Data: pd,
+                    Values: pv,
+                    modelId: modelId
+                ));
+            }
 
             // Player Years
             List<int> years = PlayerPitches
-                .Select(f => f.Year)
+                .Select(f => f.Data.Year)
                 .Distinct()
                 .OrderDescending()
                 .ToList();
@@ -119,7 +142,7 @@ namespace UI
             if (!years.Any())
             {
                 groupBoxFilters.Hide();
-                this.PlayerPitches = [];
+                PlayerPitches = [];
                 return;
             }
             else
@@ -131,7 +154,7 @@ namespace UI
 
             // Levels
             List<int> levelIds = PlayerPitches
-                .Select(f => f.LevelId)
+                .Select(f => f.Data.LevelId)
                 .Distinct()
                 .Order()
                 .ToList();
@@ -142,8 +165,8 @@ namespace UI
 
             // Pitch Types
             List<PitchType> pitchTypes = PlayerPitches
-                .Where(f => f.PitcherId == player.MlbId)
-                .GroupBy(f => f.PitchType)
+                .Where(f => f.Data.PitcherId == player.MlbId)
+                .GroupBy(f => f.Data.PitchType)
                 .OrderByDescending(f => f.Count())
                 .Select(f => f.Key)
                 .ToList();
@@ -172,16 +195,16 @@ namespace UI
                 cbLevel.SelectedItem is int levelId)
             {
                 var pitches = PlayerPitches
-                    .Where(f => f.Year >= minYear
-                        && f.Year <= maxYear
-                        && f.PitchType == pitchType
-                        && f.LevelId == levelId);
+                    .Where(f => f.Data.Year >= minYear
+                        && f.Data.Year <= maxYear
+                        && f.Data.PitchType == pitchType
+                        && f.Data.LevelId == levelId);
 
                 foreach (PitchScenario ps in Enum.GetValues(typeof(PitchScenario)))
                 {
                     if (ps != PitchScenario.All && scenario.HasFlag(ps))
                     {
-                        pitches = pitches.Where(f => f.Scenario.HasFlag(ps));
+                        pitches = pitches.Where(f => f.Data.Scenario.HasFlag(ps));
                     }
                 }
 

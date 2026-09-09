@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class YearLeagueDeviations
+	public partial class YearLeagueDeviations
 	{
 		public required int ModelId {get; set;}
 		public required int Year {get; set;}

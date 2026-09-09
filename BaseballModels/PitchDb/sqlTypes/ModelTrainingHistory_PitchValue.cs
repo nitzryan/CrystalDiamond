@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class ModelTrainingHistory_PitchValue
+	public partial class ModelTrainingHistory_PitchValue
 	{
 		public required int ModelId {get; set;}
 		public required int Year {get; set;}

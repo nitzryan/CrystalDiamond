@@ -38,6 +38,7 @@
             label16 = new Label();
             cbArsenalYear = new ComboBox();
             label2 = new Label();
+            label4 = new Label();
             groupBox5.SuspendLayout();
             tableArsenal.SuspendLayout();
             SuspendLayout();
@@ -68,6 +69,7 @@
             tableArsenal.ColumnStyles.Add(new ColumnStyle());
             tableArsenal.ColumnStyles.Add(new ColumnStyle());
             tableArsenal.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableArsenal.Controls.Add(label4, 6, 0);
             tableArsenal.Controls.Add(label3, 5, 0);
             tableArsenal.Controls.Add(label1, 4, 0);
             tableArsenal.Controls.Add(label20, 3, 0);
@@ -93,7 +95,7 @@
             label3.Name = "label3";
             label3.Size = new Size(34, 40);
             label3.TabIndex = 6;
-            label3.Text = "Cnt";
+            label3.Text = "Exp";
             label3.TextAlign = ContentAlignment.BottomCenter;
             // 
             // label1
@@ -175,6 +177,18 @@
             label2.TabIndex = 6;
             label2.Text = "Year";
             // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Dock = DockStyle.Fill;
+            label4.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            label4.Location = new Point(272, 0);
+            label4.Name = "label4";
+            label4.Size = new Size(45, 40);
+            label4.TabIndex = 7;
+            label4.Text = "Cnt";
+            label4.TextAlign = ContentAlignment.BottomCenter;
+            // 
             // PitcherArsenal
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -205,5 +219,6 @@
         private Label label1;
         private Label label2;
         private Label label3;
+        private Label label4;
     }
 }

@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class Output_PitchValueAggregation
+	public partial class Output_PitchValueAggregation
 	{
 		public required int Model {get; set;}
 		public required int GameId {get; set;}

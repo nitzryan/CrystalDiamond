@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class Models_PitchValue
+	public partial class Models_PitchValue
 	{
 		public required int Id {get; set;}
 		public required string Name {get; set;}

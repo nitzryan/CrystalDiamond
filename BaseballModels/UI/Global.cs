@@ -1,6 +1,7 @@
 ﻿using Db;
 using ModelDb;
 using PitchDb;
+using PitchTrackingDb;
 using Python.Runtime;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -17,7 +18,16 @@ namespace UI
         public static SqliteDbContext db = new(Db.Connection.DB_READONLY_OPTIONS);
         public static PitchDbContext pitchDb = new(PitchDb.Connection.PITCHDB_READONLY_OPTIONS);
         public static ModelDbContext modelDb = new(ModelDb.Connection.MODELDB_READONLY_OPTIONS);
-        
+        public static PitchTrackingDbContext pitchTrackDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
+
+        public static void SetupDatabases()
+        {
+            db.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
+            pitchDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
+            modelDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
+            pitchTrackDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
+        }
+
         public static Color GetValueColor(float value, float min, float max, float neutral)
         {
             // Adjust so that it is 0 centered

@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class PitchModelResultBasis
+	public partial class PitchModelResultBasis
 	{
 		public required int Year {get; set;}
 		public required int ModelId {get; set;}

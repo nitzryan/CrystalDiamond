@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class PitcherStatcastMonth
+	public partial class PitcherStatcastMonth
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}

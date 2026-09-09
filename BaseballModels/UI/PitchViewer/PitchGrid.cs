@@ -1,13 +1,15 @@
 ﻿using Db;
 using System.Drawing.Drawing2D;
+using UI.Controls;
 
 namespace UI
 {
     public enum PitchValueType
     { 
         Actual,
+        Expected,
         Stuff,
-        Exp,
+        Pitch,
     }
 
     public enum PitchGridType
@@ -55,6 +57,7 @@ namespace UI
         public float StuffPlus { get; set; } = 0;
         public float PitchPlus { get; set; } = 0;
         public float ActualPlus { get; set; } = 0;
+        public float ExpectedPlus { get; set; } = 0;
 
         public void CalculateStats()
         {
@@ -89,8 +92,9 @@ namespace UI
     { 
         public required int NumPitches { get; set; }
         public required float StuffValue { get; set; }
-        public required float ExpValue { get; set; }
+        public required float PitchValue { get; set; }
         public required float ActValue { get; set; }
+        public required float ExpValue { get; set; }
         public required float Dev { get; set; }
 
         public required float X { get; set; }
@@ -112,11 +116,14 @@ namespace UI
                 case PitchValueType.Actual:
                     value = ActValue;
                     break;
-                case PitchValueType.Exp:
-                    value = ExpValue;
+                case PitchValueType.Pitch:
+                    value = PitchValue;
                     break;
                 case PitchValueType.Stuff:
                     value = StuffValue;
+                    break;
+                case PitchValueType.Expected:
+                    value = ExpValue;
                     break;
             }
 
@@ -141,7 +148,7 @@ namespace UI
         
 
         public PitchGrid(
-            IEnumerable<PitchStatcast> pitches,
+            IEnumerable<PitchAggregation> pitches,
             int modelId,
             PitchValueType pitchValueType,
             PitchGridType pitchGridType,
@@ -161,7 +168,6 @@ namespace UI
             FilterSize = filterSize;
             HighlightedBox = null;
 
-            pitches = pitches.Where(f => f.PX != null && f.PZ != null);
             PitchBoxes = PitchGrid.GetPitchBoxes(pitchGridType, zoneTop, zoneBot, zoneLeft, zoneRight);
 
             List<float> xs = PitchBoxes.First().Select(f => f.X).Order().ToList();
@@ -170,10 +176,8 @@ namespace UI
             // Go through all pitches and map to a box
             foreach (var pitch in pitches)
             {
-                #pragma warning disable CS8629 // Filtered at beginning of function
-                float pitchX = pitch.PX.Value;
-                float pitchY = pitch.PZ.Value;
-                #pragma warning restore CS8629
+                float pitchX = pitch.Data.PlateX;
+                float pitchY = pitch.Data.PlateZ;
 
                 // Determine X and Y bin
                 int? xBin = null;
@@ -189,10 +193,8 @@ namespace UI
                 }
 
                 // Calculate heights of y bins
-                #pragma warning disable CS8629 // Will not be null
-                float pitchZoneTop = pitch.ZoneTop.Value + BALL_RADIUS;
-                float pitchZoneBot = pitch.ZoneBot.Value - BALL_RADIUS;
-                #pragma warning restore CS8629
+                float pitchZoneTop = pitch.Data.ZoneTop + BALL_RADIUS;
+                float pitchZoneBot = pitch.Data.ZoneBot - BALL_RADIUS;
 
                 var (pitchYs, _, pitchFixedY) = GetGridCenters(PitchGridType, pitchZoneTop, pitchZoneBot, zoneLeft, zoneRight);
                 List<float> pitchHeights = ComputeZoneSizes(pitchYs, pitchFixedY);
@@ -229,26 +231,25 @@ namespace UI
                 // Assign to bin
                 PitchBox bin = PitchBoxes[yBin.Value][xBin.Value];
 
-                #pragma warning disable CS8629 // Will not be null if reached this point
                 bin.NumPitches++;
-                bin.ExpValue += pitch.ModelPitch.Value;
-                bin.ActValue += pitch.RunValueSmoothedHitter;
-                bin.StuffValue += pitch.ModelStuff.Value;
-                bin.Dev += Global.YldDict[new Global.YearLeagueDevKey(ModelId, pitch.Year, pitch.CountBalls, pitch.CountStrike)].StuffDev;
+                bin.PitchValue += pitch.Value.PitchRuns;
+                bin.ActValue += pitch.Data.RunValueHitter;
+                bin.ExpValue += pitch.Data.RunValueSmoothedHitter;
+                bin.StuffValue += pitch.Value.StuffRuns;
+                bin.Dev += Global.YldDict[new Global.YearLeagueDevKey(ModelId, pitch.Data.Year, pitch.Data.CountBalls, pitch.Data.CountStrike)].StuffDev;
 
-                bin.Stats.Vel += pitch.VStart.Value;
-                bin.Stats.BreakHoriz += pitch.BreakHorizontal.Value;
-                bin.Stats.BreakVert += pitch.BreakInduced.Value;
-                #pragma warning restore CS8629
+                bin.Stats.Vel += pitch.Data.Vel;
+                bin.Stats.BreakHoriz += pitch.Data.BreakHorizontal;
+                bin.Stats.BreakVert += pitch.Data.BreakInduced;
 
                 // Update stats from Pitch
                 bin.Stats.Pitches++;
-                switch(pitch.Result)
+                switch(pitch.Data.Result)
                 {
                     case DbEnums.PitchResult.CalledStrike:
                         bin.Stats.CalledStrikes++;
 
-                        if (pitch.CountStrike == 2)
+                        if (pitch.Data.CountStrike == 2)
                         {
                             bin.Stats.AB++;
                             bin.Stats.PA++;
@@ -259,7 +260,7 @@ namespace UI
                         bin.Stats.Swings++;
                         bin.Stats.Whiffs++;
 
-                        if (pitch.CountStrike == 2)
+                        if (pitch.Data.CountStrike == 2)
                         {
                             bin.Stats.AB++;
                             bin.Stats.PA++;
@@ -273,7 +274,7 @@ namespace UI
                     case DbEnums.PitchResult.Ball:
                         bin.Stats.Balls++;
 
-                        if (pitch.CountBalls == 3)
+                        if (pitch.Data.CountBalls == 3)
                         {
                             bin.Stats.PA++;
                             bin.Stats.BB++;
@@ -288,7 +289,7 @@ namespace UI
                         bin.Stats.Swings++;
                         bin.Stats.PA++;
                         bin.Stats.InPlay++;
-                        var pa = pitch.PaResult;
+                        var pa = pitch.Data.PaResult;
 
                         // Strikeout / BB / HBP should never be here
                         if (pa.HasFlag(DbEnums.PitchPaResult.Strikeout) ||
@@ -308,7 +309,7 @@ namespace UI
                         }
                         else if (pa.HasFlag(DbEnums.PitchPaResult.Flyout))
                         {
-                            if (pitch.PaResultDirectRuns == 0) // Not a sacrifice fly
+                            if (pitch.Data.PaResultDirectRuns == 0) // Not a sacrifice fly
                                 bin.Stats.AB++;
                         }
                         else if (pa.HasFlag(DbEnums.PitchPaResult.Hit1B))
@@ -342,19 +343,22 @@ namespace UI
             // Get per-pitch values (or per 1000 for value)
             float actValue = PitchBoxes.Sum((List<PitchBox>f) => f.Sum((PitchBox g) => g.ActValue));
             float stuffValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.StuffValue));
-            float pitchValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.ExpValue));
+            float pitchValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.PitchValue));
+            float expValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.ExpValue));
             float devValue = PitchBoxes.Sum((List<PitchBox> f) => f.Sum((PitchBox g) => g.Dev));
 
             PitchBoxes.ForEach(g => g.ForEach(f =>
             {
                 f.ActValue = f.ActValue / f.NumPitches * 1000;
-                f.ExpValue = f.ExpValue / f.NumPitches * 1000;
+                f.PitchValue = f.PitchValue / f.NumPitches * 1000;
                 f.StuffValue = f.StuffValue / f.NumPitches * 1000;
+                f.ExpValue = f.ExpValue / f.NumPitches * 1000;
                 f.Dev = f.Dev / f.NumPitches * 1000;
 
                 f.Stats.StuffPlus = 100 - (10 * f.StuffValue / f.Dev);
-                f.Stats.PitchPlus = 100 - (10 * f.ExpValue / f.Dev);
+                f.Stats.PitchPlus = 100 - (10 * f.PitchValue / f.Dev);
                 f.Stats.ActualPlus = 100 - (10 * f.ActValue / f.Dev);
+                f.Stats.ExpectedPlus = 100 - (10 * f.ExpValue / f.Dev);
 
                 OverallStats.Vel += f.Stats.Vel;
                 OverallStats.BreakHoriz += f.Stats.BreakHoriz;
@@ -431,6 +435,7 @@ namespace UI
                         NumPitches = 0,
                         ActValue = 0,
                         StuffValue = 0,
+                        PitchValue = 0,
                         ExpValue = 0,
                         Dev=0,
                         X = xs[i],
@@ -611,7 +616,8 @@ namespace UI
                         {
                             PitchValueType.Actual => pitch.ActValue,
                             PitchValueType.Stuff => pitch.StuffValue,
-                            PitchValueType.Exp => pitch.ExpValue,
+                            PitchValueType.Pitch => pitch.PitchValue,
+                            PitchValueType.Expected => pitch.ExpValue,
                             _ => pitch.ActValue
                         };
 

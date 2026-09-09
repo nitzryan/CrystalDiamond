@@ -6,14 +6,14 @@ namespace UI.Controls
 {
     public partial class StuffModelViewer : UserControl
     {
-        private List<PitchStatcast> Pitches = [];
+        private List<PitchAggregation> Pitches = [];
         private class ListBoxPitchItem
         {
-            public required PitchStatcast Pitch { get; set; }
+            public required PitchAggregation Pitch { get; set; }
             public override string ToString()
             {
                 #pragma warning disable CS8629 // Will be filtered at this point
-                return Pitch.PitchType.ToString() + $" {Math.Round(Pitch.VStart.Value, 1)}mph ({Math.Round(Pitch.BreakHorizontal.Value, 1)},{Pitch.BreakVertical.Value,1})";
+                return Pitch.Data.PitchType.ToString() + $" {Math.Round(Pitch.Data.Vel, 1)}mph";
                 #pragma warning restore CS8629
             }
         }
@@ -48,40 +48,30 @@ namespace UI.Controls
             cbOutputVar.SelectedIndexChanged += UpdateGridType;
         }
 
-        private void SelectPitch(PitchStatcast pitch)
+        private void SelectPitch(PitchAggregation pitch)
         {
-            #pragma warning disable CS8629 // Will be filtered out at this point
-            nudVelocity.Value = (decimal)pitch.VStart.Value;
-            nudBreakHoriz.Value = (decimal)pitch.BreakHorizontal.Value;
-            nudBreakVert.Value = (decimal)pitch.BreakInduced.Value;
-            nudBreakAngle.Value = (decimal)pitch.BreakAngle.Value;
+            var data = pitch.Data;
 
-            nudExtension.Value = (decimal)pitch.Extension.Value;
-            nudX0.Value = (decimal)pitch.X0.Value;
-            nudZ0.Value = (decimal)pitch.Z0.Value;
+            nudVelocity.Value = (decimal)data.Vel;
+            nudBreakHoriz.Value = (decimal)data.BreakHorizontal;
+            nudBreakVert.Value = (decimal)data.BreakInduced;
 
-            nudPX.Value = (decimal)pitch.PX.Value;
-            nudPZ.Value = (decimal)pitch.PZ.Value;
-            nudZoneTop.Value = (decimal)pitch.ZoneTop.Value;
-            nudZoneBot.Value = (decimal)pitch.ZoneBot.Value;
+            nudExtension.Value = (decimal)data.Extension;
 
-            nudBalls.Value = pitch.CountBalls;
-            nudStrikes.Value = pitch.CountStrike;
-            nudPitR.Value = (pitch.PitIsR ? 1 : 0);
-            nudHitR.Value = (pitch.HitIsR ? 1 : 0);
+            nudPX.Value = (decimal)data.PlateX;
+            nudPZ.Value = (decimal)data.PlateZ;
+            nudZoneTop.Value = (decimal)data.ZoneTop;
+            nudZoneBot.Value = (decimal)data.ZoneBot;
 
-            nudVelX.Value = (decimal)pitch.VX.Value;
-            nudVelY.Value = (decimal)pitch.VY.Value;
-            nudVelZ.Value = (decimal)pitch.VZ.Value;
-            nudAccelX.Value = (decimal)pitch.AX.Value;
-            nudAccelY.Value = (decimal)pitch.AY.Value;
-            nudAccelZ.Value = (decimal)pitch.AZ.Value;
-            #pragma warning restore CS8629
+            nudBalls.Value = data.CountBalls;
+            nudStrikes.Value = data.CountStrike;
+            nudPitR.Value = (data.PitIsR ? 1 : 0);
+            nudHitR.Value = (data.HitIsR ? 1 : 0);
 
             pitchModelPanel.SetPitch(pitch);
         }
 
-        public void SetPitches(List<PitchStatcast> pitches)
+        public void SetPitches(List<PitchAggregation> pitches)
         {
             Pitches = pitches;
 
@@ -123,7 +113,8 @@ namespace UI.Controls
                 ZoneBot = (float)nudZoneBot.Value,
             };
 
-            pitchModelPanel.GenerateLocationGrid(pmd);
+            // TODO : Add modelId to the UI
+            pitchModelPanel.GenerateLocationGrid(pmd, 1);
         }
 
         private void UpdateGridType(object? sender, EventArgs e)

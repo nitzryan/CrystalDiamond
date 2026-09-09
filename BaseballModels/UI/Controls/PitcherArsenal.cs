@@ -4,7 +4,7 @@ namespace UI.Controls
 {
     public partial class PitcherArsenal : UserControl
     {
-        private List<PitchStatcast> Pitches = [];
+        private List<PitchAggregation> Pitches = [];
 
         public PitcherArsenal()
         {
@@ -13,12 +13,12 @@ namespace UI.Controls
             cbArsenalYear.SelectedIndexChanged += YearIndexChangeEvent;
         }
 
-        public void SetPitches(List<PitchStatcast> pitches)
+        public void SetPitches(List<PitchAggregation> pitches)
         {
             Pitches = pitches;
 
             List<int> years = pitches
-                .Select(f => f.Year)
+                .Select(f => f.Data.Year)
                 .Distinct()
                 .OrderDescending()
                 .ToList();
@@ -43,14 +43,14 @@ namespace UI.Controls
                     }
                 }
 
-                List<PitchStatcast> yearPitches = Pitches
-                    .Where(f => f.Year == year)
+                List<PitchAggregation> yearPitches = Pitches
+                    .Where(f => f.Data.Year == year)
                     .ToList();
 
                 int pitchCount = yearPitches.Count;
 
                 var pitchTypes = yearPitches
-                    .GroupBy(f => f.PitchType)
+                    .GroupBy(f => f.Data.PitchType)
                     .OrderByDescending(f => f.Count());
                 tableArsenal.RowCount = 1 + pitchTypes.Count();
                 int currentRow = 1;
@@ -61,18 +61,18 @@ namespace UI.Controls
                     double sumDev = 0;
                     foreach (var p in pt)
                     {
-                        sumDev += Global.YldDict[new Global.YearLeagueDevKey(1, p.Year, p.CountBalls, p.CountStrike)].StuffDev;
+                        sumDev += Global.YldDict[new Global.YearLeagueDevKey(1, p.Data.Year, p.Data.CountBalls, p.Data.CountStrike)].StuffDev;
                     }
 
-                    #pragma warning disable CS8629 // Not null at this point
-                    float stuffValue = pt.Sum(f => f.ModelStuff.Value);
-                    float pitchValue = pt.Sum(f => f.ModelPitch.Value);
-                    #pragma warning restore CS8629
-                    float actValue = pt.Sum(f => f.RunValueSmoothedHitter);
+                    float stuffValue = pt.Sum(f => f.Value.StuffRuns);
+                    float pitchValue = pt.Sum(f => f.Value.PitchRuns);
+                    float actValue = pt.Sum(f => f.Data.RunValueHitter);
+                    float smoothedValue = pt.Sum(f => f.Data.RunValueSmoothedHitter);
 
                     float stuffPlus = 100 - (float)(10 * stuffValue / sumDev);
                     float pitchPlus = 100 - (float)(10 * pitchValue / sumDev);
                     float actPlus = 100 - (float)(10 * actValue / sumDev);
+                    float smoothedPlus = 100 - (float)(10 * smoothedValue / sumDev);
                     float pitchProportion = (float)count / (float)pitchCount;
                     string name = pt.Key.ToString();
 
@@ -81,6 +81,7 @@ namespace UI.Controls
                     int stuffPlusInt = (int)Math.Round(stuffPlus);
                     int pitchPlusInt = (int)Math.Round(pitchPlus);
                     int actPlusInt = (int)Math.Round(actPlus);
+                    int smoothedPlusInt = (int)Math.Round(smoothedPlus);
 
                     // Add Row
                     tableArsenal.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -138,7 +139,17 @@ namespace UI.Controls
                             Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom
                         },
                         4, currentRow);
-                    // Column 5: Count
+                    // Column 5: Smoothed+
+                    tableArsenal.Controls.Add(
+                        new Label
+                        {
+                            Text = smoothedPlusInt.ToString(),
+                            TextAlign = ContentAlignment.MiddleRight,
+                            AutoSize = true,
+                            Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom
+                        },
+                        5, currentRow);
+                    // Column 6: Count
                     tableArsenal.Controls.Add(
                         new Label
                         {
@@ -147,7 +158,7 @@ namespace UI.Controls
                             AutoSize = true,
                             Anchor = AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom
                         },
-                        5, currentRow);
+                        6, currentRow);
 
                     currentRow++;
                 }

@@ -1,6 +1,6 @@
 namespace PitchDb
 {
-	public class PitchValue
+	public partial class PitchValue
 	{
 		public required int ModelId {get; set;}
 		public required int GameId {get; set;}

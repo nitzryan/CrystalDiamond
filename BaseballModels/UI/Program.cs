@@ -7,6 +7,7 @@ namespace UI
         [STAThread]
         static void Main()
         {
+            Global.SetupDatabases();
             PyThread.Start();
             ApplicationConfiguration.Initialize();
             Application.Run(new HomePage());
