@@ -1,9 +1,6 @@
 import optuna
 import gc
-from enum import Flag, auto, Enum
-import torch.nn.functional as F
-import math
-from dataclasses import dataclass
+from enum import Flag, auto
 
 from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS, DEFAULT_BATCH_SIZE_P, DEFAULT_NUM_EPOCHS_P
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model, LayerArch
@@ -12,24 +9,11 @@ from Model.Pro.Model.Player_Model import *
 from Model.Combined.DataPrep.Data_Prep import Combined_Data_Prep, Combined_IO
 from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Model.Constants import device
-
-_ACTIVATION_FUNCTIONS = ["ReLU", "LeakyReLU", "GELU", "SiLU", "Tanh"]
-_ACTIVATION_MAP = {
-        "ReLU": F.relu,
-        "LeakyReLU": F.leaky_relu,
-        "GELU": F.gelu,
-        "SiLU": F.silu,
-        "Tanh": F.tanh,
-    }
+from Model.Combined.Tuning.ProTuningShared import *
 
 _NUM_GRAD_SCALES = len(DEFAULT_HITTER_GRAD_SCALES)
 assert _NUM_GRAD_SCALES == len(DEFAULT_PITCHER_GRAD_SCALES), \
     "hitter/pitcher trunk-grad-scale vectors must be the same length"
-
-# Configurable Explore/Exploit balance
-class SearchWidth(Enum):
-    WIDE = auto()
-    NARROW = auto()
 
 # What hyperparameters to tune
 class ProModelTuningRecipe(Flag):
@@ -43,40 +27,7 @@ class ProModelTuningRecipe(Flag):
     BATCH_PARAMS = auto()
     TRUNK_GRAD_SCALES = auto()
 
-@dataclass(frozen=True)
-class ParamSpec:
-    name: str
-    low: float = -1
-    high: float = -1
-    log: bool = False
-    is_int: bool = False
-    choices: list[str] | None = None
-    narrow_frac: float = 0.2 # How much range (% of value) is varied in narrow test
 
-    def __post_init__(self):
-        if self.choices is None:
-            assert self.low < self.high, f"ParamSpec '{self.name}': low must be < high"
-
-    def suggest(self, trial: optuna.trial.Trial, default, width: SearchWidth):
-        if self.choices is not None:
-            if width is SearchWidth.NARROW:
-                return default
-            return trial.suggest_categorical(self.name, self.choices)
-
-        low, high = self.low, self.high
-        if width is SearchWidth.NARROW:
-            span = self.narrow_frac * default
-            low = max(low, default - span)
-            high = min(high, default + span)
-            
-            # Low int should always round down, high int round up
-            if self.is_int:
-                low = round(low) if self.low == 0 else math.floor(low)
-                high = math.ceil(high)
-
-        if self.is_int:
-            return trial.suggest_int(self.name, int(round(low)), int(round(high)), log=self.log)
-        return trial.suggest_float(self.name, low, high, log=self.log)
 
 SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
     ProModelTuningRecipe.RECURRENT: [
@@ -92,14 +43,14 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
     ProModelTuningRecipe.DATAINIT_ARCH: [
         ParamSpec("datainit_layers", 2, 8, is_int=True),
         ParamSpec("datainit_size", 4, 128, is_int=True),
-        ParamSpec("datainit_activation", choices=_ACTIVATION_FUNCTIONS),
+        ParamSpec("datainit_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_datainit", 1e-4, 1e-2, log=True),
         ParamSpec("wd_datainit", 1e-7, 1e-2, log=True),
     ],
     ProModelTuningRecipe.WAR_ARCH: [
         ParamSpec("war_layers", 2, 6, is_int=True),
         ParamSpec("war_size", 4, 128, is_int=True),
-        ParamSpec("war_activation", choices=_ACTIVATION_FUNCTIONS),
+        ParamSpec("war_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_war", 1e-4, 1e-2, log=True),
         ParamSpec("wd_war", 1e-7, 1e-2, log=True),
     ],
@@ -107,7 +58,7 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
         ParamSpec("init_input_size", 4, 128, is_int=True),
         ParamSpec("init_layers", 2, 6, is_int=True),
         ParamSpec("init_size", 4, 128, is_int=True),
-        ParamSpec("init_activation", choices=_ACTIVATION_FUNCTIONS),
+        ParamSpec("init_activation", choices=ACTIVATION_FUNCTIONS),
     ],
     ProModelTuningRecipe.BATCH_PARAMS: [
         ParamSpec("batch_size", 400, 1600, is_int=True),
@@ -120,7 +71,7 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
     ],
 }
 
-_ACTIVATION_NAME = {v: k for k, v in _ACTIVATION_MAP.items()}
+_ACTIVATION_NAME = {v: k for k, v in ACTIVATION_MAP.items()}
 HITTER_DEFAULTS = {
     "num_layers": DEFAULT_PRO_NUM_LAYERS,
     "hidden_size": DEFAULT_PRO_HIDDEN_SIZE,
@@ -213,8 +164,8 @@ def run_evaluation(
             init_arch: LayerArch,
             lr_list: list[float],
             wd_list: list[float],
-            trunk_grad_scales: list[float] | None = None,
-            max_repeats: int = 3) -> float:
+            max_repeats: int,
+            trunk_grad_scales: list[float] | None = None) -> float:
     
     WAR_MAX = 30
     cutoff_fold_1, exit_values_23 = (7.9, 7.4 + 7.7) if is_hitter else (9.5, 9.5 + 9.1)
@@ -276,14 +227,12 @@ def run_evaluation(
         torch.cuda.empty_cache()
         gc.collect()
         
-        sum_war += train_results.best_loss
+        sum_war += train_results.best_loss_war
         
         # Check if it should exit early
         if i == 0 and sum_war > cutoff_fold_1:
             sum_war += exit_values_23
             break
-        
-        
         
     return min(sum_war, WAR_MAX)
 
@@ -303,11 +252,11 @@ def objective(
     trunk_grad_scales = [p[f"grad_scale_{i}"] for i in range(num_grad_scales)]
 
     datainit_arch = LayerArch(num_layers=p["datainit_layers"], layer_size=p["datainit_size"],
-                        nonlin=_ACTIVATION_MAP[p["datainit_activation"]])
+                        nonlin=ACTIVATION_MAP[p["datainit_activation"]])
     war_arch = LayerArch(num_layers=p["war_layers"], layer_size=p["war_size"],
-                         nonlin=_ACTIVATION_MAP[p["war_activation"]])
+                         nonlin=ACTIVATION_MAP[p["war_activation"]])
     init_arch = LayerArch(num_layers=p["init_layers"], layer_size=p["init_size"],
-                          nonlin=_ACTIVATION_MAP[p["init_activation"]])
+                          nonlin=ACTIVATION_MAP[p["init_activation"]])
 
     lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
     wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)

@@ -4,6 +4,7 @@ from Model.Pro.Model.Model_Train import ELEMENT_LIST, NUM_ELEMENTS
 from Model.College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST, NUM_ELEMENTS_HITTER, NUM_ELEMENTS_PITCHER
 
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model
+from Model.Pro.Model.Player_Model import LOSS_IDX_WAR, LOSS_IDX_LEVEL, LOSS_IDX_PA, LOSS_IDX_STATS, LOSS_IDX_MLBSTAT, LOSS_IDX_MLBVALUE, LOSS_IDX_PT, LOSS_IDX_POS
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Combined.Model.RunEpoch import RunEpoch
@@ -34,10 +35,7 @@ def TrainAndGraph(
     show_progress_bar : bool = False,
     pro_model_name : str = "no_name_pro",
     col_model_name : str = "no_name_col",
-    element_to_save : int = 0,
-    early_stopping_cutoff : int = 20,
     timestep_pct_cutoff : float = 1.0,
-    save_last=True,
 ) -> TrainResults:
     
     num_pro_elements = NUM_ELEMENTS
@@ -56,10 +54,6 @@ def TrainAndGraph(
     train_history : list[EpochResult] = []
     test_history : list[EpochResult] = []
     epoch_counter : list[int] = []
-    
-    best_loss = 999
-    best_epoch = -1
-    epochs_since_improve = 0
     
     # Schedulers
     pro_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(pro_network.optimizer, T_max=num_epochs)
@@ -80,42 +74,28 @@ def TrainAndGraph(
         
         # Check if model is blowing up
         if epoch == 0:
-            first_loss = test_result.avg_loss[element_to_save]
+            first_loss = test_result.avg_loss[LOSS_IDX_WAR]
         if epoch > 0:
-            if test_result.avg_loss[element_to_save] > first_loss * 2:
+            if test_result.avg_loss[LOSS_IDX_WAR] > first_loss * 2:
                 break
             
         # If ever gets to NaN, report a really large number
-        if test_result.avg_loss[element_to_save] != test_result.avg_loss[element_to_save]:
-            test_result.avg_loss[element_to_save] = 100
+        if test_result.avg_loss[LOSS_IDX_WAR] != test_result.avg_loss[LOSS_IDX_WAR]:
+            test_result.avg_loss[LOSS_IDX_WAR] = 100
             best_loss = 100
             best_epoch = epoch
             break
         
         
         if should_output and (epoch % logging_interval == 0):  
-            print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch + 1, num_epochs, train_result.avg_loss[element_to_save], test_result.avg_loss[element_to_save]))
+            print('Epoch [%d/%d], Train Loss: %.4f, Test Loss: %.4f' %(epoch + 1, num_epochs, train_result.avg_loss[LOSS_IDX_WAR], test_result.avg_loss[LOSS_IDX_WAR]))
         
-        if (not save_last and test_result.avg_loss[element_to_save] < best_loss) \
-            or (save_last and epoch == num_epochs - 1):
-            best_loss = test_result.avg_loss[element_to_save]
-            best_epoch = epoch
-            epochs_since_improve = 0
+        if epoch == num_epochs - 1:
             torch.save(col_network.state_dict(), col_model_name + ".pt")
             torch.save(pro_network.state_dict(), pro_model_name + ".pt")
-        else:
-            epochs_since_improve += 1
-           
-        if not save_last and epochs_since_improve >= early_stopping_cutoff:
-            if should_output:
-                print(f"Exited Early at epoch={epoch}")
-            break
             
     if should_output:
-        if save_last:
-            print(f"End result at loss={test_result.avg_loss[element_to_save]}")
-        else:
-            print(f"Best result at epoch={best_epoch} loss={best_loss}")
+        print(f"End result loss={test_result.avg_loss[LOSS_IDX_WAR]}")
         BuildPlots(epoch_counter=epoch_counter, train_history=train_history, test_history=test_history,
             element_list=element_list, pro_network=pro_network, col_network=col_network, train_dataset=train_dataset,
             test_dataset=test_dataset, is_hitter=is_hitter, batch_size=batch_size, timestep_pct_cutoff=timestep_pct_cutoff)
@@ -125,7 +105,13 @@ def TrainAndGraph(
         test_losses.append([er.avg_loss[n] for er in test_history])
         
     return TrainResults(
-        best_loss=best_loss,
-        best_epoch=best_epoch,
+        best_loss_war=test_result.avg_loss[LOSS_IDX_WAR],
+        best_loss_level=test_result.avg_loss[LOSS_IDX_LEVEL],
+        best_loss_pa=test_result.avg_loss[LOSS_IDX_PA],
+        best_loss_stats=test_result.avg_loss[LOSS_IDX_STATS],
+        best_loss_pos=test_result.avg_loss[LOSS_IDX_POS],
+        best_loss_pt=test_result.avg_loss[LOSS_IDX_PT],
+        best_loss_mlbstat=test_result.avg_loss[LOSS_IDX_MLBSTAT],
+        best_loss_mlbvalue=test_result.avg_loss[LOSS_IDX_MLBVALUE],
         test_losses=test_losses
     )

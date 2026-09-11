@@ -77,6 +77,12 @@ class TimestepBrierResult:
     
 @dataclass
 class TrainResults:
-    best_loss: float
-    best_epoch : int
+    best_loss_war: float
+    best_loss_level : float
+    best_loss_pa : float
+    best_loss_stats : float
+    best_loss_pos : float
+    best_loss_mlbvalue : float
+    best_loss_pt : float
+    best_loss_mlbstat : float
     test_losses : list[list[float]]

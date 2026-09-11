@@ -70,7 +70,7 @@ DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
 DEFAULT_DATA_ARCH_P = LayerArch(layer_size=113, num_layers=2, nonlin=F.silu)
-DEFAULT_WAR_ARCH_P = LayerArch(layer_size=46, num_layers=4, nonlin=F.tanh)
+DEFAULT_WAR_ARCH_P = LayerArch(layer_size=52, num_layers=3, nonlin=F.tanh)
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
@@ -92,11 +92,11 @@ DEFAULT_DROPOUT_P = 0.0775
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
 
-DEFAULT_PRO_WEIGHT_DECAY = [5.1e-2,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
-DEFAULT_PRO_WEIGHT_DECAY_P = [2.8e-2,1.5e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,4.1e-7]
+DEFAULT_PRO_WEIGHT_DECAY = [3.4e-3,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
+DEFAULT_PRO_WEIGHT_DECAY_P = [1.7e-3,1.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,4.1e-7]
 
-DEFAULT_LEARNING_RATES = [0.00115,0.020,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
-DEFAULT_LEARNING_RATES_P = [0.0021,0.0018,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.017]
+DEFAULT_LEARNING_RATES = [0.008,0.020,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
+DEFAULT_LEARNING_RATES_P = [0.0011,0.0017,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.017]
 
 DEFAULT_INIT_STATE_SIZE = 40
 DEFAULT_INIT_STATE_SIZE_P = 93
@@ -114,8 +114,8 @@ LOSS_IDX_POS = 4
 LOSS_IDX_PT = 5
 LOSS_IDX_MLBVALUE = 6
 LOSS_IDX_MLBSTAT = 7
-DEFAULT_HITTER_GRAD_SCALES = [1, 2.3, 8.2e-5, 8.6e-6, 1.07e-5, 1.2e-5, 0.86, 3.6e-6]
-DEFAULT_PITCHER_GRAD_SCALES = [1, 2.8e-3, 4.7e-3, 4.4e-6, 2.4e-6, 4.2e-2, 2.0e-6, 6.0e-6]
+DEFAULT_HITTER_GRAD_SCALES = [1, 0.017, 1.4, 0.077, 0.01, 3.3, 0.003, 0.25]
+DEFAULT_PITCHER_GRAD_SCALES = [1, 0.175, 2.1, 0.12, 2.07, 1.76, 0.006, 0.02]
 
 class _ScaleBackboneGradient(torch.autograd.Function):
     @staticmethod

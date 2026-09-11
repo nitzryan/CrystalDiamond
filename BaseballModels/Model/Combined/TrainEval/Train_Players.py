@@ -78,13 +78,13 @@ def Train_Players(num_models : int, is_hitter : bool):
                     show_progress_bar=True,
                 )
             
-                if train_results.best_loss < 50:
+                if train_results.best_loss_war < 50:
                     break
                 
             
             model_cursor = model_db.cursor()
             loss_index = GetVariableLossIndex(name="WAR", is_pro=False, is_hitter=is_hitter)
-            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?)", (model_name, is_hitter_int, train_results.best_loss, train_results.test_losses[loss_index][-1], model_run))
+            model_cursor.execute("INSERT INTO Model_TrainingHistory VALUES (?,?,?,?,?)", (model_name, is_hitter_int, train_results.best_loss_war, train_results.test_losses[loss_index][-1], model_run))
             
             # Insert hitters that were trained on so that they can be marked on the site
             model_cursor.executemany("INSERT INTO PlayersInTrainingData VALUES(?,?,?,?,?,?)", [(
