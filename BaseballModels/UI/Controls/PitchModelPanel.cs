@@ -120,7 +120,7 @@ namespace UI.Controls
             var resultBasis = Global.pitchDb.PitchModelResultBasis
                 .Where(f => f.Year == Pitch.Data.Year &&
                     f.CountBalls == pmd.CountBalls &&
-                    f.CountStrikes == pmd.CountStrikes **
+                    f.CountStrikes == pmd.CountStrikes &&
                     f.ModelId == modelId)
                 .ToList();
             scaleValues = new PitchScaleValues(
