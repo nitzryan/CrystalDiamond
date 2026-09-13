@@ -16,8 +16,8 @@
     <PackageReference Include="EFCore.BulkExtensions.Sqlite" Version="8.1.3" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
     <PackageReference Include="Selenium.Support" Version="4.45.0" />
     <PackageReference Include="Selenium.UndetectedChromeDriver" Version="1.1.4" />
     <PackageReference Include="Selenium.WebDriver" Version="4.45.0" />
@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Db\Db.csproj" />
+    <ProjectReference Include="..\ModelEvaluation\ModelEvaluation.csproj" />
     <ProjectReference Include="..\PitchTrackingDb\PitchTrackingDb.csproj" />
   </ItemGroup>
 

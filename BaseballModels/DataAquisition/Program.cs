@@ -1,4 +1,6 @@
 ﻿using DataAquisition.College;
+using DataAquisition.ModelStats;
+using Db;
 
 namespace DataAquisition
 {
@@ -232,6 +234,35 @@ namespace DataAquisition
             {
                 Misc.CalculateDraftPickValue.Update();
             }
+
+
+            /* 
+             
+            This section below contains test code to compare the new
+            functions to calculate ModelHitter/Pitcher stats compared to
+            old method.  The comparison and old methods will get deleted
+            in the next commit.
+             
+             */
+            //await ModelMonthStats.RunOldToCsv(END_YEAR, END_MONTH);
+            var leagueCache = ModelStats.ModelLeagueCache.Generate();
+            var hitterCache = ModelStats.ModelHitterCache.Generate();
+            var pitcherCache = ModelStats.ModelPitcherCache.Generate();
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            var ids = db.Model_Players
+                .Where(f => f.IsHitter)
+                .Select(f => f.MlbId);
+            var hitterStats = ModelStats.CalculateHitterStats.BuildAllHitterStats(ids, new CalculateHitterStats.HitterModelContext(
+                leagueCache, hitterCache, END_YEAR, END_MONTH
+            ));
+            ids = db.Model_Players
+                .Where(f => f.IsPitcher)
+                .Select(f => f.MlbId);
+            var pitcherStats = ModelStats.CalculatePitcherStats.BuildAllPitcherStats(ids, new CalculatePitcherStats.PitcherModelContext(
+                leagueCache, pitcherCache, END_YEAR, END_MONTH
+            ));
+
+            ModelMonthStats.LogNewAndCompare(hitterStats, pitcherStats, END_YEAR, END_MONTH);
 
             #pragma warning disable CS0162
         }

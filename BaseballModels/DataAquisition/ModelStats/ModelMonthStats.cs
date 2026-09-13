@@ -1,4 +1,5 @@
-﻿using Db;
+﻿using DataAquisition.Temp;
+using Db;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
@@ -14,7 +15,7 @@ namespace DataAquisition.ModelStats
         private static int endYear = 0;
         private static int endMonth = 0;
 
-        private static List<Model_HitterStats> HitterStatsThreadFunction(int[] ids, int thread_idx, ProgressBar progressBar, int progressSum)
+        public static List<Model_HitterStats> HitterStatsThreadFunction(int[] ids, int thread_idx, ProgressBar progressBar, int progressSum)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             List<Model_HitterStats> output = new(ids.Length * 70);
@@ -827,6 +828,101 @@ namespace DataAquisition.ModelStats
             catch (Exception e)
             {
                 Console.WriteLine("Error in ModelMonthStats");
+                Utilities.LogException(e);
+                return false;
+            }
+        }
+
+
+
+
+        ///////////// Code for checking the new version is valid, delete later
+        private delegate List<T> StatsThreadFunc<T>(int[] ids, int threadIdx, ProgressBar progressBar, int progressSum);
+
+        private static async Task<List<T>> RunOldThreaded<T>(int[] ids, StatsThreadFunc<T> func, string title)
+        {
+            int j = 0;
+            List<int[]> partitions = (from item in ids
+                                      group item by j++ % NUM_THREADS into part
+                                      select part.ToArray()).ToList();
+
+            using ProgressBar progressBar = new(ids.Length, title);
+            progress_bar_thread = 0;
+            thread_counts = [.. Enumerable.Repeat(0, NUM_THREADS)];
+
+            List<Task<List<T>>> tasks = new(NUM_THREADS);
+            for (int i = 0; i < NUM_THREADS; i++)
+            {
+                int idx = i;
+                int[] part = idx < partitions.Count ? partitions[idx] : [];
+                tasks.Add(Task.Run(() => func(part, idx, progressBar, ids.Length)));
+            }
+
+            List<T> output = new(ids.Length * 70);
+            foreach (Task<List<T>> task in tasks)
+            {
+                output.AddRange(await task);
+                progress_bar_thread++;
+            }
+            return output;
+        }
+
+        public static async Task<bool> RunOldToCsv(int EndYear, int EndMonth)
+        {
+            try
+            {
+                using SqliteDbContext db = new(Constants.DB_OPTIONS);
+                endYear = EndYear;
+                endMonth = EndMonth;
+
+                int[] hitterIds = db.Model_Players.Where(f => f.IsHitter).Select(f => f.MlbId).ToArray();
+                List<Model_HitterStats> hitters =
+                    await RunOldThreaded<Model_HitterStats>(hitterIds, HitterStatsThreadFunction, "Current Hitter Stats");
+                ModelStatsDiff.WriteCsv(hitters, "../../../Temp/hitters_current.csv");
+
+                int[] pitcherIds = db.Model_Players.Where(f => f.IsPitcher).Select(f => f.MlbId).ToArray();
+                List<Model_PitcherStats> pitchers =
+                    await RunOldThreaded<Model_PitcherStats>(pitcherIds, PitcherStatsThreadFunction, "Current Pitcher Stats");
+                ModelStatsDiff.WriteCsv(pitchers, "../../../Temp/pitchers_current.csv");
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in RunOldToCsv");
+                Utilities.LogException(e);
+                return false;
+            }
+        }
+
+        public static bool LogNewAndCompare(List<Model_HitterStats> hitterStats, List<Model_PitcherStats> pitcherStats, int EndYear, int EndMonth)
+        {
+            string HittersCurrentCsv = "../../../Temp/hitters_current.csv";
+            string HittersNewCsv = "../../../Temp/hitters_new.csv";
+            string HittersDiffMd = "../../../Temp/hitters.md";
+            string PitchersCurrentCsv = "../../../Temp/pitchers_current.csv";
+            string PitchersNewCsv = "../../../Temp/pitchers_new.csv";
+            string PitchersDiffMd = "../../../Temp/pitchers.md";
+
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            try
+            {
+                endYear = EndYear;
+                endMonth = EndMonth;
+
+                ModelStatsDiff.WriteCsv(hitterStats, HittersNewCsv);
+                ModelStatsDiff.Compare<Model_HitterStats>(
+                    HittersCurrentCsv, HittersNewCsv, HittersDiffMd, "Model Hitter Stats Diff");
+
+                ModelStatsDiff.WriteCsv(pitcherStats, PitchersNewCsv);
+                ModelStatsDiff.Compare<Model_PitcherStats>(
+                    PitchersCurrentCsv, PitchersNewCsv, PitchersDiffMd, "Model Pitcher Stats Diff");
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in ModelMonthStats.LogNewAndCompare");
                 Utilities.LogException(e);
                 return false;
             }
