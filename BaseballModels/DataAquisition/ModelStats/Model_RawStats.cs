@@ -395,12 +395,12 @@ namespace DataAquisition.ModelStats
                 {
                     OrgLeagueStatus(year, month);
                     progressBar.Tick();
-                    //LeagueBaselines(year, month);
-                    //progressBar.Tick();
-                    //HitterPlayerStats(year, month);
-                    //progressBar.Tick();
-                    //PitcherPlayerStats(year, month);
-                    //progressBar.Tick();
+                    LeagueBaselines(year, month);
+                    progressBar.Tick();
+                    HitterPlayerStats(year, month);
+                    progressBar.Tick();
+                    PitcherPlayerStats(year, month);
+                    progressBar.Tick();
                 }
 
                 return true;

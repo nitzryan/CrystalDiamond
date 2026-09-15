@@ -6,11 +6,10 @@ namespace DataAquisition.ModelStats
 {
     internal class LeagueAveragePlayerAge
     {
-        public static void Update(int year, int month)
+        public static void Update(int endYear, int endMonth)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             db.LeagueAverageAge
-                .Where(f => f.Year == year && f.Month == month)
                 .ExecuteDelete();
 
             // Load all players to not hit DB each time
@@ -21,15 +20,15 @@ namespace DataAquisition.ModelStats
 
             // Get Playing time for each month
             var hitterData = db.Player_Hitter_MonthStats
-                .Where(f => f.Year == year && f.Month == month)
-                .Select(f => new { f.LeagueId, f.PA, f.MlbId })
-                .GroupBy(f => f.LeagueId)
+                .Select(f => new { f.LeagueId, f.PA, f.MlbId, f.Year, f.Month })
+                .GroupBy(f => new { f.LeagueId, f.Year, f.Month },
+                        f => new {f.PA, f.MlbId})
                 .ToList();
 
             var pitcherData = db.Player_Pitcher_MonthStats
-                .Where(f => f.Year == year && f.Month == month)
-                .Select(f => new {f.LeagueId, f.BattersFaced, f.MlbId})
-                .GroupBy(f => f.LeagueId)
+                .Select(f => new { f.LeagueId, f.BattersFaced, f.MlbId, f.Year, f.Month })
+                .GroupBy(f => new { f.LeagueId, f.Year, f.Month },
+                        f => new {f.BattersFaced, f.MlbId})
                 .ToDictionary(f => f.Key, f => f);
 
             using (ProgressBar progressBar = new ProgressBar(hitterData.Count(), "Calculating League average ages"))
@@ -37,8 +36,6 @@ namespace DataAquisition.ModelStats
                 foreach (var hd in hitterData)
                 {
                     var pd = pitcherData[hd.Key];
-
-                    // Get weighted sum of playing time and age
 
                     // Hitter
                     double sumHitterAge = 0;
@@ -48,7 +45,7 @@ namespace DataAquisition.ModelStats
                         if (!playerBirthdates.TryGetValue(h.MlbId, out var birthdate))
                             continue;
                         
-                        double age = Utilities.GetAge1MinusAge0(year, month, 15, birthdate.BirthYear, birthdate.BirthMonth, birthdate.BirthDate);
+                        double age = Utilities.GetAge1MinusAge0(hd.Key.Year, hd.Key.Month, 15, birthdate.BirthYear, birthdate.BirthMonth, birthdate.BirthDate);
 
                         // Add PA and weighted age
                         sumHitterPA += h.PA;
@@ -64,7 +61,7 @@ namespace DataAquisition.ModelStats
                         if (!playerBirthdates.TryGetValue(p.MlbId, out var birthdate))
                             continue;
 
-                        double age = Utilities.GetAge1MinusAge0(year, month, 15, birthdate.BirthYear, birthdate.BirthMonth, birthdate.BirthDate);
+                        double age = Utilities.GetAge1MinusAge0(pd.Key.Year, pd.Key.Month, 15, birthdate.BirthYear, birthdate.BirthMonth, birthdate.BirthDate);
 
                         // Add PA and weighted age
                         sumPitcherBF += p.BattersFaced;
@@ -75,9 +72,9 @@ namespace DataAquisition.ModelStats
                     // Insert data
                     db.LeagueAverageAge.Add(new LeagueAverageAge
                     {
-                        LeagueId = hd.Key,
-                        Year = year,
-                        Month = month,
+                        LeagueId = hd.Key.LeagueId,
+                        Year = hd.Key.Year,
+                        Month = hd.Key.Month,
                         HitterAge = averageHitterAge,
                         PitcherAge = averagePitcherAge
                     });

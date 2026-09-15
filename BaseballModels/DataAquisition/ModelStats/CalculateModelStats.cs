@@ -1,4 +1,5 @@
-﻿using Db;
+﻿using DataAquisition.MonthStats;
+using Db;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
@@ -229,6 +230,31 @@ namespace DataAquisition.ModelStats
                 SharedCacheLoaders.LoadInjuryStatuses(src.Transaction_Log));
         }
 
+        public static ModelHitterCache GenerateForPlayer(
+            Model_Players modelPlayer,
+            Player player,
+            IEnumerable<Player_Hitter_MonthStats> monthStats,
+            IEnumerable<Player_Hitter_MonthAdvanced> monthAdvanced,
+            IEnumerable<Player_Fielder_MonthStats> fielderMonthStats,
+            IEnumerable<Player_MonthlyWar> monthlyWar,
+            IEnumerable<Player_Hitter_MonthBaserunning> monthBaserunning,
+            IEnumerable<Transaction_Log> transactionLog,
+            RatioLeagueCache ratioLeague)
+        {
+            List<Player_Hitter_MonthlyRatios> ratios = HitterMonthRatios.ConvertMonthStats(monthStats.ToList(), ratioLeague);
+
+            return Generate(HitterSourceData.ForPlayer(
+                modelPlayer,
+                player,
+                ratios,
+                monthStats,
+                monthAdvanced,
+                fielderMonthStats,
+                monthlyWar,
+                monthBaserunning,
+                transactionLog));
+        }
+
         public static Dictionary<int, List<Player_Hitter_MonthlyRatios>> LoadMonthlyRatios(IQueryable<Player_Hitter_MonthlyRatios> ratios)
         {
             return ratios
@@ -346,6 +372,25 @@ namespace DataAquisition.ModelStats
                 LoadMonthStats(src.Player_Pitcher_MonthStats),
                 LoadMonthValues(src.Player_Pitcher_MonthAdvanced),
                 SharedCacheLoaders.LoadInjuryStatuses(src.Transaction_Log));
+        }
+
+        public static ModelPitcherCache GenerateForPlayer(
+            Model_Players modelPlayer,
+            Player player,
+            IEnumerable<Player_Pitcher_MonthStats> monthStats,
+            IEnumerable<Player_Pitcher_MonthAdvanced> monthAdvanced,
+            IEnumerable<Transaction_Log> transactionLog,
+            RatioLeagueCache ratioLeague)
+        {
+            List<Player_Pitcher_MonthlyRatios> ratios = PitcherMonthRatios.ConvertMonthStats(monthStats.ToList(), ratioLeague);
+
+            return Generate(PitcherSourceData.ForPlayer(
+                modelPlayer,
+                player,
+                ratios,
+                monthStats,
+                monthAdvanced,
+                transactionLog));
         }
 
         public static Dictionary<int, List<Player_Pitcher_MonthlyRatios>> LoadMonthlyRatios(IQueryable<Player_Pitcher_MonthlyRatios> ratios)

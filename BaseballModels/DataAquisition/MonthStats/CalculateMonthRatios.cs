@@ -1,100 +1,189 @@
-﻿using Db;
+﻿using DataAquisition.ModelStats;
+using Db;
+using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 
 namespace DataAquisition.MonthStats
 {
+    public record RatioLeagueCache(
+        Dictionary<LeagueMonthKey, League_HitterStats> HitterMonthStats,
+        Dictionary<LeagueMonthKey, League_PitcherStats> PitcherMonthStats,
+        Dictionary<(int LeagueId, int Year), LeagueStats> LeagueStats)
+    {
+        public static RatioLeagueCache Generate()
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            return new RatioLeagueCache(
+                db.League_HitterStats.AsNoTracking().ToDictionary(f => new LeagueMonthKey(f.Year, f.Month, f.LeagueId)),
+                db.League_PitcherStats.AsNoTracking().ToDictionary(f => new LeagueMonthKey(f.Year, f.Month, f.LeagueId)),
+                db.LeagueStats.AsNoTracking().ToDictionary(f => (f.LeagueId, f.Year)));
+        }
+    }
+
+    public static class HitterMonthRatios
+    {
+        private static (Player_Hitter_MonthlyRatios? Row, Player_Hitter_MonthAdvanced Advanced) BuildRatioRow(
+            Player_Hitter_MonthStats stat, League_HitterStats league, LeagueStats leagueStats)
+        {
+            Player_Hitter_MonthAdvanced advStat = Utilities.HitterNormalToAdvanced(stat, leagueStats);
+            int totalGames = stat.GamesC + stat.Games1B + stat.Games2B + stat.GamesSS + stat.Games3B
+                + stat.GamesLF + stat.GamesCF + stat.GamesRF + stat.GamesDH;
+
+            if (totalGames == 0)
+            {
+                return (null, advStat);
+            }
+
+            var row = new Player_Hitter_MonthlyRatios
+            {
+                MlbId = stat.MlbId,
+                Year = stat.Year,
+                Month = stat.Month,
+                LevelId = stat.LevelId,
+                LeagueId = stat.LeagueId,
+                AVGRatio = Utilities.SafeDivide(advStat.AVG, league.AVG),
+                OBPRatio = Utilities.SafeDivide(advStat.OBP, league.OBP),
+                ISORatio = Utilities.SafeDivide(advStat.ISO, league.ISO),
+                WRC = -1, // Calculated later
+                SBRateRatio = Utilities.SafeDivide(advStat.SBRate, league.SBRate),
+                SBPercRatio = Utilities.SafeDivide(advStat.SBPerc, league.SBPerc),
+                HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, league.HRPerc),
+                BBPercRatio = Utilities.SafeDivide(advStat.BBPerc, league.BBPerc),
+                KPercRatio = Utilities.SafeDivide(advStat.KPerc, league.KPerc),
+                PercC = Utilities.SafeDivide(stat.GamesC, totalGames),
+                Perc1B = Utilities.SafeDivide(stat.Games1B, totalGames),
+                Perc2B = Utilities.SafeDivide(stat.Games2B, totalGames),
+                Perc3B = Utilities.SafeDivide(stat.Games3B, totalGames),
+                PercSS = Utilities.SafeDivide(stat.GamesSS, totalGames),
+                PercLF = Utilities.SafeDivide(stat.GamesLF, totalGames),
+                PercCF = Utilities.SafeDivide(stat.GamesCF, totalGames),
+                PercRF = Utilities.SafeDivide(stat.GamesRF, totalGames),
+                PercDH = Utilities.SafeDivide(stat.GamesDH, totalGames),
+            };
+            return (row, advStat);
+        }
+
+        internal static void UpdateHitterRatios(SqliteDbContext db, int year, int month)
+        {
+            db.Player_Hitter_MonthlyRatios.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            List<Player_Hitter_MonthStats> stats = db.Player_Hitter_MonthStats
+                .Where(f => f.Year == year && f.Month == month)
+                .ToList();
+            Dictionary<int, League_HitterStats> leagueStats = db.League_HitterStats
+                .Where(f => f.Year == year && f.Month == month)
+                .ToDictionary(f => f.LeagueId);
+            LeagueStats anyLeagueStats = db.LeagueStats.First();
+
+            foreach (Player_Hitter_MonthStats stat in stats)
+            {
+                var (row, _) = BuildRatioRow(stat, leagueStats[stat.LeagueId], anyLeagueStats);
+                if (row is not null)
+                {
+                    db.Player_Hitter_MonthlyRatios.Add(row);
+                }
+            }
+            db.SaveChanges();
+        }
+
+        public static List<Player_Hitter_MonthlyRatios> ConvertMonthStats(
+            List<Player_Hitter_MonthStats> stats, RatioLeagueCache league)
+        {
+            var output = new List<Player_Hitter_MonthlyRatios>(stats.Count);
+
+            foreach (Player_Hitter_MonthStats stat in stats)
+            {
+                LeagueStats ls = league.LeagueStats[(stat.LeagueId, stat.Year)];
+                var (row, advStat) = BuildRatioRow(stat, league.HitterMonthStats[new LeagueMonthKey(stat.Year, stat.Month, stat.LeagueId)], ls);
+                if (row is null)
+                {
+                    continue;
+                }
+
+                row.WRC = Utilities.CalculateWrcPlus(advStat.WOBA, advStat.ParkFactor, ls);
+                output.Add(row);
+            }
+
+            return output;
+        }
+    }
+
+    public static class PitcherMonthRatios
+    {
+        private static Player_Pitcher_MonthlyRatios BuildRatioRow(
+            Player_Pitcher_MonthStats stat, League_PitcherStats league, LeagueStats leagueStats)
+        {
+            Player_Pitcher_MonthAdvanced advStat = Utilities.PitcherNormalToAdvanced(stat, leagueStats);
+
+            return new Player_Pitcher_MonthlyRatios
+            {
+                MlbId = stat.MlbId,
+                Year = stat.Year,
+                Month = stat.Month,
+                LevelId = stat.LevelId,
+                LeagueId = stat.LeagueId,
+                SPPerc = stat.SPPerc,
+                WOBARatio = Utilities.SafeDivide(advStat.WOBA, league.WOBA),
+                HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, league.HRPerc),
+                BBPercRatio = Utilities.SafeDivide(advStat.BBPerc, league.BBPerc),
+                KPercRatio = Utilities.SafeDivide(advStat.KPerc, league.KPerc),
+                FIPRatio = Utilities.SafeDivide(advStat.FIP, league.FipConstant + league.ERA),
+                ERARatio = Utilities.SafeDivide(advStat.ERA, league.ERA),
+                GBPercRatio = Utilities.SafeDivide(advStat.GBRatio, league.GOPerc),
+            };
+        }
+
+        internal static void UpdatePitcherRatios(SqliteDbContext db, int year, int month)
+        {
+            db.Player_Pitcher_MonthlyRatios.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
+
+            List<Player_Pitcher_MonthStats> stats = db.Player_Pitcher_MonthStats
+                .Where(f => f.Year == year && f.Month == month)
+                .ToList();
+            Dictionary<int, League_PitcherStats> leaguePitcherStats = db.League_PitcherStats
+                .Where(f => f.Year == year && f.Month == month)
+                .ToDictionary(f => f.LeagueId);
+            Dictionary<int, LeagueStats> leagueStats = db.LeagueStats
+                .Where(f => f.Year == year)
+                .ToDictionary(f => f.LeagueId);
+
+            foreach (Player_Pitcher_MonthStats stat in stats)
+            {
+                db.Player_Pitcher_MonthlyRatios.Add(BuildRatioRow(stat, leaguePitcherStats[stat.LeagueId], leagueStats[stat.LeagueId]));
+            }
+
+            db.SaveChanges();
+        }
+
+        public static List<Player_Pitcher_MonthlyRatios> ConvertMonthStats(
+            List<Player_Pitcher_MonthStats> stats, RatioLeagueCache league)
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+            var output = new List<Player_Pitcher_MonthlyRatios>(stats.Count);
+
+            foreach (Player_Pitcher_MonthStats stat in stats)
+            {
+                output.Add(BuildRatioRow(
+                    stat,
+                    league.PitcherMonthStats[new LeagueMonthKey(stat.Year, stat.Month, stat.LeagueId)],
+                    league.LeagueStats[(stat.LeagueId, stat.Year)]
+                    ));
+            }
+
+            return output;
+        }
+    }
+
     internal class CalculateMonthRatios
     {
-        private static void CalculateHitterMonthRatios(SqliteDbContext db, int year, int month)
-        {
-            db.Player_Hitter_MonthlyRatios.RemoveRange(
-                db.Player_Hitter_MonthlyRatios.Where(f => f.Year == year && f.Month == month)
-            );
-            db.SaveChanges();
-
-            var stats = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month);
-            var leagueStats = db.League_HitterStats.Where(f => f.Year == year && f.Month == month);
-            foreach (var stat in stats)
-            {
-                League_HitterStats thisLevelStats = leagueStats.Where(f => f.LeagueId == stat.LeagueId).First();
-                var advStat = Utilities.HitterNormalToAdvanced(stat, db.LeagueStats.First()); // Don't need parts of advStats that are affected by LeagueStats
-                int totalGames = stat.GamesC + stat.Games1B + stat.Games2B + stat.GamesSS + stat.Games3B + stat.GamesLF + stat.GamesCF + stat.GamesRF + stat.GamesDH;
-
-                if (totalGames != 0)
-                    db.Player_Hitter_MonthlyRatios.Add(new Player_Hitter_MonthlyRatios
-                    {
-                        MlbId = stat.MlbId,
-                        Year = stat.Year,
-                        Month = stat.Month,
-                        LevelId = stat.LevelId,
-                        LeagueId = stat.LeagueId,
-                        AVGRatio = Utilities.SafeDivide(advStat.AVG, thisLevelStats.AVG),
-                        OBPRatio = Utilities.SafeDivide(advStat.OBP, thisLevelStats.OBP),
-                        ISORatio = Utilities.SafeDivide(advStat.ISO, thisLevelStats.ISO),
-                        WRC = -1, // wRC+ is not calculated yet
-                        SBRateRatio = Utilities.SafeDivide(advStat.SBRate, thisLevelStats.SBRate),
-                        SBPercRatio = Utilities.SafeDivide(advStat.SBPerc, thisLevelStats.SBPerc),
-                        HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, thisLevelStats.HRPerc),
-                        BBPercRatio = Utilities.SafeDivide(advStat.BBPerc, thisLevelStats.BBPerc),
-                        KPercRatio = Utilities.SafeDivide(advStat.KPerc, thisLevelStats.KPerc),
-                        PercC = Utilities.SafeDivide(stat.GamesC, totalGames),
-                        Perc1B = Utilities.SafeDivide(stat.Games1B, totalGames),
-                        Perc2B = Utilities.SafeDivide(stat.Games2B, totalGames),
-                        Perc3B = Utilities.SafeDivide(stat.Games3B, totalGames),
-                        PercSS = Utilities.SafeDivide(stat.GamesSS, totalGames),
-                        PercLF = Utilities.SafeDivide(stat.GamesLF, totalGames),
-                        PercCF = Utilities.SafeDivide(stat.GamesCF, totalGames),
-                        PercRF = Utilities.SafeDivide(stat.GamesRF, totalGames),
-                        PercDH = Utilities.SafeDivide(stat.GamesDH, totalGames),
-                    });
-            }
-
-            db.SaveChanges();
-        }
-
-        private static void CalculatePitcherMonthRatios(SqliteDbContext db, int year, int month)
-        {
-            db.Player_Pitcher_MonthlyRatios.RemoveRange(
-                db.Player_Pitcher_MonthlyRatios.Where(f => f.Year == year && f.Month == month)
-            );
-            db.SaveChanges();
-
-            var stats = db.Player_Pitcher_MonthStats.Where(f => f.Year == year && f.Month == month);
-            var leagueStats = db.League_PitcherStats.Where(f => f.Year == year && f.Month == month);
-            foreach (var stat in stats)
-            {
-                League_PitcherStats thisLeagueStats = leagueStats.Where(f => f.LeagueId == stat.LeagueId).First();
-                var advStat = Utilities.PitcherNormalToAdvanced(stat, db.LeagueStats.First(), db); 
-
-                db.Player_Pitcher_MonthlyRatios.Add(new Player_Pitcher_MonthlyRatios
-                {
-                    MlbId = stat.MlbId,
-                    Year = stat.Year,
-                    Month = stat.Month,
-                    LevelId = stat.LevelId,
-                    LeagueId = stat.LeagueId,
-                    SPPerc = stat.SPPerc,
-                    WOBARatio = Utilities.SafeDivide(advStat.WOBA, thisLeagueStats.WOBA),
-                    HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, thisLeagueStats.HRPerc),
-                    BBPercRatio = Utilities.SafeDivide(advStat.BBPerc, thisLeagueStats.BBPerc),
-                    KPercRatio = Utilities.SafeDivide(advStat.KPerc, thisLeagueStats.KPerc),
-                    FIPRatio = Utilities.SafeDivide(advStat.FIP, thisLeagueStats.FipConstant + thisLeagueStats.ERA),
-                    ERARatio = Utilities.SafeDivide(advStat.ERA, thisLeagueStats.ERA),
-                    GBPercRatio = Utilities.SafeDivide(advStat.GBRatio, thisLeagueStats.GOPerc)
-                });
-            }
-
-            db.SaveChanges();
-        }
-
         public static void Update(int year, int month)
         {
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             try
             {
-                CalculateHitterMonthRatios(db, year, month);
-                CalculatePitcherMonthRatios(db, year, month);
+                HitterMonthRatios.UpdateHitterRatios(db, year, month);
+                PitcherMonthRatios.UpdatePitcherRatios(db, year, month);
             }
             catch (Exception e)
             {

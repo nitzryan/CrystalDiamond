@@ -1,6 +1,8 @@
 ﻿using DataAquisition.College;
 using DataAquisition.ModelStats;
 using Db;
+using ScottPlot.TickGenerators.Financial;
+using ScottPlot.TickGenerators.TimeUnits;
 
 namespace DataAquisition
 {
@@ -44,7 +46,7 @@ namespace DataAquisition
                 await PlayerAquisition.PlayerUpdate.DraftOnly(2004);
             }
 
-            if (DATA_UPDATE || FULL_REFRESH)
+            if (DATA_UPDATE || FULL_REFRESH || true)
             {
                 foreach (int year in years)
                 {
@@ -145,19 +147,9 @@ namespace DataAquisition
             }
 
             ////////// Model Data //////////
-            if (DATA_UPDATE || FULL_REFRESH)
+            if (DATA_UPDATE || FULL_REFRESH || true)
             {
-                foreach (var year in years)
-                {
-                    foreach (var month in months)
-                    {
-                        ModelStats.LeagueAveragePlayerAge.Update(year, month);
-
-                        if (year == END_YEAR && month == END_MONTH)
-                            break;
-                    }
-                }
-                
+                ModelStats.LeagueAveragePlayerAge.Update(END_YEAR, END_MONTH);
                 ModelStats.UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);
                 ModelStats.ModelPlayers.Update();
                 ModelStats.ModelPlayerWar.Update();

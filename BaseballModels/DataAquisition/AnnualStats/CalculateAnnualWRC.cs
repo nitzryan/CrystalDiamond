@@ -26,31 +26,20 @@ namespace DataAquisition.AnnualStats
                         var monthsAdvanced = db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var ma in monthsAdvanced)
                         {
-                            float wRAAPerPA = (ma.WOBA - ls.AvgWOBA) / ls.WOBAScale;
-                            // wRC+ = (a + (b - c)) / d * 100
-                            float a = wRAAPerPA + ls.RPerPA;
-                            float b = ls.RPerPA;
-                            float c = ma.ParkFactor * ls.RPerPA;
-                            float d = leaguewRCperPA;
-                            ma.WRC = 100 * (a + (b - c)) / d;
+                            ma.WRC = Utilities.CalculateWrcPlus(ma.WOBA, ma.ParkFactor, ls);
                         }
 
                         var yearAdvanced = db.Player_Hitter_YearAdvanced.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var ya in yearAdvanced)
                         {
-                            float wRAAPerPA = (ya.WOBA - ls.AvgWOBA) / ls.WOBAScale;
-                            // wRC+ = (a + (b - c)) / d * 100
-                            float a = wRAAPerPA + ls.RPerPA;
-                            float b = ls.RPerPA;
-                            float c = ya.ParkFactor * ls.RPerPA;
-                            float d = leaguewRCperPA;
-                            ya.WRC = 100 * (a + (b - c)) / d;
+                            ya.WRC = Utilities.CalculateWrcPlus(ya.WOBA, ya.ParkFactor, ls);
                         }
-                        db.SaveChanges();
 
                         progressBar.Tick();
                     }
                 }
+
+                db.SaveChanges();
             }
             catch (Exception e)
             {
@@ -79,7 +68,7 @@ namespace DataAquisition.AnnualStats
                                 continue;
 
                             float statFrac = ma.PA / (ma.PA + totalPa);
-                            wRCPlus = statFrac * ma.WRC + (1 - statFrac) * wRCPlus;
+                            wRCPlus = (statFrac * ma.WRC) + ((1 - statFrac) * wRCPlus);
                         }
 
                         Player_Hitter_MonthlyRatios ratio = db.Player_Hitter_MonthlyRatios.Where(f => f.MlbId == grouping.Key.MlbId && f.Month == month && f.Year == year && f.LeagueId == grouping.Key.LeagueId).Single();

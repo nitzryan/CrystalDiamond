@@ -346,7 +346,7 @@ namespace DataAquisition.MonthStats
                             if (stats.BattersFaced == 0)
                                 continue;
 
-                            Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single(), db);
+                            Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
                             ma.TeamId = a.TeamId;
                             ma.LeagueId = a.LeagueId;
 

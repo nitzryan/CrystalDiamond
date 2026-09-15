@@ -165,7 +165,7 @@ namespace DataAquisition
             PassedBall = a.PassedBall + b.PassedBall,
         };
 
-        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls, SqliteDbContext db)
+        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls)
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
 
@@ -179,7 +179,7 @@ namespace DataAquisition
                 Year = stats.Year,
                 Month = stats.Month,
                 TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
-                LeagueId = -1,
+                LeagueId = stats.LeagueId,
                 BF = stats.BattersFaced,
                 Outs = stats.Outs,
                 SPPerc = stats.SPPerc,
@@ -376,6 +376,17 @@ namespace DataAquisition
         public static float ClampWRC(float wrc)
         {
             return Math.Min(300, Math.Max(-100, wrc));
+        }
+
+        // wRC+ = (wRAA/PA + R/PA + (R/PA - PF*R/PA)) / (league wRC/PA) * 100
+        public static float CalculateWrcPlus(float woba, float parkFactor, LeagueStats ls)
+        {
+            float leagueWrcPerPA = (ls.AvgHitterWOBA - ls.AvgWOBA) / ls.WOBAScale + ls.RPerPA;
+            float wraaPerPA = (woba - ls.AvgWOBA) / ls.WOBAScale;
+            float a = wraaPerPA + ls.RPerPA;
+            float b = ls.RPerPA;
+            float c = parkFactor * ls.RPerPA;
+            return 100 * (a + (b - c)) / leagueWrcPerPA;
         }
 
         public static float GetAge1MinusAge0(int y1, int m1, int d1, int y0, int m0, int d0)
