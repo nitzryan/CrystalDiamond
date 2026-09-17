@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
     <PackageReference Include="pythonnet" Version="3.1.0" />
+    <PackageReference Include="ScottPlot.WinForms" Version="5.1.59" />
   </ItemGroup>
 
   <ItemGroup>

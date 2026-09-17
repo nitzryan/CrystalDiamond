@@ -1,10 +1,13 @@
 ﻿using Db;
 using DataAquisition.ModelStats;
-using UI.Controls;
 using DataAquisition.MonthStats;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Reflection;
+using UI.Python;
+using Python.Runtime;
+using UI.Types;
+using static SkiaSharp.HarfBuzz.SKShaper;
 
 namespace UI
 {
@@ -14,7 +17,7 @@ namespace UI
         private RatioLeagueCache ratioLeagueCache;
         private ModelLeagueCache modelLeagueCache;
 
-        // TODO : Get these from DB somehow
+        // TODO : have these editable
         private int END_YEAR = 2026;
         private int END_MONTH = 9;
 
@@ -31,14 +34,24 @@ namespace UI
         private List<Model_HitterStats> dbModelHitterStats = [];
         private List<Model_PitcherStats> dbModelPitcherStats = [];
 
+        private Model_Players? dbModelPlayer = null;
+        private College_Player? dbCollegePlayer = null;
 
         public PlayerViewer()
         {
             InitializeComponent();
 
+            // Load Python Connections
+            TestRunnerPy.LoadPythonResources();
+            btnModelData.Enabled = TestRunnerPy.IsReady;
+            if (!TestRunnerPy.IsReady)
+                TestRunnerPy.Ready += TestRunnerPy_Ready;
+
+            // Load league cache data
             ratioLeagueCache = RatioLeagueCache.Generate();
             modelLeagueCache = ModelLeagueCache.Generate();
 
+            // Load player list
             playerSearchBar.SetPlayerList(Global.db.Player.ToList());
             playerSearchBar.PlayerSelected += PlayerSearchBar_PlayerSelected;
         }
@@ -46,6 +59,7 @@ namespace UI
         private void PlayerSearchBar_PlayerSelected(object? sender, Player p)
         {
             currentPlayer = p;
+            modelResultsPanel.ClearResults();
 
             lblTitle.Text = $"{p.UseFirstName} {p.UseLastName}";
             tblModelPlayers.SetData("Model_Players",
@@ -74,13 +88,19 @@ namespace UI
             pitcherMonthAdvanced = Global.db.Player_Pitcher_MonthAdvanced.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
             transactionLog = Global.db.Transaction_Log.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
 
+            dbModelPlayer = Global.db.Model_Players.AsNoTracking()
+            .SingleOrDefault(x => x.MlbId == p.MlbId);
+            dbCollegePlayer = Global.db.College_Player.AsNoTracking()
+                .Where(x => x.MlbId == p.MlbId)
+                .SingleOrDefault();
+
             dbModelHitterStats = Global.db.Model_HitterStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
             dbModelPitcherStats = Global.db.Model_PitcherStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
         }
 
-        private void btnModelData_Click(object? sender, EventArgs e)
+        private async void btnModelData_Click(object? sender, EventArgs e)
         {
-            if (currentPlayer is null)
+            if (currentPlayer is null || dbModelPlayer is null)
             {
                 return;
             }
@@ -88,6 +108,7 @@ namespace UI
             Model_Players modelPlayer = tblModelPlayers.GetData<Model_Players>().Single();
             var sb = new StringBuilder();
 
+            List<Model_HitterStats>? hypoHitterStats = null;
             if (modelPlayer.IsHitter)
             {
                 ModelHitterCache hitters = ModelHitterCache.GenerateForPlayer(
@@ -95,26 +116,56 @@ namespace UI
                     tblHitterMonthStats.GetData<Player_Hitter_MonthStats>(),
                     hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
                     ratioLeagueCache);
+               
                 var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
-
-                List<Model_HitterStats> hypo = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
-                sb.AppendLine(ModelRowComparer.Compare("Hitter", dbModelHitterStats, hypo, s => (s.Year, s.Month)));
+                hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
+                sb.AppendLine(ModelRowComparer.Compare("Hitter", dbModelHitterStats, hypoHitterStats, s => (s.Year, s.Month)));
             }
 
-            if (modelPlayer.IsPitcher)
+            
+            if (hypoHitterStats is null)
+                return;
+
+            btnModelData.Enabled = false;
+            Player requestedPlayer = currentPlayer;
+
+            try
             {
-                ModelPitcherCache pitchers = ModelPitcherCache.GenerateForPlayer(
-                    modelPlayer, currentPlayer,
-                    tblPitcherMonthStats.GetData<Player_Pitcher_MonthStats>(),
-                    pitcherMonthAdvanced, transactionLog,
-                    ratioLeagueCache);
-                var ctx = new CalculatePitcherStats.PitcherModelContext(modelLeagueCache, pitchers, END_YEAR, END_MONTH);
+                List<ModelResults> modelResults = await TestRunnerPy.RunHitterVariants(
+                    currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
+                    dbModelPlayer, modelPlayer,
+                    dbModelHitterStats,
+                    hypoHitterStats.OrderBy(x => x.Year).ThenBy(x => x.Month).ToList());
 
-                List<Model_PitcherStats> hypo = CalculatePitcherStats.BuildPitcherStats(currentPlayer.MlbId, ctx);
-                sb.AppendLine(ModelRowComparer.Compare("Pitcher", dbModelPitcherStats, hypo, s => (s.Year, s.Month)));
+                // Player changed while the model was running
+                if (currentPlayer?.MlbId != requestedPlayer.MlbId)
+                    return;
+                modelResultsPanel.SetResults(modelResults, ["Existing", "Modified"]);
+            }
+            catch (PythonException ex)
+            {
+                PyCore.WriteException(ex);
+                sb.AppendLine($"Run_Variants failed: {ex.Message}");
+            }
+            finally
+            {
+                btnModelData.Enabled = true;
             }
 
-            MessageBox.Show(sb.ToString(), $"Model data: {currentPlayer.UseFirstName} {currentPlayer.UseLastName}");
+            //MessageBox.Show(sb.ToString(), $"Model data: {currentPlayer.UseFirstName} {currentPlayer.UseLastName}");
+        }
+
+        private void TestRunnerPy_Ready(object? sender, EventArgs e)
+        {
+            TestRunnerPy.Ready -= TestRunnerPy_Ready;
+            btnModelData.Enabled = true;
+        }
+
+        // Needed so closing before TestRunnerPy is ready doesn't throw an error
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            TestRunnerPy.Ready -= TestRunnerPy_Ready;
+            base.OnFormClosed(e);
         }
     }
 

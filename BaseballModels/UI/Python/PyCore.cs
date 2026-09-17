@@ -15,6 +15,7 @@ namespace UI.Python
         
         public static readonly string PitchModelDir = Path.Combine(PythonRoot, "PitchModel");
         public static readonly string ModelDir = Path.Combine(PythonRoot, "Model");
+        public static readonly string ProspectModelsDir = Path.Combine(PythonRoot, "Model", "Models/");
         public static readonly string PitchModelingModelDir = Path.Combine(PitchModelDir, "Models");
 
         // Python will call when written to stdout
