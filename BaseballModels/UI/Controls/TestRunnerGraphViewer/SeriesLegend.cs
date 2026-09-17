@@ -2,22 +2,11 @@
 {
     public partial class SeriesLegend : UserControl
     {
-        private readonly FlowLayoutPanel flpEntries;
         private const int SWATCH_SIZE = 12;
 
         public SeriesLegend()
         {
-            flpEntries = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink
-            };
-            Controls.Add(flpEntries);
-            AutoSize = true;
-            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            InitializeComponent();
         }
 
 
@@ -25,7 +14,7 @@
         {
             SuspendLayout();
             while (flpEntries.Controls.Count > 0)
-                flpEntries.Controls[0].Dispose();   // Dispose also removes it from Controls
+                flpEntries.Controls[0].Dispose();
             foreach (SeriesInfo s in series)
                 flpEntries.Controls.Add(BuildRow(s));
             ResumeLayout();

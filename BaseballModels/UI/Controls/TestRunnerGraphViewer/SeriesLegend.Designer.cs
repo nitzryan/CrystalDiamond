@@ -28,10 +28,33 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            flpEntries = new FlowLayoutPanel();
+            SuspendLayout();
+            // 
+            // flpEntries
+            // 
+            flpEntries.AutoSize = true;
+            flpEntries.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpEntries.Dock = DockStyle.Fill;
+            flpEntries.FlowDirection = FlowDirection.TopDown;
+            flpEntries.Location = new Point(0, 0);
+            flpEntries.Name = "flpEntries";
+            flpEntries.Size = new Size(150, 150);
+            flpEntries.TabIndex = 0;
+            flpEntries.WrapContents = false;
+            // 
+            // SeriesLegend
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(flpEntries);
+            Name = "SeriesLegend";
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
+
+        private FlowLayoutPanel flpEntries;
     }
 }

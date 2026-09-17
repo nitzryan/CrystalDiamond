@@ -78,7 +78,10 @@ namespace UI.Controls
                 if (timeline[i].Year == lastYear)
                     continue;
                 lastYear = timeline[i].Year;
-                ticks.AddMajor(i, lastYear.Value.ToString());
+
+                string yearString = lastYear.Value > 0 ?
+                    lastYear.Value.ToString() : "Init";
+                ticks.AddMajor(i, yearString);
             }
             plot.Axes.Bottom.TickGenerator = ticks;
 
