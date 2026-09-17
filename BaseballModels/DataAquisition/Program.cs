@@ -46,7 +46,7 @@ namespace DataAquisition
                 await PlayerAquisition.PlayerUpdate.DraftOnly(2004);
             }
 
-            if (DATA_UPDATE || FULL_REFRESH || true)
+            if (DATA_UPDATE || FULL_REFRESH)
             {
                 foreach (int year in years)
                 {
@@ -147,7 +147,7 @@ namespace DataAquisition
             }
 
             ////////// Model Data //////////
-            if (DATA_UPDATE || FULL_REFRESH || true)
+            if (DATA_UPDATE || FULL_REFRESH)
             {
                 ModelStats.LeagueAveragePlayerAge.Update(END_YEAR, END_MONTH);
                 ModelStats.UpdateCareers.Update(END_MONTH == 9 ? years.Last() : years.Last() - 1);

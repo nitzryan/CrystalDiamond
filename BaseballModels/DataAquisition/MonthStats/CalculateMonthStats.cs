@@ -154,7 +154,6 @@ namespace DataAquisition.MonthStats
         // TODO : These functions share too much functionality
         private static void CalculateHitterMonthStats(SqliteDbContext db, int year, int month)
         {
-            // Remove existing data
             db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
             // Store all park factor values to reduce db queries
