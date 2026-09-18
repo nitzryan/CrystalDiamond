@@ -7,7 +7,6 @@ using System.Reflection;
 using UI.Python;
 using Python.Runtime;
 using UI.Types;
-using static SkiaSharp.HarfBuzz.SKShaper;
 
 namespace UI
 {
@@ -37,13 +36,15 @@ namespace UI
         private Model_Players? dbModelPlayer = null;
         private College_Player? dbCollegePlayer = null;
 
+        private bool isModelRunning = false;
+
         public PlayerViewer()
         {
             InitializeComponent();
 
             // Load Python Connections
             TestRunnerPy.LoadPythonResources();
-            btnModelData.Enabled = TestRunnerPy.IsReady;
+            UpdateModelButtons();
             if (!TestRunnerPy.IsReady)
                 TestRunnerPy.Ready += TestRunnerPy_Ready;
 
@@ -96,9 +97,11 @@ namespace UI
 
             dbModelHitterStats = Global.db.Model_HitterStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
             dbModelPitcherStats = Global.db.Model_PitcherStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
+
+            UpdateModelButtons();
         }
 
-        private async void btnModelData_Click(object? sender, EventArgs e)
+        private async void btnHitterModelData_Click(object? sender, EventArgs e)
         {
             if (currentPlayer is null || dbModelPlayer is null)
             {
@@ -109,34 +112,57 @@ namespace UI
             var sb = new StringBuilder();
 
             List<Model_HitterStats>? hypoHitterStats = null;
-            if (modelPlayer.IsHitter)
-            {
-                ModelHitterCache hitters = ModelHitterCache.GenerateForPlayer(
-                    modelPlayer, currentPlayer,
-                    tblHitterMonthStats.GetData<Player_Hitter_MonthStats>(),
-                    hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
-                    ratioLeagueCache);
+            ModelHitterCache hitters = ModelHitterCache.GenerateForPlayer(
+                modelPlayer, currentPlayer,
+                tblHitterMonthStats.GetData<Player_Hitter_MonthStats>(),
+                hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
+                ratioLeagueCache);
                
-                var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
-                hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
-                sb.AppendLine(ModelRowComparer.Compare("Hitter", dbModelHitterStats, hypoHitterStats, s => (s.Year, s.Month)));
+            var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
+            hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
+
+            await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunHitterVariants(
+                currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
+                dbModelPlayer, modelPlayer,
+                dbModelHitterStats,
+                hypoHitterStats.OrderBy(x => x.Year).ThenBy(x => x.Month).ToList()));
+        }
+
+        private async void btnPitcherModelData_Click(object? sender, EventArgs e)
+        {
+            if (currentPlayer is null || dbModelPlayer is null)
+            {
+                return;
             }
 
-            
-            if (hypoHitterStats is null)
-                return;
+            Model_Players modelPlayer = tblModelPlayers.GetData<Model_Players>().Single();
+            var sb = new StringBuilder();
 
-            btnModelData.Enabled = false;
-            Player requestedPlayer = currentPlayer;
+            List<Model_PitcherStats>? hypoPitcherStats = null;
+            ModelPitcherCache pitchers = ModelPitcherCache.GenerateForPlayer(
+                modelPlayer, currentPlayer,
+                tblPitcherMonthStats.GetData<Player_Pitcher_MonthStats>(),
+                pitcherMonthAdvanced, transactionLog,
+                ratioLeagueCache);
 
+            var ctx = new CalculatePitcherStats.PitcherModelContext(modelLeagueCache, pitchers, END_YEAR, END_MONTH);
+            hypoPitcherStats = CalculatePitcherStats.BuildPitcherStats(currentPlayer.MlbId, ctx);
+
+            await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunPitcherVariants(
+                currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
+                dbModelPlayer, modelPlayer,
+                dbModelPitcherStats,
+                hypoPitcherStats.OrderBy(x => x.Year).ThenBy(x => x.Month).ToList()));
+        }
+
+        // Shared run logic for both model buttons: locks the buttons, runs the model, shows results
+        private async Task RunModelAsync(Player requestedPlayer, StringBuilder sb, Func<Task<List<ModelResults>>> runVariants)
+        {
+            isModelRunning = true;
+            UpdateModelButtons();
             try
             {
-                List<ModelResults> modelResults = await TestRunnerPy.RunHitterVariants(
-                    currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
-                    dbModelPlayer, modelPlayer,
-                    dbModelHitterStats,
-                    hypoHitterStats.OrderBy(x => x.Year).ThenBy(x => x.Month).ToList());
-
+                List<ModelResults> modelResults = await runVariants();
                 // Player changed while the model was running
                 if (currentPlayer?.MlbId != requestedPlayer.MlbId)
                     return;
@@ -149,16 +175,15 @@ namespace UI
             }
             finally
             {
-                btnModelData.Enabled = true;
+                isModelRunning = false;
+                UpdateModelButtons();
             }
-
-            //MessageBox.Show(sb.ToString(), $"Model data: {currentPlayer.UseFirstName} {currentPlayer.UseLastName}");
         }
 
         private void TestRunnerPy_Ready(object? sender, EventArgs e)
         {
             TestRunnerPy.Ready -= TestRunnerPy_Ready;
-            btnModelData.Enabled = true;
+            UpdateModelButtons();
         }
 
         // Needed so closing before TestRunnerPy is ready doesn't throw an error
@@ -166,6 +191,14 @@ namespace UI
         {
             TestRunnerPy.Ready -= TestRunnerPy_Ready;
             base.OnFormClosed(e);
+        }
+
+        private void UpdateModelButtons()
+        {
+            bool canRun = TestRunnerPy.IsReady && !isModelRunning && currentPlayer is not null;
+            bool? isHitter = dbModelPlayer?.IsHitter;
+            btnHitterModelData.Enabled = canRun && isHitter == true;
+            btnPitcherModelData.Enabled = canRun && isHitter == false;
         }
     }
 

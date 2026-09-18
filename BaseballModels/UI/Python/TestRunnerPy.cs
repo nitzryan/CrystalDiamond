@@ -57,25 +57,49 @@ namespace UI.Python
             List<Model_HitterStats> dbStats, List<Model_HitterStats> tableStats)
         {
             // Snapshot on the calling (UI) thread
-            object?[][] playerRows = [ScalarValues(dbPlayer), ScalarValues(tablePlayer)];
             object?[][][] statRows =
             [
                 dbStats.Select(s => ScalarValues(s)).ToArray(),
                 tableStats.Select(s => ScalarValues(s)).ToArray()
             ];
+            return RunVariants(mlbId, tbcId, modelId, isHitter: true, dbPlayer, tablePlayer, statRows);
+        }
+        public static Task<List<ModelResults>> RunPitcherVariants(
+            int mlbId, int? tbcId, int modelId,
+            Model_Players dbPlayer, Model_Players tablePlayer,
+            List<Model_PitcherStats> dbStats, List<Model_PitcherStats> tableStats)
+        {
+            // Snapshot on the calling (UI) thread
+            object?[][][] statRows =
+            [
+                dbStats.Select(s => ScalarValues(s)).ToArray(),
+                tableStats.Select(s => ScalarValues(s)).ToArray()
+            ];
+            return RunVariants(mlbId, tbcId, modelId, isHitter: false, dbPlayer, tablePlayer, statRows);
+        }
+
+        public static Task<List<ModelResults>> RunVariants(
+            int mlbId, int? tbcId, int modelId, bool isHitter,
+            Model_Players dbPlayer, Model_Players tablePlayer,
+            object?[][][] statRows)
+        {
+            // Snapshot on the calling (UI) thread
+            object?[][] playerRows = [ScalarValues(dbPlayer), ScalarValues(tablePlayer)];
 
             return PyThread.InvokeAsync(() =>
             {
                 // Runs on the Python thread with the GIL held.
                 PyObject playerType = TestRunnerModule.DB_Model_Players;
-                PyObject statsType = TestRunnerModule.DB_Model_HitterStats;
+                PyObject statsType = isHitter ?
+                    TestRunnerModule.DB_Model_HitterStats :
+                    TestRunnerModule.DB_Model_PitcherStats;
 
                 // pro_player : list[DB_Model_Players]
                 var proPlayer = new PyList();
                 foreach (object?[] row in playerRows)
                     proPlayer.Append(ToPyRow(playerType, row));
 
-                // pro_stats : list[list[DB_Model_HitterStats]]
+                // pro_stats : list[list[DB_Model_HitterStats | DB_Model_PitcherStats]] (all one or the other)
                 var proStats = new PyList();
                 foreach (object?[][] variant in statRows)
                 {
@@ -88,11 +112,15 @@ namespace UI.Python
                 var kwargs = new PyDict();
                 kwargs["pro_player"] = proPlayer;
                 kwargs["pro_stats"] = proStats;
-                PyObject overrides = ((PyObject)TestRunnerModule.HitterOverrides).Invoke(new PyTuple(), kwargs);
+
+                PyObject overridesType = isHitter
+                   ? TestRunnerModule.HitterOverrides
+                   : TestRunnerModule.PitcherOverrides;
+                PyObject overrides = overridesType.Invoke(new PyTuple(), kwargs);
 
                 PyObject results = TestModelRunner.Run_Variants(
-                    mlbId, ToPyValue(tbcId), modelId, true, overrides);
-                return ToModelResults(results, isHitter: true);
+                    mlbId, ToPyValue(tbcId), modelId, isHitter, overrides);
+                return ToModelResults(results, isHitter);
             });
         }
 

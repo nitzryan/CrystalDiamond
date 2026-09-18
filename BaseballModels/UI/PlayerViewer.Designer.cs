@@ -28,7 +28,9 @@ namespace UI
             tblHitterMonthStats = new EntityTableView();
             tblPitcherMonthStats = new EntityTableView();
             playerSearchBar = new PlayerSearchBar();
-            btnModelData = new Button();
+            btnHitterModelData = new Button();
+            btnPitcherModelData = new Button();
+            flpModelButtons = new FlowLayoutPanel();
             tlpMain = new TableLayoutPanel();
             tlpHeader = new TableLayoutPanel();
             modelResultsPanel = new ModelResultsPanel();
@@ -97,16 +99,41 @@ namespace UI
             playerSearchBar.Size = new Size(282, 178);
             playerSearchBar.TabIndex = 0;
             // 
-            // btnModelData
+            // btnHitterModelData
             // 
-            btnModelData.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            btnModelData.Location = new Point(1014, 159);
-            btnModelData.Name = "btnModelData";
-            btnModelData.Size = new Size(177, 23);
-            btnModelData.TabIndex = 2;
-            btnModelData.Text = "Get Model Data";
-            btnModelData.UseVisualStyleBackColor = true;
-            btnModelData.Click += btnModelData_Click;
+            btnHitterModelData.Enabled = false;
+            btnHitterModelData.Location = new Point(3, 3);
+            btnHitterModelData.Name = "btnHitterModelData";
+            btnHitterModelData.Size = new Size(177, 23);
+            btnHitterModelData.TabIndex = 0;
+            btnHitterModelData.Text = "Get Hitter Model Data";
+            btnHitterModelData.UseVisualStyleBackColor = true;
+            btnHitterModelData.Click += btnHitterModelData_Click;
+            // 
+            // btnPitcherModelData
+            // 
+            btnPitcherModelData.Enabled = false;
+            btnPitcherModelData.Location = new Point(186, 3);
+            btnPitcherModelData.Name = "btnPitcherModelData";
+            btnPitcherModelData.Size = new Size(177, 23);
+            btnPitcherModelData.TabIndex = 1;
+            btnPitcherModelData.Text = "Get Pitcher Model Data";
+            btnPitcherModelData.UseVisualStyleBackColor = true;
+            btnPitcherModelData.Click += btnPitcherModelData_Click;
+            // 
+            // flpModelButtons
+            // 
+            flpModelButtons.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            flpModelButtons.AutoSize = true;
+            flpModelButtons.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpModelButtons.Controls.Add(btnHitterModelData);
+            flpModelButtons.Controls.Add(btnPitcherModelData);
+            flpModelButtons.Location = new Point(828, 156);
+            flpModelButtons.Margin = new Padding(0);
+            flpModelButtons.Name = "flpModelButtons";
+            flpModelButtons.Size = new Size(366, 29);
+            flpModelButtons.TabIndex = 2;
+            flpModelButtons.WrapContents = false;
             // 
             // tlpMain
             // 
@@ -135,7 +162,7 @@ namespace UI
             tlpHeader.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tlpHeader.Controls.Add(playerSearchBar, 0, 0);
             tlpHeader.Controls.Add(modelResultsPanel, 1, 0);
-            tlpHeader.Controls.Add(btnModelData, 1, 1);
+            tlpHeader.Controls.Add(flpModelButtons, 1, 1);
             tlpHeader.Location = new Point(3, 3);
             tlpHeader.Name = "tlpHeader";
             tlpHeader.RowCount = 2;
@@ -171,7 +198,9 @@ namespace UI
         private EntityTableView tblModelPlayers;
         private EntityTableView tblHitterMonthStats;
         private EntityTableView tblPitcherMonthStats;
-        private Button btnModelData;
+        private Button btnHitterModelData;
+        private Button btnPitcherModelData;
+        private FlowLayoutPanel flpModelButtons;
         private NoAutoScrollPanel flpContent;
         private TableLayoutPanel tlpMain;
         private TableLayoutPanel tlpHeader;
