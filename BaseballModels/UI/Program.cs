@@ -8,6 +8,7 @@ namespace UI
         static void Main()
         {
             Global.SetupDatabases();
+            Global.RegisterEntityTableValues();
             PyThread.Start();
             ApplicationConfiguration.Initialize();
             Application.Run(new HomePage());

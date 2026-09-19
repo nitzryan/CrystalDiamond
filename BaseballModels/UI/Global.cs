@@ -5,6 +5,7 @@ using PitchTrackingDb;
 using Python.Runtime;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using UI.Controls;
 
 namespace UI
 {
@@ -26,6 +27,49 @@ namespace UI
             pitchDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
             modelDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
             pitchTrackDb.ChangeTracker.QueryTrackingBehavior = Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking;
+        }
+
+        public static void RegisterEntityTableValues()
+        {
+            EntityTableView.RegisterGlobalDropdown("LevelId", new Dictionary<int, string>
+            {
+                [1] = "MLB",
+                [11] = "AAA",
+                [12] = "AA",
+                [13] = "A+",
+                [14] = "A",
+                [15] = "A-",
+                [16] = "CPX",
+                [17] = "DSL"
+            });
+            // Only leagues that actually appear in LeagueStats; shown by abbreviation
+            EntityTableView.RegisterGlobalDropdown("LeagueId",
+                db.Leagues
+                    .Where(l => db.LeagueStats.Any(s => s.LeagueId == l.Id))
+                    .ToDictionary(l => l.Id, l => l.Abbr));
+
+            // Check that League has games at this level for this year
+            EntityTableView.RegisterGlobalCombinationCheck(
+                "League is not at this level for this year",
+                [nameof(Player_Hitter_MonthStats.Year),
+                 nameof(Player_Hitter_MonthStats.LevelId),
+                 nameof(Player_Hitter_MonthStats.LeagueId)],
+                db.Player_Hitter_MonthStats
+                    .Select(x => new { x.Year, x.LevelId, x.LeagueId })
+                    .Distinct()
+                    .AsEnumerable()
+                    .Select(x => new[] { x.Year, x.LevelId, x.LeagueId }));
+
+            // Check that league has games this Year/Month
+            EntityTableView.RegisterGlobalCombinationCheck(
+                "League has no games for this month",
+                [nameof(League_GameCounts.Year),
+                 nameof(League_GameCounts.Month),
+                 nameof(League_GameCounts.LeagueId)],
+                db.League_GameCounts
+                    .Select(x => new { x.Year, x.Month, x.LeagueId })
+                    .AsEnumerable()
+                    .Select(x => new[] { x.Year, x.Month, x.LeagueId }));
         }
 
         public static Color GetValueColor(float value, float min, float max, float neutral)

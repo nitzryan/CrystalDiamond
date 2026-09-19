@@ -16,7 +16,6 @@ namespace UI.Controls
 
         // Tracks last valid values to be used to revert if an invalid value is set
         private readonly List<object?[]> _lastValidValues = new();
-        private bool _reverting;   // guards against re-entrancy when we set cell.Value
 
         // Handling soft-deleted rows
         private static readonly Color DeletedBackColor = Color.FromArgb(189, 195, 199);
@@ -27,6 +26,14 @@ namespace UI.Controls
         private int ToggleColumnIndex => _props.Length;
         private const string DeleteText = "-";
         private const string RestoreText = "+";
+
+        // Takes an id column and only lets the user select valid entries
+        private static readonly Dictionary<string, IReadOnlyDictionary<int, string>> ColumnMaps = new(StringComparer.Ordinal);
+
+        // A registered rule: if a grid has all Columns, each row's values (joined in
+        // column order) must appear in ValidKeys
+        private sealed record CombinationRule(string Name, string[] Columns, HashSet<string> ValidKeys);
+        private static readonly List<CombinationRule> GlobalCombinationRules = [];
 
         private readonly HashSet<(int row, int col)> _editedCells = new();
         private bool _collapsed;
@@ -99,6 +106,18 @@ namespace UI.Controls
                         ThreeState = Nullable.GetUnderlyingType(p.PropertyType) != null
                     };
                 }
+                else if (ColumnMaps.TryGetValue(p.Name, out IReadOnlyDictionary<int, string>? map))
+                {
+                    Debug.Assert(t == typeof(int), $"Dropdown map on non-int column '{p.Name}'");
+                    col = new DataGridViewComboBoxColumn
+                    {
+                        DataSource = map.OrderBy(kv => kv.Key).ToList(),
+                        DisplayMember = "Value",   // KeyValuePair.Value = display text
+                        ValueMember = "Key",       // KeyValuePair.Key = stored int
+                        ValueType = t,
+                        FlatStyle = FlatStyle.Flat
+                    };
+                }
                 else if (t.IsEnum)
                 {
                     col = new DataGridViewComboBoxColumn
@@ -148,7 +167,15 @@ namespace UI.Controls
             {
                 var values = new object?[_props.Length];
                 for (int i = 0; i < _props.Length; i++)
+                {
                     values[i] = _props[i].GetValue(item);
+                    if (ColumnMaps.TryGetValue(_props[i].Name, out var map)
+                        && (values[i] is not int v || !map.ContainsKey(v)))
+                    {
+                        throw new InvalidOperationException(
+                            $"{tableName}.{_props[i].Name}: value '{values[i] ?? "null"}' has no dropdown mapping.");
+                    }
+                }
 
                 int rowIdx = grid.Rows.Add(values);
                 grid.Rows[rowIdx].Cells[ToggleColumnIndex].Value = DeleteText;
@@ -168,10 +195,27 @@ namespace UI.Controls
         }
 
         /// <summary>
+        /// GetData, but first checks all registered combination rules.
+        /// Shows a popup and returns false (with an empty list) on the first invalid row.
+        /// </summary>
+        public bool TryGetData<T>(out List<T> data)
+        {
+            string? error = FindInvalidCombination();
+            if (error != null)
+            {
+                data = [];
+                MessageBox.Show(error, $"Invalid data: {lblTitle.Text}");
+                return false;
+            }
+            data = GetData<T>();
+            return true;
+        }
+
+        /// <summary>
         /// Rebuilds a list of T from the current (possibly edited) grid contents.
         /// T must match the type passed to SetData and have a parameterless constructor.
         /// </summary>
-        public List<T> GetData<T>()
+        private List<T> GetData<T>()
         {
             Debug.Assert(_elementType != null, "GetData called before SetData.");
             Debug.Assert(typeof(T) == _elementType,
@@ -229,6 +273,14 @@ namespace UI.Controls
             return Convert.ChangeType(cellValue, underlying, CultureInfo.InvariantCulture);
         }
 
+        // Uses the dropdown display name when the column has one; raw value kept for debugging
+        private static string FormatColumnForExternalUse(string column, int value)
+        {
+            if (ColumnMaps.TryGetValue(column, out var map) && map.TryGetValue(value, out string? display))
+                return $"\t{column}={display} ({value})\n";
+            return $"\t{column}={value}\n";
+        }
+
         private void Grid_DataError(object? sender, DataGridViewDataErrorEventArgs e)
         {
             e.ThrowException = false;
@@ -261,9 +313,8 @@ namespace UI.Controls
             if (!IsValidForColumn(e.ColumnIndex, cell.Value))
             {
                 // Blanked a non-nullable cell: put back the last value that was valid.
-                _reverting = true;
                 try { cell.Value = _lastValidValues[e.RowIndex][e.ColumnIndex]; }
-                finally { _reverting = false; }
+                catch {}
             }
             else
             {
@@ -410,6 +461,55 @@ namespace UI.Controls
                 grid.CurrentCell = null;
                 grid.ClearSelection();
             });
+        }
+
+        /// <summary>
+        /// Renders an int column as a dropdown of display names instead of raw values.
+        /// Rows containing a value not in the map cause SetData to throw.
+        /// </summary>
+        public static void RegisterGlobalDropdown(string columnName, IReadOnlyDictionary<int, string> valueToDisplay)
+        {
+            ColumnMaps[columnName] = valueToDisplay;
+        }
+
+        /// <summary>
+        /// Registers a validity rule applied to every EntityTableView whose type has all
+        /// of the given columns: each row's values for those columns (in this order) must
+        /// match one of the provided combinations. Register at startup.
+        /// </summary>
+        public static void RegisterGlobalCombinationCheck(string name, string[] columns, IEnumerable<int[]> validCombinations)
+        {
+            var keys = validCombinations.Select(c => string.Join("|", c)).ToHashSet();
+            GlobalCombinationRules.Add(new CombinationRule(name, columns, keys));
+        }
+
+        // Returns a description of the first invalid row/rule pairing, or null if all rows pass
+        private string? FindInvalidCombination()
+        {
+            foreach (CombinationRule rule in GlobalCombinationRules)
+            {
+                // Rule only applies if this type has every column it covers
+                int[] colIndexes = rule.Columns
+                    .Select(name => Array.FindIndex(_props, p => p.Name == name))
+                    .ToArray();
+
+                // Check to see if any column is not found
+                if (colIndexes.Any(i => i < 0))
+                    continue; // Missing column, rule doesn't apply
+
+                foreach (DataGridViewRow row in grid.Rows)
+                {
+                    if (row.IsNewRow || _deletedRows.Contains(row.Index))
+                        continue;
+                    int[] values = colIndexes
+                        .Select(c => (int)ConvertCellValue(row.Cells[c].Value, typeof(int), grid.Columns[c].Name)!)
+                        .ToArray();
+                    if (!rule.ValidKeys.Contains(string.Join("|", values)))
+                        return $"{rule.Name} (row {row.Index + 1}): " +
+                            string.Join("", rule.Columns.Zip(values, FormatColumnForExternalUse));
+                }
+            }
+            return null;
         }
     }
 }

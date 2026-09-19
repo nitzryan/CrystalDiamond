@@ -82,12 +82,12 @@ namespace UI
                     .OrderBy(x => x.Year).ThenBy(x => x.Month)
                     .ToList());
 
-            hitterMonthAdvanced = Global.db.Player_Hitter_MonthAdvanced.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            fielderMonthStats = Global.db.Player_Fielder_MonthStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            monthlyWar = Global.db.Player_MonthlyWar.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            hitterBaserunning = Global.db.Player_Hitter_MonthBaserunning.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            pitcherMonthAdvanced = Global.db.Player_Pitcher_MonthAdvanced.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            transactionLog = Global.db.Transaction_Log.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
+            hitterMonthAdvanced = Global.db.Player_Hitter_MonthAdvanced.Where(x => x.MlbId == p.MlbId).ToList();
+            fielderMonthStats = Global.db.Player_Fielder_MonthStats.Where(x => x.MlbId == p.MlbId).ToList();
+            monthlyWar = Global.db.Player_MonthlyWar.Where(x => x.MlbId == p.MlbId).ToList();
+            hitterBaserunning = Global.db.Player_Hitter_MonthBaserunning.Where(x => x.MlbId == p.MlbId).ToList();
+            pitcherMonthAdvanced = Global.db.Player_Pitcher_MonthAdvanced.Where(x => x.MlbId == p.MlbId).ToList();
+            transactionLog = Global.db.Transaction_Log.Where(x => x.MlbId == p.MlbId).ToList();
 
             dbModelPlayer = Global.db.Model_Players.AsNoTracking()
             .SingleOrDefault(x => x.MlbId == p.MlbId);
@@ -95,8 +95,8 @@ namespace UI
                 .Where(x => x.MlbId == p.MlbId)
                 .SingleOrDefault();
 
-            dbModelHitterStats = Global.db.Model_HitterStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
-            dbModelPitcherStats = Global.db.Model_PitcherStats.AsNoTracking().Where(x => x.MlbId == p.MlbId).ToList();
+            dbModelHitterStats = Global.db.Model_HitterStats.Where(x => x.MlbId == p.MlbId).ToList();
+            dbModelPitcherStats = Global.db.Model_PitcherStats.Where(x => x.MlbId == p.MlbId).ToList();
 
             UpdateModelButtons();
         }
@@ -108,18 +108,23 @@ namespace UI
                 return;
             }
 
-            Model_Players modelPlayer = tblModelPlayers.GetData<Model_Players>().Single();
+            if (!tblModelPlayers.TryGetData(out List<Model_Players> mp))
+                return;
+            Model_Players modelPlayer = mp.Single();
+
             var sb = new StringBuilder();
 
-            List<Model_HitterStats>? hypoHitterStats = null;
+            if (!tblHitterMonthStats.TryGetData(out List<Player_Hitter_MonthStats> hitterStats))
+                return;
+
             ModelHitterCache hitters = ModelHitterCache.GenerateForPlayer(
-                modelPlayer, currentPlayer,
-                tblHitterMonthStats.GetData<Player_Hitter_MonthStats>(),
-                hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
-                ratioLeagueCache);
+            modelPlayer, currentPlayer,
+            hitterStats,
+            hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
+            ratioLeagueCache);
                
             var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
-            hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
+            List<Model_HitterStats> hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
 
             await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunHitterVariants(
                 currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
@@ -135,18 +140,22 @@ namespace UI
                 return;
             }
 
-            Model_Players modelPlayer = tblModelPlayers.GetData<Model_Players>().Single();
+            if (!tblModelPlayers.TryGetData(out List<Model_Players> mp))
+                return;
+            Model_Players modelPlayer = mp.Single();
             var sb = new StringBuilder();
 
-            List<Model_PitcherStats>? hypoPitcherStats = null;
+            if (!tblPitcherMonthStats.TryGetData(out List<Player_Pitcher_MonthStats> pitcherStats))
+                return;
+
             ModelPitcherCache pitchers = ModelPitcherCache.GenerateForPlayer(
                 modelPlayer, currentPlayer,
-                tblPitcherMonthStats.GetData<Player_Pitcher_MonthStats>(),
+                pitcherStats,
                 pitcherMonthAdvanced, transactionLog,
                 ratioLeagueCache);
 
             var ctx = new CalculatePitcherStats.PitcherModelContext(modelLeagueCache, pitchers, END_YEAR, END_MONTH);
-            hypoPitcherStats = CalculatePitcherStats.BuildPitcherStats(currentPlayer.MlbId, ctx);
+            List<Model_PitcherStats> hypoPitcherStats = CalculatePitcherStats.BuildPitcherStats(currentPlayer.MlbId, ctx);
 
             await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunPitcherVariants(
                 currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,
