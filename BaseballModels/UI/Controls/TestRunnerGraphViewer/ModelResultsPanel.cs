@@ -4,8 +4,8 @@ namespace UI.Controls.TestRunnerGraphViewer
 {
     public partial class ModelResultsPanel : UserControl
     {
-        public PlottedPoint? SelectedPoint => graph.SelectedPoint;
-        public event EventHandler<PlottedPoint?>? PointSelected;
+        public ModelGraphViewerPoint? SelectedPoint => graph.SelectedPoint;
+        public event EventHandler<(ModelGraphViewerPoint?, PlotArgs?)>? PointSelected;
         
         public ModelResultsPanel()
         {
@@ -26,10 +26,12 @@ namespace UI.Controls.TestRunnerGraphViewer
             legend.SetSeries([]);
         }
 
-        private void Graph_PointSelected(object? sender, PlottedPoint? point)
+        private void Graph_PointSelected(object? sender, (ModelGraphViewerPoint?, PlotArgs?)p)
         {
-            detail.SetPoint(point);
-            PointSelected?.Invoke(this, point);
+            var point = p.Item1;
+            var args = p.Item2;
+            detail.SetPoint(point, args);
+            PointSelected?.Invoke(this, p);
         }
     }
 }

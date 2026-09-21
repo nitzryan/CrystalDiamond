@@ -32,7 +32,7 @@
             };
             row.Controls.Add(new Panel
             {
-                BackColor = s.Color,
+                BackColor = Color.FromArgb(s.Color.A, s.Color.R, s.Color.G, s.Color.B),
                 Size = new Size(SWATCH_SIZE, SWATCH_SIZE),
                 Margin = new Padding(3, 3, 6, 3)
             });

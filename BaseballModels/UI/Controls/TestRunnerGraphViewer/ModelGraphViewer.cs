@@ -1,47 +1,108 @@
 ﻿using ModelDb;
+using ScottPlot;
 using ScottPlot.WinForms;
 using UI.Types;
 
 namespace UI.Controls
 {
-    public record PlottedPoint(int SeriesIndex, double X, Output_PlayerWarAggregation Row);
-    public record SeriesInfo(string Name, Color Color);
+    public record SeriesInfo(string Name, ScottPlot.Color Color);
+    public record ModelGraphViewerPoint(int Year, int Month, int X,
+        SeriesInfo SeriesInfo,
+        Output_PlayerWarAggregation? Opwa,
+        List<Output_HitterStatsAggregation>? Ohsa,
+        List<Output_PitcherStatsAggregation>? Opsa);
+
+    public record PlotArgs(
+            int Id,
+            string Name,
+            Func<ModelGraphViewerPoint, bool> ResultValid,
+            Func<ModelGraphViewerPoint, double> Result,
+            double GraphSoftMax,
+            string YAxisName
+        );
 
     public partial class ModelGraphViewer : UserControl
     {
-        private const double MIN_Y_MAX = 20;
-        private const float SELECT_RADIUS_PX = 15;
-        private const int DEFAULT_START_YEAR = 2021;
-        private const int DEFAULT_END_YEAR = 2026;
-        private const float X_AXIS_MIN_SIZE = 60;
+        // Definition for the dropdown and selection logic
+        private readonly List<PlotArgs> PlotArgsList = [
+            new PlotArgs(0, "Prospect WAR", f => f.Opwa != null, f => f.Opwa!.War, 20, "WAR"),
+            new PlotArgs(1, "MLB PA", f => f.Ohsa != null, f => Math.Round(f.Ohsa![0].Pa), 600, "PA"),
+            new PlotArgs(2, "MLB IP", f => f.Opsa != null, f => Math.Round((f.Opsa![0].Outs_SP + f.Opsa![0].Outs_RP) / 3), 200, "IP")
+        ];
 
-        private readonly FormsPlot formsPlot;
-        private readonly List<PlottedPoint> plottedPoints = [];
+        private PlotArgs currentPlotArgs;
+
+        private void ResetOutputSelectionComboBox(List<ModelGraphViewerPoint> points)
+        {
+            outputSelectionComboBox.SelectedValueChanged -= OutputSelectionComboBox_SelectedValueChanged;
+            outputSelectionComboBox.DataSource = null;
+
+            List<PlotArgs> options = new();
+            foreach (PlotArgs plotArgs in PlotArgsList)
+            {
+                // Check if this output is valid for these results
+                if (points.Any(f => plotArgs.ResultValid(f)))
+                {
+                    options.Add(plotArgs);
+                }
+                // Invalid, reset if this selection is currently selected
+                else if (plotArgs.Id == currentPlotArgs.Id)
+                {
+                    currentPlotArgs = PlotArgsList[0];
+                }
+            }
+
+            outputSelectionComboBox.DisplayMember = "Name";
+            outputSelectionComboBox.ValueMember = "Id";
+            outputSelectionComboBox.DataSource = options;
+
+            // There should always be at least 1 valid list
+            if (outputSelectionComboBox.Items.Count == 0)
+                throw new Exception("No valid PlotArgs found");
+
+            
+            outputSelectionComboBox.SelectedValue = currentPlotArgs.Id;
+            outputSelectionComboBox.SelectedValueChanged += OutputSelectionComboBox_SelectedValueChanged;
+        }
+
+        private void OutputSelectionComboBox_SelectedValueChanged(object? sender, EventArgs e)
+        {
+            if (outputSelectionComboBox.SelectedValue is int id)
+                currentPlotArgs = PlotArgsList[id];
+            else
+                throw new Exception($"OutputSelectionComboBox.SelectedValue isn't int: {outputSelectionComboBox.SelectedValue}");
+
+            PlotResults();
+        }
+
+        private const float SELECT_RADIUS_PX = 15;
+        private const float X_AXIS_MIN_SIZE = 60;
+        public static float X_AXIS_OFFSET = 0.5f;
+
+        private readonly List<ModelGraphViewerPoint> modelPoints = [];
         private ScottPlot.Plottables.Marker? selectionMarker = null;
 
-        public PlottedPoint? SelectedPoint { get; private set; } = null;
-        public event EventHandler<PlottedPoint?>? PointSelected;
+        public ModelGraphViewerPoint? SelectedPoint { get; private set; } = null;
+        public event EventHandler<(ModelGraphViewerPoint?, PlotArgs?)>? PointSelected;
 
         private readonly List<SeriesInfo> series = [];
         public IReadOnlyList<SeriesInfo> Series => series;
 
         public ModelGraphViewer()
         {
-            formsPlot = new FormsPlot { Dock = DockStyle.Fill };
-            formsPlot.UserInputProcessor.Disable();
-            formsPlot.MouseDown += FormsPlot_MouseDown;
-            Controls.Add(formsPlot);
+            InitializeComponent();
+            Visible = false;
+            formsPlot.UserInputProcessor.Disable(); // Prrevent default graph interactions (drag, zoom)
+
+            currentPlotArgs = PlotArgsList[0];
 
             // One-time configuration that survives Plot.Clear()
             ScottPlot.Plot plot = formsPlot.Plot;
-            plot.Title("Projected WAR");
-            plot.XLabel("Season Month");
-            plot.YLabel("WAR");
+            plot.XLabel("Date");
             plot.Axes.Bottom.TickLabelStyle.Rotation = -90;
             plot.Axes.Bottom.TickLabelStyle.Alignment = ScottPlot.Alignment.MiddleRight;
             plot.Axes.Bottom.MinimumSize = X_AXIS_MIN_SIZE;
 
-            ApplyDefaultAxes();
             formsPlot.Refresh();
         }
 
@@ -53,122 +114,156 @@ namespace UI.Controls
             ClearResults();
             ScottPlot.Plot plot = formsPlot.Plot;
 
-            // Shared timeline: every (Year, Month) from any result, equally spaced by index
-            List<(int Year, int Month)> timeline = results
-                .SelectMany(r => r.ProWar)
-                .Select(w => (w.Year, w.Month))
+            // Get all (Year,Month) combinations
+
+            List<(int Year, int Month)> warDates = results
+                .SelectMany(f => f.ProWar)
+                .Select(f => (f.Year, f.Month))
                 .Distinct()
-                .OrderBy(k => k.Year).ThenBy(k => k.Month)
                 .ToList();
-            Dictionary<(int Year, int Month), int> xIndex = timeline
+            List<(int Year, int Month)> hitStatDates = results
+                .SelectMany(f => f.ProHitStats ?? [])
+                .SelectMany(f => f)
+                .Select(f => (f.Year, f.Month))
+                .Distinct()
+                .ToList();
+            List<(int Year, int Month)> pitStatDates = results
+                .SelectMany(f => f.ProPitStats ?? [])
+                .SelectMany(f => f)
+                .Select(f => (f.Year, f.Month))
+                .Distinct()
+                .ToList();
+            List<(int Year, int Month)> dates = warDates
+                .Concat(hitStatDates)
+                .Concat(pitStatDates)
+                .Distinct()
+                .ToList();
+
+            // Get dates with X indices
+            Dictionary<(int Year, int Month), int> xIndex = dates
                 .Select((k, i) => (k, i))
                 .ToDictionary(t => t.k, t => t.i);
 
-            for (int s = 0; s < results.Count; s++)
-                AddSeries(s, seriesNames[s], results[s].ProWar, xIndex);
+            // Set series
+            series.Clear();
+            for (int i = 0; i < seriesNames.Count; i++)
+            {
+                ScottPlot.Color color = plot.Add.Palette.GetColor(i);
+                series.Add(new SeriesInfo(seriesNames[i], color));
+            }
+
+            // Add points
+            modelPoints.Clear();
+            for (int i = 0; i < results.Count; i++)
+            {
+                foreach ((int year, int month) in dates)
+                {
+                    modelPoints.Add(new ModelGraphViewerPoint(
+                        year, month, xIndex[(year, month)],
+                        Series[i],
+                        results[i].ProWar
+                            .Where(f => f.Year == year && f.Month == month)
+                            .SingleOrDefault(),
+                        results[i].ProHitStats
+                            ?.Where(f => f.Count > 0 && f[0].Year == year && f[0].Month == month)
+                            .SingleOrDefault(),
+                        results[i].ProPitStats
+                            ?.Where(f => f.Count > 0 && f[0].Year == year && f[0].Month == month)
+                            .SingleOrDefault()
+                    ));
+                }
+            }
+
+            ResetOutputSelectionComboBox(modelPoints);
+            PlotResults();
 
             // Added last so it draws on top
             selectionMarker = plot.Add.Marker(0, 0, ScottPlot.MarkerShape.OpenCircle, 14, ScottPlot.Colors.Black);
             selectionMarker.IsVisible = false;
 
-            var ticks = new ScottPlot.TickGenerators.NumericManual();
-            int? lastYear = null;
-            for (int i = 0; i < timeline.Count; i++)
-            {
-                if (timeline[i].Year == lastYear)
-                    continue;
-                lastYear = timeline[i].Year;
-
-                string yearString = lastYear.Value > 0 ?
-                    lastYear.Value.ToString() : "Init";
-                ticks.AddMajor(i, yearString);
-            }
-            plot.Axes.Bottom.TickGenerator = ticks;
-
-            double maxWar = results
-                .SelectMany(r => r.ProWar)
-                .Select(w => (double)w.War)
-                .DefaultIfEmpty(0)
-                .Max();
-            plot.Axes.SetLimitsX(-0.5, Math.Max(timeline.Count - 0.5, 0.5));
-            plot.Axes.SetLimitsY(0, Math.Max(MIN_Y_MAX, maxWar));
-
             formsPlot.Refresh();
+            Visible = true;
         }
 
         public void ClearResults()
         {
+            Visible = false;
             formsPlot.Plot.Clear();
-            plottedPoints.Clear();
             series.Clear();
             selectionMarker = null;
             SelectedPoint = null;
-            ApplyDefaultAxes();
             formsPlot.Refresh();
-            PointSelected?.Invoke(this, null);
+            PointSelected?.Invoke(this, (null, null));
         }
 
-        private void ApplyDefaultAxes()
+        private void PlotResults()
         {
             ScottPlot.Plot plot = formsPlot.Plot;
-            int yearCount = DEFAULT_END_YEAR - DEFAULT_START_YEAR + 1;
 
-            var ticks = new ScottPlot.TickGenerators.NumericManual();
-            for (int i = 0; i < yearCount; i++)
-                ticks.AddMajor(i, (DEFAULT_START_YEAR + i).ToString());
-            plot.Axes.Bottom.TickGenerator = ticks;
+            var validPoints = modelPoints
+                .Where(f => currentPlotArgs.ResultValid(f));
+            var seriesPoints = validPoints
+                .OrderBy(f => f.X)
+                .GroupBy(f => f.SeriesInfo);
 
-            plot.Axes.SetLimitsX(-0.5, yearCount - 0.5);
-            plot.Axes.SetLimitsY(0, MIN_Y_MAX);
-        }
-
-        private void AddSeries(int seriesIndex, string name,
-            List<Output_PlayerWarAggregation> rows,
-            Dictionary<(int Year, int Month), int> xIndex)
-        {
-            ScottPlot.Plot plot = formsPlot.Plot;
-            ScottPlot.Color color = plot.Add.Palette.GetColor(seriesIndex);
-            series.Add(new SeriesInfo(name, Color.FromArgb(color.A, color.R, color.G, color.B)));
-
-            List<Output_PlayerWarAggregation> ordered = rows
-                .OrderBy(r => xIndex[(r.Year, r.Month)])
-                .ToList();
-
-            // Split into runs of consecutive timeline indices so missing timesteps leave a gap
-            int start = 0;
-            for (int i = 1; i <= ordered.Count; i++)
+            // Set Points
+            formsPlot.Plot.Clear();
+            double maxY = -1;
+            double maxX = -1;
+            foreach (var sp in seriesPoints)
             {
-                bool isBreak = i == ordered.Count
-                    || xIndex[(ordered[i].Year, ordered[i].Month)] != xIndex[(ordered[i - 1].Year, ordered[i - 1].Month)] + 1;
-                if (!isBreak)
-                    continue;
+                var xs = sp.Select(f => (double)f.X).ToArray();
+                var ys = sp.Select(f => (double)currentPlotArgs.Result(f)).ToArray();
+                
+                maxY = Math.Max(maxY, ys.Max());
+                maxX = Math.Max(maxX + X_AXIS_OFFSET, xs.Max());
 
-                List<Output_PlayerWarAggregation> segment = ordered.GetRange(start, i - start);
-                double[] xs = segment.Select(r => (double)xIndex[(r.Year, r.Month)]).ToArray();
-                double[] ys = segment.Select(r => (double)r.War).ToArray();
-
-                var scatter = plot.Add.Scatter(xs, ys, color);
+                var scatter = plot.Add.Scatter(xs, ys, sp.Key.Color);
                 scatter.MarkerSize = 5;
-                start = i;
             }
 
-            foreach (Output_PlayerWarAggregation r in ordered)
-                plottedPoints.Add(new PlottedPoint(seriesIndex, xIndex[(r.Year, r.Month)], r));
+            // Set Axis
+            plot.Axes.SetLimitsY(0, Math.Max(maxY, currentPlotArgs.GraphSoftMax));
+            plot.Axes.SetLimitsX(-X_AXIS_OFFSET, maxX);
+
+            plot.Title(currentPlotArgs.Name);
+            plot.YLabel(currentPlotArgs.YAxisName);
+
+            // Set Ticks
+            var validDates = validPoints
+                .Select(f => (f.Year, f.Month, f.X))
+                .Distinct()
+                .OrderBy(f => f.Year)
+                .ThenBy(f => f.Month)
+                .GroupBy(f => f.Year);
+
+            var ticks = new ScottPlot.TickGenerators.NumericManual();
+            foreach (var vd in validDates)
+            {
+                int year = vd.First().Year;
+                int x = vd.First().X;
+
+                string tickLabel = year == 0 ? "Init" : year.ToString();
+                ticks.AddMajor(x, tickLabel);
+            }
+            plot.Axes.Bottom.TickGenerator = ticks;
+
+            formsPlot.Refresh();
         }
 
         private void FormsPlot_MouseDown(object? sender, MouseEventArgs e)
         {
-            if (e.Button != MouseButtons.Left || plottedPoints.Count == 0)
+            if (e.Button != MouseButtons.Left || modelPoints.Count == 0)
                 return;
 
             float scale = formsPlot.DisplayScale;
             var mouse = new ScottPlot.Pixel(e.X * scale, e.Y * scale);
             double bestDistance = SELECT_RADIUS_PX * scale;
-            PlottedPoint? nearest = null;
+            ModelGraphViewerPoint? nearest = null;
 
-            foreach (PlottedPoint p in plottedPoints)
+            foreach (ModelGraphViewerPoint p in modelPoints)
             {
-                ScottPlot.Pixel px = formsPlot.Plot.GetPixel(new ScottPlot.Coordinates(p.X, p.Row.War));
+                ScottPlot.Pixel px = formsPlot.Plot.GetPixel(new ScottPlot.Coordinates(p.X, currentPlotArgs.Result(p)));
                 double dx = px.X - mouse.X;
                 double dy = px.Y - mouse.Y;
                 double distance = Math.Sqrt((dx * dx) + (dy * dy));
@@ -183,17 +278,17 @@ namespace UI.Controls
                 SelectPoint(nearest);
         }
 
-        private void SelectPoint(PlottedPoint? point)
+        private void SelectPoint(ModelGraphViewerPoint? point)
         {
             SelectedPoint = point;
             if (selectionMarker is not null)
             {
                 selectionMarker.IsVisible = point is not null;
                 if (point is not null)
-                    selectionMarker.Location = new ScottPlot.Coordinates(point.X, point.Row.War);
+                    selectionMarker.Location = new ScottPlot.Coordinates(point.X, currentPlotArgs.Result(point));
             }
             formsPlot.Refresh();
-            PointSelected?.Invoke(this, point);
+            PointSelected?.Invoke(this, (point, currentPlotArgs));
         }
     }
 }

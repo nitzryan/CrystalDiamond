@@ -82,7 +82,7 @@
             detail.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             detail.Location = new Point(3, 153);
             detail.Name = "detail";
-            detail.Size = new Size(150, 150);
+            detail.Size = new Size(188, 150);
             detail.TabIndex = 1;
             detail.Visible = false;
             // 

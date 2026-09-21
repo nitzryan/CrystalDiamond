@@ -11,13 +11,20 @@ namespace UI.Controls.TestRunnerGraphViewer
             Visible = false;
         }
 
-        public void SetPoint(PlottedPoint? point)
+        public void SetPoint(ModelGraphViewerPoint? point, PlotArgs? args)
         {
             Visible = point is not null;
-            if (point is null)
+            if (point is null || args is null)
                 return;
 
-            Output_PlayerWarAggregation w = point.Row;
+            // TODO: This only handles WAR, need better way
+            if (args.Id != 0 || point.Opwa is null)
+            {
+                Visible = false;
+                return;
+            }
+
+            Output_PlayerWarAggregation w = point.Opwa;
             if (w.Year == 0)
                 labelDate.Text = "Init";
             else
