@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Windows.Forms;
 
 namespace UI.Controls
 {
@@ -37,7 +38,7 @@ namespace UI.Controls
 
         private readonly HashSet<(int row, int col)> _editedCells = new();
         private bool _collapsed;
-        private const int MaxGridHeight = 400;  // cap before the grid starts scrolling
+        private const int MaxGridHeight = 200;  // cap before the grid starts scrolling
 
         private PropertyInfo[] _props = Array.Empty<PropertyInfo>();
         private readonly List<object?[]> _originalValues = new();
@@ -77,7 +78,7 @@ namespace UI.Controls
                 return;
             }
             Visible = true;
-            _collapsed = false;
+            _collapsed = true;
 
             _props = typeof(T)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -425,11 +426,12 @@ namespace UI.Controls
             ApplySizing();
         }
 
-        private void ApplySizing()
+        public void ApplySizing()
         {
             grid.Visible = !_collapsed;
             btnToggle.Text = _collapsed ? "Show ▾" : "Hide ▴";
 
+            // Set Height
             int height = pnlHeader.Height;
             if (grid.Visible)
             {
@@ -446,6 +448,17 @@ namespace UI.Controls
             }
 
             Height = height;
+
+            // Shrink the width if the table doesn't need the entirety of what it was set to
+            int preferredWidth = 3; // Borders
+            foreach (DataGridViewColumn col in grid.Columns)
+            {
+                if (col.Visible)
+                    preferredWidth += col.Width;
+            }
+            if (grid.Controls.OfType<VScrollBar>().Any(s => s.Visible))
+                preferredWidth += SystemInformation.VerticalScrollBarWidth;
+            Width = preferredWidth;
         }
 
         private void Grid_Leave(object? sender, EventArgs e)

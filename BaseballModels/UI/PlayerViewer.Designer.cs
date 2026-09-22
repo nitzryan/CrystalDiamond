@@ -35,6 +35,7 @@ namespace UI
             tlpHeader = new TableLayoutPanel();
             modelResultsPanel = new ModelResultsPanel();
             flpContent.SuspendLayout();
+            flpModelButtons.SuspendLayout();
             tlpMain.SuspendLayout();
             tlpHeader.SuspendLayout();
             SuspendLayout();
@@ -44,7 +45,7 @@ namespace UI
             lblTitle.Anchor = AnchorStyles.None;
             lblTitle.AutoSize = true;
             lblTitle.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            lblTitle.Location = new Point(520, 191);
+            lblTitle.Location = new Point(553, 341);
             lblTitle.Name = "lblTitle";
             lblTitle.Padding = new Padding(0, 8, 0, 0);
             lblTitle.Size = new Size(159, 40);
@@ -60,34 +61,37 @@ namespace UI
             flpContent.Controls.Add(tblPitcherMonthStats);
             flpContent.Dock = DockStyle.Fill;
             flpContent.FlowDirection = FlowDirection.TopDown;
-            flpContent.Location = new Point(0, 231);
+            flpContent.Location = new Point(0, 381);
             flpContent.Margin = new Padding(0);
             flpContent.Name = "flpContent";
-            flpContent.Size = new Size(1200, 569);
+            flpContent.Size = new Size(1265, 503);
             flpContent.TabIndex = 2;
             flpContent.WrapContents = false;
             // 
             // tblModelPlayers
             // 
+            tblModelPlayers.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             tblModelPlayers.Location = new Point(3, 3);
             tblModelPlayers.Name = "tblModelPlayers";
-            tblModelPlayers.Size = new Size(1150, 140);
+            tblModelPlayers.Size = new Size(1243, 200);
             tblModelPlayers.TabIndex = 1;
             tblModelPlayers.Visible = false;
             // 
             // tblHitterMonthStats
             // 
-            tblHitterMonthStats.Location = new Point(3, 149);
+            tblHitterMonthStats.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            tblHitterMonthStats.Location = new Point(3, 209);
             tblHitterMonthStats.Name = "tblHitterMonthStats";
-            tblHitterMonthStats.Size = new Size(1150, 260);
+            tblHitterMonthStats.Size = new Size(1000, 200);
             tblHitterMonthStats.TabIndex = 2;
             tblHitterMonthStats.Visible = false;
             // 
             // tblPitcherMonthStats
             // 
+            tblPitcherMonthStats.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             tblPitcherMonthStats.Location = new Point(3, 415);
             tblPitcherMonthStats.Name = "tblPitcherMonthStats";
-            tblPitcherMonthStats.Size = new Size(1150, 260);
+            tblPitcherMonthStats.Size = new Size(1000, 200);
             tblPitcherMonthStats.TabIndex = 3;
             tblPitcherMonthStats.Visible = false;
             // 
@@ -128,7 +132,7 @@ namespace UI
             flpModelButtons.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             flpModelButtons.Controls.Add(btnHitterModelData);
             flpModelButtons.Controls.Add(btnPitcherModelData);
-            flpModelButtons.Location = new Point(828, 156);
+            flpModelButtons.Location = new Point(893, 306);
             flpModelButtons.Margin = new Padding(0);
             flpModelButtons.Name = "flpModelButtons";
             flpModelButtons.Size = new Size(366, 29);
@@ -149,7 +153,7 @@ namespace UI
             tlpMain.RowStyles.Add(new RowStyle());
             tlpMain.RowStyles.Add(new RowStyle());
             tlpMain.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tlpMain.Size = new Size(1200, 800);
+            tlpMain.Size = new Size(1265, 884);
             tlpMain.TabIndex = 0;
             // 
             // tlpHeader
@@ -168,28 +172,31 @@ namespace UI
             tlpHeader.RowCount = 2;
             tlpHeader.RowStyles.Add(new RowStyle());
             tlpHeader.RowStyles.Add(new RowStyle());
-            tlpHeader.Size = new Size(1194, 185);
+            tlpHeader.Size = new Size(1259, 335);
             tlpHeader.TabIndex = 0;
             // 
             // modelResultsPanel
             // 
             modelResultsPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            modelResultsPanel.Location = new Point(291, 3);
             modelResultsPanel.Name = "modelResultsPanel";
-            modelResultsPanel.Size = new Size(750, 300);
+            modelResultsPanel.Size = new Size(965, 300);
             modelResultsPanel.TabIndex = 1;
             // 
             // PlayerViewer
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1200, 800);
+            ClientSize = new Size(1265, 884);
             Controls.Add(tlpMain);
             Name = "PlayerViewer";
             Text = "Player Viewer";
             flpContent.ResumeLayout(false);
+            flpModelButtons.ResumeLayout(false);
             tlpMain.ResumeLayout(false);
             tlpMain.PerformLayout();
             tlpHeader.ResumeLayout(false);
+            tlpHeader.PerformLayout();
             ResumeLayout(false);
         }
 

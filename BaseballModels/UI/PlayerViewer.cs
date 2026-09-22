@@ -122,7 +122,7 @@ namespace UI
             hitterStats,
             hitterMonthAdvanced, fielderMonthStats, monthlyWar, hitterBaserunning, transactionLog,
             ratioLeagueCache);
-               
+
             var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
             List<Model_HitterStats> hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
 
