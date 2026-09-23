@@ -106,15 +106,6 @@ namespace DataAquisition
                 ModelStats.UpdateServiceTime.Update();
             }
 
-            foreach (var year in years)
-            {
-                foreach (var month in months)
-                {
-                    MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
-                    MonthStats.CalculateMonthRatios.Update(year, month);
-                }
-            }
-
             ////////// College Model //////////
             if (UPDATE_COLLEGE_DATA)
             {
