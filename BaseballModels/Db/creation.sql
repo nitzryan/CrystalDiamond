@@ -882,6 +882,7 @@ CREATE TABLE "Player_Pitcher_MonthStats" (
 	"levelId"	INTEGER NOT NULL,
 	"LeagueId" INTEGER NOT NULL,
 	"battersFaced"	INTEGER NOT NULL,
+	"G" INTEGER NOT NULL,
 	"Outs"	INTEGER NOT NULL,
 	"SPPerc"	REAL NOT NULL,
 	"GO"	INTEGER NOT NULL,

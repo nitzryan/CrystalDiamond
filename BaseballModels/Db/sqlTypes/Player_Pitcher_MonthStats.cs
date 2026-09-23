@@ -8,6 +8,7 @@ namespace Db
 		public required int LevelId {get; set;}
 		public required int LeagueId {get; set;}
 		public required int BattersFaced {get; set;}
+		public required int G {get; set;}
 		public required int Outs {get; set;}
 		public required float SPPerc {get; set;}
 		public required int GO {get; set;}
@@ -34,6 +35,7 @@ namespace Db
 				LevelId = this.LevelId,
 				LeagueId = this.LeagueId,
 				BattersFaced = this.BattersFaced,
+				G = this.G,
 				Outs = this.Outs,
 				SPPerc = this.SPPerc,
 				GO = this.GO,

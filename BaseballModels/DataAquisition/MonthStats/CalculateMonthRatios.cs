@@ -22,16 +22,25 @@ namespace DataAquisition.MonthStats
 
     public static class HitterMonthRatios
     {
-        private static (Player_Hitter_MonthlyRatios? Row, Player_Hitter_MonthAdvanced Advanced) BuildRatioRow(
-            Player_Hitter_MonthStats stat, League_HitterStats league, LeagueStats leagueStats)
+        private static Player_Hitter_MonthlyRatios? BuildRatioRow(
+            Player_Hitter_MonthStats stat, 
+            League_HitterStats league, 
+            LeagueStats leagueStats)
         {
-            Player_Hitter_MonthAdvanced advStat = Utilities.HitterNormalToAdvanced(stat, leagueStats);
+            Player_Hitter_MonthAdvanced advStat = 
+                Utilities.HitterNormalToAdvanced(
+                    stat, 
+                    leagueStats, 
+                    0, // This, and below, are 0 since they are only necessary
+                    0, // To calculate crWAR, which this doesn't use
+                    -1); // TeamId not needed
+
             int totalGames = stat.GamesC + stat.Games1B + stat.Games2B + stat.GamesSS + stat.Games3B
                 + stat.GamesLF + stat.GamesCF + stat.GamesRF + stat.GamesDH;
 
             if (totalGames == 0)
             {
-                return (null, advStat);
+                return null;
             }
 
             var row = new Player_Hitter_MonthlyRatios
@@ -44,7 +53,7 @@ namespace DataAquisition.MonthStats
                 AVGRatio = Utilities.SafeDivide(advStat.AVG, league.AVG),
                 OBPRatio = Utilities.SafeDivide(advStat.OBP, league.OBP),
                 ISORatio = Utilities.SafeDivide(advStat.ISO, league.ISO),
-                WRC = -1, // Calculated later
+                WRC = Utilities.SafeDivide(advStat.WRC, 100),
                 SBRateRatio = Utilities.SafeDivide(advStat.SBRate, league.SBRate),
                 SBPercRatio = Utilities.SafeDivide(advStat.SBPerc, league.SBPerc),
                 HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, league.HRPerc),
@@ -60,7 +69,7 @@ namespace DataAquisition.MonthStats
                 PercRF = Utilities.SafeDivide(stat.GamesRF, totalGames),
                 PercDH = Utilities.SafeDivide(stat.GamesDH, totalGames),
             };
-            return (row, advStat);
+            return row;
         }
 
         internal static void UpdateHitterRatios(SqliteDbContext db, int year, int month)
@@ -70,14 +79,23 @@ namespace DataAquisition.MonthStats
             List<Player_Hitter_MonthStats> stats = db.Player_Hitter_MonthStats
                 .Where(f => f.Year == year && f.Month == month)
                 .ToList();
+            
+            // Caches    
             Dictionary<int, League_HitterStats> leagueStats = db.League_HitterStats
                 .Where(f => f.Year == year && f.Month == month)
                 .ToDictionary(f => f.LeagueId);
-            LeagueStats anyLeagueStats = db.LeagueStats.First();
+            Dictionary<int, LeagueStats> leagueStatsDict =
+                db.LeagueStats
+                    .Where(f => f.Year == year)
+                    .ToDictionary(f => f.LeagueId);
 
             foreach (Player_Hitter_MonthStats stat in stats)
             {
-                var (row, _) = BuildRatioRow(stat, leagueStats[stat.LeagueId], anyLeagueStats);
+                var row = BuildRatioRow(
+                                stat, 
+                                leagueStats[stat.LeagueId], 
+                                leagueStatsDict[stat.LeagueId]
+                                );
                 if (row is not null)
                 {
                     db.Player_Hitter_MonthlyRatios.Add(row);
@@ -94,14 +112,13 @@ namespace DataAquisition.MonthStats
             foreach (Player_Hitter_MonthStats stat in stats)
             {
                 LeagueStats ls = league.LeagueStats[(stat.LeagueId, stat.Year)];
-                var (row, advStat) = BuildRatioRow(stat, league.HitterMonthStats[new LeagueMonthKey(stat.Year, stat.Month, stat.LeagueId)], ls);
-                if (row is null)
+                var row = BuildRatioRow(stat, 
+                                        league.HitterMonthStats[new LeagueMonthKey(stat.Year, stat.Month, stat.LeagueId)], 
+                                        ls);
+                if (row is not null)
                 {
-                    continue;
+                    output.Add(row);
                 }
-
-                row.WRC = Utilities.CalculateWrcPlus(advStat.WOBA, advStat.ParkFactor, ls);
-                output.Add(row);
             }
 
             return output;
@@ -113,7 +130,11 @@ namespace DataAquisition.MonthStats
         private static Player_Pitcher_MonthlyRatios BuildRatioRow(
             Player_Pitcher_MonthStats stat, League_PitcherStats league, LeagueStats leagueStats)
         {
-            Player_Pitcher_MonthAdvanced advStat = Utilities.PitcherNormalToAdvanced(stat, leagueStats);
+            Player_Pitcher_MonthAdvanced advStat = Utilities.PitcherNormalToAdvanced(
+                stat, 
+                leagueStats, 
+                null, // Only used for WAR calcultion, which is not used here.
+                -1); // TeamId not needed
 
             return new Player_Pitcher_MonthlyRatios
             {

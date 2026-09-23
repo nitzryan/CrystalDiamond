@@ -33,7 +33,6 @@ namespace Db
 		public DbSet<Player_OrgMap> Player_OrgMap {get; set;}
 		public DbSet<Player_Pitcher_GameLog> Player_Pitcher_GameLog {get; set;}
 		public DbSet<Player_Pitcher_MonthAdvanced> Player_Pitcher_MonthAdvanced {get; set;}
-		public DbSet<Player_Pitcher_MonthStats> Player_Pitcher_MonthStats {get; set;}
 		public DbSet<Player_Pitcher_MonthlyRatios> Player_Pitcher_MonthlyRatios {get; set;}
 		public DbSet<Player_Pitcher_YearAdvanced> Player_Pitcher_YearAdvanced {get; set;}
 		public DbSet<Player_ServiceLapse> Player_ServiceLapse {get; set;}
@@ -79,6 +78,7 @@ namespace Db
 		public DbSet<League_GameCounts> League_GameCounts {get; set;}
 		public DbSet<DraftPickValues> DraftPickValues {get; set;}
 		public DbSet<Transaction_Log> Transaction_Log {get; set;}
+		public DbSet<Player_Pitcher_MonthStats> Player_Pitcher_MonthStats {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -113,7 +113,6 @@ namespace Db
 			modelBuilder.Entity<Player_OrgMap>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.Day});
 			modelBuilder.Entity<Player_Pitcher_GameLog>().HasKey(f => new {f.GameLogId});
 			modelBuilder.Entity<Player_Pitcher_MonthAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.Month,f.TeamId,f.LeagueId});
-			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_Pitcher_MonthlyRatios>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_Pitcher_YearAdvanced>().HasKey(f => new {f.MlbId,f.LevelId,f.Year,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Player_ServiceLapse>().HasKey(f => new {f.MlbId});
@@ -159,6 +158,7 @@ namespace Db
 			modelBuilder.Entity<League_GameCounts>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<DraftPickValues>().HasKey(f => new {f.Pick});
 			modelBuilder.Entity<Transaction_Log>().HasKey(f => new {f.TransactionId});
+			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 		}
 	}
 }

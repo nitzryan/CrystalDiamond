@@ -1,8 +1,5 @@
 ﻿using DataAquisition.College;
 using DataAquisition.ModelStats;
-using Db;
-using ScottPlot.TickGenerators.Financial;
-using ScottPlot.TickGenerators.TimeUnits;
 
 namespace DataAquisition
 {
@@ -73,27 +70,31 @@ namespace DataAquisition
                         LgStats.CreateLeagueGameCounts.Update(year, month);
                         MonthStats.CalculateMonthStats.Update(year, month);
                         LgStats.CalculateLeagueBaselines.Update(year, month);
-                        MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
-                        MonthStats.CalculateMonthRatios.Update(year, month);
+                        
                         MonthStats.CalculateMonthBaserunning.Update(year, month);
                         MonthStats.CalculateMonthFielding.Update(year, month);
 
+                        MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
+                        MonthStats.CalculateMonthRatios.Update(year, month);
+
                         if (year == END_YEAR && month == END_MONTH)
                             break;
+                    }
+
+                    // If we are running in the end year, we need to redo the
+                    // advanced stats because the league baselines changed
+                    // with more data
+                    if (year == END_YEAR)
+                    {
+                        for (int month = 4; month < months.First(); month++)
+                        {
+                            MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
+                            MonthStats.CalculateMonthRatios.Update(year, month);
+                        }
                     }
 
                     AnnualStats.CalculateAnnualStats.Update(year);
-                    AnnualStats.CalculateAnnualWRC.Update(year);
                     FieldingStats.ScaleFieldingStats.Update(year);
-
-                    foreach (int month in months)
-                    {
-                        AnnualStats.CalculateAnnualWRC.UpdateMonthRatiosWRC(year, month);
-                        MonthStats.CalculateMonthWar.Update(year, month);
-
-                        if (year == END_YEAR && month == END_MONTH)
-                            break;
-                    }
 
                     while (!await SitePrep.UpdateParents.Update(year))
                     { }
@@ -103,6 +104,15 @@ namespace DataAquisition
             if ((END_MONTH == 9 && DATA_UPDATE) || FULL_REFRESH)
             {
                 ModelStats.UpdateServiceTime.Update();
+            }
+
+            foreach (var year in years)
+            {
+                foreach (var month in months)
+                {
+                    MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
+                    MonthStats.CalculateMonthRatios.Update(year, month);
+                }
             }
 
             ////////// College Model //////////

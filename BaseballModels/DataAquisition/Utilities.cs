@@ -1,24 +1,41 @@
 ﻿using Db;
+using ScottPlot.TickGenerators.TimeUnits;
 
 namespace DataAquisition
 {
-    internal class Utilities
+    public class Utilities
     {
-        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_MonthStats stats, LeagueStats ls)
+        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(
+            Player_Hitter_MonthStats stats, 
+            LeagueStats ls,
+            float crBSR, float crDEF,
+            int teamId
+            )
         {
+            // Player Stats
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
             int pa = stats.PA;
             float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
             float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
+            
+            // League-based stats
             float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa);
+            float wRAA = (woba - ls.AvgWOBA) / ls.WOBAScale * pa;
+            float crOff = wRAA + (ls.RPerPA * (1.0f - stats.ParkRunFactor) * pa);
+            float crREP = Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
+                                ls.LeagueGames * ls.RPerWin / ls.LeaguePA * pa;
+
+            float runsAboveRep = crOff + crREP + crBSR + crDEF;
+            float crWAR = runsAboveRep / ls.RPerWin;
+
             Player_Hitter_MonthAdvanced ma = new()
             {
                 MlbId = stats.MlbId,
                 LevelId = stats.LevelId,
                 Year = stats.Year,
                 Month = stats.Month,
-                TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
-                LeagueId = -1,
+                TeamId = teamId,
+                LeagueId = stats.LeagueId,
                 ParkFactor = stats.ParkRunFactor,
                 PA = pa,
                 AVG = avg,
@@ -26,7 +43,7 @@ namespace DataAquisition
                 SLG = avg + iso,
                 ISO = iso,
                 WOBA = woba,
-                WRC = -1.0f, // Fill in later, need league wOBA
+                WRC = Utilities.CalculateWrcPlus(woba, stats.ParkRunFactor, ls),
                 HRPerc = pa > 0 ? (float)stats.HR / pa : 0,
                 BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
                 KPerc = pa > 0 ? (float)stats.K / pa : 0,
@@ -35,48 +52,9 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
-                CrOFF = -100000,
-                CrWAR = -100000,
-                CrREP = -100000,
-            };
-
-            return ma;
-        }
-
-        public static Player_Hitter_MonthAdvanced HitterNormalToAdvanced(Player_Hitter_GameLog stats, LeagueStats ls, float parkFactor)
-        {
-            int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
-            int pa = stats.PA;
-            float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
-            float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
-            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa);
-            Player_Hitter_MonthAdvanced ma = new()
-            {
-                MlbId = stats.MlbId,
-                LevelId = stats.LevelId,
-                Year = stats.Year,
-                Month = stats.Month,
-                TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
-                LeagueId = -1,
-                ParkFactor = parkFactor,
-                PA = pa,
-                AVG = avg,
-                OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
-                SLG = avg + iso,
-                ISO = iso,
-                WOBA = woba,
-                WRC = -1.0f, // Fill in later, need league wOBA
-                HRPerc = pa > 0 ? (float)stats.HR / pa : 0,
-                BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
-                KPerc = pa > 0 ? (float)stats.K / pa : 0,
-                SBRate = pa > 0 ? (float)stats.SB / pa : 0,
-                SBPerc = (stats.SB + stats.CS) > 0 ? (float)stats.SB / (stats.SB + stats.CS) : 0,
-                SB = stats.SB,
-                CS = stats.CS,
-                HR = stats.HR,
-                CrREP = -100000,
-                CrOFF = -100000,
-                CrWAR = -100000,
+                CrOFF = crOff,
+                CrWAR = crWAR,
+                CrREP = crREP,
             };
 
             return ma;
@@ -165,12 +143,52 @@ namespace DataAquisition
             PassedBall = a.PassedBall + b.PassedBall,
         };
 
-        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(Player_Pitcher_MonthStats stats, LeagueStats ls)
+        public static Player_Pitcher_MonthAdvanced PitcherNormalToAdvanced(
+                Player_Pitcher_MonthStats stats, 
+                LeagueStats ls,
+                Player_MonthlyWar? pmw,
+                int teamId
+                )
         {
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
 
             float era = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f;
             float fip = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs);
+
+            // Calculate WAR
+            float war = 0;
+            if (stats.LevelId == 1)
+            {
+                if (pmw != null)
+                    war = pmw.WAR_r + pmw.WAR_s;
+            }
+            else
+            {
+                // crWAR
+                // https://library.fangraphs.com/war/calculating-war-pitchers/
+                float fipr9 = fip + ls.FIPR9Adjustment;
+                float pFIPR9 = fipr9 / stats.ParkRunFactor;
+                float leagueFIPR9 = ls.LeagueERA + ls.FIPR9Adjustment;
+                float raap9 = leagueFIPR9 - pFIPR9;
+
+                int numGames = stats.G;
+                float inningsPerGame = stats.Outs / 3.0f / numGames;
+
+                // calculate dynamic runs per win
+                float nonPitcherRunEnvironent = (18 - inningsPerGame) * leagueFIPR9;
+                float pitcherRunEnvironment = inningsPerGame * pFIPR9;
+                float runEnvironment = (nonPitcherRunEnvironent + pitcherRunEnvironment) / 18;
+                float dRPW = (runEnvironment + 2) * 1.5f;
+
+                // Wins per game above average
+                float wpgaa = raap9 / dRPW;
+
+                float startPercentage = (float)stats.SPPerc;
+                float replacementLevel = (0.03f * (1 - startPercentage)) + (0.12f * startPercentage);
+                float wpgar = wpgaa + replacementLevel;
+
+                war = wpgar * stats.Outs / 27.0f;
+            }
 
             Player_Pitcher_MonthAdvanced ma = new()
             {
@@ -178,7 +196,7 @@ namespace DataAquisition
                 LevelId = stats.LevelId,
                 Year = stats.Year,
                 Month = stats.Month,
-                TeamId = -1, // Needs to get entered elsewhere, but not needed unless submitting to db
+                TeamId = teamId,
                 LeagueId = stats.LeagueId,
                 BF = stats.BattersFaced,
                 Outs = stats.Outs,
@@ -193,7 +211,7 @@ namespace DataAquisition
                 FIPMinus = ((2 - stats.ParkRunFactor) * fip) / ls.LeagueERA * 100,
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
                 HR = stats.HR,
-                CrWAR = -100000,
+                CrWAR = war,
             };
             return ma;
         }
@@ -235,6 +253,7 @@ namespace DataAquisition
             Month = a.Month,
             Year = a.Year,
             BattersFaced = a.BattersFaced + b.BattersFaced,
+            G = a.G + b.G,
             Outs = a.Outs + b.Outs,
             H = a.H + b.H,
             Hit2B = a.Hit2B + b.Hit2B,

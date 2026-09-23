@@ -132,6 +132,7 @@ namespace DataAquisition.MonthStats
                 Month = month,
                 LevelId = first.LevelId,
                 LeagueId = first.LeagueId,
+                G = gameLogs.Count(),
                 H = totalH,
                 Hit2B = total2B,
                 Hit3B = total3B,
@@ -199,11 +200,25 @@ namespace DataAquisition.MonthStats
             // Remove existing data
             db.Player_Hitter_MonthAdvanced.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-            // Store all park factor values to reduce db queries
-            Dictionary<int, Park_Factors> ParkFactorDict = new();
-            var parkFactors = db.Park_Factors.Where(f => f.Year == year);
-            foreach (var pf in parkFactors)
-                ParkFactorDict[pf.StadiumId] = pf;
+            // Store DB Values
+            Dictionary<int, Park_Factors> parkFactorDict =
+                db.Park_Factors
+                    .Where(f => f.Year == year)
+                    .ToDictionary(f => f.StadiumId);
+            Dictionary<(int MlbId, int TeamId), IEnumerable<Player_Fielder_MonthStats>> fielderDict =
+                db.Player_Fielder_MonthStats
+                    .Where(f => f.Year == year && f.Month == month)
+                    .AsEnumerable()
+                    .GroupBy(f => (f.MlbId, f.TeamId))
+                    .ToDictionary(f => f.Key, f => f.AsEnumerable());
+            Dictionary<(int MlbId, int TeamId), Player_Hitter_MonthBaserunning> bsrDict =
+                db.Player_Hitter_MonthBaserunning
+                    .Where(f => f.Year == year && f.Month == month)
+                    .ToDictionary(f => (f.MlbId, f.TeamId));
+            Dictionary<int, LeagueStats> leagueDict =
+                db.LeagueStats
+                    .Where(f => f.Year == year)
+                    .ToDictionary(f => f.LeagueId);
 
             // Iterate through player/level combinations
             var monthGames = month == 4 ?
@@ -228,25 +243,18 @@ namespace DataAquisition.MonthStats
                         var teamLeagues = gameLogs.Select(f => new { f.TeamId, f.LeagueId }).Distinct();
                         foreach (var a in teamLeagues)
                         {
-                            var stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), ParkFactorDict, month);
+                            var stats = GetMonthStatsHitter(gameLogs.Where(f => f.TeamId == a.TeamId && f.LeagueId == a.LeagueId), parkFactorDict, month);
                             if (stats.AB + stats.BB + stats.HBP + stats.SB + stats.CS == 0)
                                 continue;
 
-                            Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
-                            ma.TeamId = a.TeamId;
-                            ma.LeagueId = a.LeagueId;
+                            var defStats = fielderDict.GetValueOrDefault((mlbId, a.TeamId), []);
 
-                            // Calculate crWAR
-                            LeagueStats ls = db.LeagueStats.Where(f => f.Year == year && f.LeagueId == a.LeagueId).Single();
-                            float wRAA = (ma.WOBA - ls.AvgWOBA) / ls.WOBAScale * ma.PA;
-                            float battingRuns = wRAA + ls.RPerPA * (1.0f - ma.ParkFactor) * ma.PA; // Ignored pitcher adjustment for now
-
-                            ma.CrOFF = battingRuns;
-
-                            ma.CrREP =
-                                Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
-                                ls.LeagueGames * ls.RPerWin / ls.LeaguePA * ma.PA;
-                            ma.CrWAR = 0; // Needs BSR and DEF which are calculated afterwards
+                            Player_Hitter_MonthAdvanced ma = Utilities.HitterNormalToAdvanced(
+                                stats,
+                                leagueDict[a.LeagueId],
+                                bsrDict.GetValueOrDefault((mlbId, a.TeamId))?.RBSR ?? 0,
+                                defStats.Sum(f => f.ScaledDRAA + f.PosAdjust),
+                                a.TeamId);
 
                             db.Player_Hitter_MonthAdvanced.Add(ma);
                         }
@@ -314,7 +322,16 @@ namespace DataAquisition.MonthStats
             foreach (var pf in parkFactors)
                 ParkFactorDict[pf.StadiumId] = pf;
 
-            // Iterate through player/level combinations
+            Dictionary<int, Player_MonthlyWar> pmwDict =
+                db.Player_MonthlyWar
+                    .Where(f => f.Year == year && f.Month == month)
+                    .ToDictionary(f => f.MlbId);
+
+            Dictionary<int, LeagueStats> lsDict =
+                db.LeagueStats
+                    .Where(f => f.Year == year)
+                    .ToDictionary(f => f.LeagueId);
+
             // Iterate through player/level combinations
             var monthGames = month == 4 ?
                 db.Player_Pitcher_GameLog.Where(f => f.Year == year && f.Month <= month) :
@@ -345,54 +362,11 @@ namespace DataAquisition.MonthStats
                             if (stats.BattersFaced == 0)
                                 continue;
 
-                            Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(stats, db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single());
-                            ma.TeamId = a.TeamId;
-                            ma.LeagueId = a.LeagueId;
-
-                            if (ma.LevelId == 1)
-                            {
-                                // Use Fangraphs WAR
-                                Player_MonthlyWar? pwm = db.Player_MonthlyWar.Where(f => f.MlbId == mlbId && f.Year == year && f.Month == month).SingleOrDefault();
-
-                                if (pwm == null)
-                                {
-                                    ma.CrWAR = 0;
-                                }
-                                else
-                                {
-                                    ma.CrWAR = pwm.WAR_r + pwm.WAR_s;
-                                }
-                            }
-                            else
-                            {
-                                // crWAR
-                                // https://library.fangraphs.com/war/calculating-war-pitchers/
-                                LeagueStats ls = db.LeagueStats.Where(f => f.LeagueId == a.LeagueId && f.Year == year).Single();
-                                float fip = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs);
-                                float fipr9 = fip + ls.FIPR9Adjustment;
-                                float pFIPR9 = fipr9 / stats.ParkRunFactor;
-                                float leagueFIPR9 = ls.LeagueERA + ls.FIPR9Adjustment;
-                                float raap9 = leagueFIPR9 - pFIPR9;
-
-                                int numGames = games.Count();
-                                float inningsPerGame = stats.Outs / 3.0f / numGames;
-
-                                // calculate dynamic runs per win
-                                float nonPitcherRunEnvironent = (18 - inningsPerGame) * leagueFIPR9;
-                                float pitcherRunEnvironment = inningsPerGame * pFIPR9;
-                                float runEnvironment = (nonPitcherRunEnvironent + pitcherRunEnvironment) / 18;
-                                float dRPW = (runEnvironment + 2) * 1.5f;
-
-                                // Wins per game above average
-                                float wpgaa = raap9 / dRPW;
-
-                                int gamesStarted = games.Where(f => f.Started == 1).Count();
-                                float startPercentage = (float)gamesStarted / numGames;
-                                float replacementLevel = 0.03f * (1 - startPercentage) + 0.12f * startPercentage;
-                                float wpgar = wpgaa + replacementLevel;
-
-                                ma.CrWAR = wpgar * stats.Outs / 27.0f;
-                            }
+                            Player_Pitcher_MonthAdvanced ma = Utilities.PitcherNormalToAdvanced(
+                                    stats,
+                                    lsDict[a.LeagueId],
+                                    pmwDict.GetValueOrDefault(mlbId),
+                                    a.TeamId);
 
                             db.Player_Pitcher_MonthAdvanced.Add(ma);
                         }
