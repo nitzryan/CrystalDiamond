@@ -53,7 +53,7 @@ namespace DataAquisition.MonthStats
                 AVGRatio = Utilities.SafeDivide(advStat.AVG, league.AVG),
                 OBPRatio = Utilities.SafeDivide(advStat.OBP, league.OBP),
                 ISORatio = Utilities.SafeDivide(advStat.ISO, league.ISO),
-                WRC = Utilities.SafeDivide(advStat.WRC, 100),
+                WRC = advStat.WRC, // Already a normalized stat
                 SBRateRatio = Utilities.SafeDivide(advStat.SBRate, league.SBRate),
                 SBPercRatio = Utilities.SafeDivide(advStat.SBPerc, league.SBPerc),
                 HRPercRatio = Utilities.SafeDivide(advStat.HRPerc, league.HRPerc),
