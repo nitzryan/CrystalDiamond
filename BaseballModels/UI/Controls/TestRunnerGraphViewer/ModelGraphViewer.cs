@@ -177,10 +177,6 @@ namespace UI.Controls
             ResetOutputSelectionComboBox(modelPoints);
             PlotResults();
 
-            // Added last so it draws on top
-            selectionMarker = plot.Add.Marker(0, 0, ScottPlot.MarkerShape.OpenCircle, 14, ScottPlot.Colors.Black);
-            selectionMarker.IsVisible = false;
-
             formsPlot.Refresh();
             Visible = true;
         }
@@ -248,6 +244,9 @@ namespace UI.Controls
             }
             plot.Axes.Bottom.TickGenerator = ticks;
 
+            selectionMarker = plot.Add.Marker(0, 0, ScottPlot.MarkerShape.OpenCircle, 14, ScottPlot.Colors.Black);
+            selectionMarker.IsVisible = false;
+
             formsPlot.Refresh();
         }
 
@@ -261,7 +260,10 @@ namespace UI.Controls
             double bestDistance = SELECT_RADIUS_PX * scale;
             ModelGraphViewerPoint? nearest = null;
 
-            foreach (ModelGraphViewerPoint p in modelPoints)
+            var validPoints = modelPoints
+                .Where(f => currentPlotArgs.ResultValid(f));
+
+            foreach (ModelGraphViewerPoint p in validPoints)
             {
                 ScottPlot.Pixel px = formsPlot.Plot.GetPixel(new ScottPlot.Coordinates(p.X, currentPlotArgs.Result(p)));
                 double dx = px.X - mouse.X;

@@ -1,8 +1,9 @@
-﻿using System.Data;
+﻿using Db;
+using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using System.Windows.Forms;
 
 namespace UI.Controls
 {
@@ -43,6 +44,19 @@ namespace UI.Controls
         private PropertyInfo[] _props = Array.Empty<PropertyInfo>();
         private readonly List<object?[]> _originalValues = new();
 
+        // Used to map between MLB and AL-NL for leagueId
+        private const string LeagueIdColumn = "LeagueId";
+        private const int HybridMlbLeagueId = 1;
+        private const int AmericanLeagueId = 103;
+        private const int NationalLeagueId = 104;
+        public bool CombineMlbLeagues { get; set; } = false;
+
+        private static string[] LockedColumns = [
+            nameof(Player_Hitter_MonthStats.MlbId),
+            nameof(Player_Hitter_MonthStats.Year),
+            nameof(Player_Hitter_MonthStats.Month)
+        ];
+
         public EntityTableView()
         {
             InitializeComponent();
@@ -60,13 +74,19 @@ namespace UI.Controls
             grid.CellContentClick += Grid_CellContentClick;
 
             grid.Leave += Grid_Leave;
+
+            // Get columns that should be made readonly in table
+            string[] lockedColumns = [
+
+            ];
+            var locked = new HashSet<string>(lockedColumns, StringComparer.Ordinal);
         }
 
         /// <summary>
         /// One grid row per DB row, one column per public property.
         /// Auto-hides the control when there are no rows.
         /// </summary>
-        public void SetData<T>(string tableName, IEnumerable<T> rows, params string[] lockedColumns)
+        public void SetData<T>(string tableName, IEnumerable<T> rows)
         {
             _elementType = typeof(T);
             lblTitle.Text = tableName;
@@ -86,11 +106,6 @@ namespace UI.Controls
                 .OrderBy(p => p.MetadataToken)   // source declaration order
                 .ToArray();
 
-            // Get columns that should be made readonly in table
-            var locked = new HashSet<string>(lockedColumns, StringComparer.Ordinal);
-            Debug.Assert(locked.All(n => _props.Any(p => p.Name == n)),
-                "lockedColumns contains a name that is not a property of " + typeof(T).Name);
-
             grid.Rows.Clear();
             grid.Columns.Clear();
             _originalValues.Clear();
@@ -107,7 +122,7 @@ namespace UI.Controls
                         ThreeState = Nullable.GetUnderlyingType(p.PropertyType) != null
                     };
                 }
-                else if (ColumnMaps.TryGetValue(p.Name, out IReadOnlyDictionary<int, string>? map))
+                else if (TryGetColumnMap(p.Name, out IReadOnlyDictionary<int, string>? map))
                 {
                     Debug.Assert(t == typeof(int), $"Dropdown map on non-int column '{p.Name}'");
                     col = new DataGridViewComboBoxColumn
@@ -134,7 +149,7 @@ namespace UI.Controls
                 }
 
                 // Set readonly values
-                bool isLocked = locked.Contains(p.Name);
+                bool isLocked = LockedColumns.Contains(p.Name);
                 col.ReadOnly = !p.CanWrite || isLocked;
                 if (col.ReadOnly)
                     col.DefaultCellStyle.ForeColor = SystemColors.GrayText;
@@ -170,7 +185,7 @@ namespace UI.Controls
                 for (int i = 0; i < _props.Length; i++)
                 {
                     values[i] = _props[i].GetValue(item);
-                    if (ColumnMaps.TryGetValue(_props[i].Name, out var map)
+                    if (TryGetColumnMap(_props[i].Name, out var map)
                         && (values[i] is not int v || !map.ContainsKey(v)))
                     {
                         throw new InvalidOperationException(
@@ -193,6 +208,54 @@ namespace UI.Controls
 
             RefreshAllCellStyles();
             ApplySizing();
+        }
+
+        // Dropdown map for a column, adjusted for the MLB combine toggle
+        private bool TryGetColumnMap(string column, [NotNullWhen(true)] out IReadOnlyDictionary<int, string>? map)
+        {
+            // Check for non-dropdown
+            if (!ColumnMaps.TryGetValue(column, out IReadOnlyDictionary<int, string>? baseMap))
+            {
+                map = null;
+                return false;
+            }
+            // League Dropdown
+            if (CombineMlbLeagues && column == LeagueIdColumn)
+            {
+                var combined = baseMap
+                    .Where(kv => kv.Key != AmericanLeagueId && kv.Key != NationalLeagueId)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+                combined[HybridMlbLeagueId] = "MLB";
+                map = combined;
+                return true;
+            }
+
+            // Other dropdown
+            map = baseMap;
+            return true;
+        }
+
+        // Exact key match, or (when combining) league 1 standing in for AL or NL
+        private bool IsCombinationValid(CombinationRule rule, int[] values)
+        {
+            if (rule.ValidKeys.Contains(string.Join("|", values)))
+                return true;
+
+            if (!CombineMlbLeagues)
+                return false;
+
+            int leagueIdx = Array.IndexOf(rule.Columns, LeagueIdColumn);
+            if (leagueIdx < 0 || values[leagueIdx] != HybridMlbLeagueId)
+                return false;
+
+            foreach (int realLeague in new[] { AmericanLeagueId, NationalLeagueId })
+            {
+                int[] substituted = (int[])values.Clone();
+                substituted[leagueIdx] = realLeague;
+                if (rule.ValidKeys.Contains(string.Join("|", substituted)))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -275,9 +338,9 @@ namespace UI.Controls
         }
 
         // Uses the dropdown display name when the column has one; raw value kept for debugging
-        private static string FormatColumnForExternalUse(string column, int value)
+        private string FormatColumnForExternalUse(string column, int value)
         {
-            if (ColumnMaps.TryGetValue(column, out var map) && map.TryGetValue(value, out string? display))
+            if (TryGetColumnMap(column, out var map) && map.TryGetValue(value, out string? display))
                 return $"\t{column}={display} ({value})\n";
             return $"\t{column}={value}\n";
         }
@@ -517,11 +580,15 @@ namespace UI.Controls
                     int[] values = colIndexes
                         .Select(c => (int)ConvertCellValue(row.Cells[c].Value, typeof(int), grid.Columns[c].Name)!)
                         .ToArray();
-                    if (!rule.ValidKeys.Contains(string.Join("|", values)))
+                    //if (!rule.ValidKeys.Contains(string.Join("|", values)))
+                    //    return $"{rule.Name} (row {row.Index + 1}): " +
+                    //        string.Join("", rule.Columns.Zip(values, FormatColumnForExternalUse));
+                    if (!IsCombinationValid(rule, values))
                         return $"{rule.Name} (row {row.Index + 1}): " +
                             string.Join("", rule.Columns.Zip(values, FormatColumnForExternalUse));
                 }
             }
+
             return null;
         }
     }

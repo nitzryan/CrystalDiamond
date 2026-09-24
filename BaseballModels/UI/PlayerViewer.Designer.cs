@@ -27,6 +27,8 @@ namespace UI
             tblModelPlayers = new EntityTableView();
             tblHitterMonthStats = new EntityTableView();
             tblPitcherMonthStats = new EntityTableView();
+            tblBaserunningStats = new EntityTableView();
+            tblFieldingStats = new EntityTableView();
             playerSearchBar = new PlayerSearchBar();
             btnHitterModelData = new Button();
             btnPitcherModelData = new Button();
@@ -59,6 +61,8 @@ namespace UI
             flpContent.Controls.Add(tblModelPlayers);
             flpContent.Controls.Add(tblHitterMonthStats);
             flpContent.Controls.Add(tblPitcherMonthStats);
+            flpContent.Controls.Add(tblBaserunningStats);
+            flpContent.Controls.Add(tblFieldingStats);
             flpContent.Dock = DockStyle.Fill;
             flpContent.FlowDirection = FlowDirection.TopDown;
             flpContent.Location = new Point(0, 381);
@@ -94,6 +98,22 @@ namespace UI
             tblPitcherMonthStats.Size = new Size(1000, 200);
             tblPitcherMonthStats.TabIndex = 3;
             tblPitcherMonthStats.Visible = false;
+            // 
+            // tblBaserunningStats
+            // 
+            tblBaserunningStats.Location = new Point(3, 621);
+            tblBaserunningStats.Name = "tblBaserunningStats";
+            tblBaserunningStats.Size = new Size(1000, 200);
+            tblBaserunningStats.TabIndex = 4;
+            tblBaserunningStats.Visible = false;
+            // 
+            // tblFieldingStats
+            // 
+            tblFieldingStats.Location = new Point(3, 827);
+            tblFieldingStats.Name = "tblFieldingStats";
+            tblFieldingStats.Size = new Size(1000, 200);
+            tblFieldingStats.TabIndex = 5;
+            tblFieldingStats.Visible = false;
             // 
             // playerSearchBar
             // 
@@ -212,5 +232,7 @@ namespace UI
         private TableLayoutPanel tlpMain;
         private TableLayoutPanel tlpHeader;
         private ModelResultsPanel modelResultsPanel;
+        private EntityTableView tblBaserunningStats;
+        private EntityTableView tblFieldingStats;
     }
 }
