@@ -1,11 +1,17 @@
 ﻿using ModelDb;
 using SiteDb;
 using SitePrep;
+using UI.Controls.TestRunnerGraphViewer;
 using UI.Types;
 
 namespace UI.Controls
 {
-    public record SeriesInfo(string Name, ScottPlot.Color Color);
+    public record SeriesInfo
+    {
+        public required string Name { get; init; }
+        public required ScottPlot.Color Color { get; init; }
+        public bool IsPlotted { get; set; } = false;
+    }
     public record ModelGraphViewerPoint(int Year, int Month, int X,
         SeriesInfo SeriesInfo,
         Output_PlayerWarAggregation? Opwa,
@@ -18,16 +24,17 @@ namespace UI.Controls
             Func<ModelGraphViewerPoint, bool> ResultValid,
             Func<ModelGraphViewerPoint, double> Result,
             double GraphSoftMax,
-            string YAxisName
+            string YAxisName,
+            Func<ModelGraphViewerPoint, IReadOnlyList<DetailRow>> DetailRows
         );
 
     public partial class ModelGraphViewer : UserControl
     {
         // Definition for the dropdown and selection logic
         private readonly List<PlotArgs> PlotArgsList = [
-            new PlotArgs(0, "Prospect WAR", f => f.Opwa != null, f => f.Opwa!.War, 20, "WAR"),
-            new PlotArgs(1, "MLB PA", f => f.Phs != null, f => Math.Round(f.Phs![0].Pa), 600, "PA"),
-            new PlotArgs(2, "MLB IP", f => f.Pps != null, f => Math.Round((f.Pps![0].Outs_SP + f.Pps![0].Outs_RP) / 3), 200, "IP")
+            new PlotArgs(0, "Prospect WAR", f => f.Opwa != null, f => f.Opwa!.War, 20, "WAR", DetailViews.War),
+            new PlotArgs(1, "MLB PA", f => f.Phs != null, f => Math.Round(f.Phs![0].Pa), 600, "PA", DetailViews.Hitter),
+            new PlotArgs(2, "MLB IP", f => f.Pps != null, f => Math.Round((f.Pps![0].Outs_SP + f.Pps![0].Outs_RP) / 3), 200, "IP", DetailViews.Pitcher)
         ];
 
         private PlotArgs currentPlotArgs;
@@ -73,6 +80,12 @@ namespace UI.Controls
                 throw new Exception($"OutputSelectionComboBox.SelectedValue isn't int: {outputSelectionComboBox.SelectedValue}");
 
             PlotResults();
+
+            // Need to select new point; keep at the same index/series if applicable, otherwise deselect
+            bool stillValid = SelectedPoint is not null
+                && currentPlotArgs.ResultValid(SelectedPoint)
+                && CurrentlyPlottedSeries.Contains(SelectedPoint.SeriesInfo);
+            SelectPoint(stillValid ? SelectedPoint : null);
         }
 
         private const float SELECT_RADIUS_PX = 15;
@@ -86,7 +99,8 @@ namespace UI.Controls
         public event EventHandler<(ModelGraphViewerPoint?, PlotArgs?)>? PointSelected;
 
         private readonly List<SeriesInfo> series = [];
-        public IReadOnlyList<SeriesInfo> Series => series;
+        public IReadOnlyList<SeriesInfo> CurrentlyPlottedSeries => series.Where(f => f.IsPlotted).ToList();
+        public event EventHandler? PlottedSeriesChanged;
 
         public static LeagueBaselineCache leagueBaselineCache = LeagueBaselineCache.Load(Global.db);
 
@@ -151,7 +165,7 @@ namespace UI.Controls
             for (int i = 0; i < seriesNames.Count; i++)
             {
                 ScottPlot.Color color = plot.Add.Palette.GetColor(i);
-                series.Add(new SeriesInfo(seriesNames[i], color));
+                series.Add(new SeriesInfo { Name=seriesNames[i], Color=color });
             }
 
             // Add points
@@ -162,7 +176,7 @@ namespace UI.Controls
                 {
                     modelPoints.Add(new ModelGraphViewerPoint(
                         year, month, xIndex[(year, month)],
-                        Series[i],
+                        series[i],
                         results[i].ProWar
                             .Where(f => f.Year == year && f.Month == month)
                             .SingleOrDefault(),
@@ -230,21 +244,35 @@ namespace UI.Controls
             formsPlot.Plot.Clear();
             double maxY = -1;
             double maxX = -1;
+            List<(double[] Xs, double[] Ys)> plotted = [];
             foreach (var sp in seriesPoints)
             {
                 var xs = sp.Select(f => (double)f.X).ToArray();
                 var ys = sp.Select(f => (double)currentPlotArgs.Result(f)).ToArray();
-                
+
+                var xsRounded = xs.Select(f => Math.Round(f, 2)).ToArray(); // TODO : Remove once model entirely runs on Model_HitterStats/Model_PitcherStats
+                var ysRounded = ys.Select(f => Math.Round(f, 2)).ToArray();
+                if (plotted.Any(p => p.Xs.SequenceEqual(xsRounded) && p.Ys.SequenceEqual(ysRounded)))
+                {
+                    sp.Key.IsPlotted = false;
+                    continue;
+                }
+
+                sp.Key.IsPlotted = true;
+                plotted.Add((xsRounded, ysRounded));
+
                 maxY = Math.Max(maxY, ys.Max());
-                maxX = Math.Max(maxX + X_AXIS_OFFSET, xs.Max());
+                maxX = Math.Max(maxX, xs.Max());
 
                 var scatter = plot.Add.Scatter(xs, ys, sp.Key.Color);
                 scatter.MarkerSize = 5;
             }
 
+            PlottedSeriesChanged?.Invoke(this, EventArgs.Empty);
+
             // Set Axis
             plot.Axes.SetLimitsY(0, Math.Max(maxY, currentPlotArgs.GraphSoftMax));
-            plot.Axes.SetLimitsX(-X_AXIS_OFFSET, maxX);
+            plot.Axes.SetLimitsX(-X_AXIS_OFFSET, maxX + X_AXIS_OFFSET);
 
             plot.Title(currentPlotArgs.Name);
             plot.YLabel(currentPlotArgs.YAxisName);
@@ -285,7 +313,7 @@ namespace UI.Controls
             ModelGraphViewerPoint? nearest = null;
 
             var validPoints = modelPoints
-                .Where(f => currentPlotArgs.ResultValid(f));
+                .Where(f => currentPlotArgs.ResultValid(f) && f.SeriesInfo.IsPlotted);
 
             foreach (ModelGraphViewerPoint p in validPoints)
             {

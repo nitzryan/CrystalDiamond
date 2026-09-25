@@ -12,12 +12,17 @@ namespace UI.Controls.TestRunnerGraphViewer
             InitializeComponent();
 
             graph.PointSelected += Graph_PointSelected;
+            graph.PlottedSeriesChanged += Graph_PlottedSeriesChanged;
         }
 
         public void SetResults(IReadOnlyList<ModelResults> results, IReadOnlyList<string> seriesNames)
         {
             graph.SetResults(results, seriesNames);
-            legend.SetSeries(graph.Series);
+        }
+
+        private void Graph_PlottedSeriesChanged(object? sender, EventArgs e)
+        {
+            legend.SetSeries(graph.CurrentlyPlottedSeries);
         }
 
         public void ClearResults()
