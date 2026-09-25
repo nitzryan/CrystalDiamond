@@ -28,6 +28,9 @@ namespace DataAquisition.FieldingStats
                         {
                             scaleFactor = 3 / stddev;
                         }
+                        // Force MLB to have even scale factor due to using public stats
+                        if (league == 103 || league == 104)
+                            scaleFactor = 1;
 
                         var stats = db.Player_Fielder_MonthStats.Where(f => f.Year == year && f.LeagueId == league);
                         foreach (var s in stats)

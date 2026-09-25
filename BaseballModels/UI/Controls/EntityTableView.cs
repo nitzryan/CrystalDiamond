@@ -44,13 +44,6 @@ namespace UI.Controls
         private PropertyInfo[] _props = Array.Empty<PropertyInfo>();
         private readonly List<object?[]> _originalValues = new();
 
-        // Used to map between MLB and AL-NL for leagueId
-        private const string LeagueIdColumn = "LeagueId";
-        private const int HybridMlbLeagueId = 1;
-        private const int AmericanLeagueId = 103;
-        private const int NationalLeagueId = 104;
-        public bool CombineMlbLeagues { get; set; } = false;
-
         private static string[] LockedColumns = [
             nameof(Player_Hitter_MonthStats.MlbId),
             nameof(Player_Hitter_MonthStats.Year),
@@ -219,43 +212,10 @@ namespace UI.Controls
                 map = null;
                 return false;
             }
-            // League Dropdown
-            if (CombineMlbLeagues && column == LeagueIdColumn)
-            {
-                var combined = baseMap
-                    .Where(kv => kv.Key != AmericanLeagueId && kv.Key != NationalLeagueId)
-                    .ToDictionary(kv => kv.Key, kv => kv.Value);
-                combined[HybridMlbLeagueId] = "MLB";
-                map = combined;
-                return true;
-            }
 
-            // Other dropdown
+            // Dropdown
             map = baseMap;
             return true;
-        }
-
-        // Exact key match, or (when combining) league 1 standing in for AL or NL
-        private bool IsCombinationValid(CombinationRule rule, int[] values)
-        {
-            if (rule.ValidKeys.Contains(string.Join("|", values)))
-                return true;
-
-            if (!CombineMlbLeagues)
-                return false;
-
-            int leagueIdx = Array.IndexOf(rule.Columns, LeagueIdColumn);
-            if (leagueIdx < 0 || values[leagueIdx] != HybridMlbLeagueId)
-                return false;
-
-            foreach (int realLeague in new[] { AmericanLeagueId, NationalLeagueId })
-            {
-                int[] substituted = (int[])values.Clone();
-                substituted[leagueIdx] = realLeague;
-                if (rule.ValidKeys.Contains(string.Join("|", substituted)))
-                    return true;
-            }
-            return false;
         }
 
         /// <summary>
@@ -580,10 +540,7 @@ namespace UI.Controls
                     int[] values = colIndexes
                         .Select(c => (int)ConvertCellValue(row.Cells[c].Value, typeof(int), grid.Columns[c].Name)!)
                         .ToArray();
-                    //if (!rule.ValidKeys.Contains(string.Join("|", values)))
-                    //    return $"{rule.Name} (row {row.Index + 1}): " +
-                    //        string.Join("", rule.Columns.Zip(values, FormatColumnForExternalUse));
-                    if (!IsCombinationValid(rule, values))
+                    if (!rule.ValidKeys.Contains(string.Join("|", values)))
                         return $"{rule.Name} (row {row.Index + 1}): " +
                             string.Join("", rule.Columns.Zip(values, FormatColumnForExternalUse));
                 }

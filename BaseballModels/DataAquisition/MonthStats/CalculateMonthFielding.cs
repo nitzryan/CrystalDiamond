@@ -260,17 +260,11 @@ namespace DataAquisition.MonthStats
 
                 db.Player_Fielder_MonthStats.Where(f => f.Year == year && f.Month == month).ExecuteDelete();
 
-                // Fieldings stats will be combined for MLB, so add combined MLB if doesn't exist
-                if (!db.Leagues.Where(f => f.Id == 1).Any())
-                {
-                    db.Leagues.Add(new Leagues
-                    {
-                        Id = 1,
-                        Name = "Major League Baseball",
-                        Abbr = "MLB"
-                    });
-                    db.SaveChanges();
-                }
+                // Get MLB month DRAA to be used rather than our calculated
+                Dictionary<(int mlbId, Position pos), Player_MlbFielding> mlbFieldingDict = db.Player_MlbFielding
+                    .Where(f => f.Year == year)
+                    .AsNoTracking()
+                    .ToDictionary(f => (f.MlbId, f.Position));
 
                 // Get logs for this month, grouping in March with april and october with september
                 Player_Fielder_GameLog[] thisMonthsLogs;
@@ -297,7 +291,7 @@ namespace DataAquisition.MonthStats
                 {
                     foreach(int leagueId in leagueIds)
                     {
-                        int levelId = leagueId == 1 ? 1 : db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).First().LevelId;
+                        int levelId = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LeagueId == leagueId).First().LevelId;
                         // Create hash table of all player-position combinations at this league this month
                         var playerTeamPositions = thisMonthsLogs.Where(f => f.LeagueId == leagueId).Select(f => new PlayerPosition { MlbId=f.MlbId, Pos=f.Position, TeamId=f.TeamId }).Distinct();
                         Dictionary<PlayerPosition, Player_Fielder_MonthStats> playerDict = new(playerTeamPositions.Count());
@@ -345,8 +339,7 @@ namespace DataAquisition.MonthStats
                         BsrAdv2nd3rdGroundoutDict = LeagueRunMatrixDicts.GetBaserunningDict(runMatrix.BsrAdv2nd3rdGroundoutDict);
 
                         // Iterate through PBP game by game
-                        var leaguePBP = (leagueId == 1 ?    thisMonthsPBP.Where(f => f.LeagueId == 103 || f.LeagueId == 104) :
-                                                            thisMonthsPBP.Where(f => f.LeagueId == leagueId))
+                        var leaguePBP = thisMonthsPBP.Where(f => f.LeagueId == leagueId)
                             .GroupBy(f => new { f.GameId, f.IsTop });
                         foreach (var gamePBP in leaguePBP)
                         {
@@ -371,7 +364,7 @@ namespace DataAquisition.MonthStats
                                 pv.SB = stats.SB;
                                 pv.CS = stats.CS;
                                 pv.PB = stats.PassedBall;
-                                pv.R_SB = -(leagueStats.RunCS * stats.CS + leagueStats.RunSB * stats.SB);
+                                pv.R_SB = -((leagueStats.RunCS * stats.CS) + (leagueStats.RunSB * stats.SB));
 
                                 // Get PB runs above average
                                 float expectedPB = pv.Outs * leagueStats.PBPerOut;
@@ -385,6 +378,17 @@ namespace DataAquisition.MonthStats
 
                             pv.PosAdjust = Utilities.CalculatePosValue(pv.Position, pv.Outs);
                             pv.D_RAA = pv.R_ERR + pv.R_PM + pv.R_GIDP + pv.R_ARM + pv.R_SB + pv.R_PB;
+
+                            // For MLB data, use FRV/UZR/DRS rather than my own worse version
+                            if (pv.LevelId == 1 && pv.Position != Position.DH)
+                            {
+                                var fieldingStats = mlbFieldingDict[(pv.MlbId, pv.Position)];
+                                if (fieldingStats.Outs == 0)
+                                    continue;
+
+                                float fieldingProp = (float)pv.Outs / fieldingStats.Outs;
+                                pv.D_RAA = fieldingStats.DRAA * fieldingProp;
+                            }
                         }
                         db.BulkInsert(playerValues);
 

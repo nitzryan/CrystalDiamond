@@ -1,5 +1,6 @@
 ﻿using DataAquisition.College;
 using DataAquisition.ModelStats;
+using DataAquisition.PlayerAquisition;
 
 namespace DataAquisition
 {
@@ -65,15 +66,24 @@ namespace DataAquisition
                     LgStats.ParkFactorUpdate.Update(year, year == END_YEAR);
                     LgStats.CalculateLeagueStats.Update(year);
 
+                    // Fielding Loop (need to complete fielding to calculate hitter WAR
+                    await FangraphsData.UpdateFielding(year);
+                    foreach (int month in months)
+                    {
+                        MonthStats.CalculateMonthFielding.Update(year, month);
+
+                        if (year == END_YEAR && month == END_MONTH)
+                            break;
+                    }
+                    AnnualStats.CalculateAnnualStats.CreateFieldingYearStats(year);
+                    FieldingStats.ScaleFieldingStats.Update(year);
+
                     foreach (int month in months)
                     {
                         LgStats.CreateLeagueGameCounts.Update(year, month);
                         MonthStats.CalculateMonthStats.Update(year, month);
                         LgStats.CalculateLeagueBaselines.Update(year, month);
-                        
                         MonthStats.CalculateMonthBaserunning.Update(year, month);
-                        MonthStats.CalculateMonthFielding.Update(year, month);
-
                         MonthStats.CalculateMonthStats.UpdateAdvanced(year, month);
                         MonthStats.CalculateMonthRatios.Update(year, month);
 

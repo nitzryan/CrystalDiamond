@@ -47,8 +47,6 @@ namespace UI
             ratioLeagueCache = RatioLeagueCache.Generate();
             modelLeagueCache = ModelLeagueCache.Generate();
 
-            tblFieldingStats.CombineMlbLeagues = true;
-
             // Load player list
             playerSearchBar.SetPlayerList(Global.db.Player.ToList());
             playerSearchBar.PlayerSelected += PlayerSearchBar_PlayerSelected;
@@ -199,7 +197,7 @@ namespace UI
             var ctx = new CalculatePitcherStats.PitcherModelContext(modelLeagueCache, pitchers, END_YEAR, END_MONTH);
             List<Model_PitcherStats> hypoPitcherStats = CalculatePitcherStats.BuildPitcherStats(currentPlayer.MlbId, ctx);
 
-            //var cmpString = ModelRowComparer.Compare("T", dbModelPitcherStats, hypoPitcherStats, f => (f.Year, f.Month));
+            var cmpString = ModelRowComparer.Compare("T", dbModelPitcherStats, hypoPitcherStats, f => (f.Year, f.Month));
 
             await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunPitcherVariants(
                 currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,

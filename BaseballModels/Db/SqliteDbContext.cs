@@ -79,6 +79,7 @@ namespace Db
 		public DbSet<DraftPickValues> DraftPickValues {get; set;}
 		public DbSet<Transaction_Log> Transaction_Log {get; set;}
 		public DbSet<Player_Pitcher_MonthStats> Player_Pitcher_MonthStats {get; set;}
+		public DbSet<Player_MlbFielding> Player_MlbFielding {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
@@ -159,6 +160,7 @@ namespace Db
 			modelBuilder.Entity<DraftPickValues>().HasKey(f => new {f.Pick});
 			modelBuilder.Entity<Transaction_Log>().HasKey(f => new {f.TransactionId});
 			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
+			modelBuilder.Entity<Player_MlbFielding>().HasKey(f => new {f.MlbId,f.Year,f.Position});
 		}
 	}
 }

@@ -2170,5 +2170,24 @@ class DB_Player_Pitcher_MonthStats:
 		items = cursor.execute("SELECT * FROM Player_Pitcher_MonthStats " + conditional, values).fetchall()
 		return [DB_Player_Pitcher_MonthStats(i) for i in items]
 
+class DB_Player_MlbFielding:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.year = values[1]
+		self.Position = values[2]
+		self.Outs = values[3]
+		self.DRAA = values[4]
+
+	NUM_ELEMENTS = 5
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.year,self.Position,self.Outs,self.DRAA)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_MlbFielding']:
+		items = cursor.execute("SELECT * FROM Player_MlbFielding " + conditional, values).fetchall()
+		return [DB_Player_MlbFielding(i) for i in items]
+
 
 ##############################################################################################

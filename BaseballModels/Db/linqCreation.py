@@ -29,6 +29,7 @@ type_overrides = [
     TypeOverride("Player_Fielder_GameLog", "Position", "DbEnums.Position"),
     TypeOverride("Player_Fielder_MonthStats", "Position", "DbEnums.Position"),
     TypeOverride("Player_Fielder_YearStats", "Position", "DbEnums.Position"),
+    TypeOverride("Player_MlbFielding", "Position", "DbEnums.Position"),
     
     TypeOverride("College_HitterStats", "Pos", "DbEnums.CollegePosition"),
     TypeOverride("Model_College_HitterYear", "Pos", "DbEnums.CollegePosition"),

@@ -1007,6 +1007,17 @@ CREATE TABLE "Player_MonthlyWar" (
 	PRIMARY KEY("mlbId","year","month")
 );
 
+CREATE TABLE "Player_MlbFielding" (
+	"mlbId"	INTEGER NOT NULL,
+	"year"	INTEGER NOT NULL,
+	"Position" INTEGER NOT NULL,
+
+	"Outs" INTEGER NOT NULL,
+	"DRAA" REAL NOT NULL,
+
+	PRIMARY KEY("mlbId","year","month","Position")
+);
+
 CREATE TABLE "Player_YearlyWPA" (
 	"mlbId"	INTEGER NOT NULL,
 	"year"	INTEGER NOT NULL,

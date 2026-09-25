@@ -40,8 +40,10 @@ namespace DataAquisition.AnnualStats
             db.BulkInsert(output);
         }
 
-        private static void CreateFieldingYearStats(SqliteDbContext db, int year)
+        public static void CreateFieldingYearStats(int year)
         {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
             db.Player_Fielder_YearStats.Where(f => f.Year == year).ExecuteDelete();
 
             var playerTeamPositions = db.Player_Fielder_MonthStats.Where(f => f.Year == year)
@@ -198,15 +200,13 @@ namespace DataAquisition.AnnualStats
             try {
                 using SqliteDbContext db = new(Constants.DB_OPTIONS);
                 
-                using (ProgressBar progressBar = new ProgressBar(4, $"Calculating Annual stats for Year={year}"))
+                using (ProgressBar progressBar = new ProgressBar(3, $"Calculating Annual stats for Year={year}"))
                 {
                     CreateHittingYearStats(db, year);
                     progressBar.Tick();
                     CreatePitchingYearStats(db, year);
                     progressBar.Tick();
                     CreateBaserunningYearStats(db, year);
-                    progressBar.Tick();
-                    CreateFieldingYearStats(db, year);
                     progressBar.Tick();
                 }
             } catch (Exception e)

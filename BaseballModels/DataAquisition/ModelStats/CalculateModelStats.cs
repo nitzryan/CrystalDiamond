@@ -307,19 +307,11 @@ namespace DataAquisition.ModelStats
                 Set(r.MlbId, r.Year, r.Month, At(r.MlbId, r.Year, r.Month) with { CrDPOS = (float)r.P });
             }
 
-            // CrDRAA = Sum(ScaledDRAA where LevelId != 1)[MiLB] + Sum(Player_MonthlyWar.DRAA)[only MLB].
+            // CrDRAA = Sum(ScaledDRAA)
             foreach (var r in fielding
                                  .Where(f => f.LevelId != 1)
                                  .GroupBy(f => new { f.MlbId, f.Year, f.Month })
                                  .Select(g => new { g.Key.MlbId, g.Key.Year, g.Key.Month, D = g.Sum(x => x.ScaledDRAA) }))
-            {
-                var cur = At(r.MlbId, r.Year, r.Month);
-                Set(r.MlbId, r.Year, r.Month, cur with { CrDRAA = cur.CrDRAA + (float)r.D });
-            }
-
-            foreach (var r in monthlyWar
-                                 .GroupBy(f => new { f.MlbId, f.Year, f.Month })
-                                 .Select(g => new { g.Key.MlbId, g.Key.Year, g.Key.Month, D = g.Sum(x => x.DRAA) }))
             {
                 var cur = At(r.MlbId, r.Year, r.Month);
                 Set(r.MlbId, r.Year, r.Month, cur with { CrDRAA = cur.CrDRAA + (float)r.D });

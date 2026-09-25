@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
 using System.Text.Json;
+using static Db.DbEnums;
+using static Microsoft.FSharp.Core.ByRefKinds;
 
 namespace DataAquisition.PlayerAquisition
 {
@@ -372,6 +374,88 @@ namespace DataAquisition.PlayerAquisition
             catch (Exception e)
             {
                 Console.WriteLine("Error in FangraphsData");
+                Utilities.LogException(e);
+                return false;
+            }
+        }
+
+        public static async Task<bool> UpdateFielding(int year)
+        {
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            db.Player_MlbFielding.Where(f => f.Year == year).ExecuteDelete();
+
+            try
+            {
+                HttpClient httpClient = new();
+
+                var response = await httpClient.GetAsync($"https://www.fangraphs.com/api/leaders/major-league/data?pos=all&stats=fld&lg=all&qual=0&season={year}&pageitems=10000");
+
+                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                {
+                    throw new Exception($"Getting Starting Pitchers Fangraphs stats: {response.StatusCode}");
+                }
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var json = JsonDocument.Parse(responseBody);
+                var fielders = json.RootElement.GetProperty("data").EnumerateArray();
+
+                foreach (var fielder in fielders)
+                {
+                    if (!fielder.TryGetProperty("xMLBAMID", out var idElement) || idElement.ValueKind != JsonValueKind.Number)
+                        throw new Exception($"Invalid xMLBAMID: {idElement}");
+                    int mlbId = idElement.GetInt32();
+
+                    if (!fielder.TryGetProperty("Pos", out var posElement) || posElement.ValueKind != JsonValueKind.String)
+                        throw new Exception($"Invalid Pos: {posElement}");
+                    Position pos = posElement.GetString() switch
+                    {
+                        "P" => Position.P,
+                        "C" => Position.C,
+                        "1B" => Position.B1,
+                        "2B" => Position.B2,
+                        "3B" => Position.B3,
+                        "SS" => Position.SS,
+                        "LF" => Position.LF,
+                        "CF" => Position.CF,
+                        "RF" => Position.RF,
+                        _ => throw new Exception($"Unexpected position found: {posElement.GetString()}")
+                    };
+
+                    float draa = 0;
+                    if (fielder.TryGetProperty("FRP", out var FRPElement) && FRPElement.ValueKind == JsonValueKind.Number)
+                        draa = (float)FRPElement.GetDouble();
+                    else if (fielder.TryGetProperty("UZR", out var UZRElement) && UZRElement.ValueKind == JsonValueKind.Number)
+                        draa = (float)UZRElement.GetDouble();
+                    else if (fielder.TryGetProperty("DRS", out var DRSElement) && DRSElement.ValueKind == JsonValueKind.Number)
+                        draa = (float)DRSElement.GetDouble();
+                    else
+                        draa = 0; // All not populated if no plays made
+
+                    if (!fielder.TryGetProperty("Inn", out var innElement) || innElement.ValueKind != JsonValueKind.Number)
+                    throw new Exception($"Invalid Inn: {innElement}");
+
+                    double inn = innElement.GetDouble();
+                    int full = (int)inn;
+                    int partial = (int)Math.Round((inn - full) * 10);
+                    int outs =  (full * 3) + partial;
+
+                    db.Player_MlbFielding.Add(new Player_MlbFielding
+                    {
+                        MlbId = mlbId,
+                        Year = year,
+                        Position = pos,
+                        DRAA = draa,
+                        Outs = outs,
+                    });
+                }
+
+                db.SaveChanges();
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error in FangraphsData.UpdateFielding");
                 Utilities.LogException(e);
                 return false;
             }

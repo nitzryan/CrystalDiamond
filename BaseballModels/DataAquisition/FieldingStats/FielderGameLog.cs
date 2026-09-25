@@ -171,11 +171,6 @@ namespace DataAquisition.FieldingStats
                 if (leagueId == Constants.MEXICAN_LEAGUE_ID)
                     continue;
 
-                // Combine fielding stats from AL/NL to MLB
-                // Needed for getting fielding stats in combined games while not splitting other statts that vary by league
-                if (leagueId == 103 || leagueId == 104)
-                    leagueId = 1; 
-
                 #pragma warning disable CS8604 // Will exist
                 logs.Add(new Player_Fielder_GameLog
                 {
