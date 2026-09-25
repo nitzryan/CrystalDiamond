@@ -1,5 +1,4 @@
 ﻿using Db;
-using ScottPlot.TickGenerators.TimeUnits;
 
 namespace DataAquisition
 {
@@ -17,16 +16,10 @@ namespace DataAquisition
             int pa = stats.PA;
             float avg = stats.AB > 0 ? (float)stats.H / stats.AB : 0.0f;
             float iso = stats.AB > 0 ? (float)(stats.Hit2B + (2 * stats.Hit3B) + (3 * stats.HR)) / stats.AB : 0;
-            
-            // League-based stats
-            float woba = Utilities.CalculateWOBA(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa);
-            float wRAA = (woba - ls.AvgWOBA) / ls.WOBAScale * pa;
-            float crOff = wRAA + (ls.RPerPA * (1.0f - stats.ParkRunFactor) * pa);
-            float crREP = Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
-                                ls.LeagueGames * ls.RPerWin / ls.LeaguePA * pa;
 
-            float runsAboveRep = crOff + crREP + crBSR + crDEF;
-            float crWAR = runsAboveRep / ls.RPerWin;
+            // League-based stats
+            var warValues = GetHitterWarValues(ls, stats.HBP, stats.BB, singles, stats.Hit2B, stats.Hit3B, stats.HR, pa,
+        stats.ParkRunFactor, crBSR, crDEF);
 
             Player_Hitter_MonthAdvanced ma = new()
             {
@@ -42,8 +35,8 @@ namespace DataAquisition
                 OBP = pa > 0 ? (float)(stats.H + stats.BB + stats.HBP) / pa : 0.3f,
                 SLG = avg + iso,
                 ISO = iso,
-                WOBA = woba,
-                WRC = Utilities.CalculateWrcPlus(woba, stats.ParkRunFactor, ls),
+                WOBA = warValues.Woba,
+                WRC = Utilities.CalculateWrcPlus(warValues.Woba, stats.ParkRunFactor, ls),
                 HRPerc = pa > 0 ? (float)stats.HR / pa : 0,
                 BBPerc = pa > 0 ? (float)stats.BB / pa : 0,
                 KPerc = pa > 0 ? (float)stats.K / pa : 0,
@@ -52,12 +45,30 @@ namespace DataAquisition
                 SB = stats.SB,
                 CS = stats.CS,
                 HR = stats.HR,
-                CrOFF = crOff,
-                CrWAR = crWAR,
-                CrREP = crREP,
+                CrOFF = warValues.CrOFF,
+                CrWAR = warValues.CrWAR,
+                CrREP = warValues.CrREP,
             };
 
             return ma;
+        }
+
+        public static (float Woba, float WRAA, float CrOFF, float CrREP, float RunsAboveRep, float CrWAR) GetHitterWarValues(
+            LeagueStats ls,
+            float hbp, float bb, float h1B, float h2B, float h3B, float hr, float pa,
+            float parkFactor,
+            float crBSR, float crDEF)
+        {
+            float woba = CalculateWOBA(ls, hbp, bb, h1B, h2B, h3B, hr, pa);
+            float wRAA = (woba - ls.AvgWOBA) / ls.WOBAScale * pa;
+            float crOff = wRAA + (ls.RPerPA * (1.0f - parkFactor) * pa);
+            float crREP = Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
+                                ls.LeagueGames * ls.RPerWin / ls.LeaguePA * pa;
+
+            float runsAboveRep = crOff + crREP + crBSR + crDEF;
+            float crWAR = runsAboveRep / ls.RPerWin;
+
+            return (woba, wRAA, crOff, crREP, runsAboveRep, crWAR);
         }
 
         public static Func<Player_Hitter_GameLog, Player_Hitter_GameLog, Player_Hitter_GameLog> HitterGameLogAggregation = (a, b) =>
@@ -153,42 +164,14 @@ namespace DataAquisition
             int singles = stats.H - stats.Hit2B - stats.Hit3B - stats.HR;
 
             float era = stats.Outs > 0 ? (float)stats.ER * 27 / stats.Outs : stats.ER * 27.0f;
-            float fip = Utilities.CalculateFip(ls.CFIP, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs);
+            var warValues = GetPitcherWarValues(ls, stats.HR, stats.K, stats.BB + stats.HBP, stats.Outs, era,
+                stats.G, stats.SPPerc, stats.ParkRunFactor);
 
             // Calculate WAR
-            float war = 0;
+            // MLB uses the external WAR instead of crWAR
+            float war = warValues.CrWAR;
             if (stats.LevelId == 1)
-            {
-                if (pmw != null)
-                    war = pmw.WAR_r + pmw.WAR_s;
-            }
-            else
-            {
-                // crWAR
-                // https://library.fangraphs.com/war/calculating-war-pitchers/
-                float fipr9 = fip + ls.FIPR9Adjustment;
-                float pFIPR9 = fipr9 / stats.ParkRunFactor;
-                float leagueFIPR9 = ls.LeagueERA + ls.FIPR9Adjustment;
-                float raap9 = leagueFIPR9 - pFIPR9;
-
-                int numGames = stats.G;
-                float inningsPerGame = stats.Outs / 3.0f / numGames;
-
-                // calculate dynamic runs per win
-                float nonPitcherRunEnvironent = (18 - inningsPerGame) * leagueFIPR9;
-                float pitcherRunEnvironment = inningsPerGame * pFIPR9;
-                float runEnvironment = (nonPitcherRunEnvironent + pitcherRunEnvironment) / 18;
-                float dRPW = (runEnvironment + 2) * 1.5f;
-
-                // Wins per game above average
-                float wpgaa = raap9 / dRPW;
-
-                float startPercentage = (float)stats.SPPerc;
-                float replacementLevel = (0.03f * (1 - startPercentage)) + (0.12f * startPercentage);
-                float wpgar = wpgaa + replacementLevel;
-
-                war = wpgar * stats.Outs / 27.0f;
-            }
+                war = pmw != null ? pmw.WAR_r + pmw.WAR_s : 0;
 
             Player_Pitcher_MonthAdvanced ma = new()
             {
@@ -206,14 +189,46 @@ namespace DataAquisition
                 BBPerc = stats.BattersFaced > 0 ? (float)stats.BB / stats.BattersFaced : 0,
                 KPerc = stats.BattersFaced > 0 ? (float)stats.K / stats.BattersFaced : 0,
                 ERA = era,
-                FIP = fip,
-                ERAMinus = ((2 - stats.ParkRunFactor) * era) / ls.LeagueERA * 100,
-                FIPMinus = ((2 - stats.ParkRunFactor) * fip) / ls.LeagueERA * 100,
+                FIP = warValues.FIP,
+                ERAMinus = warValues.ERAMinus,
+                FIPMinus = warValues.FIPMinus,
                 GBRatio = stats.AO > 0 ? (float)stats.GO / (stats.GO + stats.AO) : 1.0f,
                 HR = stats.HR,
                 CrWAR = war,
             };
             return ma;
+        }
+
+        // https://library.fangraphs.com/war/calculating-war-pitchers/
+        public static (float FIP, float ERAMinus, float FIPMinus, float CrRAA, float CrWAR) GetPitcherWarValues(
+            LeagueStats ls,
+            float hr, float k, float bbPlusHBP, float outs, float era,
+            float games, float spPerc, float parkRunFactor)
+        {
+            float fip = CalculateFip(ls.CFIP, hr, k, bbPlusHBP, outs);
+            float eraMinus = ((2 - parkRunFactor) * era) / ls.LeagueERA * 100;
+            float fipMinus = ((2 - parkRunFactor) * fip) / ls.LeagueERA * 100;
+
+            float fipr9 = fip + ls.FIPR9Adjustment;
+            float pFIPR9 = fipr9 / parkRunFactor;
+            float leagueFIPR9 = ls.LeagueERA + ls.FIPR9Adjustment;
+            float raap9 = leagueFIPR9 - pFIPR9;
+            float crRAA = raap9 * outs / 27.0f;
+            float inningsPerGame = outs / 3.0f / games;
+
+            // calculate dynamic runs per win
+            float nonPitcherRunEnvironent = (18 - inningsPerGame) * leagueFIPR9;
+            float pitcherRunEnvironment = inningsPerGame * pFIPR9;
+            float runEnvironment = (nonPitcherRunEnvironent + pitcherRunEnvironment) / 18;
+            float dRPW = (runEnvironment + 2) * 1.5f;
+
+            // Wins per game above average
+            float wpgaa = raap9 / dRPW;
+            float replacementLevel = (0.03f * (1 - spPerc)) + (0.12f * spPerc);
+            float wpgar = wpgaa + replacementLevel;
+            float crWAR = wpgar * outs / 27.0f;
+
+            return (fip, eraMinus, fipMinus, crRAA, crWAR);
         }
 
         public static Func<Player_Pitcher_GameLog, Player_Pitcher_GameLog, Player_Pitcher_GameLog> PitcherGameLogAggregation = (a, b) =>
@@ -333,7 +348,7 @@ namespace DataAquisition
             return (parkFactor, parkHRFactor);
         }
 
-        public static float CalculateWOBA(LeagueStats ls, int hbp, int bb, int h1B, int h2B, int h3B, int hr, int pa)
+        public static float CalculateWOBA(LeagueStats ls, float hbp, float bb, float h1B, float h2B, float h3B, float hr, float pa)
         {
             if (pa == 0)
                 return ls.AvgWOBA;
@@ -345,7 +360,7 @@ namespace DataAquisition
                 (ls.WHR * hr)) / pa;
         }
 
-        public static float CalculateFip(float cFIP, int hr, int k, int bbPlusHBP, int outs)
+        public static float CalculateFip(float cFIP, float hr, float k, float bbPlusHBP, float outs)
         {
             if (outs == 0)
                 return 20.0f; // Don't want too high otherwise will mess up normalization
@@ -372,12 +387,6 @@ namespace DataAquisition
         {
             if (player.SigningYear >= Constants.MODEL_CUTOFF_YEAR || pcs.IgnorePlayer > 0)
                 return false;
-
-            // This was the logic to calculate originally, but then hard cutoffs using this data was done in ModelEligibilityEvaluation
-            //if (player.SigningYear < Constants.MODEL_CUTOFF_YEAR
-            //    && pcs.IgnorePlayer == null
-            //    && (pcs.ServiceEndYear != null || pcs.ServiceLapseYear != null || pcs.AgedOut != null || pcs.PlayingGap != null))
-            //    return true;
 
             // A player who was 21 at cutoffYear should be included, those not 21 should not be.
             #pragma warning disable CS8629

@@ -7,18 +7,286 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SitePrep
 {
+    public static class PredictionConverter
+    {
+        public static bool IsLevelDiscontinued(int level, int year)
+        {
+            return level == 5 && year >= 2020; // Short season A was discontinued
+        }
+
+        public static Prediction_HitterStats? ConvertHitter(Output_HitterStatsAggregation output, LeagueBaselineCache cache)
+        {
+            if (output.Year == 0 || IsLevelDiscontinued(output.LevelId, output.Year))
+                return null;
+
+            HitterBaseline baseline = cache.GetHitterBaseline(output.Year, output.Month, output.LevelId);
+            League_HitterYearStats leagueStatsAvg = baseline.StatsAvg;
+            LeagueStats ls = baseline.BaselineAvg;
+            float pa = output.Pa;
+
+            // Convert player rates and stat rates to raw numbers
+            float hit1B = output.Hit1B * leagueStatsAvg.Hit1B * pa;
+            float hit2B = output.Hit2B * leagueStatsAvg.Hit2B * pa;
+            float hit3B = output.Hit3B * leagueStatsAvg.Hit3B * pa;
+            float hitHR = output.HitHR * leagueStatsAvg.HitHR * pa;
+            float BB = output.BB * leagueStatsAvg.BB * pa;
+            float HBP = output.HBP * leagueStatsAvg.HBP * pa;
+            float K = output.K * leagueStatsAvg.K * pa;
+            float SB = output.SB * leagueStatsAvg.SB * pa;
+            float CS = output.CS * leagueStatsAvg.CS * pa;
+
+            // Do some stat calculations
+            float ab = pa - BB - HBP; // TODO : This does not track sac flies/bunts
+            float avg = (hit1B + hit2B + hit3B + hitHR) / ab;
+            float slg = (hit1B + (2 * hit2B) + (3 * hit3B) + (4 * hitHR)) / ab;
+            float iso = slg - avg;
+            float obp = (hit1B + hit2B + hit3B + hitHR + BB + HBP) / pa;
+            
+
+            // Calculate value
+            float bsr = output.BSR * pa / 100.0f;
+            float def_pos = Utilities.CalculateDef(pa, output.PercC, output.Perc1B, output.Perc2B, output.Perc3B, output.PercSS, output.PercLF, output.PercCF, output.PercRF, output.PercDH);
+            float draa = output.DRAA * pa / 100.0f;
+            float def = def_pos + draa;
+
+            var warValues = DataAquisition.Utilities.GetHitterWarValues(ls, HBP, BB, hit1B, hit2B, hit3B, hitHR, pa,
+                output.ParkRunFactor, bsr, def);
+            float wrc = DataAquisition.Utilities.CalculateWrcPlus(warValues.Woba, output.ParkRunFactor, ls);
+
+
+            return new Prediction_HitterStats
+            {
+                MlbId = output.MlbId,
+                Month = output.Month,
+                Year = output.Year,
+                Model = output.ModelId,
+                LevelId = output.LevelId,
+                Pa = pa,
+                Hit1B = hit1B,
+                Hit2B = hit2B,
+                Hit3B = hit3B,
+                HitHR = hitHR,
+                BB = BB,
+                HBP = HBP,
+                K = K,
+                SB = SB,
+                CS = CS,
+                ParkRunFactor = output.ParkRunFactor,
+                AVG = avg,
+                OBP = obp,
+                SLG = slg,
+                ISO = iso,
+                WRC = wrc,
+                CrOFF = warValues.CrOFF,
+                CrDEF = def,
+                CrDPOS = def_pos,
+                CrDRAA = draa,
+                CrBSR = bsr,
+                CrWAR = warValues.CrWAR,
+                PercC = output.PercC,
+                Perc1B = output.Perc1B,
+                Perc2B = output.Perc2B,
+                Perc3B = output.Perc3B,
+                PercSS = output.PercSS,
+                PercLF = output.PercLF,
+                PercCF = output.PercCF,
+                PercRF = output.PercRF,
+                PercDH = output.PercDH,
+            };
+        }
+
+        public static Prediction_PitcherStats? ConvertPitcher(Output_PitcherStatsAggregation output, LeagueBaselineCache cache)
+        {
+            // The pipeline never produced rows for these, so the shared function doesn't either
+            if (output.Year == 0 || IsLevelDiscontinued(output.LevelId, output.Year))
+                return null;
+
+            PitcherBaseline baseline = cache.GetPitcherBaseline(output.Year, output.Month, output.LevelId);
+            League_PitcherYearStats leagueStatsAvg = baseline.StatsAvg;
+            LeagueStats ls = baseline.BaselineAvg;
+
+            // Convert player rates and stat rates to raw numbers
+            float outs = output.Outs_SP + output.Outs_RP;
+            float pa = outs / 0.7f; // TODO : Need to get this better
+            float hitHR = output.HR * leagueStatsAvg.HRPerc * pa;
+            float BB = output.BB * leagueStatsAvg.BBPerc * pa;
+            float HBP = output.HBP * leagueStatsAvg.BBPerc * pa * .125f; // TODO : Need to add HBP to leaguePitcherStats
+            float K = output.K * leagueStatsAvg.KPerc * pa;
+            float era = output.ERA * leagueStatsAvg.ERA;
+            float hr9 = hitHR * 27.0f / outs;
+
+            // Calculate value
+            var warValues = DataAquisition.Utilities.GetPitcherWarValues(ls, hitHR, K, BB + HBP, outs, era,
+                games: output.GS + output.GR, spPerc: output.SP_Perc, parkRunFactor: output.ParkRunFactor);
+
+            return new Prediction_PitcherStats
+            {
+                MlbId = output.MlbId,
+                Month = output.Month,
+                Year = output.Year,
+                Model = output.ModelId,
+                LevelId = output.LevelId,
+                Outs_SP = output.Outs_SP,
+                Outs_RP = output.Outs_RP,
+                GS = output.GS,
+                GR = output.GR,
+                BB = BB,
+                HBP = HBP,
+                K = K,
+                HR = hitHR,
+                ERA = era,
+                FIP = warValues.FIP,
+                ERAMinus = warValues.ERAMinus,
+                FIPMinus = warValues.FIPMinus,
+                ParkRunFactor = output.ParkRunFactor,
+                CrRAA = warValues.CrRAA,
+                CrWAR = warValues.CrWAR,
+                SP_Perc = output.SP_Perc,
+                RP_Perc = output.RP_Perc,
+                BBPerc = (float)Math.Round(output.BB * leagueStatsAvg.BBPerc * 100, 1),
+                KPerc = (float)Math.Round(output.K * leagueStatsAvg.KPerc * 100, 1),
+                HR9 = hr9,
+            };
+        }
+    }
+
+    internal record HitterBaseline(League_HitterYearStats StatsAvg, LeagueStats BaselineAvg);
+    internal record PitcherBaseline(League_PitcherYearStats StatsAvg, LeagueStats BaselineAvg);
+    public class LeagueBaselineCache
+    {
+        private readonly Dictionary<(int Year, int LevelId), List<int>> leaguesByYearLevel;
+        private readonly ILookup<(int Year, int Month), League_HitterYearStats> hitterStatsByDate;
+        private readonly ILookup<(int Year, int Month), League_PitcherYearStats> pitcherStatsByDate;
+        private readonly ILookup<int, LeagueStats> leagueBaselinesByYear;
+        
+        private readonly int minYear;
+
+        private readonly Dictionary<(int Year, int Month, int Level), HitterBaseline> hitterBaselines = new();
+        private readonly Dictionary<(int Year, int Month, int Level), PitcherBaseline> pitcherBaselines = new();
+
+        public LeagueBaselineCache(
+            IEnumerable<(int Year, int LevelId, int LeagueId)> levelLeagues,
+            IEnumerable<League_HitterYearStats> hitterLeagueStats,
+            IEnumerable<League_PitcherYearStats> pitcherLeagueStats,
+            IEnumerable<LeagueStats> leagueBaselines)
+        {
+            leaguesByYearLevel = levelLeagues
+                .GroupBy(f => (f.Year, f.LevelId))
+                .ToDictionary(g => g.Key, g => g.Select(f => f.LeagueId).Distinct().ToList());
+            hitterStatsByDate = hitterLeagueStats.ToLookup(f => (f.Year, f.Month));
+            pitcherStatsByDate = pitcherLeagueStats.ToLookup(f => (f.Year, f.Month));
+            leagueBaselinesByYear = leagueBaselines.ToLookup(f => f.Year);
+            minYear = leaguesByYearLevel.Count > 0 ? leaguesByYearLevel.Keys.Min(k => k.Year) : int.MaxValue;
+        }
+
+        public static LeagueBaselineCache Load(SqliteDbContext db)
+        {
+            var levelLeagues = db.Player_Hitter_MonthStats
+                .Select(f => new { f.Year, f.LevelId, f.LeagueId })
+                .Distinct()
+                .ToList()
+                .Select(f => (f.Year, f.LevelId, f.LeagueId));
+
+            return new LeagueBaselineCache(
+                levelLeagues,
+                db.League_HitterYearStats.AsNoTracking().ToList(),
+                db.League_PitcherYearStats.AsNoTracking().ToList(),
+                db.LeagueStats.AsNoTracking().ToList());
+        }
+
+        internal HitterBaseline GetHitterBaseline(int dateYear, int dateMonth, int level)
+        {
+            var key = (dateYear, dateMonth, level);
+            if (hitterBaselines.TryGetValue(key, out HitterBaseline? cached))
+                return cached;
+
+            var (year, month, leagues, leagueBaselines) = ResolveLeagues(dateYear, dateMonth, level);
+
+            var leagueStats = hitterStatsByDate[(year, month)]
+                .Where(f => leagues.Contains(f.LeagueId))
+                .OrderBy(f => f.LeagueId)
+                .ToList();
+
+            if (leagueStats.Count == 0)
+                throw new Exception($"No League_HitterStats found for {dateYear}-{dateMonth}-({year}-{month})-{level}");
+            if (leagueBaselines.Count == 0)
+                throw new Exception($"No LeagueStats found for {dateYear}-{dateMonth}-({year}-{month})-{level}");
+
+            HitterBaseline baseline = new(
+                Utilities.MergeLeagueHitterYearStats(leagueStats),
+                Utilities.MergeLeagueStats(leagueBaselines));
+            hitterBaselines[key] = baseline;
+            return baseline;
+        }
+
+        internal PitcherBaseline GetPitcherBaseline(int dateYear, int dateMonth, int level)
+        {
+            var key = (dateYear, dateMonth, level);
+            if (pitcherBaselines.TryGetValue(key, out PitcherBaseline? cached))
+                return cached;
+
+            var (year, month, leagues, leagueBaselines) = ResolveLeagues(dateYear, dateMonth, level);
+
+            // Ordering matters here: the merge pairs each league's stats with its PA weight by position
+            var leagueStats = pitcherStatsByDate[(year, month)]
+                .Where(f => leagues.Contains(f.LeagueId))
+                .OrderBy(f => f.LeagueId)
+                .ToList();
+
+            if (leagueStats.Count == 0)
+                throw new Exception($"No League_PitcherStats found for {dateYear}-{dateMonth}-({year}-{month})-{level}");
+            if (leagueBaselines.Count == 0)
+                throw new Exception($"No LeagueStats found for {dateYear}-{dateMonth}-({year}-{month})-{level}");
+
+            PitcherBaseline baseline = new(
+                Utilities.MergeLeaguePitcherYearStats(leagueStats, leagueBaselines.Select(f => f.LeaguePA)),
+                Utilities.MergeLeagueStats(leagueBaselines));
+            pitcherBaselines[key] = baseline;
+            return baseline;
+        }
+
+        private (int Year, int Month, List<int> Leagues, List<LeagueStats> LeagueBaselines) ResolveLeagues(int dateYear, int dateMonth, int level)
+        {
+            int year = dateYear;
+            int month = dateMonth;
+            int mlbLevelId = Constants.ModelLevelToMlbLevel[level];
+
+            // If data doesn't exist, go back month by month until it does
+            List<int>? leagues;
+            while (!leaguesByYearLevel.TryGetValue((year, mlbLevelId), out leagues))
+            {
+                month--;
+                if (month <= 3)
+                {
+                    month = 9;
+                    year--;
+                }
+                
+                if (year < minYear)
+                    throw new Exception($"No leagues found for {dateYear}-{dateMonth}-{level}");
+            }
+
+            List<LeagueStats> leagueBaselines = leagueBaselinesByYear[year]
+                .Where(f => leagues.Contains(f.LeagueId))
+                .OrderBy(f => f.LeagueId)
+                .ToList();
+
+            return (year, month, leagues, leagueBaselines);
+        }
+    }
+
     internal class GeneratePredictions
     {
         private static void GenerateHitterPredictions()
         {
-            using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
-            {
-                sitedb.Database.ExecuteSqlRaw("DELETE FROM Prediction_HitterStats;");
-            }
-
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
             using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
+
+            siteDb.Prediction_HitterStats.ExecuteDelete();
+
+            LeagueBaselineCache cache = LeagueBaselineCache.Load(db);
+
             var models = modelDb.Output_HitterStatsAggregation.Select(f => f.ModelId).Distinct().OrderBy(f => f).ToList();
             var dates = modelDb.Output_HitterStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
             List<int> levels = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -30,7 +298,7 @@ namespace SitePrep
                 {
                     foreach(var level in levels)
                     {
-                        if (level == 5 && date.Year >= 2020) // Short season A was discontinued
+                        if (PredictionConverter.IsLevelDiscontinued(level, date.Year)) // Short season A was discontinued
                         {
                             foreach(var model in models)
                             {
@@ -39,44 +307,7 @@ namespace SitePrep
                             continue;
                         }
 
-                        int year = date.Year;
-                        int month = date.Month;
-                        // Get baseline for all leagues at this level
-                        // If data doesn't exist, go back month by month until it does
-                        List<int> leagues = new();
-                        do
-                        {
-                            leagues = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LevelId == Constants.ModelLevelToMlbLevel[level]).Select(f => f.LeagueId).Distinct().ToList();
-                                
-                            if (leagues.Count == 0)
-                            {
-                                month--;
-                                if (month <= 3)
-                                {
-                                    month = 9;
-                                    year--;
-                                }
-                            }
-                        } while (leagues.Count == 0);
-
-                        // Get all league baselines for that level
-                        var leagueStats = db.League_HitterYearStats.Where(f => f.Year == year && f.Month == month && leagues.Contains(f.LeagueId)).ToList();
-                        var leagueBaselines = db.LeagueStats.Where(f => f.Year == year && leagues.Contains(f.LeagueId)).ToList();
-
-                        if (leagueStats.Count == 0)
-                        {
-                            throw new Exception($"No League_HitterStats found for {date.Year}-{date.Month}-({year}-{month})-{level}");
-                        }
-                        if (leagueBaselines.Count == 0)
-                        {
-                            throw new Exception($"No LeagueStats found for {date.Year}-{date.Month}-({year}-{month})-{level}");
-                        }
-
-                        // Take average of each league
-                        League_HitterYearStats leagueStatsAvg = Utilities.MergeLeagueHitterYearStats(leagueStats);
-                        LeagueStats leagueBaselineAvg = Utilities.MergeLeagueStats(leagueBaselines);
-
-                        float leaguewRCperPA = (((leagueBaselineAvg.AvgHitterWOBA - leagueBaselineAvg.AvgWOBA) / leagueBaselineAvg.WOBAScale) + leagueBaselineAvg.RPerPA);
+                        cache.GetHitterBaseline(date.Year, date.Month, level);
 
                         // Get all predictions for this level
                         foreach (var model in models) // Allows for better indexing to include
@@ -84,92 +315,9 @@ namespace SitePrep
                             var players = modelDb.Output_HitterStatsAggregation.Where(f => f.ModelId == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
                             foreach (var player in players)
                             {
-                                
-                                // Convert player rates and stat rates to raw numbers
-                                float hit1B = player.Hit1B * leagueStatsAvg.Hit1B * player.Pa;
-                                float hit2B = player.Hit2B * leagueStatsAvg.Hit2B * player.Pa;
-                                float hit3B = player.Hit3B * leagueStatsAvg.Hit3B * player.Pa;
-                                float hitHR = player.HitHR * leagueStatsAvg.HitHR * player.Pa;
-                                float BB = player.BB * leagueStatsAvg.BB * player.Pa;
-                                float HBP = player.HBP * leagueStatsAvg.HBP * player.Pa;
-                                float K = player.K * leagueStatsAvg.K * player.Pa;
-                                float SB = player.SB * leagueStatsAvg.SB * player.Pa;
-                                float CS = player.CS * leagueStatsAvg.CS * player.Pa;
-
-                                // Do some stat calculations
-
-                                float wOBA = Utilities.CalculateWOBA(leagueBaselineAvg, HBP, BB, hit1B, hit2B, hit3B, hitHR, player.Pa);
-                                float ab = (player.Pa - BB - HBP);
-                                float avg = (hit1B + hit2B + hit3B + hitHR) / ab;
-                                float slg = (hit1B + (2 * hit2B) + (3 * hit3B) + (4 * hitHR)) / ab;
-                                float iso = slg - avg;
-                                float obp = (hit1B + hit2B + hit3B + hitHR + BB + HBP) / player.Pa;
-
-                                // Calculate wRC and OFF
-                                float wRAAPerPA = (wOBA - leagueBaselineAvg.AvgWOBA) / leagueBaselineAvg.WOBAScale;
-                                // wRC+ = (a + (b - c)) / d * 100
-                                float a = wRAAPerPA + leagueBaselineAvg.RPerPA;
-                                float b = leagueBaselineAvg.RPerPA;
-                                float c = (player.ParkRunFactor * leagueBaselineAvg.RPerPA);
-                                float d = leaguewRCperPA;
-                                float wrc = 100 * (a + (b - c)) / d;
-
-                                // Calculate value
-                                float bsr = player.BSR * player.Pa / 100.0f;
-                                float def_pos = Utilities.CalculateDef(player.Pa, player.PercC, player.Perc1B, player.Perc2B, player.Perc3B, player.PercSS, player.PercLF, player.PercCF, player.PercRF, player.PercDH);
-                                float draa = player.DRAA * player.Pa / 100.0f;
-                                float def = def_pos + draa;
-                                float off_runs = wRAAPerPA * player.Pa;
-                                float off = (wOBA - leagueBaselineAvg.AvgHitterWOBA) / leagueBaselineAvg.WOBAScale * player.Pa;
-                                float replacementRuns =
-                                    Constants.REPLACEMENT_LEVEL_WIN_PERCENTAGE * Constants.HITTER_WAR_PERCENTAGE *
-                                    leagueBaselineAvg.LeagueGames * leagueBaselineAvg.RPerWin / leagueBaselineAvg.LeaguePA * player.Pa;
-                                float runsAboveRep = replacementRuns + player.BSR + def + off_runs;
-                                float war = runsAboveRep / leagueBaselineAvg.RPerWin;
-
-                                if (level == 0 && date.Year == 2025 && date.Month == 9 && player.MlbId == 691406)
-                                {
-                                    leagueBaselineAvg.Year += 0;
-                                }
-
-                                results.Add(new Prediction_HitterStats{
-                                    MlbId = player.MlbId,
-                                    Month = date.Month,
-                                    Year = date.Year,
-                                    Model = model,
-                                    LevelId = level,
-                                    Pa = player.Pa,
-                                    Hit1B = hit1B,
-                                    Hit2B = hit2B,
-                                    Hit3B = hit3B,
-                                    HitHR = hitHR,
-                                    BB = BB,
-                                    HBP = HBP,
-                                    K = K,
-                                    SB = SB,
-                                    CS = CS,
-                                    ParkRunFactor = player.ParkRunFactor,
-                                    AVG = avg,
-                                    OBP = obp,
-                                    SLG = slg,
-                                    ISO = iso,
-                                    WRC = wrc,
-                                    CrOFF = off,
-                                    CrDEF = def,
-                                    CrDPOS = def_pos,
-                                    CrDRAA = draa,
-                                    CrBSR = bsr,
-                                    CrWAR = war,
-                                    PercC = player.PercC,
-                                    Perc1B = player.Perc1B,
-                                    Perc2B = player.Perc2B,
-                                    Perc3B = player.Perc3B,
-                                    PercSS = player.PercSS,
-                                    PercLF = player.PercLF,
-                                    PercCF = player.PercCF,
-                                    PercRF = player.PercRF,
-                                    PercDH = player.PercDH,
-                                });
+                                Prediction_HitterStats? prediction = PredictionConverter.ConvertHitter(player, cache);
+                                if (prediction != null)
+                                    results.Add(prediction);
                             }
                             progressBar.Tick();
                         }
@@ -182,14 +330,14 @@ namespace SitePrep
 
         private static void GeneratePitcherPredictions()
         {
-            using (SiteDbContext sitedb = new(Constants.SITEDB_OPTIONS))
-            {
-                sitedb.Database.ExecuteSqlRaw("DELETE FROM Prediction_PitcherStats;");
-            }
-
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
             using SiteDbContext siteDb = new(Constants.SITEDB_OPTIONS);
             using ModelDbContext modelDb = new(Constants.MODELDB_OPTIONS);
+
+            siteDb.Prediction_PitcherStats.ExecuteDelete();
+
+            LeagueBaselineCache cache = LeagueBaselineCache.Load(db);
+
             var models = modelDb.Output_PitcherStatsAggregation.Select(f => f.ModelId).Distinct().OrderBy(f => f).ToList();
             var dates = modelDb.Output_PitcherStatsAggregation.Where(f => f.Year != 0).Select(f => new { f.Year, f.Month }).Distinct().OrderBy(f => f.Year).ThenBy(f => f.Month).ToList();
             List<int> levels = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -201,119 +349,28 @@ namespace SitePrep
                 {
                     foreach (var level in levels)
                     {
-                        if (level == 5 && date.Year >= 2020) // Short season A was discontinued
+                        if (PredictionConverter.IsLevelDiscontinued(level, date.Year))
                         {
                             foreach (var model in models)
                             {
                                 progressBar.Tick();
                             }
+
                             continue;
                         }
+                        
 
-                        int year = date.Year;
-                        int month = date.Month;
-                        // Get baseline for all leagues at this level
-                        // If data doesn't exist, go back month by month until it does
-                        List<int> leagues = new();
-                        do
-                        {
-                            leagues = db.Player_Hitter_MonthStats.Where(f => f.Year == year && f.LevelId == Constants.ModelLevelToMlbLevel[level]).Select(f => f.LeagueId).Distinct().ToList();
-
-                            if (leagues.Count == 0)
-                            {
-                                month--;
-                                if (month <= 3)
-                                {
-                                    month = 9;
-                                    year--;
-                                }
-                            }
-                        } while (leagues.Count == 0);
-
-                        // Get all league baselines for that level
-                        var leagueStats = db.League_PitcherYearStats.Where(f => f.Year == year && f.Month == month && leagues.Contains(f.LeagueId)).OrderBy(f => f.LeagueId).ToList();
-                        var leagueBaselines = db.LeagueStats.Where(f => f.Year == year && leagues.Contains(f.LeagueId)).OrderBy(f => f.LeagueId).ToList();
-
-                        if (leagueStats.Count == 0)
-                        {
-                            throw new Exception($"No League_PitcherStats found for {date.Year}-{date.Month}-({year}-{month})-{level}");
-                        }
-                        if (leagueBaselines.Count == 0)
-                        {
-                            throw new Exception($"No LeagueStats found for {date.Year}-{date.Month}-({year}-{month})-{level}");
-                        }
-
-                        // Take average of each league
-                        League_PitcherYearStats leagueStatsAvg = Utilities.MergeLeaguePitcherYearStats(leagueStats, leagueBaselines.Select(f => f.LeaguePA));
-                        LeagueStats lbs = Utilities.MergeLeagueStats(leagueBaselines);
-                        float leagueFIPR9 = lbs.LeagueERA + lbs.FIPR9Adjustment;
+                        cache.GetPitcherBaseline(date.Year, date.Month, level);
 
                         // Get all predictions for this level
-                        foreach (var model in models) // Allows for better indexing to include
+                        foreach (var model in models)
                         {
                             var players = modelDb.Output_PitcherStatsAggregation.Where(f => f.ModelId == model && f.Year == date.Year && f.Month == date.Month && f.LevelId == level).ToList();
                             foreach (var player in players)
                             {
-                                // Convert player rates and stat rates to raw numbers
-                                float pa = (player.Outs_RP + player.Outs_SP) / 0.7f; // Need to get this better
-                                float hitHR = player.HR * leagueStatsAvg.HRPerc * pa;
-                                float BB = player.BB * leagueStatsAvg.BBPerc * pa;
-                                float HBP = player.HBP * leagueStatsAvg.BBPerc * pa * .125f; // Need to add HBP to leaguePitcherStats
-                                float K = player.K * leagueStatsAvg.KPerc * pa;
-                                float era = player.ERA * leagueStatsAvg.ERA;
-                                float hr9 = hitHR * 27.0f / (player.Outs_RP + player.Outs_SP);
-
-                                // Calculate value
-                                float fip = Utilities.CalculateFip(lbs.CFIP, hitHR, K, BB + HBP, player.Outs_SP + player.Outs_RP);
-                                float fipr9 = fip + lbs.FIPR9Adjustment;
-                                float pFIPR9 = fipr9 / player.ParkRunFactor;
-                                float raap9 = leagueFIPR9 - pFIPR9;
-                                float crRAA = raap9 * (player.Outs_SP + player.Outs_RP) / 27.0f;
-
-                                float numGames = player.GS + player.GR;
-                                float inningsPerGame = ((player.Outs_RP + player.Outs_SP) / 3.0f) / numGames;
-
-                                // calculate dynamic runs per win
-                                float nonPitcherRunEnvironent = (18 - inningsPerGame) * leagueFIPR9;
-                                float pitcherRunEnvironment = (inningsPerGame * pFIPR9);
-                                float runEnvironment = (nonPitcherRunEnvironent + pitcherRunEnvironment) / 18;
-                                float dRPW = (runEnvironment + 2) * 1.5f;
-
-                                // Wins per game above average
-                                float wpgaa = raap9 / dRPW;
-
-                                float replacementLevel = (0.03f * player.RP_Perc) + (0.12f * player.SP_Perc);
-                                float wpgar = wpgaa + replacementLevel;
-                                float war = wpgar * (player.Outs_RP + player.Outs_SP) / 27.0f;
-
-                                results.Add(new Prediction_PitcherStats
-                                {
-                                    MlbId = player.MlbId,
-                                    Month = date.Month,
-                                    Year = date.Year,
-                                    Model = model,
-                                    LevelId = level,
-                                    Outs_SP = player.Outs_SP,
-                                    Outs_RP = player.Outs_RP,
-                                    GS = player.GS,
-                                    GR = player.GR,
-                                    BB = BB,
-                                    HBP = HBP,
-                                    K = K,
-                                    HR = hitHR,
-                                    ERA = era,
-                                    FIP = fip,
-                                    ERAMinus = ((2 - player.ParkRunFactor) * era) / lbs.LeagueERA * 100,
-                                    FIPMinus = ((2 - player.ParkRunFactor) * fip) / lbs.LeagueERA * 100,
-                                    ParkRunFactor = player.ParkRunFactor,
-                                    CrRAA = crRAA,
-                                    CrWAR = war,
-                                    SP_Perc = player.SP_Perc,
-                                    RP_Perc = player.RP_Perc,
-                                    BBPerc = (float)Math.Round(player.BB * leagueStatsAvg.BBPerc * 100, 1),
-                                    KPerc = (float)Math.Round(player.K * leagueStatsAvg.KPerc * 100, 1),
-                                    HR9 = hr9,
-                                });
+                                Prediction_PitcherStats? prediction = PredictionConverter.ConvertPitcher(player, cache);
+                                if (prediction != null)
+                                    results.Add(prediction);
                             }
 
                             progressBar.Tick();

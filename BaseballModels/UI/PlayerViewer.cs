@@ -154,7 +154,7 @@ namespace UI
             var ctx = new CalculateHitterStats.HitterModelContext(modelLeagueCache, hitters, END_YEAR, END_MONTH);
             List<Model_HitterStats> hypoHitterStats = CalculateHitterStats.BuildHitterStats(currentPlayer.MlbId, ctx);
 
-            //var cmpString = ModelRowComparer.Compare("T", dbModelHitterStats, hypoHitterStats, f => (f.Year, f.Month));
+            var cmpString = ModelRowComparer.Compare("T", dbModelHitterStats, hypoHitterStats, f => (f.Year, f.Month));
 
             await RunModelAsync(currentPlayer, sb, () => TestRunnerPy.RunHitterVariants(
                 currentPlayer.MlbId, dbCollegePlayer?.TBCId, modelId: 1,

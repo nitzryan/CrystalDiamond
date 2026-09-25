@@ -254,25 +254,6 @@ namespace SitePrep
             return leagueStats;
         }
 
-        public static float CalculateWOBA(LeagueStats ls, float hbp, float bb, float h1B, float h2B, float h3B, float hr, float pa)
-        {
-            if (pa == 0)
-                return ls.AvgWOBA;
-            return ((ls.WHBP * hbp) +
-                (ls.WBB * bb) +
-                (ls.W1B * h1B) +
-                (ls.W2B * h2B) +
-                (ls.W3B * h3B) +
-                (ls.WHR * hr)) / pa;
-        }
-
-        public static float CalculateFip(float cFIP, float hr, float k, float bbPlusHBP, float outs)
-        {
-            if (outs == 0)
-                return 20.0f; // Don't want too high otherwise will mess up normalization
-            return (((13 * hr) + (3 * bbPlusHBP) - (2 * k)) / ((float)outs / 3)) + cFIP;
-        }
-
         public static float CalculateDef(float pa, float percC, float perc1B, float perc2B, float perc3B, float percSS, float percLF, float percCF, float percRF, float percDH)
         {
             float seasons = pa / 650.0f;

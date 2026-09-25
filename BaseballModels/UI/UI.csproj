@@ -20,6 +20,8 @@
     <ProjectReference Include="..\ModelDb\ModelDb.csproj" />
     <ProjectReference Include="..\PitchAnalysis\PitchAnalysis.csproj" />
     <ProjectReference Include="..\PitchDb\PitchDb.csproj" />
+    <ProjectReference Include="..\SiteDb\SiteDb.csproj" />
+    <ProjectReference Include="..\SitePrep\SitePrep.csproj" />
   </ItemGroup>
 
 </Project>

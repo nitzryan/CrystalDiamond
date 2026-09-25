@@ -1,6 +1,6 @@
 ﻿using ModelDb;
-using ScottPlot;
-using ScottPlot.WinForms;
+using SiteDb;
+using SitePrep;
 using UI.Types;
 
 namespace UI.Controls
@@ -9,8 +9,8 @@ namespace UI.Controls
     public record ModelGraphViewerPoint(int Year, int Month, int X,
         SeriesInfo SeriesInfo,
         Output_PlayerWarAggregation? Opwa,
-        List<Output_HitterStatsAggregation>? Ohsa,
-        List<Output_PitcherStatsAggregation>? Opsa);
+        List<Prediction_HitterStats>? Phs,
+        List<Prediction_PitcherStats>? Pps);
 
     public record PlotArgs(
             int Id,
@@ -26,8 +26,8 @@ namespace UI.Controls
         // Definition for the dropdown and selection logic
         private readonly List<PlotArgs> PlotArgsList = [
             new PlotArgs(0, "Prospect WAR", f => f.Opwa != null, f => f.Opwa!.War, 20, "WAR"),
-            new PlotArgs(1, "MLB PA", f => f.Ohsa != null, f => Math.Round(f.Ohsa![0].Pa), 600, "PA"),
-            new PlotArgs(2, "MLB IP", f => f.Opsa != null, f => Math.Round((f.Opsa![0].Outs_SP + f.Opsa![0].Outs_RP) / 3), 200, "IP")
+            new PlotArgs(1, "MLB PA", f => f.Phs != null, f => Math.Round(f.Phs![0].Pa), 600, "PA"),
+            new PlotArgs(2, "MLB IP", f => f.Pps != null, f => Math.Round((f.Pps![0].Outs_SP + f.Pps![0].Outs_RP) / 3), 200, "IP")
         ];
 
         private PlotArgs currentPlotArgs;
@@ -87,6 +87,8 @@ namespace UI.Controls
 
         private readonly List<SeriesInfo> series = [];
         public IReadOnlyList<SeriesInfo> Series => series;
+
+        public static LeagueBaselineCache leagueBaselineCache = LeagueBaselineCache.Load(Global.db);
 
         public ModelGraphViewer()
         {
@@ -164,12 +166,12 @@ namespace UI.Controls
                         results[i].ProWar
                             .Where(f => f.Year == year && f.Month == month)
                             .SingleOrDefault(),
-                        results[i].ProHitStats
+                        ConvertHitterStats(results[i].ProHitStats
                             ?.Where(f => f.Count > 0 && f[0].Year == year && f[0].Month == month)
-                            .SingleOrDefault(),
-                        results[i].ProPitStats
+                            .SingleOrDefault(), leagueBaselineCache),
+                        ConvertPitcherStats(results[i].ProPitStats
                             ?.Where(f => f.Count > 0 && f[0].Year == year && f[0].Month == month)
-                            .SingleOrDefault()
+                            .SingleOrDefault(), leagueBaselineCache)
                     ));
                 }
             }
@@ -179,6 +181,28 @@ namespace UI.Controls
 
             formsPlot.Refresh();
             Visible = true;
+        }
+
+        private static List<Prediction_HitterStats>? ConvertHitterStats(List<Output_HitterStatsAggregation>? outputs, LeagueBaselineCache cache)
+        {
+            if (outputs == null)
+                return null;
+            List<Prediction_HitterStats> predictions = outputs
+                .Select(f => PredictionConverter.ConvertHitter(f, cache))
+                .OfType<Prediction_HitterStats>()
+                .ToList();
+            return predictions.Count > 0 ? predictions : null;
+        }
+
+        private static List<Prediction_PitcherStats>? ConvertPitcherStats(List<Output_PitcherStatsAggregation>? outputs, LeagueBaselineCache cache)
+        {
+            if (outputs == null)
+                return null;
+            List<Prediction_PitcherStats> predictions = outputs
+                .Select(f => PredictionConverter.ConvertPitcher(f, cache))
+                .OfType<Prediction_PitcherStats>()
+                .ToList();
+            return predictions.Count > 0 ? predictions : null;
         }
 
         public void ClearResults()
