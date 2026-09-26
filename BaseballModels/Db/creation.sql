@@ -1015,7 +1015,7 @@ CREATE TABLE "Player_MlbFielding" (
 	"Outs" INTEGER NOT NULL,
 	"DRAA" REAL NOT NULL,
 
-	PRIMARY KEY("mlbId","year","month","Position")
+	PRIMARY KEY("mlbId","year","Position")
 );
 
 CREATE TABLE "Player_YearlyWPA" (
