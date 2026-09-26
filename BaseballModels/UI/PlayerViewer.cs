@@ -246,10 +246,24 @@ namespace UI
 
         private void UpdateModelButtons()
         {
-            bool canRun = TestRunnerPy.IsReady && !isModelRunning && currentPlayer is not null;
             bool? isHitter = dbModelPlayer?.IsHitter;
-            btnHitterModelData.Enabled = canRun && isHitter == true;
-            btnPitcherModelData.Enabled = canRun && isHitter == false;
+            SetModelButton(btnHitterModelData, "Hitter", isHitter == true);
+            SetModelButton(btnPitcherModelData, "Pitcher", isHitter == false);
+        }
+
+        private void SetModelButton(Button button, string role, bool playerMatches)
+        {
+            // First applicable reason wins, null means the button is usable
+            string? disabledReason =
+                !TestRunnerPy.IsReady ? "Models Not Loaded" :
+                currentPlayer is null ? "No Player Selected" :
+                dbModelPlayer is null ? "Not In Model" :
+                !playerMatches ? $"Not a {role}" :
+                isModelRunning ? "Request in Progress" :
+                null;
+
+            button.Enabled = disabledReason is null;
+            button.Text = disabledReason ?? $"Get {role} Model Data";
         }
     }
 
