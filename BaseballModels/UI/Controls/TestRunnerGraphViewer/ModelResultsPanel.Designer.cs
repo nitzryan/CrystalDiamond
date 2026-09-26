@@ -64,6 +64,7 @@
             tlpRightCol.RowCount = 2;
             tlpRightCol.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tlpRightCol.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tlpRightCol.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tlpRightCol.Size = new Size(194, 306);
             tlpRightCol.TabIndex = 0;
             // 
@@ -79,10 +80,10 @@
             // 
             // detail
             // 
-            detail.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            detail.Location = new Point(3, 153);
+            detail.Dock = DockStyle.Fill;
+            detail.Location = new Point(3, 53);
             detail.Name = "detail";
-            detail.Size = new Size(188, 150);
+            detail.Size = new Size(188, 250);
             detail.TabIndex = 1;
             detail.Visible = false;
             // 
@@ -93,6 +94,7 @@
             graph.Name = "graph";
             graph.Size = new Size(367, 306);
             graph.TabIndex = 1;
+            graph.Visible = false;
             // 
             // ModelResultsPanel
             // 

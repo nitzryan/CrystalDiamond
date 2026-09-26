@@ -23,12 +23,12 @@ namespace UI.Controls.TestRunnerGraphViewer
             Prediction_HitterStats h = point.Phs![0];
             return [
                 new("PA", h.Pa.ToString("F0")),
-                new("AVG", h.AVG.ToString("F3")),
-                new("OBP", h.OBP.ToString("F3")),
-                new("SLG", h.SLG.ToString("F3")),
+                new("K%", (h.K / h.Pa).ToString("P1")),
+                new("BB%", (h.BB / h.Pa).ToString("P1")),
                 new("wRC+", h.WRC.ToString("F0")),
-                new("HR", h.HitHR.ToString("F1")),
-                new("SB", h.SB.ToString("F1")),
+                new("DEF", h.CrDEF.ToString("F1")),
+                new("BSR", h.CrBSR.ToString("F1")),
+                new("OFF", h.CrOFF.ToString("F1")),
                 new("WAR", h.CrWAR.ToString("F1")),
             ];
         }
@@ -39,14 +39,48 @@ namespace UI.Controls.TestRunnerGraphViewer
             return [
                 new("IP", ((p.Outs_SP + p.Outs_RP) / 3).ToString("F0")),
                 new("GS", p.GS.ToString("F0")),
-                new("ERA", p.ERA.ToString("F2")),
-                new("FIP", p.FIP.ToString("F2")),
+                new("ERA-", p.FIPMinus.ToString("F0")),
+                new("FIP-", p.FIPMinus.ToString("F0")),
                 new("K%", $"{p.KPerc:F1}%"),
                 new("BB%", $"{p.BBPerc:F1}%"),
                 new("HR/9", p.HR9.ToString("F2")),
                 new("WAR", p.CrWAR.ToString("F1")),
             ];
         }
+    }
+
+    public static class PlotMetrics
+    {
+        public static readonly IReadOnlyList<PlotMetric> War = [
+            new("WAR", f => f.Opwa!.War, 0, 20),
+            new("WAR0", f => f.Opwa!.War0, 0, 1),
+            new("WAR1", f => f.Opwa!.War1, 0, 0.3),
+            new("WAR2", f => f.Opwa!.War2, 0, 0.3),
+            new("WAR3", f => f.Opwa!.War3, 0, 0.3),
+            new("WAR4", f => f.Opwa!.War4, 0, 0.3),
+            new("WAR5", f => f.Opwa!.War5, 0, 0.3),
+            new("WAR6", f => f.Opwa!.War6, 0, 0.3),
+        ];
+
+        public static readonly IReadOnlyList<PlotMetric> Hitter = [
+            new("PA", f => Math.Round(f.Phs![0].Pa), 0, 600),
+            new("K%", f => 100 * f.Phs![0].K / f.Phs![0].Pa, 10, 33),
+            new("BB%", f => 100 * f.Phs![0].BB / f.Phs![0].Pa, 5, 15),
+            new("WRC+", f => Math.Round(f.Phs![0].WRC), 75, 150),
+            new("DEF", f => f.Phs![0].CrDEF, -10, 10),
+            new("BSR", f => f.Phs![0].CrBSR, -5, 10),
+            new("WAR", f => f.Phs![0].CrWAR, 0, 6),
+        ];
+
+        public static readonly IReadOnlyList<PlotMetric> Pitcher = [
+            new("IP", f => Math.Round((f.Pps![0].Outs_SP + f.Pps![0].Outs_RP) / 3), 0, 200),
+            new("ERA-", f => f.Pps![0].ERAMinus, 60, 130),
+            new("FIP-", f => f.Pps![0].FIPMinus, 60, 130),
+            new("K%", f => f.Pps![0].KPerc, 10, 35),
+            new("BB%", f => f.Pps![0].BBPerc, 5, 15),
+            new("HR/9", f => f.Pps![0].HR9, 0.5, 2),
+            new("WAR", f => f.Pps![0].CrWAR, 0, 6),
+        ];
     }
 
     public partial class SelectionDetailTable : UserControl
