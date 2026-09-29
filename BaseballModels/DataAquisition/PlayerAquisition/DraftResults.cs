@@ -74,7 +74,7 @@ namespace DataAquisition.PlayerAquisition
                 }
 
                 // Get data through mlb
-                List<(int, string, int)> pickData = new();
+                List<(int, string, int, int)> pickData = new();
 
                 // Add/modify pick by pick
                 using (ProgressBar progressBar = new(rounds.Count(), $"Adding players from {year} draft, assigning draft pick values"))
@@ -103,8 +103,21 @@ namespace DataAquisition.PlayerAquisition
                             }
 
                             int draftPick = pick.GetProperty("pickNumber").GetInt32();
+                            int teamId;
+                            if (pick.TryGetProperty("team", out JsonElement team))
+                            {
+                                teamId = team.GetProperty("id").GetInt32();
+                            }
+                            else
+                            {
+                                bool didSign = pickStatus.Any(f => f.Item1 == draftPick && f.Item2);
+                                if (didSign)
+                                    throw new Exception($"Pick {draftPick} in {year} draft signed but has no team");
+                                teamId = -1;
+                            }
+
                             if (!pickData.Any(f => f.Item1 == draftPick))
-                                pickData.Add((draftPick, roundString, id));
+                                pickData.Add((draftPick, roundString, id, teamId));
                         }
 
                         progressBar.Tick();
@@ -120,6 +133,7 @@ namespace DataAquisition.PlayerAquisition
                     MlbId = pd.Item3,
                     Signed = ps.Item2 ? 1 : 0,
                     Bonus = ps.Item3,
+                    TeamId = pd.Item4,
                     BonusRank = -1
                 }).OrderByDescending(f => f.Bonus).ThenBy(f => f.Pick);
 

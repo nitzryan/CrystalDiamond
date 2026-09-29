@@ -4,7 +4,6 @@ namespace Db
 {
 	public class SqliteDbContext : DbContext
 	{
-		public DbSet<Draft_Results> Draft_Results {get; set;}
 		public DbSet<League_HitterStats> League_HitterStats {get; set;}
 		public DbSet<League_HitterYearStats> League_HitterYearStats {get; set;}
 		public DbSet<League_PitcherStats> League_PitcherStats {get; set;}
@@ -80,12 +79,12 @@ namespace Db
 		public DbSet<Transaction_Log> Transaction_Log {get; set;}
 		public DbSet<Player_Pitcher_MonthStats> Player_Pitcher_MonthStats {get; set;}
 		public DbSet<Player_MlbFielding> Player_MlbFielding {get; set;}
+		public DbSet<Draft_Results> Draft_Results {get; set;}
 
 		public SqliteDbContext(DbContextOptions<SqliteDbContext> options) : base(options) { }
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
-			modelBuilder.Entity<Draft_Results>().HasKey(f => new {f.Year,f.Pick});
 			modelBuilder.Entity<League_HitterStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<League_HitterYearStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
 			modelBuilder.Entity<League_PitcherStats>().HasKey(f => new {f.LeagueId,f.Year,f.Month});
@@ -161,6 +160,7 @@ namespace Db
 			modelBuilder.Entity<Transaction_Log>().HasKey(f => new {f.TransactionId});
 			modelBuilder.Entity<Player_Pitcher_MonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.LevelId,f.LeagueId});
 			modelBuilder.Entity<Player_MlbFielding>().HasKey(f => new {f.MlbId,f.Year,f.Position});
+			modelBuilder.Entity<Draft_Results>().HasKey(f => new {f.Year,f.Pick});
 		}
 	}
 }

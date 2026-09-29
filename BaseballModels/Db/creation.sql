@@ -3,6 +3,7 @@ CREATE TABLE "Draft_Results" (
 	"Pick" INTEGER NOT NULL,
 	"Round" TEXT NOT NULL,
 	"mlbId" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
 	"Signed" INTEGER NOT NULL,
 	"Bonus" INTEGER NOT NULL,
 	"BonusRank" INTEGER NOT NULL,

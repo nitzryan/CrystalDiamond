@@ -44,6 +44,10 @@ namespace DataAquisition
                 await PlayerAquisition.PlayerUpdate.DraftOnly(2004);
             }
 
+            await PlayerAquisition.DraftResults.Update(2004);
+            foreach (int year in years)
+                await PlayerAquisition.DraftResults.Update(year);
+
             if (DATA_UPDATE || FULL_REFRESH)
             {
                 foreach (int year in years)

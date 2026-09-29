@@ -1,26 +1,5 @@
 import sqlite3
 
-class DB_Draft_Results:
-	def __init__(self, values : tuple[any]):
-		self.Year = values[0]
-		self.Pick = values[1]
-		self.Round = values[2]
-		self.mlbId = values[3]
-		self.Signed = values[4]
-		self.Bonus = values[5]
-		self.BonusRank = values[6]
-
-	NUM_ELEMENTS = 7
-
-                            
-	def To_Tuple(self) -> tuple[any]:
-		return (self.Year,self.Pick,self.Round,self.mlbId,self.Signed,self.Bonus,self.BonusRank)
-                        
-	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Draft_Results']:
-		items = cursor.execute("SELECT * FROM Draft_Results " + conditional, values).fetchall()
-		return [DB_Draft_Results(i) for i in items]
-
 class DB_League_HitterStats:
 	def __init__(self, values : tuple[any]):
 		self.LeagueId = values[0]
@@ -2188,6 +2167,28 @@ class DB_Player_MlbFielding:
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Player_MlbFielding']:
 		items = cursor.execute("SELECT * FROM Player_MlbFielding " + conditional, values).fetchall()
 		return [DB_Player_MlbFielding(i) for i in items]
+
+class DB_Draft_Results:
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.Pick = values[1]
+		self.Round = values[2]
+		self.mlbId = values[3]
+		self.TeamId = values[4]
+		self.Signed = values[5]
+		self.Bonus = values[6]
+		self.BonusRank = values[7]
+
+	NUM_ELEMENTS = 8
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.Pick,self.Round,self.mlbId,self.TeamId,self.Signed,self.Bonus,self.BonusRank)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Draft_Results']:
+		items = cursor.execute("SELECT * FROM Draft_Results " + conditional, values).fetchall()
+		return [DB_Draft_Results(i) for i in items]
 
 
 ##############################################################################################
