@@ -8,11 +8,11 @@ namespace DataAquisition
     {
         const int START_YEAR = 2005;
         const int END_YEAR = 2026;
-        const int END_MONTH = 8;
+        const int END_MONTH = 9;
 
         const bool UPDATE_COLLEGE_DATA = false;
         const bool FULL_REFRESH = false;
-        const bool DATA_UPDATE = false;
+        const bool DATA_UPDATE = true;
         const bool DRAFT_UPDATE = false;
         const bool STATCAST_ONLY_UPDATE = false;
 
@@ -43,10 +43,6 @@ namespace DataAquisition
                 await PlayerAquisition.DraftResults.Update(2004);
                 await PlayerAquisition.PlayerUpdate.DraftOnly(2004);
             }
-
-            await PlayerAquisition.DraftResults.Update(2004);
-            foreach (int year in years)
-                await PlayerAquisition.DraftResults.Update(year);
 
             if (DATA_UPDATE || FULL_REFRESH)
             {
