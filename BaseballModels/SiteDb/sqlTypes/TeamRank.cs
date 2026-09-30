@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class TeamRank
+	public partial class TeamRank
 	{
 		public required int TeamId {get; set;}
 		public required int ModelId {get; set;}

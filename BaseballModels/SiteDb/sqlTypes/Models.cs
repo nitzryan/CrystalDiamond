@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class Models
+	public partial class Models
 	{
 		public required int ModelId {get; set;}
 		public required string Name {get; set;}

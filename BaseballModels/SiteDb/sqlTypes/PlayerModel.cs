@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class PlayerModel
+	public partial class PlayerModel
 	{
 		public required int MlbId {get; set;}
 		public required int Year {get; set;}

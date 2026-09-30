@@ -20,6 +20,8 @@ namespace SiteDb
 		public DbSet<HomeData> HomeData {get; set;}
 		public DbSet<HomeDataType> HomeDataType {get; set;}
 		public DbSet<QualityCode> QualityCode {get; set;}
+		public DbSet<TeamDraftOverview> TeamDraftOverview {get; set;}
+		public DbSet<ModelDraftPickValues> ModelDraftPickValues {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -41,6 +43,8 @@ namespace SiteDb
 			modelBuilder.Entity<HomeData>().HasKey(f => new {f.Year,f.Month,f.RankType,f.ModelId,f.IsWar,f.Rank});
 			modelBuilder.Entity<HomeDataType>().HasKey(f => new {f.Type});
 			modelBuilder.Entity<QualityCode>().HasKey(f => new {f.Category,f.Code});
+			modelBuilder.Entity<TeamDraftOverview>().HasKey(f => new {f.ModelId,f.DraftYear,f.EvaluationYear,f.TeamId});
+			modelBuilder.Entity<ModelDraftPickValues>().HasKey(f => new {f.Pick});
 		}
 	}
 }

@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class HomeData
+	public partial class HomeData
 	{
 		public required int Year {get; set;}
 		public required int Month {get; set;}

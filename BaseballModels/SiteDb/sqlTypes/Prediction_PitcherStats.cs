@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class Prediction_PitcherStats
+	public partial class Prediction_PitcherStats
 	{
 		public required int MlbId {get; set;}
 		public required int Model {get; set;}

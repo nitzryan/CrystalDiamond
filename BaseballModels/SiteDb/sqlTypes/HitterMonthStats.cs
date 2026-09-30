@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class HitterMonthStats
+	public partial class HitterMonthStats
 	{
 		public required int MlbId {get; set;}
 		public required int LevelId {get; set;}

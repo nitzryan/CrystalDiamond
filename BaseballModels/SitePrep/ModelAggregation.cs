@@ -16,7 +16,9 @@ namespace SitePrep
 
             List<Output_PlayerWarAggregation> items = new();
 
-            var opws = db.Output_PlayerWar.GroupBy(f => new { f.MlbId, f.ModelId, f.IsHitter, f.Year, f.Month });
+            var opws = db.Output_PlayerWar
+                .AsNoTracking()
+                .GroupBy(f => new { f.MlbId, f.ModelId, f.IsHitter, f.Year, f.Month });
             int count = opws.Count();
                 
             items.Capacity = count;
@@ -52,7 +54,9 @@ namespace SitePrep
 
             // College Hitters
             List<Output_College_HitterAggregation> collegeHitterItems = new();
-            var ohcd = db.Output_College_Hitter.GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
+            var ohcd = db.Output_College_Hitter
+                .AsNoTracking()
+                .GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
             count = ohcd.Count();
             collegeHitterItems.Capacity = count;
 
@@ -131,7 +135,9 @@ namespace SitePrep
 
             // College Pitchers
             List<Output_College_PitcherAggregation> collegePitcherItems = new();
-            var opcd = db.Output_College_Pitcher.GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
+            var opcd = db.Output_College_Pitcher
+                .AsNoTracking()
+                .GroupBy(f => new { f.TbcId, f.ModelId, f.Year });
             count = opcd.Count();
             collegePitcherItems.Capacity = count;
 
@@ -231,7 +237,9 @@ namespace SitePrep
 
             List<Output_HitterStatsAggregation> items = new();
 
-            var ohs = db.Output_HitterStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
+            var ohs = db.Output_HitterStats
+                .AsNoTracking()
+                .GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ohs.Count();
             items.Capacity = count;
             int maxCount = db.Output_HitterStats.Max(f => f.ModelRun);
@@ -297,7 +305,9 @@ namespace SitePrep
 
             List<Output_PitcherStatsAggregation> items = new();
 
-            var ops = db.Output_PitcherStats.GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
+            var ops = db.Output_PitcherStats
+                .AsNoTracking()
+                .GroupBy(f => new { f.MlbId, f.ModelId, f.LevelId, f.Year, f.Month });
             int count = ops.Count();
             items.Capacity = count;
             int maxCount = db.Output_PitcherStats.Max(f => f.ModelRun);

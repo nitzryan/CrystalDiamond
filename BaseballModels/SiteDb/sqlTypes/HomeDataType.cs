@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class HomeDataType
+	public partial class HomeDataType
 	{
 		public required int Type {get; set;}
 		public required string Name {get; set;}

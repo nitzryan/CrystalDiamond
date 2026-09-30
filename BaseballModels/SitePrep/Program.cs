@@ -24,6 +24,19 @@ namespace SitePrep
             Homepage.Update();
             SetTimestepQuality.Create();
             WriteWarBucketAverages.Update();
+
+            Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Actual);
+            Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Model);
+
+            Draft.PickExpectedValueCalibration.CreateTimeGraph(Draft.DraftPickTarget.Actual);
+            Draft.PickExpectedValueCalibration.CreateTimeGraph(Draft.DraftPickTarget.Model);
+
+            Draft.TeamDraftOverviews.RegenerateTeamDraftOverviews();
+            Draft.TeamDraftOverviews.CheckValueCalibration();
+            Draft.TeamDraftOverviews.CheckPickBinCalibration();
+            Draft.PickExpectedValueCalibration.CreateGraph();
+
+
             MoveDbToServer.Update();
         }
     }

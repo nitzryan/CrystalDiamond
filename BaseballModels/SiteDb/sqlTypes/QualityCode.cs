@@ -1,6 +1,6 @@
 namespace SiteDb
 {
-	public class QualityCode
+	public partial class QualityCode
 	{
 		public required string Category {get; set;}
 		public required DbEnums.TimestepQuality Code {get; set;}

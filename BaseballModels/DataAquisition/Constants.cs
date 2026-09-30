@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace DataAquisition
 {
-    internal class Constants
+    public class Constants
     {
         public const int START_YEAR = 2005;
         public static ReadOnlyCollection<int> SPORT_IDS = new([1, 11, 12, 13, 14, 15, 16, 17]);

@@ -296,6 +296,29 @@ CREATE TABLE "QualityCode" (
     PRIMARY KEY("category", "code")
 );
 
+CREATE TABLE TeamDraftOverview (
+	"ModelId" INTEGER NOT NULL,
+	"DraftYear" INTEGER NOT NULL,
+	"EvaluationYear" INTEGER NOT NULL,
+	"TeamId" INTEGER NOT NULL,
+
+	"HitterCapital" REAL NOT NULL,
+	"PitcherCapital" REAL NOT NULL,
+	"HitterValue" REAL NOT NULL,
+	"PitcherValue" REAL NOT NULL,
+
+	PRIMARY KEY("ModelId", "DraftYear", "EvaluationYear", "TeamId")
+);
+
+CREATE TABLE ModelDraftPickValues
+(
+	"Pick" INTEGER NOT NULL,
+	"WarHitter" REAL NOT NULL,
+	"WarPitcher" REAL NOT NULL,
+
+	PRIMARY KEY("Pick")
+);
+
 CREATE INDEX "idx_PlayerRankOverallWar" ON "PlayerRank" (
 	"year", "month", "rankWar"
 );
