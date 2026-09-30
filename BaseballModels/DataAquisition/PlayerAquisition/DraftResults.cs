@@ -1,5 +1,6 @@
 ﻿using Db;
 using HtmlAgilityPack;
+using ScottPlot.Plottables;
 using ShellProgressBar;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -145,6 +146,12 @@ namespace DataAquisition.PlayerAquisition
                     bonusRank++;
                     db.Draft_Results.Add(c);
                 }
+
+                // Error cleanup
+                var p = db.Draft_Results.Where(f => f.Year == 2018 && f.Pick == 484).SingleOrDefault();
+                if (p != null)
+                    p.Signed = 0;
+
                 db.SaveChanges();
 
                 return true;

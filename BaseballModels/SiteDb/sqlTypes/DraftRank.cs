@@ -17,6 +17,7 @@ namespace SiteDb
 		public float? WarPre {get; set;}
 		public float? WarPost {get; set;}
 		public int? DraftPick {get; set;}
+		public int? DraftTeamid {get; set;}
 		public required bool TrainingBias {get; set;}
 		public required DbEnums.TimestepQuality TimestepQuality {get; set;}
 
@@ -39,6 +40,7 @@ namespace SiteDb
 				WarPre = this.WarPre,
 				WarPost = this.WarPost,
 				DraftPick = this.DraftPick,
+				DraftTeamid = this.DraftTeamid,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,
 			};

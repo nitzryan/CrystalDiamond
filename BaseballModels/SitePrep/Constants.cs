@@ -31,6 +31,8 @@ namespace SitePrep
 
         public static List<int> ModelLevelToMlbLevel = [1, 11, 12, 13, 14, 15, 16, 17];
 
+        public const int PUBLIC_DATA_START_YEAR = 2016;
+
         // Positional adjustment
         //https://tht.fangraphs.com/re-examining-wars-defensive-spectrum/
         public const float POSITIONAL_ADJUSTMENT_C = 7.75f;

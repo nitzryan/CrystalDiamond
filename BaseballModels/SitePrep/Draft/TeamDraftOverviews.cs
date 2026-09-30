@@ -243,7 +243,7 @@ namespace SitePrep.Draft
             foreach (Draft_Results pick in picks)
             {
                 if (!pickValues.TryGetValue(pick.Pick, out ModelDraftPickValues? pv))
-                    throw new Exception($"No DraftPickValues entry for Pick={pick.Pick}");
+                    continue;
                 string bin = bins.First(b => pick.Pick >= b.Min && pick.Pick <= b.Max).Label;
 
                 foreach (int horizon in Enumerable.Range(0, maxHorizon + 1))

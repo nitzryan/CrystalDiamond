@@ -126,7 +126,7 @@ namespace SitePrep
 
             siteDb.DraftRank.ExecuteDelete();
 
-            var modelYears = modelDb.Output_College_HitterAggregation.Where(f => f.Year >= 2005)
+            var modelYears = modelDb.Output_College_HitterAggregation.Where(f => f.Year >= Constants.PUBLIC_DATA_START_YEAR)
                 .Select(f => new { f.Year, f.ModelId })
                 .Distinct()
                 .OrderBy(f => f.ModelId).ThenBy(f => f.Year);
@@ -134,6 +134,14 @@ namespace SitePrep
             // tbcId -> N, reset whenever the model changes since N is sequential within one model's timeline
             Dictionary<(int tbcId, bool isHitter), int> tbcTimestepCounts = new();
             int currentTrackedModel = -1;
+
+            // Get the teams for all players that were actually drafted
+            Dictionary<int, int> draftTeamDict = db.Draft_Results
+                .AsNoTracking()
+                .Where(f => f.Signed == 1
+                            && f.Year >= Constants.PUBLIC_DATA_START_YEAR
+                )
+                .ToDictionary(f => f.MlbId, f => f.TeamId);
 
             // Keep track of who is in training set.
             HashSet<(int TbcId, bool IsHitter)> draftTrainSet = new();
@@ -207,6 +215,7 @@ namespace SitePrep
                     {
                         var colPlayer = db.College_Player.Where(f => f.TBCId == dr.tbcId).Single();
                         int? draftPick = null;
+                        int? draftTeamId = null;
                         float? warPost = null;
 
 
@@ -214,6 +223,9 @@ namespace SitePrep
                         if (colPlayer.LastYear == modelYear.Year && (colPlayer.DraftOvrHitter + colPlayer.DraftOvrPitcher) > 0)
                         {
                             draftPick = Math.Max(colPlayer.DraftOvrPitcher, colPlayer.DraftOvrHitter);
+
+                            if (draftTeamDict.TryGetValue(colPlayer.MlbId, out int tId))
+                                draftTeamId = tId;
 
                             try
                             {
@@ -243,6 +255,7 @@ namespace SitePrep
                             WarPre = dr.value,
                             WarPost = warPost,
                             DraftPick = draftPick,
+                            DraftTeamid = draftTeamId,
                             TrainingBias = draftTrainSet.Contains((dr.tbcId, dr.isHitter)),
                             TimestepQuality = dr.isHitter
                         ? Utilities.GetDraftHitterTimestepQuality(n)

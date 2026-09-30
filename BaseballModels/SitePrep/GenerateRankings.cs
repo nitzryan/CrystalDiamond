@@ -301,7 +301,7 @@ namespace SitePrep
                 siteDb.SaveChanges();
 
                 // Iterate through months
-                int year = 2015;
+                int year = Constants.PUBLIC_DATA_START_YEAR;
                 int month = 4;
 
                 List<(int, int)> dates = new();
@@ -320,7 +320,7 @@ namespace SitePrep
                 JsonObject datesJson = new();
                 datesJson.Add("endYear", endYear);
                 datesJson.Add("endMonth", endMonth);
-                datesJson.Add("startYear", 2015);
+                datesJson.Add("startYear", Constants.PUBLIC_DATA_START_YEAR);
                 int draftEndYear = modelDb.Output_College_HitterAggregation.Max(f => f.Year);
                 datesJson.Add("draftEndYear", draftEndYear);
                 using var fileStreamDates = new FileStream(Constants.SITE_ASSET_FOLDER + $"dates.json.gz", FileMode.Create);

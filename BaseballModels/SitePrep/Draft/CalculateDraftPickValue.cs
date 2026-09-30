@@ -66,7 +66,7 @@ namespace SitePrep.Draft
                 .Where(f => !f.IsEligible
                             && f.DraftPick != 2000
                             && !(f.IsHitter && f.IsPitcher)
-                            && f.SigningYear <= maxYear - 5)
+                            && f.SigningYear <= maxYear - YearsAfter)
                 )
                 .Join(db.Player_CareerStatus, f => f.MlbId, f => f.MlbId, (mp, pcs) => new { mp, pcs })
                 .Where(f => !(f.pcs.IgnorePlayer > 0))
@@ -107,7 +107,7 @@ namespace SitePrep.Draft
                 ? players
                     .ToDictionary(f => (f.MlbId, f.IsHitter),
                         f => warDict[(f.MlbId, f.IsHitter)]
-                                .Where(g => g.Year <= f.SigningYear)
+                                .Where(g => g.Year <= f.SigningYear + YearsAfter)
                                 .First().War)
                 : new Dictionary<(int MlbId, bool IsHitter), double>();
 

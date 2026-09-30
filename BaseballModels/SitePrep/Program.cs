@@ -36,7 +36,6 @@ namespace SitePrep
             Draft.TeamDraftOverviews.CheckPickBinCalibration();
             Draft.PickExpectedValueCalibration.CreateGraph();
 
-
             MoveDbToServer.Update();
         }
     }

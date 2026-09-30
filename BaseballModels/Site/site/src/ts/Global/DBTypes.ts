@@ -396,48 +396,6 @@ class DB_PlayerRank
 	}
 }
 
-class DB_DraftRank
-{
-	public tbcId : number
-	public mlbId : number
-	public modelId : number
-	public isHitter : boolean
-	public Name : string | null
-	public Position : string | null
-	public BirthYear : number
-	public BirthMonth : number
-	public BirthDate : number
-	public year : number
-	public isEligible : boolean
-	public rankEligible : number
-	public warPre : number | null
-	public warPost : number | null
-	public draftPick : number | null
-	public trainingBias : boolean
-	public timestepQuality : number
-
-	constructor(data : JsonObject)
-	{
-		this.tbcId = data['tbcId'] as number
-		this.mlbId = data['mlbId'] as number
-		this.modelId = data['modelId'] as number
-		this.isHitter = data['isHitter'] as boolean
-		this.Name = data['Name'] as string | null
-		this.Position = data['Position'] as string | null
-		this.BirthYear = data['BirthYear'] as number
-		this.BirthMonth = data['BirthMonth'] as number
-		this.BirthDate = data['BirthDate'] as number
-		this.year = data['year'] as number
-		this.isEligible = data['isEligible'] as boolean
-		this.rankEligible = data['rankEligible'] as number
-		this.warPre = data['warPre'] as number | null
-		this.warPost = data['warPost'] as number | null
-		this.draftPick = data['draftPick'] as number | null
-		this.trainingBias = data['trainingBias'] as boolean
-		this.timestepQuality = data['timestepQuality'] as number
-	}
-}
-
 class DB_TeamRank
 {
 	public teamId : number
@@ -569,6 +527,88 @@ class DB_QualityCode
 		this.severity = data['severity'] as number
 		this.label = data['label'] as string
 		this.blurb = data['blurb'] as string
+	}
+}
+
+class DB_TeamDraftOverview
+{
+	public ModelId : number
+	public DraftYear : number
+	public EvaluationYear : number
+	public TeamId : number
+	public HitterCapital : number
+	public PitcherCapital : number
+	public HitterValue : number
+	public PitcherValue : number
+
+	constructor(data : JsonObject)
+	{
+		this.ModelId = data['ModelId'] as number
+		this.DraftYear = data['DraftYear'] as number
+		this.EvaluationYear = data['EvaluationYear'] as number
+		this.TeamId = data['TeamId'] as number
+		this.HitterCapital = data['HitterCapital'] as number
+		this.PitcherCapital = data['PitcherCapital'] as number
+		this.HitterValue = data['HitterValue'] as number
+		this.PitcherValue = data['PitcherValue'] as number
+	}
+}
+
+class DB_ModelDraftPickValues
+{
+	public Pick : number
+	public WarHitter : number
+	public WarPitcher : number
+
+	constructor(data : JsonObject)
+	{
+		this.Pick = data['Pick'] as number
+		this.WarHitter = data['WarHitter'] as number
+		this.WarPitcher = data['WarPitcher'] as number
+	}
+}
+
+class DB_DraftRank
+{
+	public tbcId : number
+	public mlbId : number
+	public modelId : number
+	public isHitter : boolean
+	public Name : string | null
+	public Position : string | null
+	public BirthYear : number
+	public BirthMonth : number
+	public BirthDate : number
+	public year : number
+	public isEligible : boolean
+	public rankEligible : number
+	public warPre : number | null
+	public warPost : number | null
+	public draftPick : number | null
+	public draftTeamid : number | null
+	public trainingBias : boolean
+	public timestepQuality : number
+
+	constructor(data : JsonObject)
+	{
+		this.tbcId = data['tbcId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as boolean
+		this.Name = data['Name'] as string | null
+		this.Position = data['Position'] as string | null
+		this.BirthYear = data['BirthYear'] as number
+		this.BirthMonth = data['BirthMonth'] as number
+		this.BirthDate = data['BirthDate'] as number
+		this.year = data['year'] as number
+		this.isEligible = data['isEligible'] as boolean
+		this.rankEligible = data['rankEligible'] as number
+		this.warPre = data['warPre'] as number | null
+		this.warPost = data['warPost'] as number | null
+		this.draftPick = data['draftPick'] as number | null
+		this.draftTeamid = data['draftTeamid'] as number | null
+		this.trainingBias = data['trainingBias'] as boolean
+		this.timestepQuality = data['timestepQuality'] as number
 	}
 }
 

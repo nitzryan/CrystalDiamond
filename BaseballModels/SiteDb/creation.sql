@@ -213,6 +213,7 @@ CREATE TABLE "DraftRank" (
 	"warPre" REAL,
 	"warPost" REAL,
 	"draftPick" INTEGER,
+	"draftTeamid" INTEGER,
 	"trainingBias" INTEGER NOT NULL,
 	"timestepQuality" INTEGER NOT NULL,
 	PRIMARY KEY("tbcId", "modelId", "year", "isHitter", "mlbId")

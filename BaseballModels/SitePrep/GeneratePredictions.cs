@@ -316,7 +316,7 @@ namespace SitePrep
                             foreach (var player in players)
                             {
                                 Prediction_HitterStats? prediction = PredictionConverter.ConvertHitter(player, cache);
-                                if (prediction != null)
+                                if (prediction != null && prediction.Pa > 100)
                                     results.Add(prediction);
                             }
                             progressBar.Tick();
@@ -369,7 +369,7 @@ namespace SitePrep
                             foreach (var player in players)
                             {
                                 Prediction_PitcherStats? prediction = PredictionConverter.ConvertPitcher(player, cache);
-                                if (prediction != null)
+                                if (prediction != null && (prediction.Outs_SP + prediction.Outs_RP) > 60)
                                     results.Add(prediction);
                             }
 
