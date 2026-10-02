@@ -213,8 +213,23 @@ th.sortable:hover {
     border-color: var(--text-high);
 }
 
-#rankings_table .c_share {
-    font-size: 1rem;
+.dropdown_description {
+    width: min(60em, 90%);
+    margin: 0.75em 0;
+    text-indent: 0;
+}
+
+.dropdown_description summary {
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
     color: var(--text-low);
-    padding-left: 0.3em;
+}
+
+.dropdown_description summary:hover {
+    color: var(--text-high);
+}
+
+.dropdown_description p {
+    margin: 0.75em 0;
 }

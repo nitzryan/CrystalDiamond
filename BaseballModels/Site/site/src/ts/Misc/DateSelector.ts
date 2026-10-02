@@ -82,6 +82,16 @@ function setupTeamSelector(teamId : number | null)
     if (team_select === null)
         throw new Error('team_select null in setupTeamSelector')
 
+    if (team_select.options.length > 0) // Already setup
+    {
+        if (teamId !== null)
+            team_select.value = teamId.toString()
+        else
+            team_select.value = "0"
+        return
+    }
+        
+
     var parents = assetLoader.org_map["parents"] as JsonObject
     var teams = [{id: 0, abbr: 'All'}]
     for (var id in parents)

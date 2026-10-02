@@ -15,16 +15,17 @@
                 <select id="year_select"></select>
                 <select id="month_select" class="hidden"></select>
                 <select id="model_select"><!-- MODEL_OPTIONS --></select>
-                <select id="draft_type_select">
-                    <option value="4">Model Rank</option>
-                    <option value="5">Draft Result</option>
-                </select>
                 <div id="rankings_get">
                     <button id="rankings_button">Update</button>
                     <div id="rankings_error" class="hidden">Invalid Date</div>
                 </div>
             </div>
             <div id="rankings_views" class="row">
+            <div id="panel_select" class="toggle_group">
+                <button data-section="players">Players</button>
+                <button data-section="team_rank">Team Rank</button>
+                <button data-section="team_draft">Team Draft</button>
+            </div>
             <div id="view_select" class="toggle_group">
                 <button data-view="eligible">College Eligible</button>
                 <button data-view="results">Draft Results</button>
@@ -34,8 +35,29 @@
                 <button data-split="hitters">Hitters</button>
                 <button data-split="pitchers">Pitchers</button>
             </div>
+            <select id="team_select"></select>
         </div>
+            <details class="dropdown_description hidden">
+                <summary>Methods</summary>
+                <p id="page_info_players">Players: description of the Players table goes here.</p>
+                <p id="page_info_team_rank">Team Rank: description of the Team Rank table goes here.</p>
+                <p id="page_info_team_draft">Team Draft: description of the Team Draft table goes here.</p>
+            </details>
             <!-- RANKINGS TABLE -->
+            <div id="team_rank">
+                <div id="team_rank_header" class="rankings_header"></div>
+                <table id="team_draft_table">
+                    <thead id="team_draft_head"></thead>
+                    <tbody id="team_draft_body"></tbody>
+                </table>
+            </div>
+            <div id="team_draft">
+                <div id="team_draft_header" class="rankings_header"></div>
+                <table id="team_draft_players_table">
+                    <thead id="team_draft_players_head"></thead>
+                    <tbody id="team_draft_players_body"></tbody>
+                </table>
+            </div>
         </div>
     </body>
-</html>>
+</html>

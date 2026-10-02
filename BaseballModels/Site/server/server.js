@@ -179,6 +179,83 @@ app.get('/draft_rank', (req, res) => {
     }
 })
 
+app.get('/team_draft_overview', (req, res) => {
+    try {
+        const year = req.query.year
+        const model = req.query.model
+
+        db.all(`
+            SELECT *
+            FROM TeamDraftOverview
+            WHERE DraftYear=? AND ModelId=?
+            ORDER BY TeamId, EvaluationYear
+        `, [year, model], (err, rows) => {
+            res.json(rows)
+        })
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in team_draft_overview: " + e)
+    }
+})
+
+app.post('/player_model_list', (req, res) => {
+    try {
+        const model = req.body.model
+        const mlbIds = req.body.mlbIds
+
+        if (!Array.isArray(mlbIds) || !mlbIds.every(id => Number.isInteger(id)))
+        {
+            res.status(400).send("player_model_list requires mlbIds as an array of integers")
+            return
+        }
+        if (mlbIds.length === 0)
+        {
+            res.json([])
+            return
+        }
+
+        const placeholders = mlbIds.map(() => '?').join(',')
+        db.all(`
+            SELECT mlbId, isHitter, year, month, war
+            FROM PlayerModel
+            WHERE modelId=? AND mlbId IN (${placeholders})
+        `, [model, ...mlbIds], (err, rows) => {
+            if (err)
+            {
+                res.status(500).send("Error in player_model_list: " + err)
+                return
+            }
+            res.json(rows)
+        })
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in player_model_list: " + e)
+    }
+})
+
+app.get('/model_draft_pick_values', (req, res) => {
+    try {
+        db.all(`
+            SELECT *
+            FROM ModelDraftPickValues
+            ORDER BY Pick
+        `, [], (err, rows) => {
+            if (err)
+            {
+                res.status(500).send("Error in model_draft_pick_values: " + err)
+                return
+            }
+            res.json(rows)
+        })
+    }
+    catch (e)
+    {
+        res.status(500).send("Error in model_draft_pick_values: " + e)
+    }
+})
+
 app.get('/teamRanks', (req, res) => {
     try {
         const year = req.query.year

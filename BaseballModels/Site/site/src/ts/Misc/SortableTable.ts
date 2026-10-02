@@ -7,6 +7,7 @@ type SortableColumn<T> = {
     sortable : boolean
     value : (t : T) => SortValue
     render : (t : T, idx : number) => string
+    total? : (rows : T[]) => string
 }
 
 function parseTableSplit(value : string) : TableSplit
@@ -21,6 +22,7 @@ type SortableTableConfig<T, V extends string> = {
     body : HTMLElement
     getColumns : () => SortableColumn<T>[]
     rowClass : string
+    footerClass? : string
     view : {
         groupId : string
         initial : V
@@ -47,6 +49,7 @@ class SortableTable<T, V extends string>
     private body : HTMLElement
     private getColumns : () => SortableColumn<T>[]
     private rowClass : string
+    private footerClass : string
 
     private sortColumn : number | null = null
     private sortAsc : boolean = false
@@ -57,11 +60,11 @@ class SortableTable<T, V extends string>
 
     constructor(config : SortableTableConfig<T, V>)
     {
-
         this.head = config.head
         this.body = config.body
         this.getColumns = config.getColumns
         this.rowClass = config.rowClass ?? 'rankings_item'
+        this.footerClass = config.footerClass ?? 'rankings_total'
 
         this.view = config.view.initial
         this.split = config.split.initial
@@ -132,7 +135,7 @@ class SortableTable<T, V extends string>
                 btn.getAttribute('data-view') === this.view))
     }
 
-    private setDefaultColumn()
+    setDefaultColumn()
     {
         const default_order_column = this.view_split_default_column(this.split, this.view)
         if (default_order_column != null)
@@ -190,6 +193,18 @@ class SortableTable<T, V extends string>
                 row += `<td class='${c.cls}'>${c.render(t, i)}</td>`
             const el = document.createElement('tr')
             el.classList.add(this.rowClass)
+            el.innerHTML = row
+            this.body.appendChild(el)
+        }
+
+        // Add Summation Row
+        if (columns.some(c => c.total !== undefined))
+        {
+            let row = ''
+            for (const c of columns)
+                row += `<td class='${c.cls}'>${c.total ? c.total(rows) : ''}</td>`
+            const el = document.createElement('tr')
+            el.classList.add(this.footerClass)
             el.innerHTML = row
             this.body.appendChild(el)
         }

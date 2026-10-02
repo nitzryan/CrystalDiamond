@@ -7,7 +7,8 @@
         "strict": true,
         "strictNullChecks": true,
         "noEmitOnError": true,
-        "lib": ["es5", "es2015", "dom"]
+        "lib": ["es5", "es2017", "dom"],
+        "target": "es2017"
     },
     "files":[],
     "references": [

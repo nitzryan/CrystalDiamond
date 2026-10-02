@@ -6,7 +6,7 @@
     align-items: center;
 }
 
-#rankings_header {
+.rankings_header {
     margin-top: 0.5em;
     font-size: 1.5em;
     text-align: center;
@@ -32,10 +32,14 @@
     padding-right: 0.5rem;
 }
 
-#rankings_table * {
-    font-size: 1.35rem;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
+:where(#rankings_table, #team_draft_table, #team_draft_players_table) * {
+    font-size: 1.15rem;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+}
+
+tr.rankings_total {
+    border-top: 3px solid var(--text-low);
 }
 
 .c_name {
@@ -77,4 +81,10 @@
     width: 24px;
     height: 24px;
     flex-shrink: 0;
+}
+
+.c_share {
+    font-size: 0.8rem;
+    color: var(--text-low);
+    padding-left: 0.3em;
 }

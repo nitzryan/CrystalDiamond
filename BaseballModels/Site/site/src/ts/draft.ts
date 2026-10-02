@@ -2,6 +2,15 @@ let year : number
 let modelId : number
 let month : number = 8
 let draftTable : DraftLoaderTable | null = null
+let teamDraftTable : TeamDraftOverviewTable | null = null
+let teamDraftPlayerTable : TeamDraftPlayerTable | null = null
+let sectionSelector : SectionSelector | null = null
+
+function showTeamDraft(teamId : number)
+{
+    sectionSelector!.select('team_draft')
+    teamDraftPlayerTable!.setTeam(teamId)
+}
 
 async function main()
 {
@@ -24,12 +33,30 @@ async function main()
     })
 
     draftTable = new DraftLoaderTable(year, month, modelId)
+    teamDraftTable = new TeamDraftOverviewTable(year, modelId, showTeamDraft)
+    teamDraftPlayerTable = new TeamDraftPlayerTable(year, modelId, getQueryParamBackup("team", 0), draftTable.loaded)
+
+    sectionSelector = new SectionSelector({
+        groupId : 'panel_select',
+        initial : getQueryParamBackupStr('section', 'players'),
+        sections : {
+            players : [
+                getElementByIdStrict('view_select'),
+                getElementByIdStrict('rankings')
+            ],
+            team_rank : [getElementByIdStrict('team_rank')],
+            team_draft : [
+                getElementByIdStrict('team_select'),
+                getElementByIdStrict('team_draft')
+            ]
+        }
+    })
 
     rankings_button.addEventListener('click', (event) => {
         const yr = year_select.value
         const model = model_select.value
 
-        window.location.href = `./draft?year=${yr}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}`
+        window.location.href = `./draft?year=${yr}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}&section=${sectionSelector!.selected}&team=${teamDraftPlayerTable!.teamId}`
     })
 
     getElementByIdStrict('nav_draft').classList.add('selected')

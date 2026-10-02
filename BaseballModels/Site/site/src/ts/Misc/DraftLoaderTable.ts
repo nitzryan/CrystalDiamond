@@ -1,3 +1,9 @@
+function valueShareHtml(value : number, capital : number) : string
+{
+    if (capital === 0) return value.toFixed(1)
+    return `${value.toFixed(1)}<span class='c_share'>${Math.round(100 * value / capital)}%</span>`
+}
+
 type DraftView = 'eligible' | 'results'
 type DraftColumn = SortableColumn<DB_DraftRank>
 
@@ -44,7 +50,7 @@ function dPostWarColumn() : DraftColumn
 function dPickColumn() : DraftColumn
 {
     return {
-        header : 'Draft Pick',
+        header : 'Pick',
         cls : 'c_pick',
         // Picks are better when lower; negate so descending-first shows pick 1 first
         sortable : true,
@@ -93,6 +99,7 @@ class DraftLoaderTable
     private readonly year : number
     private readonly month : number
     private readonly model : number
+    readonly loaded : Promise<DB_DraftRank[]>
 
     constructor(year : number, month : number, model : number)
     {
@@ -133,7 +140,7 @@ class DraftLoaderTable
 
         rankings_header.innerText = `Draft Prospect Rankings for ${year}`
         rankings_load.classList.add('hidden')    // single fetch, no pagination
-        this.loadAll()
+        this.loaded = this.loadAll()
     }
 
     get view() : DraftView { return this.table.view }
@@ -152,12 +159,13 @@ class DraftLoaderTable
         ]
     }
 
-    private async loadAll()
+    private async loadAll() : Promise<DB_DraftRank[]>
     {
         const players = await (await fetch(
             `/draft_rank?year=${this.year}&model=${this.model}`)).json() as JsonArray
 
         this.table.rows = players.map(f => new DB_DraftRank(f as JsonObject))
         this.table.render()
+        return this.table.rows
     }
 }
