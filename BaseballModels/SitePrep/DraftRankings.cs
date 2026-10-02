@@ -333,6 +333,7 @@ namespace SitePrep
                             WarPre = null,
                             WarPost = warPost,
                             DraftPick = dp.DraftPick,
+                            DraftTeamid = draftTeamDict[dp.MlbId],
                             TrainingBias = false,
                             TimestepQuality = SiteDb.DbEnums.TimestepQuality.HSVeryLow
                         });

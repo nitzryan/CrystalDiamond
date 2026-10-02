@@ -127,7 +127,7 @@ namespace DataAquisition.AnnualStats
                     SLG = avg + iso,
                     ISO = iso,
                     WOBA = woba,
-                    WRC = -1,
+                    WRC = Utilities.CalculateWrcPlus(woba, parkFactor, ls),
                     HR = s.HR,
                     BBPerc = pa > 0 ? (float)s.BB / pa : 0,
                     KPerc = pa > 0 ? (float)s.K / pa : 0,
