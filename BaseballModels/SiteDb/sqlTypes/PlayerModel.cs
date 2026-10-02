@@ -8,6 +8,7 @@ namespace SiteDb
 		public required int ModelId {get; set;}
 		public required bool IsHitter {get; set;}
 		public required string ProbsWar {get; set;}
+		public required float War {get; set;}
 		public int? RankWar {get; set;}
 		public required bool TrainingBias {get; set;}
 		public required DbEnums.TimestepQuality TimestepQuality {get; set;}
@@ -22,6 +23,7 @@ namespace SiteDb
 				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
 				ProbsWar = this.ProbsWar,
+				War = this.War,
 				RankWar = this.RankWar,
 				TrainingBias = this.TrainingBias,
 				TimestepQuality = this.TimestepQuality,

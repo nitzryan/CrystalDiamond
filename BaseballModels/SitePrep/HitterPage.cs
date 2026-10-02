@@ -66,6 +66,7 @@ namespace SitePrep
                                         $"{opw.War4.ToString("0.000")}," +
                                         $"{opw.War5.ToString("0.000")}," +
                                         $"{opw.War6.ToString("0.000")}",
+                                War = opw.War,
                                 RankWar = ranks.Any() ? ranks.First().RankWar : null,
                                 TrainingBias = trainingBias,
                                 TimestepQuality = Utilities.GetProHitterTimestepQuality(timestepIndex),

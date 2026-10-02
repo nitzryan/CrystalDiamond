@@ -172,10 +172,11 @@ CREATE TABLE "PlayerModel" (
 	"modelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
 	"probsWar" TEXT NOT NULL,
+	"war" REAL NOT NULL,
 	"rankWar" INTEGER,
 	"trainingBias" INTEGER NOT NULL,
 	"timestepQuality" INTEGER NOT NULL,
-	PRIMARY KEY("mlbId","year","month","modelId", "isHitter")
+	PRIMARY KEY("mlbId","modelId", "isHitter", "year","month")
 );
 
 CREATE TABLE "PlayerRank" (

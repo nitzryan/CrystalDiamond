@@ -2,6 +2,7 @@
 using SiteDb;
 using ModelDb;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace SitePrep
 {
@@ -22,6 +23,8 @@ namespace SitePrep
         public static readonly DbContextOptions<SiteDbContext> SITEDB_OPTIONS = new DbContextOptionsBuilder<SiteDbContext>()
         .UseSqlite("Data Source=../../../../SiteDb/Site.db;")
         .EnableSensitiveDataLogging()
+        .EnableDetailedErrors()
+        //.LogTo(Console.WriteLine, LogLevel.Information)
         .Options;
 
         public static readonly DbContextOptions<ModelDbContext> MODELDB_OPTIONS = new DbContextOptionsBuilder<ModelDbContext>()
