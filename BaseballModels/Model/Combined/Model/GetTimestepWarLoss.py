@@ -31,6 +31,9 @@ def IterWarOutputs(
 
             data, length, pt_levelYearGames, player_demo, player_bios = pro_data
             mask_valid = length > 0
+            if not mask_valid.any():
+                continue
+            
             data = data[mask_valid].to(device, non_blocking=True)
             length = length[mask_valid].to(device, non_blocking=True)
             pt_levelYearGames = pt_levelYearGames[mask_valid].to(device, non_blocking=True)

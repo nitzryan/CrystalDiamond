@@ -426,8 +426,9 @@ class Data_Prep:
             prospect_mask = torch.zeros(l, dtype=torch.float)
             # Determine if player should be ignored.  If yes, then initial mask should be 0, otherwise 1
             prospect_mask[0] = 0 if ignore_player else 1
-            for i, stat in enumerate(stats):
-                prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
+            if not ignore_player:
+                for i, stat in enumerate(stats):
+                    prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
 
             lvl_mask = torch.zeros(l, NUM_LEVELS, dtype=torch.float)
             for i, stat in enumerate(stats):
@@ -462,10 +463,6 @@ class Data_Prep:
                     else:
                         _p, stat_start_idx = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     pos_year_output[i + 1,:] = _p
-
-                # print(mask_stats[-1])
-                # print(level_stats[1].Pa)
-                # print(pos_year_output[-1])
 
             # MLB Stat Buckets
             mlb_stat_buckets = torch.zeros(l, NUM_HITTER_STATS, dtype=torch.long)

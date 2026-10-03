@@ -7,7 +7,7 @@ from Model.Combined.Utilities.BrierScore import Brier_Score
 
 from Model.Utilities import profiler
 
-ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "MLBValue", "PlayingTime", "MLBStat"]
+ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "PlayingTime", "MLBValue", "MLBStat"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler
@@ -70,14 +70,13 @@ def GetLossesPro(
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat, is_hitter)
   
-  # Scale how much each loss should effect the model
   losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]
   
   if shouldBackprop:
     torch.autograd.backward(losses)
   
   return ProLossResult(
-    losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_mlbValue, loss_yearPt, loss_mlbStat),
+    losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat),
     war_counts=WarClassCounts(predicted=war_predicted_counts, actual=war_actual_counts),
     brier=BrierAccumulator(per_class_sum=brier_per_class_sum, count=brier_count),
   )

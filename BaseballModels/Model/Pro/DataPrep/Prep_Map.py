@@ -71,7 +71,7 @@ base_prep_map = Prep_Map(
     map_mlb_pit_value=__map_mlb_pit_value,
     mlb_hit_value_size=__mlb_hit_value_size,
     mlb_pit_value_size=__mlb_pit_value_size,
-    bio_size=3,
+    bio_size=4,
     hitterlvl_size=4,
     hitterpt_size=3,
     off_size=14,
@@ -113,26 +113,26 @@ statsonly_prep_map = Prep_Map(
     pitfirst_size=1
 )
 
-def _MeanRevert(factor : float, value : float):
-    return (factor * value) + (1 - factor)
+def _MeanRevert(factor : float, value : float, max_value : float):
+    unbound = (factor * value) + (1 - factor)
+    return min(unbound, max_value)
 
 def MakeMeanRevertPrepMap(cutoff: float = 50.0) -> Prep_Map:
-    """cutoff = the PA/BF value at which we give the observed rate full weight."""
     return Prep_Map(
         map_bio=lambda p: [p.ageAtSigningYear, math.log10(p.draftPick), math.log10(p.draftSignRank), p.prospectType],
         map_off=lambda h: (
-            f := h.PA / (h.PA + cutoff),
+            f := min(h.PA / cutoff, 1),
             [
-                _MeanRevert(f, h.ParkRunFactor),
-                _MeanRevert(f, h.Hit1B),
-                _MeanRevert(f, h.Hit2B),
-                _MeanRevert(f, h.Hit3B),
-                _MeanRevert(f, h.HitHR),
-                _MeanRevert(f, h.BB),
-                _MeanRevert(f, h.K),
-                _MeanRevert(f, h.HBP),
-                _MeanRevert(f, h.SB),
-                _MeanRevert(f, h.CS),
+                h.ParkRunFactor,
+                _MeanRevert(f, h.Hit1B, 4),
+                _MeanRevert(f, h.Hit2B, 4),
+                _MeanRevert(f, h.Hit3B, 10),
+                _MeanRevert(f, h.HitHR, 10),
+                _MeanRevert(f, h.BB, 3),
+                _MeanRevert(f, h.K, 2.5),
+                _MeanRevert(f, h.HBP, 8),
+                _MeanRevert(f, h.SB, 10),
+                _MeanRevert(f, h.CS, 10),
                 h.crOFF,
                 max(min(h.crDRAA, 10), -10),
                 h.crDPOS,
@@ -148,14 +148,14 @@ def MakeMeanRevertPrepMap(cutoff: float = 50.0) -> Prep_Map:
         map_pit=lambda p: (
             f := p.BF / (p.BF + cutoff),
             [
-                _MeanRevert(f, p.GBPercRatio),
-                _MeanRevert(f, p.ParkRunFactor),
-                _MeanRevert(f, p.ERARatio),
-                _MeanRevert(f, p.FIPRatio),
-                _MeanRevert(f, p.wOBARatio),
-                _MeanRevert(f, p.HRPercRatio),
-                _MeanRevert(f, p.BBPercRatio),
-                _MeanRevert(f, p.KPercRatio),
+                _MeanRevert(f, p.GBPercRatio, 3),
+                p.ParkRunFactor,
+                _MeanRevert(f, p.ERARatio, 6),
+                _MeanRevert(f, p.FIPRatio, 3),
+                _MeanRevert(f, p.wOBARatio, 2),
+                _MeanRevert(f, p.HRPercRatio, 8),
+                _MeanRevert(f, p.BBPercRatio, 5),
+                _MeanRevert(f, p.KPercRatio, 3),
                 p.crWAR,
             ]
         )[-1],
@@ -165,7 +165,7 @@ def MakeMeanRevertPrepMap(cutoff: float = 50.0) -> Prep_Map:
         map_mlb_pit_value=__map_mlb_pit_value,
         mlb_hit_value_size=__mlb_hit_value_size,
         mlb_pit_value_size=__mlb_pit_value_size,
-        bio_size=3,
+        bio_size=4,
         hitterlvl_size=4,
         hitterpt_size=3,
         off_size=14,

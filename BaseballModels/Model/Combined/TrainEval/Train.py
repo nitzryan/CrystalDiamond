@@ -16,6 +16,7 @@ day_str = f"{day}{months[month]}{year}"
 
 cursor = model_db.cursor()
 cursor.execute(f"INSERT INTO ModelId VALUES(1,'Base_{day_str}')")
+#cursor.execute(f"INSERT INTO ModelId VALUES(2,'MeanRevert_{day_str}')")
 model_db.commit()
 
 Train_Players(NUM_MODEL_VARIANTS, True)

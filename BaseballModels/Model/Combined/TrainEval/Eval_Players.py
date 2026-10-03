@@ -17,7 +17,7 @@ from Model.ModelDBTypes import *
 
 def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
     with torch.no_grad():
-        BATCH_SIZE = 4000
+        BATCH_SIZE = 12000
         
         is_hitter_int = 1 if is_hitter else 0
         player_type = "hit" if is_hitter else "pit"

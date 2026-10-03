@@ -32,13 +32,13 @@ class ProModelTuningRecipe(Flag):
 SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
     ProModelTuningRecipe.RECURRENT: [
         ParamSpec("num_layers", 2, 4, is_int=True),
-        ParamSpec("hidden_size", 16, 96, is_int=True),
-        ParamSpec("dropout", 0.0, 0.5),
+        ParamSpec("hidden_size", 16, 256, is_int=True),
+        ParamSpec("dropout", 0.0, 0.3),
         ParamSpec("rnn_activation", choices=["relu", "tanh"]),
     ],
     ProModelTuningRecipe.SHARED_OPTIM: [
-    ParamSpec("lr_shared", 5e-4, 1e-2, log=True),
-    ParamSpec("wd_shared", 1e-3, 1e-1, log=True),
+    ParamSpec("lr_shared", 2e-3, 1e-2, log=True),
+    ParamSpec("wd_shared", 1e-5, 1e-1, log=True),
     ],
     ProModelTuningRecipe.DATAINIT_ARCH: [
         ParamSpec("datainit_layers", 2, 8, is_int=True),
@@ -62,7 +62,7 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
     ],
     ProModelTuningRecipe.BATCH_PARAMS: [
         ParamSpec("batch_size", 400, 1600, is_int=True),
-        ParamSpec("num_epochs", 30, 60, is_int=True),
+        ParamSpec("num_epochs", 60, 120, is_int=True),
     ],
     ProModelTuningRecipe.TRUNK_GRAD_SCALES: [
         ParamSpec(f"grad_scale_{i}", 1e-3, 10, log=True)
@@ -167,8 +167,7 @@ def run_evaluation(
             max_repeats: int,
             trunk_grad_scales: list[float] | None = None) -> float:
     
-    WAR_MAX = 30
-    cutoff_fold_1, exit_values_23 = (7.9, 7.4 + 7.7) if is_hitter else (9.5, 9.5 + 9.1)
+    WAR_MAX = (10 if is_hitter else 11) * max_repeats
 
     sum_war = 0
     for i in range(max_repeats):
@@ -179,7 +178,7 @@ def run_evaluation(
         
         # Create variant to test
         pro_network = Pro_Model(
-            input_size=train_dataset.GetProInputSize(),
+            input_size=data_prep.GetProIOSize(is_hitter),
             data_prep=data_prep.pro_data_prep,
             is_hitter=is_hitter,
             
@@ -201,7 +200,7 @@ def run_evaluation(
             trunk_grad_scales=trunk_grad_scales,
         ).to(device)
         col_network = Col_Model(
-            input_size=train_dataset.GetColInputSize(),
+            input_size=data_prep.GetColIOSize(is_hitter),
             data_prep=data_prep.college_data_prep,
             is_hitter=is_hitter,
             output_init_state_size=pro_network.GetInitStateSize(),
@@ -228,10 +227,11 @@ def run_evaluation(
         gc.collect()
         
         sum_war += train_results.best_loss_war
+        #print(train_results.best_loss_war)
         
         # Check if it should exit early
-        if i == 0 and sum_war > cutoff_fold_1:
-            sum_war += exit_values_23
+        if sum_war > WAR_MAX:
+            sum_war = WAR_MAX
             break
         
     return min(sum_war, WAR_MAX)

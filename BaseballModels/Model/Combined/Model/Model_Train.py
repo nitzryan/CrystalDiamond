@@ -17,10 +17,10 @@ from Model.Utilities import GetPropertyValue
 
 SHOULD_PROFILE = False
 
-DEFAULT_BATCH_SIZE = 1038
-DEFAULT_NUM_EPOCHS = 35
-DEFAULT_BATCH_SIZE_P = 1276
-DEFAULT_NUM_EPOCHS_P = 47
+DEFAULT_BATCH_SIZE = 1200
+DEFAULT_NUM_EPOCHS = 62
+DEFAULT_BATCH_SIZE_P = 1271
+DEFAULT_NUM_EPOCHS_P = 61
 
 def TrainAndGraph(
     pro_network : Pro_Model,
@@ -82,8 +82,6 @@ def TrainAndGraph(
         # If ever gets to NaN, report a really large number
         if test_result.avg_loss[LOSS_IDX_WAR] != test_result.avg_loss[LOSS_IDX_WAR]:
             test_result.avg_loss[LOSS_IDX_WAR] = 100
-            best_loss = 100
-            best_epoch = epoch
             break
         
         

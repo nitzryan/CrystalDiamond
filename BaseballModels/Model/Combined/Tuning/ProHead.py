@@ -2,7 +2,7 @@ import optuna
 from optuna.study import Study
 import gc
 
-from Model.Combined.Model.Model_Train import TrainAndGraph, DEFAULT_BATCH_SIZE, DEFAULT_NUM_EPOCHS, DEFAULT_BATCH_SIZE_P, DEFAULT_NUM_EPOCHS_P
+from Model.Combined.Model.Model_Train import TrainAndGraph
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model, LayerArch
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Pro.Model.Player_Model import *
@@ -30,42 +30,42 @@ SEARCH_SPACE: dict[ProModelHeadTuningRecipe, list[ParamSpec]] = {
         ParamSpec("wd_level", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.PA : [
-        ParamSpec("pa_layers", 2, 5, is_int=True),
+        ParamSpec("pa_layers", 2, 7, is_int=True),
         ParamSpec("pa_size", 4, 128, is_int=True),
         ParamSpec("pa_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_pa", 1e-5, 1e-2, log=True),
         ParamSpec("wd_pa", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.STATS : [
-        ParamSpec("stats_layers", 2, 5, is_int=True),
+        ParamSpec("stats_layers", 2, 7, is_int=True),
         ParamSpec("stats_size", 4, 128, is_int=True),
         ParamSpec("stats_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_stats", 1e-5, 1e-2, log=True),
+        ParamSpec("lr_stats", 1e-3, 5e-2, log=True),
         ParamSpec("wd_stats", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.POS : [
-        ParamSpec("pos_layers", 2, 5, is_int=True),
+        ParamSpec("pos_layers", 2, 7, is_int=True),
         ParamSpec("pos_size", 4, 128, is_int=True),
         ParamSpec("pos_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_pos", 1e-5, 1e-2, log=True),
         ParamSpec("wd_pos", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.PT : [
-        ParamSpec("pt_layers", 2, 5, is_int=True),
+        ParamSpec("pt_layers", 2, 7, is_int=True),
         ParamSpec("pt_size", 4, 128, is_int=True),
         ParamSpec("pt_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_pt", 1e-5, 1e-2, log=True),
         ParamSpec("wd_pt", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.MLBSTAT : [
-        ParamSpec("mlbstat_layers", 2, 5, is_int=True),
+        ParamSpec("mlbstat_layers", 2, 7, is_int=True),
         ParamSpec("mlbstat_size", 4, 128, is_int=True),
         ParamSpec("mlbstat_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_mlbstat", 1e-5, 1e-2, log=True),
         ParamSpec("wd_mlbstat", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.MLBVALUE : [
-        ParamSpec("mlbvalue_layers", 2, 5, is_int=True),
+        ParamSpec("mlbvalue_layers", 2, 7, is_int=True),
         ParamSpec("mlbvalue_size", 4, 128, is_int=True),
         ParamSpec("mlbvalue_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_mlbvalue", 1e-5, 1e-2, log=True),
@@ -162,19 +162,19 @@ PITCHER_DEFAULTS = {
     "lr_mlbvalue": DEFAULT_LEARNING_RATES_P[LOSS_IDX_MLBVALUE + 1],
 }
 
-def resolve_params(
-        trial: optuna.trial.Trial,
-        recipe: ProModelHeadTuningRecipe,
-        width: SearchWidth,
-        is_hitter: bool) -> dict:
+# def resolve_params(
+#         trial: optuna.trial.Trial,
+#         recipe: ProModelHeadTuningRecipe,
+#         width: SearchWidth,
+#         is_hitter: bool) -> dict:
     
-    defaults = HITTER_DEFAULTS if is_hitter else PITCHER_DEFAULTS
-    params = dict(defaults)
-    for flag, specs in SEARCH_SPACE.items():
-        if recipe & flag:
-            for spec in specs:
-                params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
-    return params
+#     defaults = HITTER_DEFAULTS if is_hitter else PITCHER_DEFAULTS
+#     params = dict(defaults)
+#     for flag, specs in SEARCH_SPACE.items():
+#         if recipe & flag:
+#             for spec in specs:
+#                 params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
+#     return params
 
 @dataclass
 class MultiHeadEvalResult:
@@ -222,7 +222,8 @@ def resolve_params(
         
         for flag, specs in SEARCH_SPACE.items():
             if recipe == flag:
-                 for spec in specs:
+                for spec in specs:
+                    print(spec.name, defaults[spec.name], width)
                     params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
                     
     return params
@@ -374,14 +375,16 @@ def trial_runner(
     width : SearchWidth,
     data_prep: Combined_Data_Prep,
     io_list: list[Combined_IO],
-    repeats : int = 3
+    repeats : int = 3,
+    delete_study : bool = False,
 ) -> list[Study]:
     
     # Create studies
     studies : list[Study] = []
     for recipe in recipes:
         study_name = f"Pro_{"Hitter" if is_hitter else "Pitcher"}_{recipe.name}_Tuning_{width.name}"
-        optuna.delete_study(study_name=study_name, storage="sqlite:///Pro_Tune.db")
+        if delete_study:
+            optuna.delete_study(study_name=study_name, storage="sqlite:///Pro_Tune.db")
         study = optuna.create_study(
         direction="minimize",
         load_if_exists=True,

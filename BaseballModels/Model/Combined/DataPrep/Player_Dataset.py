@@ -209,6 +209,9 @@ def Create_Test_Train_Datasets(
     io_test : list[Combined_IO] = []
     
     if not eval_mode:
+        # Sort players in draft order
+        player_list = sorted(player_list, key=lambda p: 10000 if p.pro_io.player is None else p.pro_io.player.draftPick)
+        
         # Get College, HS, INTL players
         college_players : list[int] = []
         hs_players : list[int] = []

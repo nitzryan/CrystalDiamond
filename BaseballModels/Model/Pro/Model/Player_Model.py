@@ -31,6 +31,7 @@ class LayerArch(nn.Module):
             F.relu : 'relu',
             F.tanh : "tanh",
             F.silu : "silu",
+            F.gelu : "gilu",
         }
         return {
             "layer_size" : self.layer_size,
@@ -45,6 +46,7 @@ class LayerArch(nn.Module):
             'relu' : F.relu,
             "tanh" : F.tanh,
             "silu" : F.silu,
+            "gilu" : F.gelu
         }
         return cls(
             args_dict["layer_size"], 
@@ -59,12 +61,12 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
-DEFAULT_DATA_ARCH = LayerArch(layer_size=47, num_layers=2, nonlin=F.silu)
-DEFAULT_WAR_ARCH = LayerArch(layer_size=49, num_layers=5, nonlin=F.leaky_relu)
-DEFAULT_STATS_ARCH = LayerArch(layer_size=128, num_layers=2)
-DEFAULT_PT_ARCH = LayerArch(layer_size=128, num_layers=4)
-DEFAULT_POS_ARCH = LayerArch(layer_size=128, num_layers=4)
-DEFAULT_LVL_ARCH = LayerArch(layer_size=128, num_layers=4)
+DEFAULT_DATA_ARCH = LayerArch(layer_size=35, num_layers=2, nonlin=F.leaky_relu)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=112, num_layers=4, nonlin=F.tanh)
+DEFAULT_PT_ARCH = LayerArch(layer_size=85, num_layers=4, nonlin=F.tanh)
+DEFAULT_POS_ARCH = LayerArch(layer_size=123, num_layers=7, nonlin=F.silu)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=116, num_layers=3, nonlin=F.gelu)
 DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
@@ -79,32 +81,17 @@ DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
-DEFAULT_PRO_HIDDEN_SIZE = 93
-DEFAULT_PRO_NUM_LAYERS = 4
+DEFAULT_PRO_HIDDEN_SIZE = 100
+DEFAULT_PRO_NUM_LAYERS = 2
 
-DEFAULT_PRO_HIDDEN_SIZE_P = 93
-DEFAULT_PRO_NUM_LAYERS_P = 4
+DEFAULT_PRO_HIDDEN_SIZE_P = 39
+DEFAULT_PRO_NUM_LAYERS_P = 2
 
-
-DEFAULT_DROPOUT = 0.21
-DEFAULT_DROPOUT_P = 0.0775
+DEFAULT_DROPOUT = 0.045
+DEFAULT_DROPOUT_P = 0.252
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
-
-DEFAULT_PRO_WEIGHT_DECAY = [3.4e-3,1.3e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,5.9e-4]
-DEFAULT_PRO_WEIGHT_DECAY_P = [1.7e-3,1.4e-3,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,1e-7,4.1e-7]
-
-DEFAULT_LEARNING_RATES = [0.008,0.020,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.0041]
-DEFAULT_LEARNING_RATES_P = [0.0011,0.0017,0.003,0.003,0.003,0.003,0.003,0.003,0.003, 0.017]
-
-DEFAULT_INIT_STATE_SIZE = 40
-DEFAULT_INIT_STATE_SIZE_P = 93
-DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
-DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=119, num_layers=4, nonlin=F.silu)
-
-DEFAULT_RNN_NONLINEARITY = 'tanh'
-DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
 LOSS_IDX_WAR = 0
 LOSS_IDX_LEVEL = 1
@@ -114,6 +101,80 @@ LOSS_IDX_POS = 4
 LOSS_IDX_PT = 5
 LOSS_IDX_MLBVALUE = 6
 LOSS_IDX_MLBSTAT = 7
+
+def _InitModelHeadLists(
+        *,
+        shared : float,
+        war : float,
+        level : float,
+        pa : float,
+        stats : float,
+        pos : float,
+        mlbvalue : float,
+        pt : float,
+        mlbstat : float,
+        init : float) -> list[float]:
+    return [shared, war, level, pa, stats, pos, pt, mlbvalue, mlbstat, init]
+
+DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
+    shared=5.3e-2,
+    war=1.5e-5,
+    level=1.3e-7,
+    pa=1e-7,
+    stats=1.0e-7,
+    pos=1e-7,
+    mlbvalue=1e-7,
+    pt=2.3e-6,
+    mlbstat=1e-7,
+    init=4.8e-4
+)
+DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
+    shared=3.6e-3,
+    war=1.4e-3,
+    level=1e-7,
+    pa=1e-7,
+    stats=1e-7,
+    pos=1.6e-4,
+    mlbvalue=1e-7,
+    pt=1e-7,
+    mlbstat=1e-7,
+    init=4.1e-7
+)
+
+DEFAULT_LEARNING_RATES = _InitModelHeadLists(
+    shared=0.00104,
+    war=5.8e-3,
+    level=8.0e-5,
+    pa=0.003,
+    stats=0.025,
+    pos=0.007,
+    mlbvalue=0.003,
+    pt=1.67e-5,
+    mlbstat=0.003,
+    init=0.0055
+)
+DEFAULT_LEARNING_RATES_P = _InitModelHeadLists(
+    shared=0.0041,
+    war=0.0017,
+    level=0.003,
+    pa=0.003,
+    stats=0.003,
+    pos=0.003,
+    mlbvalue=0.003,
+    pt=0.003,
+    mlbstat=0.003,
+    init=0.017
+)
+
+DEFAULT_INIT_STATE_SIZE = 40
+DEFAULT_INIT_STATE_SIZE_P = 24
+DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
+DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=128, num_layers=3, nonlin=F.leaky_relu)
+
+DEFAULT_RNN_NONLINEARITY = 'relu'
+DEFAULT_RNN_NONLINEARITY_P = 'relu'
+
+
 DEFAULT_HITTER_GRAD_SCALES = [1, 0.017, 1.4, 0.077, 0.01, 3.3, 0.003, 0.25]
 DEFAULT_PITCHER_GRAD_SCALES = [1, 0.175, 2.1, 0.12, 2.07, 1.76, 0.006, 0.02]
 
@@ -306,15 +367,15 @@ class Recurrent_Model(nn.Module):
     
         # Create parameter groups for differentiating learning rates
         self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[0], 'weight_decay': weight_decay[0]},
-                                           {'params': self.war.parameters(), 'lr': learning_rates[1], 'weight_decay': weight_decay[1]},
-                                           {'params': self.level.parameters(), 'lr': learning_rates[2], 'weight_decay': weight_decay[2]},
-                                           {'params': self.pa.parameters(), 'lr': learning_rates[3], 'weight_decay': weight_decay[3]},
-                                           {'params': self.yearStats.parameters(), 'lr': learning_rates[4], 'weight_decay': weight_decay[4]},
-                                           {'params': self.pos.parameters(), 'lr': learning_rates[5], 'weight_decay': weight_decay[5]},
-                                           {'params': self.value.parameters(), 'lr': learning_rates[6], 'weight_decay': weight_decay[6]},
-                                           {'params': self.pt.parameters(), 'lr': learning_rates[7], 'weight_decay': weight_decay[7]},
-                                           {'params': self.mlbstat.parameters(), 'lr': learning_rates[8], 'weight_decay': weight_decay[8]},
-                                           {'params': self.data_init.parameters(), 'lr': learning_rates[9], 'weight_decay': weight_decay[9]}])
+                                            {'params': self.war.parameters(), 'lr': learning_rates[LOSS_IDX_WAR + 1], 'weight_decay': weight_decay[LOSS_IDX_WAR + 1]},
+                                            {'params': self.level.parameters(), 'lr': learning_rates[LOSS_IDX_LEVEL + 1], 'weight_decay': weight_decay[LOSS_IDX_LEVEL + 1]},
+                                            {'params': self.pa.parameters(), 'lr': learning_rates[LOSS_IDX_PA + 1], 'weight_decay': weight_decay[LOSS_IDX_PA + 1]},
+                                            {'params': self.yearStats.parameters(), 'lr': learning_rates[LOSS_IDX_STATS + 1], 'weight_decay': weight_decay[LOSS_IDX_STATS + 1]},
+                                            {'params': self.pos.parameters(), 'lr': learning_rates[LOSS_IDX_POS + 1], 'weight_decay': weight_decay[LOSS_IDX_POS + 1]},
+                                            {'params': self.pt.parameters(), 'lr': learning_rates[LOSS_IDX_PT + 1], 'weight_decay': weight_decay[LOSS_IDX_PT + 1]},
+                                            {'params': self.value.parameters(), 'lr': learning_rates[LOSS_IDX_MLBVALUE + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBVALUE + 1]},
+                                            {'params': self.mlbstat.parameters(), 'lr': learning_rates[LOSS_IDX_MLBSTAT + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBSTAT + 1]},
+                                            {'params': self.data_init.parameters(), 'lr': learning_rates[-1], 'weight_decay': weight_decay[-1]}])
 
         
     def to(self, *args, **kwargs):
