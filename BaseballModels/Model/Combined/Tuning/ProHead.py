@@ -23,10 +23,10 @@ class ProModelHeadTuningRecipe(Enum):
     
 SEARCH_SPACE: dict[ProModelHeadTuningRecipe, list[ParamSpec]] = {
     ProModelHeadTuningRecipe.LEVEL : [
-        ParamSpec("level_layers", 2, 5, is_int=True),
+        ParamSpec("level_layers", 2, 7, is_int=True),
         ParamSpec("level_size", 4, 128, is_int=True),
         ParamSpec("level_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_level", 1e-5, 1e-2, log=True),
+        ParamSpec("lr_level", 1e-5, 3e-2, log=True),
         ParamSpec("wd_level", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.PA : [
@@ -40,14 +40,14 @@ SEARCH_SPACE: dict[ProModelHeadTuningRecipe, list[ParamSpec]] = {
         ParamSpec("stats_layers", 2, 7, is_int=True),
         ParamSpec("stats_size", 4, 128, is_int=True),
         ParamSpec("stats_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_stats", 1e-3, 5e-2, log=True),
+        ParamSpec("lr_stats", 1e-5, 3e-2, log=True),
         ParamSpec("wd_stats", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.POS : [
         ParamSpec("pos_layers", 2, 7, is_int=True),
         ParamSpec("pos_size", 4, 128, is_int=True),
         ParamSpec("pos_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_pos", 1e-5, 1e-2, log=True),
+        ParamSpec("lr_pos", 1e-5, 3e-2, log=True),
         ParamSpec("wd_pos", 1e-7, 1e-2, log=True)
     ],
     ProModelHeadTuningRecipe.PT : [
@@ -162,20 +162,6 @@ PITCHER_DEFAULTS = {
     "lr_mlbvalue": DEFAULT_LEARNING_RATES_P[LOSS_IDX_MLBVALUE + 1],
 }
 
-# def resolve_params(
-#         trial: optuna.trial.Trial,
-#         recipe: ProModelHeadTuningRecipe,
-#         width: SearchWidth,
-#         is_hitter: bool) -> dict:
-    
-#     defaults = HITTER_DEFAULTS if is_hitter else PITCHER_DEFAULTS
-#     params = dict(defaults)
-#     for flag, specs in SEARCH_SPACE.items():
-#         if recipe & flag:
-#             for spec in specs:
-#                 params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
-#     return params
-
 @dataclass
 class MultiHeadEvalResult:
     pa : float = 0
@@ -223,7 +209,6 @@ def resolve_params(
         for flag, specs in SEARCH_SPACE.items():
             if recipe == flag:
                 for spec in specs:
-                    print(spec.name, defaults[spec.name], width)
                     params[spec.name] = spec.suggest(trial, defaults[spec.name], width)
                     
     return params
@@ -252,7 +237,7 @@ def run_evaluation(
                     train_idx=i)
         
         pro_network = Pro_Model(
-            input_size=train_dataset.GetProInputSize(),
+            input_size=data_prep.GetProIOSize(is_hitter),
             data_prep=data_prep.pro_data_prep,
             is_hitter=is_hitter,
             
@@ -268,7 +253,7 @@ def run_evaluation(
             learning_rates=lr_list,
         ).to(device)
         col_network = Col_Model(
-            input_size=train_dataset.GetColInputSize(),
+            input_size=data_prep.GetColIOSize(is_hitter),
             data_prep=data_prep.college_data_prep,
             is_hitter=is_hitter,
             output_init_state_size=pro_network.GetInitStateSize(),
@@ -340,13 +325,13 @@ def objective(
     lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
     wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
     
-    lr_list[LOSS_IDX_LEVEL], wd_list[LOSS_IDX_LEVEL] = p["lr_level"], p["wd_level"]
-    lr_list[LOSS_IDX_PA], wd_list[LOSS_IDX_PA] = p["lr_pa"], p["wd_pa"]
-    lr_list[LOSS_IDX_STATS], wd_list[LOSS_IDX_STATS] = p["lr_stats"], p["wd_stats"]
-    lr_list[LOSS_IDX_POS], wd_list[LOSS_IDX_POS] = p["lr_pos"], p["wd_pos"]
-    lr_list[LOSS_IDX_PT], wd_list[LOSS_IDX_PT] = p["lr_pt"], p["wd_pt"]
-    lr_list[LOSS_IDX_MLBSTAT], wd_list[LOSS_IDX_MLBSTAT] = p["lr_mlbstat"], p["wd_mlbstat"]
-    lr_list[LOSS_IDX_MLBVALUE], wd_list[LOSS_IDX_MLBVALUE] = p["lr_mlbvalue"], p["wd_mlbvalue"]
+    lr_list[LOSS_IDX_LEVEL + 1], wd_list[LOSS_IDX_LEVEL + 1] = p["lr_level"], p["wd_level"]
+    lr_list[LOSS_IDX_PA + 1], wd_list[LOSS_IDX_PA + 1] = p["lr_pa"], p["wd_pa"]
+    lr_list[LOSS_IDX_STATS + 1], wd_list[LOSS_IDX_STATS + 1] = p["lr_stats"], p["wd_stats"]
+    lr_list[LOSS_IDX_POS + 1], wd_list[LOSS_IDX_POS + 1] = p["lr_pos"], p["wd_pos"]
+    lr_list[LOSS_IDX_PT + 1], wd_list[LOSS_IDX_PT + 1] = p["lr_pt"], p["wd_pt"]
+    lr_list[LOSS_IDX_MLBSTAT + 1], wd_list[LOSS_IDX_MLBSTAT + 1] = p["lr_mlbstat"], p["wd_mlbstat"]
+    lr_list[LOSS_IDX_MLBVALUE + 1], wd_list[LOSS_IDX_MLBVALUE + 1] = p["lr_mlbvalue"], p["wd_mlbvalue"]
 
     result = run_evaluation(
         io_list=io_list,
@@ -386,10 +371,10 @@ def trial_runner(
         if delete_study:
             optuna.delete_study(study_name=study_name, storage="sqlite:///Pro_Tune.db")
         study = optuna.create_study(
-        direction="minimize",
-        load_if_exists=True,
-        study_name=study_name,
-        storage="sqlite:///Pro_Tune.db"
+            direction="minimize",
+            load_if_exists=True,
+            study_name=study_name,
+            storage="sqlite:///Pro_Tune.db"
         )
         studies.append(study)
         

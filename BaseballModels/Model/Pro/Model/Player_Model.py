@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 import json
+from itertools import chain
 from Model.Utilities import GetPropertyValue
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
@@ -63,21 +64,21 @@ class LayerArch(nn.Module):
 
 DEFAULT_DATA_ARCH = LayerArch(layer_size=35, num_layers=2, nonlin=F.leaky_relu)
 DEFAULT_WAR_ARCH = LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
-DEFAULT_STATS_ARCH = LayerArch(layer_size=112, num_layers=4, nonlin=F.tanh)
-DEFAULT_PT_ARCH = LayerArch(layer_size=85, num_layers=4, nonlin=F.tanh)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=101, num_layers=3, nonlin=F.tanh)
+DEFAULT_PT_ARCH = LayerArch(layer_size=87, num_layers=3, nonlin=F.silu)
 DEFAULT_POS_ARCH = LayerArch(layer_size=123, num_layers=7, nonlin=F.silu)
-DEFAULT_LVL_ARCH = LayerArch(layer_size=116, num_layers=3, nonlin=F.gelu)
-DEFAULT_PA_ARCH = LayerArch(layer_size=32, num_layers=4)
+DEFAULT_LVL_ARCH = LayerArch(layer_size=112, num_layers=3, nonlin=F.gelu)
+DEFAULT_PA_ARCH = LayerArch(layer_size=94, num_layers=2, nonlin=F.gelu)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
 
 DEFAULT_DATA_ARCH_P = LayerArch(layer_size=113, num_layers=2, nonlin=F.silu)
 DEFAULT_WAR_ARCH_P = LayerArch(layer_size=52, num_layers=3, nonlin=F.tanh)
-DEFAULT_STATS_ARCH_P = LayerArch(layer_size=90, num_layers=2)
-DEFAULT_PT_ARCH_P = LayerArch(layer_size=110, num_layers=2)
-DEFAULT_POS_ARCH_P = LayerArch(layer_size=55, num_layers=2)
-DEFAULT_LVL_ARCH_P = LayerArch(layer_size=150, num_layers=2)
-DEFAULT_PA_ARCH_P = LayerArch(layer_size=40, num_layers=2)
+DEFAULT_STATS_ARCH_P = LayerArch(layer_size=94, num_layers=2, nonlin=F.tanh)
+DEFAULT_PT_ARCH_P = LayerArch(layer_size=126, num_layers=7, nonlin=F.relu)
+DEFAULT_POS_ARCH_P = LayerArch(layer_size=78, num_layers=7, nonlin=F.relu)
+DEFAULT_LVL_ARCH_P = LayerArch(layer_size=106, num_layers=3, nonlin=F.relu)
+DEFAULT_PA_ARCH_P = LayerArch(layer_size=93, num_layers=5, nonlin=F.tanh)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
 
@@ -102,6 +103,10 @@ LOSS_IDX_PT = 5
 LOSS_IDX_MLBVALUE = 6
 LOSS_IDX_MLBSTAT = 7
 
+VAR_IDX_SHARED = 0
+VAR_IDX_DATAINIT = 9
+VAR_IDX_PLAYERINIT = 10
+
 def _InitModelHeadLists(
         *,
         shared : float,
@@ -113,57 +118,78 @@ def _InitModelHeadLists(
         mlbvalue : float,
         pt : float,
         mlbstat : float,
-        init : float) -> list[float]:
-    return [shared, war, level, pa, stats, pos, pt, mlbvalue, mlbstat, init]
+        init : float,
+        player : float) -> list[float]:
+    
+    vals = [0] * 11
+    
+    vals[VAR_IDX_SHARED] = shared
+    vals[VAR_IDX_DATAINIT] = init
+    vals[VAR_IDX_PLAYERINIT] = player
+    
+    vals[LOSS_IDX_WAR + 1] = war
+    vals[LOSS_IDX_LEVEL + 1] = level
+    vals[LOSS_IDX_PA + 1] = pa
+    vals[LOSS_IDX_STATS + 1] = stats
+    vals[LOSS_IDX_POS + 1] = pos
+    vals[LOSS_IDX_PT + 1] = pt
+    vals[LOSS_IDX_MLBVALUE + 1] = mlbvalue
+    vals[LOSS_IDX_MLBSTAT + 1] = mlbstat
+    
+    return vals
 
 DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
     shared=5.3e-2,
     war=1.5e-5,
-    level=1.3e-7,
-    pa=1e-7,
-    stats=1.0e-7,
-    pos=1e-7,
+    level=2.4e-7,
+    pa=5.9e-7,
+    stats=1.26e-3,
+    pos=2.1e-7,
     mlbvalue=1e-7,
-    pt=2.3e-6,
+    pt=5.7e-3,
     mlbstat=1e-7,
-    init=4.8e-4
+    init=4.8e-4,
+    player=1.0e-4
+)
+DEFAULT_LEARNING_RATES = _InitModelHeadLists(
+    shared=1.04e-3,
+    war=5.8e-3,
+    level=8.2e-3,
+    pa=3.8e-4,
+    stats=9.5e-3,
+    pos=1.07e-2,
+    mlbvalue=0.003,
+    pt=2.1e-3,
+    mlbstat=0.003,
+    init=0.0055,
+    player=1.0e-4
+)
+
+DEFAULT_LEARNING_RATES_P = _InitModelHeadLists(
+    shared=4.1e-3,
+    war=1.7e-3,
+    level=2.7e-2,
+    pa=1.0e-3,
+    stats=1.3e-2,
+    pos=3.0e-2,
+    mlbvalue=0.003,
+    pt=2.3e-3,
+    mlbstat=0.003,
+    init=0.017,
+    player=1e-7
 )
 DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
     shared=3.6e-3,
     war=1.4e-3,
-    level=1e-7,
-    pa=1e-7,
-    stats=1e-7,
-    pos=1.6e-4,
+    level=7.5e-7,
+    pa=9.5e-7,
+    stats=2.1e-6,
+    pos=1.0e-3,
     mlbvalue=1e-7,
-    pt=1e-7,
+    pt=1.9e-5,
     mlbstat=1e-7,
-    init=4.1e-7
-)
-
-DEFAULT_LEARNING_RATES = _InitModelHeadLists(
-    shared=0.00104,
-    war=5.8e-3,
-    level=8.0e-5,
-    pa=0.003,
-    stats=0.025,
-    pos=0.007,
-    mlbvalue=0.003,
-    pt=1.67e-5,
-    mlbstat=0.003,
-    init=0.0055
-)
-DEFAULT_LEARNING_RATES_P = _InitModelHeadLists(
-    shared=0.0041,
-    war=0.0017,
-    level=0.003,
-    pa=0.003,
-    stats=0.003,
-    pos=0.003,
-    mlbvalue=0.003,
-    pt=0.003,
-    mlbstat=0.003,
-    init=0.017
+    init=4.1e-7,
+    player=1e-7
 )
 
 DEFAULT_INIT_STATE_SIZE = 40
@@ -219,7 +245,6 @@ class Recurrent_Model(nn.Module):
                 mlbstat_arch : LayerArch | None = None,
                 
                 weight_decay : list[float] | None = None,
-                
                 learning_rates : list[float] | None = None,
                 
                 init_state_size : float | None = None,
@@ -366,7 +391,7 @@ class Recurrent_Model(nn.Module):
                 init.kaiming_uniform_(vf.weight, mode='fan_in', nonlinearity='relu')
     
         # Create parameter groups for differentiating learning rates
-        self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[0], 'weight_decay': weight_decay[0]},
+        self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[VAR_IDX_SHARED], 'weight_decay': weight_decay[VAR_IDX_SHARED]},
                                             {'params': self.war.parameters(), 'lr': learning_rates[LOSS_IDX_WAR + 1], 'weight_decay': weight_decay[LOSS_IDX_WAR + 1]},
                                             {'params': self.level.parameters(), 'lr': learning_rates[LOSS_IDX_LEVEL + 1], 'weight_decay': weight_decay[LOSS_IDX_LEVEL + 1]},
                                             {'params': self.pa.parameters(), 'lr': learning_rates[LOSS_IDX_PA + 1], 'weight_decay': weight_decay[LOSS_IDX_PA + 1]},
@@ -375,8 +400,31 @@ class Recurrent_Model(nn.Module):
                                             {'params': self.pt.parameters(), 'lr': learning_rates[LOSS_IDX_PT + 1], 'weight_decay': weight_decay[LOSS_IDX_PT + 1]},
                                             {'params': self.value.parameters(), 'lr': learning_rates[LOSS_IDX_MLBVALUE + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBVALUE + 1]},
                                             {'params': self.mlbstat.parameters(), 'lr': learning_rates[LOSS_IDX_MLBSTAT + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBSTAT + 1]},
-                                            {'params': self.data_init.parameters(), 'lr': learning_rates[-1], 'weight_decay': weight_decay[-1]}])
+                                            {'params': self.data_init.parameters(), 'lr': learning_rates[VAR_IDX_DATAINIT], 'weight_decay': weight_decay[VAR_IDX_DATAINIT]},
+                                            {'params': chain([self.init_hidden_hs, self.init_hidden_intl], self.init_hidden.parameters()), 'lr': learning_rates[VAR_IDX_PLAYERINIT], 'weight_decay': weight_decay[VAR_IDX_PLAYERINIT]}])
 
+        self.AssertAllParameterGroupsAssigned()
+
+        
+    def AssertAllParameterGroupsAssigned(self) -> None:
+        # Get Parameters in optimizer
+        optimized_ids = {
+            id(p)
+            for group in self.optimizer.param_groups
+            for p in group["params"]
+        }
+        
+        # Get parameters not in optimizer
+        missing = [
+            name
+            for name, p in self.named_parameters()
+            if id(p) not in optimized_ids and p.requires_grad
+        ]
+        if missing:
+            raise RuntimeError(
+                "Parameters not assigned to any optimizer group:\n"
+                + "\n  ".join(missing)
+            )
         
     def to(self, *args, **kwargs):
         return super().to(*args, **kwargs)
