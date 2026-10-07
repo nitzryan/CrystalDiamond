@@ -199,31 +199,25 @@ app.get('/team_draft_overview', (req, res) => {
     }
 })
 
-app.post('/player_model_list', (req, res) => {
+app.get('/team_draft_players', (req, res) => {
     try {
-        const model = req.body.model
-        const mlbIds = req.body.mlbIds
+        const draftYear = parseInt(req.query.draftYear)
+        const modelId = parseInt(req.query.model)
 
-        if (!Array.isArray(mlbIds) || !mlbIds.every(id => Number.isInteger(id)))
+        if (!Number.isInteger(draftYear) || !Number.isInteger(modelId))
         {
-            res.status(400).send("player_model_list requires mlbIds as an array of integers")
-            return
-        }
-        if (mlbIds.length === 0)
-        {
-            res.json([])
+            res.status(400).send("team_draft_players requires draftYear and model as integers")
             return
         }
 
-        const placeholders = mlbIds.map(() => '?').join(',')
         db.all(`
-            SELECT mlbId, isHitter, year, month, war
-            FROM PlayerModel
-            WHERE modelId=? AND mlbId IN (${placeholders})
-        `, [model, ...mlbIds], (err, rows) => {
+            SELECT *
+            FROM TeamDraftPlayer
+            WHERE draftYear = ? AND modelId = ?
+        `, [draftYear, modelId], (err, rows) => {
             if (err)
             {
-                res.status(500).send("Error in player_model_list: " + err)
+                res.status(500).send("Error in team_draft_players: " + err)
                 return
             }
             res.json(rows)
@@ -231,7 +225,7 @@ app.post('/player_model_list', (req, res) => {
     }
     catch (e)
     {
-        res.status(500).send("Error in player_model_list: " + e)
+        res.status(500).send("Error in team_draft_players: " + e)
     }
 })
 

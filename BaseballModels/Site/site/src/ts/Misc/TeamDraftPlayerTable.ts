@@ -1,36 +1,29 @@
-type PlayerRankWar = {
-    mlbId : number
-    isHitter : boolean
-    year : number
-    month : number
+type TdpValue = {
     war : number
+    postEligible : boolean
 }
+
+// Index into TeamDraftPlayerRow.values: 0 = Initial, 1..6 = draftYear + n, 7 = Current
+const TDP_INITIAL = 0
+const TDP_YEAR_COUNT = 6
+const TDP_CURRENT = 7
+
 
 type TeamDraftPlayerRow = {
     draft : DB_DraftRank
     capital : number
-    values : TdpValue[]
+    values : (TdpValue | null)[]
 }
-
-type TdpValue = {
-    war : number
-    stale : boolean
-}
-
-const TDP_MAX_YEARS = 6
 
 ////////// Fetching //////////
-async function fetchPlayerRankWar(modelId : number, mlbIds : number[]) : Promise<PlayerRankWar[]>
+async function fetchTeamDraftPlayers(draftYear : number, modelId : number) : Promise<DB_TeamDraftPlayer[]>
 {
-    const response = await fetch('/player_model_list', {
-        method : 'POST',
-        headers : { 'Content-Type' : 'application/json' },
-        body : JSON.stringify({ model : modelId, mlbIds : mlbIds })
-    })
+    const response = await fetch(`/team_draft_players?draftYear=${draftYear}&model=${modelId}`)
     if (!response.ok)
-        throw new Error(`player_model_list request failed: ${response.status}`)
+        throw new Error(`team_draft_players request failed: ${response.status}`)
 
-    return await response.json() as PlayerRankWar[]
+    const json = await response.json() as JsonObject[]
+    return json.map(f => new DB_TeamDraftPlayer(f))
 }
 
 async function fetchModelDraftPickValues() : Promise<DB_ModelDraftPickValues[]>
@@ -49,16 +42,13 @@ function tdpKey(mlbId : number, isHitter : boolean) : string
     return `${mlbId}_${isHitter ? 1 : 0}`
 }
 
-function tdpCapital(draft : DB_DraftRank, pickValues : Map<number, DB_ModelDraftPickValues>) : number
+function tdpCapital(player : DB_TeamDraftPlayer, pickValues : Map<number, DB_ModelDraftPickValues>) : number
 {
-    if (draft.draftPick === null)
-        throw Error("Draft Pick Null")
+    const pv = pickValues.get(player.draftPick)
+    if (pv === undefined)
+        throw Error(`No Draft Pick Value for ${player.draftPick}`)
 
-    const pv = pickValues.get(draft.draftPick)
-    if (pv === undefined) 
-        throw Error(`No Draft Pick Value for ${draft.draftPick}`)
-
-    return draft.isHitter ? pv.WarHitter : pv.WarPitcher
+    return player.isHitter ? pv.WarHitter : pv.WarPitcher
 }
 
 function tdpYearColumns(draftYear : number, maxYears : number, maxDataYear : number) : number[]
@@ -71,35 +61,28 @@ function tdpYearColumns(draftYear : number, maxYears : number, maxDataYear : num
     return years
 }
 
-function tdpBuildRow(
-    draft : DB_DraftRank,
-    ranks : PlayerRankWar[],
-    pickValues : Map<number, DB_ModelDraftPickValues>,
-    years : number[],
-    maxDataYear : number) : TeamDraftPlayerRow
+function tdpBuildRow(player : DB_TeamDraftPlayer, draft : DB_DraftRank, pickValues : Map<number, DB_ModelDraftPickValues>) : TeamDraftPlayerRow
 {
-    const initials = ranks.filter(r => r.year === 0 && r.month === 0)
-    if (initials.length !== 1)
-        throw new Error(`Expected exactly 1 initial PlayerRank entry for mlbId=${draft.mlbId} isHitter=${draft.isHitter}, found ${initials.length}`)
-    const initial = initials[0]
+    // A year is flagged from the post-eligible year onward
+    const yearValue = (war : number | null, year : number) : TdpValue | null =>
+        war === null
+            ? null
+            : { war : war, postEligible : player.postEligibleYear !== null && year >= player.postEligibleYear }
 
-    const valueAt = (year : number) : TdpValue => {
-        let last = initial
-        for (const r of ranks)
-        {
-            if (r.year > year) break
-            last = r
-        }
-        return { war : last.war, stale : last !== initial && last.year !== year && year !== 2020}
-    }
+
+    const yearWars = [
+        player.warYear1, player.warYear2, player.warYear3,
+        player.warYear4, player.warYear5, player.warYear6
+    ]
+
 
     return {
         draft : draft,
-        capital : tdpCapital(draft, pickValues),
+        capital : tdpCapital(player, pickValues),
         values : [
-            { war : initial.war, stale : false },
-            ...years.map(yr => valueAt(yr)),
-            valueAt(maxDataYear)
+            { war : player.initialWar, postEligible : false },
+            ...yearWars.map((war, i) => yearValue(war, player.draftYear + i + 1)),
+            { war : player.currentWar, postEligible : player.postEligibleYear !== null }
         ]
     }
 }
@@ -147,16 +130,27 @@ function tdpValueColumn(header : string, idx : number) : DraftPlayerColumn
         header : header,
         cls : 'c_value',
         sortable : true,
-        value : t => t.values[idx].war,
+        value : t => t.values[idx]?.war ?? Number.NEGATIVE_INFINITY,
         render : (t, _) => {
             const val = t.values[idx]
-            const prefix = val.stale ? '*' : ''
+            if (val === null)
+                return ''
+
+
+            const prefix = val.postEligible ? '*' : ''
             return `${prefix}${val.war.toFixed(1)}<span class='c_share'>${Math.round(100 * val.war / t.capital)}%</span>`
         },
-        total : rows => valueShareHtml(
-            rows.reduce((sum, t) => sum + t.values[idx].war, 0),
-            rows.reduce((sum, t) => sum + t.capital, 0))
+        total : rows => tdpValueTotal(rows, idx)
     }
+}
+
+
+function tdpValueTotal(rows : TeamDraftPlayerRow[], idx : number) : string
+{
+    const present = rows.filter(r => r.values[idx] !== null)
+    return valueShareHtml(
+        present.reduce((sum, r) => sum + r.values[idx]!.war, 0),
+        present.reduce((sum, r) => sum + r.capital, 0))
 }
 
 class TeamDraftPlayerTable
@@ -164,7 +158,7 @@ class TeamDraftPlayerTable
     private table : SortableTable<TeamDraftPlayerRow, TeamDraftView>
     private readonly model : number
     private readonly year : number
-    private years : number[] = []
+    private yearSlots : number[] = []
     private readonly teamSelect : HTMLSelectElement
 
     constructor(year : number, model : number, teamId : number | null, draftRows : Promise<DB_DraftRank[]>)
@@ -220,42 +214,45 @@ class TeamDraftPlayerTable
             tdpNameColumn(),
             tdpDraftColumn(dPickColumn()),
             tdpCapitalColumn(),
-            tdpValueColumn('Initial', 0),
-            ...this.years.map((yr, i) => tdpValueColumn(`${yr}`, i + 1)),
-            tdpValueColumn('Current', this.years.length + 1)
+            tdpValueColumn('Initial', TDP_INITIAL),
+            ...this.yearSlots.map(n => tdpValueColumn(`${this.year + n}`, n)),
+            tdpValueColumn('Current', TDP_CURRENT)
         ]
     }
 
     private async loadAll(draftRows : Promise<DB_DraftRank[]>)
     {
-        const drafted = (await draftRows).filter(f => f.draftTeamid !== null)
-        const mlbIds = Array.from(new Set(drafted.map(f => f.mlbId)))
-        
-        // Fetch Data
-        const [ranks, pickValues] = await Promise.all([
-            fetchPlayerRankWar(this.model, mlbIds),
+        const [drafts, players, pickValues] = await Promise.all([
+            draftRows,
+            fetchTeamDraftPlayers(this.year, this.model),
             fetchModelDraftPickValues()
         ])
+
+
         const pickMap = new Map<number, DB_ModelDraftPickValues>()
         for (const pv of pickValues)
             pickMap.set(pv.Pick, pv)
 
-        const history = new Map<string, PlayerRankWar[]>()
-        for (const r of ranks)
-        {
-            const key = tdpKey(r.mlbId, r.isHitter)
-            if (!history.has(key))
-                history.set(key, [])
-            history.get(key)!.push(r)
-        }
 
-        let maxDataYear = 0
-        for (const r of ranks)
-            maxDataYear = Math.max(maxDataYear, r.year)
-        this.years = tdpYearColumns(this.year, TDP_MAX_YEARS, maxDataYear)
+        // DraftRank still supplies the name and draft-pick presentation
+        const draftMap = new Map<string, DB_DraftRank>()
+        for (const d of drafts)
+            draftMap.set(tdpKey(d.mlbId, d.isHitter), d)
 
-        this.table.rows = drafted.map(f =>
-            tdpBuildRow(f, history.get(tdpKey(f.mlbId, f.isHitter)) ?? [], pickMap, this.years, maxDataYear))
+
+        const rows = players.map(p => {
+            const draft = draftMap.get(tdpKey(p.mlbId, p.isHitter))
+            if (draft === undefined)
+                throw new Error(`No DraftRank entry for mlbId=${p.mlbId} isHitter=${p.isHitter}`)
+            return tdpBuildRow(p, draft, pickMap)
+        })
+
+
+        // Only show year columns that have data for at least one player in this draft
+        this.yearSlots = Array.from({ length: TDP_YEAR_COUNT }, (_, i) => i + 1)
+            .filter(n => rows.some(r => r.values[n] !== null))
+
+        this.table.rows = rows
         this.table.render()
-    }
+    }    
 }

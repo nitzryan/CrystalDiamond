@@ -312,6 +312,30 @@ CREATE TABLE TeamDraftOverview (
 	PRIMARY KEY("ModelId", "DraftYear", "EvaluationYear", "TeamId")
 );
 
+CREATE TABLE TeamDraftPlayer (
+    "modelId"      INTEGER NOT NULL,
+    "mlbId"        INTEGER NOT NULL,
+    "isHitter"     INTEGER NOT NULL,
+    "draftYear"    INTEGER NOT NULL,
+    "draftPick"    INTEGER NOT NULL,
+    "draftTeamId"  INTEGER NOT NULL,
+    "initialWar"   REAL    NOT NULL,
+    "warYear1"     REAL,
+    "warYear2"     REAL,
+    "warYear3"     REAL,
+    "warYear4"     REAL,
+    "warYear5"     REAL,
+    "warYear6"     REAL,
+    "currentWar"   REAL    NOT NULL,
+	"postEligibleYear" INTEGER,
+    PRIMARY KEY("modelId", "mlbId", "isHitter")
+);
+
+CREATE INDEX idx_TeamDraftPlayer_DraftYear ON TeamDraftPlayer
+(
+	"draftYear", "modelId"
+);
+
 CREATE TABLE ModelDraftPickValues
 (
 	"Pick" INTEGER NOT NULL,

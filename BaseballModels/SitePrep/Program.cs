@@ -1,4 +1,5 @@
 ﻿using Db;
+using SitePrep.Draft;
 
 namespace SitePrep
 {
@@ -24,6 +25,7 @@ namespace SitePrep
             Homepage.Update();
             SetTimestepQuality.Create();
             WriteWarBucketAverages.Update();
+            TeamDraftPlayerGen.Calculate();
 
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Actual);
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Model);

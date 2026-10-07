@@ -14,7 +14,8 @@ boolean_types = [
     BooleanTypes("Player", ["IsHitter", "IsPitcher", "InTraining"]),
     BooleanTypes("PlayerModel", ["IsHitter", "TrainingBias"]),
     BooleanTypes("PlayerRank", ["IsHitter", "TrainingBias"]),
-    BooleanTypes("PlayerYearPositions", ["IsHitter"])
+    BooleanTypes("PlayerYearPositions", ["IsHitter"]),
+    BooleanTypes("TeamDraftPlayer", ["IsHitter"]),
                 ]
 
 # Get Tables

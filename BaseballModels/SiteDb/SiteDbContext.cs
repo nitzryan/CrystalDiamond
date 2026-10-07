@@ -22,6 +22,7 @@ namespace SiteDb
 		public DbSet<ModelDraftPickValues> ModelDraftPickValues {get; set;}
 		public DbSet<DraftRank> DraftRank {get; set;}
 		public DbSet<PlayerModel> PlayerModel {get; set;}
+		public DbSet<TeamDraftPlayer> TeamDraftPlayer {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -45,6 +46,7 @@ namespace SiteDb
 			modelBuilder.Entity<ModelDraftPickValues>().HasKey(f => new {f.Pick});
 			modelBuilder.Entity<DraftRank>().HasKey(f => new {f.TbcId,f.MlbId,f.ModelId,f.IsHitter,f.Year});
 			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId,f.IsHitter});
+			modelBuilder.Entity<TeamDraftPlayer>().HasKey(f => new {f.ModelId,f.MlbId,f.IsHitter});
 		}
 	}
 }

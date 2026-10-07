@@ -2,7 +2,6 @@
 using SiteDb;
 using ModelDb;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace SitePrep
 {
@@ -24,7 +23,6 @@ namespace SitePrep
         .UseSqlite("Data Source=../../../../SiteDb/Site.db;")
         .EnableSensitiveDataLogging()
         .EnableDetailedErrors()
-        //.LogTo(Console.WriteLine, LogLevel.Information)
         .Options;
 
         public static readonly DbContextOptions<ModelDbContext> MODELDB_OPTIONS = new DbContextOptionsBuilder<ModelDbContext>()
@@ -35,6 +33,7 @@ namespace SitePrep
         public static List<int> ModelLevelToMlbLevel = [1, 11, 12, 13, 14, 15, 16, 17];
 
         public const int PUBLIC_DATA_START_YEAR = 2016;
+        public const int COVID_YEAR = 2020;
 
         // Positional adjustment
         //https://tht.fangraphs.com/re-examining-wars-defensive-spectrum/

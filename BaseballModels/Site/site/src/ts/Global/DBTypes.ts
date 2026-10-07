@@ -614,3 +614,41 @@ class DB_PlayerModel
 	}
 }
 
+class DB_TeamDraftPlayer
+{
+	public modelId : number
+	public mlbId : number
+	public isHitter : boolean
+	public draftYear : number
+	public draftPick : number
+	public draftTeamId : number
+	public initialWar : number
+	public warYear1 : number | null
+	public warYear2 : number | null
+	public warYear3 : number | null
+	public warYear4 : number | null
+	public warYear5 : number | null
+	public warYear6 : number | null
+	public currentWar : number
+	public postEligibleYear : number | null
+
+	constructor(data : JsonObject)
+	{
+		this.modelId = data['modelId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.isHitter = data['isHitter'] as boolean
+		this.draftYear = data['draftYear'] as number
+		this.draftPick = data['draftPick'] as number
+		this.draftTeamId = data['draftTeamId'] as number
+		this.initialWar = data['initialWar'] as number
+		this.warYear1 = data['warYear1'] as number | null
+		this.warYear2 = data['warYear2'] as number | null
+		this.warYear3 = data['warYear3'] as number | null
+		this.warYear4 = data['warYear4'] as number | null
+		this.warYear5 = data['warYear5'] as number | null
+		this.warYear6 = data['warYear6'] as number | null
+		this.currentWar = data['currentWar'] as number
+		this.postEligibleYear = data['postEligibleYear'] as number | null
+	}
+}
+
