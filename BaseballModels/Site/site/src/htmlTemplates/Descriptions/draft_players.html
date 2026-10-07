@@ -1,0 +1,36 @@
+<div id="page_info_players">
+    <p>
+        The table below shows different players projected career WAR through both the
+        college and professional models.  The results from the pro model shown here are
+        fed in with the output from the college model as well as given
+        the player's draft pick, but none of the player's pro stats have occurred yet.
+        The pro model ends up using a player's draft position for their initial value
+        far more than it uses the college model, but it still tends to give players
+        a higher/lower than expected for the draft position ranking for players it was
+        high or low on.
+    </p>
+    <p>
+        The architecture of the college player model is
+        extremely similar to that of the pro one, so rather than repeating most of it,
+        this section will focus on the differences between the two models.
+    </p>
+    <p>
+        The biggest difference between the two models is the timestep; while the pro
+        model operates on a monthly tick, the college one only updates yearly.  This was
+        not a design choice; rather, this was do to not having access to monthly data.
+        This ends up creating problems that the model is unable to account for, degrading its
+        performance.  The model is given the players' yearly stats as well as the average ranking
+        of their opponents, but with all of the values put together it doesn't have a way to
+        discriminate between a player who destroyed poor teams and struggled in conference play
+        and a player who was solid throughout the entire year.
+    </p>
+    <p>
+        The other main difference is that the college model has far less data on a player's defensive
+        skills than the pro model does.  The college model is only given the player's listed position, 
+        while the pro model has the percentage of games for each position a player played at as well as
+        an internal DRS-based defensive metric.  This leads to the college model having little idea how
+        good a player actually is defensively, other than that most college C will play C
+        in pro ball.  This results in a model that is far more likely to give top marks for C
+        than it is for other positions.
+    </p>
+</div>

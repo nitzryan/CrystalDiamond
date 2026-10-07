@@ -42,12 +42,17 @@ async function main()
         sections : {
             players : [
                 getElementByIdStrict('view_select'),
-                getElementByIdStrict('rankings')
+                getElementByIdStrict('rankings'),
+                getElementByIdStrict('page_info_players')
             ],
-            team_rank : [getElementByIdStrict('team_rank')],
+            team_rank : [
+                getElementByIdStrict('team_rank'),
+                getElementByIdStrict('page_info_team_rank')
+            ],
             team_draft : [
                 getElementByIdStrict('team_select'),
-                getElementByIdStrict('team_draft')
+                getElementByIdStrict('team_draft'),
+                getElementByIdStrict('page_info_team_draft')
             ]
         }
     })
