@@ -18,10 +18,10 @@ assert _NUM_GRAD_SCALES == len(DEFAULT_PITCHER_GRAD_SCALES), \
 # What hyperparameters to tune
 class ProModelTuningRecipe(Flag):
     RECURRENT = auto()
-    INIT_HIDDEN = auto()
     SHARED_OPTIM = auto()
     
     DATAINIT_ARCH = auto()
+    PLAYERINIT_ARCH = auto()
     WAR_ARCH = auto()
     
     BATCH_PARAMS = auto()
@@ -47,18 +47,20 @@ SEARCH_SPACE: dict[ProModelTuningRecipe, list[ParamSpec]] = {
         ParamSpec("lr_datainit", 1e-4, 1e-2, log=True),
         ParamSpec("wd_datainit", 1e-7, 1e-2, log=True),
     ],
+    ProModelTuningRecipe.PLAYERINIT_ARCH: [
+        ParamSpec("init_input_size", 4, 128, is_int=True),
+        ParamSpec("playerinit_layers", 2, 7, is_int=True),
+        ParamSpec("playerinit_size", 4, 128, is_int=True),
+        ParamSpec("playerinit_activation", choices=ACTIVATION_FUNCTIONS),
+        ParamSpec("lr_playerinit", 1e-5, 3e-2, log=True),
+        ParamSpec("wd_playerinit", 1e-7, 1e-2, log=True),
+    ],
     ProModelTuningRecipe.WAR_ARCH: [
         ParamSpec("war_layers", 2, 6, is_int=True),
         ParamSpec("war_size", 4, 128, is_int=True),
         ParamSpec("war_activation", choices=ACTIVATION_FUNCTIONS),
         ParamSpec("lr_war", 1e-4, 1e-2, log=True),
         ParamSpec("wd_war", 1e-7, 1e-2, log=True),
-    ],
-    ProModelTuningRecipe.INIT_HIDDEN: [
-        ParamSpec("init_input_size", 4, 128, is_int=True),
-        ParamSpec("init_layers", 2, 6, is_int=True),
-        ParamSpec("init_size", 4, 128, is_int=True),
-        ParamSpec("init_activation", choices=ACTIVATION_FUNCTIONS),
     ],
     ProModelTuningRecipe.BATCH_PARAMS: [
         ParamSpec("batch_size", 400, 1600, is_int=True),
@@ -76,26 +78,29 @@ HITTER_DEFAULTS = {
     "num_layers": DEFAULT_PRO_NUM_LAYERS,
     "hidden_size": DEFAULT_PRO_HIDDEN_SIZE,
     "dropout": DEFAULT_DROPOUT,
-    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY[0],
-    "lr_shared": DEFAULT_LEARNING_RATES[0],
+    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY[VAR_IDX_SHARED],
+    "lr_shared": DEFAULT_LEARNING_RATES[VAR_IDX_SHARED],
     "rnn_activation": DEFAULT_RNN_NONLINEARITY,
     
     "war_layers": DEFAULT_WAR_ARCH.num_layers,
     "war_size": DEFAULT_WAR_ARCH.layer_size,
     "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH.nonlin],
-    "lr_war": DEFAULT_LEARNING_RATES[1],
-    "wd_war": DEFAULT_PRO_WEIGHT_DECAY[1],
+    "lr_war": DEFAULT_LEARNING_RATES[LOSS_IDX_WAR + 1],
+    "wd_war": DEFAULT_PRO_WEIGHT_DECAY[LOSS_IDX_WAR + 1],
     
     "datainit_layers": DEFAULT_DATA_ARCH.num_layers,
     "datainit_size": DEFAULT_DATA_ARCH.layer_size,
     "datainit_activation": _ACTIVATION_NAME[DEFAULT_DATA_ARCH.nonlin],
-    "lr_datainit": DEFAULT_LEARNING_RATES[9],
-    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY[9],
+    "lr_datainit": DEFAULT_LEARNING_RATES[VAR_IDX_DATAINIT],
+    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY[VAR_IDX_DATAINIT],
     
+    "playerinit_layers": DEFAULT_INIT_STATE_ARCH.num_layers,
+    "playerinit_size": DEFAULT_INIT_STATE_ARCH.layer_size,
+    "playerinit_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH.nonlin],
+    "lr_playerinit": DEFAULT_LEARNING_RATES[VAR_IDX_PLAYERINIT],
+    "wd_playerinit": DEFAULT_PRO_WEIGHT_DECAY[VAR_IDX_PLAYERINIT],
     "init_input_size": DEFAULT_INIT_STATE_SIZE,
-    "init_layers": DEFAULT_INIT_STATE_ARCH.num_layers,
-    "init_size": DEFAULT_INIT_STATE_ARCH.layer_size,
-    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH.nonlin],
+
     "batch_size": DEFAULT_BATCH_SIZE,
     "num_epochs": DEFAULT_NUM_EPOCHS,
     
@@ -106,26 +111,29 @@ PITCHER_DEFAULTS = {
     "num_layers": DEFAULT_PRO_NUM_LAYERS_P,
     "hidden_size": DEFAULT_PRO_HIDDEN_SIZE_P,
     "dropout": DEFAULT_DROPOUT_P,
-    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY_P[0],
-    "lr_shared": DEFAULT_LEARNING_RATES_P[0],
+    "wd_shared": DEFAULT_PRO_WEIGHT_DECAY_P[VAR_IDX_SHARED],
+    "lr_shared": DEFAULT_LEARNING_RATES_P[VAR_IDX_SHARED],
     "rnn_activation": DEFAULT_RNN_NONLINEARITY_P,
     
     "war_layers": DEFAULT_WAR_ARCH_P.num_layers,
     "war_size": DEFAULT_WAR_ARCH_P.layer_size,
     "war_activation": _ACTIVATION_NAME[DEFAULT_WAR_ARCH_P.nonlin],
-    "lr_war": DEFAULT_LEARNING_RATES_P[1],
-    "wd_war": DEFAULT_PRO_WEIGHT_DECAY_P[1],
+    "lr_war": DEFAULT_LEARNING_RATES_P[LOSS_IDX_WAR + 1],
+    "wd_war": DEFAULT_PRO_WEIGHT_DECAY_P[LOSS_IDX_WAR + 1],
     
     "datainit_layers": DEFAULT_DATA_ARCH_P.num_layers,
     "datainit_size": DEFAULT_DATA_ARCH_P.layer_size,
     "datainit_activation": _ACTIVATION_NAME[DEFAULT_DATA_ARCH_P.nonlin],
-    "lr_datainit": DEFAULT_LEARNING_RATES_P[9],
-    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY_P[9],
+    "lr_datainit": DEFAULT_LEARNING_RATES_P[VAR_IDX_DATAINIT],
+    "wd_datainit": DEFAULT_PRO_WEIGHT_DECAY_P[VAR_IDX_DATAINIT],
     
+    "playerinit_layers": DEFAULT_INIT_STATE_ARCH_P.num_layers,
+    "playerinit_size": DEFAULT_INIT_STATE_ARCH_P.layer_size,
+    "playerinit_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH_P.nonlin],
+    "lr_playerinit": DEFAULT_LEARNING_RATES_P[VAR_IDX_PLAYERINIT],
+    "wd_playerinit": DEFAULT_PRO_WEIGHT_DECAY_P[VAR_IDX_PLAYERINIT],
     "init_input_size": DEFAULT_INIT_STATE_SIZE_P,
-    "init_layers": DEFAULT_INIT_STATE_ARCH_P.num_layers,
-    "init_size": DEFAULT_INIT_STATE_ARCH_P.layer_size,
-    "init_activation": _ACTIVATION_NAME[DEFAULT_INIT_STATE_ARCH_P.nonlin],
+
     "batch_size": DEFAULT_BATCH_SIZE_P,
     "num_epochs": DEFAULT_NUM_EPOCHS_P,
     
@@ -134,8 +142,6 @@ PITCHER_DEFAULTS = {
 
 def AssertRecipeValid(recipe : ProModelTuningRecipe) -> None:
     if recipe & ProModelTuningRecipe.RECURRENT and not recipe & ProModelTuningRecipe.SHARED_OPTIM:
-        assert(False)
-    if recipe & ProModelTuningRecipe.TRUNK_GRAD_SCALES and not recipe & ProModelTuningRecipe.SHARED_OPTIM:
         assert(False)
 
 def resolve_params(
@@ -255,14 +261,15 @@ def objective(
                         nonlin=ACTIVATION_MAP[p["datainit_activation"]])
     war_arch = LayerArch(num_layers=p["war_layers"], layer_size=p["war_size"],
                          nonlin=ACTIVATION_MAP[p["war_activation"]])
-    init_arch = LayerArch(num_layers=p["init_layers"], layer_size=p["init_size"],
-                          nonlin=ACTIVATION_MAP[p["init_activation"]])
+    init_arch = LayerArch(num_layers=p["playerinit_layers"], layer_size=p["playerinit_size"],
+                          nonlin=ACTIVATION_MAP[p["playerinit_activation"]])
 
     lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
     wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
-    lr_list[0], lr_list[1] = p["lr_shared"], p["lr_war"]
-    wd_list[0], wd_list[1] = p["wd_shared"], p["wd_war"]
-    lr_list[9], wd_list[9] = p["lr_datainit"], p["wd_datainit"]
+    lr_list[VAR_IDX_SHARED], wd_list[VAR_IDX_SHARED] = p["lr_shared"], p["wd_shared"]
+    lr_list[LOSS_IDX_WAR + 1], wd_list[LOSS_IDX_WAR + 1] = p["lr_war"], p["wd_war"]
+    lr_list[VAR_IDX_DATAINIT], wd_list[VAR_IDX_DATAINIT] = p["lr_datainit"], p["wd_datainit"]
+    lr_list[VAR_IDX_PLAYERINIT], wd_list[VAR_IDX_PLAYERINIT] = p["lr_playerinit"], p["wd_playerinit"]
 
     return run_evaluation(
         io_list=io_list, data_prep=data_prep, is_hitter=is_hitter,

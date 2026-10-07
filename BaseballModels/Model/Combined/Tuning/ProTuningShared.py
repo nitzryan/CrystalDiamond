@@ -41,8 +41,8 @@ class ParamSpec:
         low, high = self.low, self.high
         if width is SearchWidth.NARROW:
             span = self.narrow_frac * default
-            low = max(low, default - span)
-            high = min(high, default + span)
+            low = default - span
+            high = default + span
             
             # Low int should always round down, high int round up
             if self.is_int:

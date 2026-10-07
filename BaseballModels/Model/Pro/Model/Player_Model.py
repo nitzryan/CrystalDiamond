@@ -138,19 +138,6 @@ def _InitModelHeadLists(
     
     return vals
 
-DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
-    shared=5.3e-2,
-    war=1.5e-5,
-    level=2.4e-7,
-    pa=5.9e-7,
-    stats=1.26e-3,
-    pos=2.1e-7,
-    mlbvalue=1e-7,
-    pt=5.7e-3,
-    mlbstat=1e-7,
-    init=4.8e-4,
-    player=1.0e-4
-)
 DEFAULT_LEARNING_RATES = _InitModelHeadLists(
     shared=1.04e-3,
     war=5.8e-3,
@@ -162,7 +149,20 @@ DEFAULT_LEARNING_RATES = _InitModelHeadLists(
     pt=2.1e-3,
     mlbstat=0.003,
     init=0.0055,
-    player=1.0e-4
+    player=4.4e-4
+)
+DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
+    shared=5.3e-2,
+    war=1.5e-5,
+    level=2.4e-7,
+    pa=5.9e-7,
+    stats=1.26e-3,
+    pos=2.1e-7,
+    mlbvalue=1e-7,
+    pt=5.7e-3,
+    mlbstat=1e-7,
+    init=4.8e-4,
+    player=1.2e-6
 )
 
 DEFAULT_LEARNING_RATES_P = _InitModelHeadLists(
@@ -192,17 +192,17 @@ DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
     player=1e-7
 )
 
-DEFAULT_INIT_STATE_SIZE = 40
+DEFAULT_INIT_STATE_SIZE = 24
 DEFAULT_INIT_STATE_SIZE_P = 24
-DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=64, num_layers=5, nonlin=F.relu)
+DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=65, num_layers=3, nonlin=F.relu)
 DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=128, num_layers=3, nonlin=F.leaky_relu)
 
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
 
-DEFAULT_HITTER_GRAD_SCALES = [1, 0.017, 1.4, 0.077, 0.01, 3.3, 0.003, 0.25]
-DEFAULT_PITCHER_GRAD_SCALES = [1, 0.175, 2.1, 0.12, 2.07, 1.76, 0.006, 0.02]
+DEFAULT_HITTER_GRAD_SCALES = [1, 0.022, 1.48, 0.006, 0.007, 5.4, 0.03, 0.04]
+DEFAULT_PITCHER_GRAD_SCALES = [1, 0.005, 2.0, 0.02, 1.05, 2.66, 0.05, 0.01]
 
 class _ScaleBackboneGradient(torch.autograd.Function):
     @staticmethod
