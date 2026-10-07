@@ -115,7 +115,10 @@ async function main()
     })
     stat_hitter_btn.click()
 
-    getElementByIdStrict('nav_stats').classList.add('selected')
+    const nav_stats = document.getElementById('nav_stats')
+    if (nav_stats !== null)
+        nav_stats.classList.add('selected')
+    //getElementByIdStrict('nav_stats').classList.add('selected')
 
     rankings_button.addEventListener('click', (event) => {
         const mnth = month_select.value

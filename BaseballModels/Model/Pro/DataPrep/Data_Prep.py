@@ -640,8 +640,9 @@ class Data_Prep:
             # Masks
             prospect_mask = torch.zeros(l, dtype=torch.float)
             prospect_mask[0] = 0 if ignore_player else 1
-            for i, stat in enumerate(stats):
-                prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
+            if not ignore_player:
+                for i, stat in enumerate(stats):
+                    prospect_mask[i + 1] = Output_Map.GetProspectMask(stat)
             
             lvl_mask = torch.zeros(l, len(HITTER_LEVEL_BUCKETS), dtype=torch.float)
             for i, stat in enumerate(stats):
