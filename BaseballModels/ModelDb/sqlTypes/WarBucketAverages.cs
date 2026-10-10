@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class WarBucketAverages
+	public partial class WarBucketAverages
 	{
 		public required bool IsHitter {get; set;}
 		public required float War1 {get; set;}

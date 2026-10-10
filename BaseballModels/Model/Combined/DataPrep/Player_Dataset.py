@@ -25,6 +25,8 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 pro_pt_levelYearGames,
                 pro_mlb_stat_buckets,
                 pro_mlb_stat_mask,
+                pro_output_mlb_war,
+                pro_mask_mlb_war,
                 
                 col_dates,
                 col_bio,
@@ -63,12 +65,14 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         self.pro_o_mlb_value = pro_output_mlb_value.to(device, non_blocking=True).transpose(0, 1)
         self.pro_o_pt = pro_output_pt.to(device, non_blocking=True).transpose(0, 1)
         self.pro_o_mlb_stat_buckets = pro_mlb_stat_buckets.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_o_mlb_war = pro_output_mlb_war.to(device, non_blocking=True).transpose(0, 1)
         
         self.pro_m_labels = pro_mask_labels.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_stats = pro_mask_stats.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_year = pro_mask_year.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_mlb_value = pro_mask_mlb_value.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_mlb_stat = pro_mlb_stat_mask.to(device, non_blocking=True).transpose(0, 1)
+        self.pro_m_mlb_war = pro_mask_mlb_war.to(device, non_blocking=True).transpose(0, 1)
         
         self.pro_v_war_class = pro_variants_war_class.to(device, non_blocking=True)
         self.pro_v_war_regression = pro_variants_war_regression.to(device, non_blocking=True)
@@ -91,6 +95,8 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         # Faster size calculation
         self.size_pro = (self.pro_lengths > 0).sum().item()
         self.size_col = (self.col_lengths > 0).sum().item()
+        
+        self.pro_months = self.pro_dates[:, :, 2].contiguous().long()
     
     def __len__(self):
         return self.pro_data.size(dim=0)
@@ -131,6 +137,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_pt_levelYearGames[batch_indices],
             self.pro_player_demo[batch_indices],
             self.pro_player_bios[batch_indices],
+            self.pro_months[batch_indices],
         )
 
         pro_targets = (
@@ -142,6 +149,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_o_mlb_value[batch_indices],
             self.pro_o_pt[batch_indices],
             self.pro_o_mlb_stat_buckets[batch_indices],
+            self.pro_o_mlb_war[batch_indices],
         )
 
         pro_masks = (
@@ -150,6 +158,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_m_year[batch_indices],
             self.pro_m_mlb_value[batch_indices],
             self.pro_m_mlb_stat[batch_indices],
+            self.pro_m_mlb_war[batch_indices],
         )
 
         col_input = (
@@ -233,10 +242,10 @@ def Create_Test_Train_Datasets(
                 output_class : int = player.college_io.output_war.item() if player.college_io.player is not None else player.pro_io.output[0].item()
                 player_buckets_list[output_class].append(player)
                
-        if total_training_runs % (train_test_ratio + 1) != 0:
-            raise ValueError("M must be divisible by N")
-        if not (0 <= train_idx < total_training_runs):
-            raise ValueError("C must satisfy 0 <= C < M")
+        # if total_training_runs % (train_test_ratio + 1) != 0:
+        #     raise ValueError("M must be divisible by N")
+        # if not (0 <= train_idx < total_training_runs):
+        #     raise ValueError("C must satisfy 0 <= C < M")
                 
         for sublist in player_buckets_list:
             train_part, test_part = split_sublist(sublist, train_test_ratio, total_training_runs, train_idx)
@@ -285,6 +294,11 @@ def Create_Test_Train_Datasets(
     pro_mask_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_mask for io in io_test])
     pro_output_mlb_value_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_stats for io in io_train])
     pro_output_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_stats for io in io_test])
+
+    pro_output_mlbwar_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_outputs for io in io_train])
+    pro_output_mlbwar_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_outputs for io in io_test])
+    pro_mask_mlbwar_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_output_mask for io in io_train])
+    pro_mask_mlbwar_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_output_mask for io in io_test])
 
     pro_variants_warclass_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.output_war_class_variants for io in io_train])
     pro_variants_warclass_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.output_war_class_variants for io in io_test])
@@ -367,6 +381,8 @@ def Create_Test_Train_Datasets(
         pro_pt_levelYearGames= pro_pt_levelYearGames_train,
         pro_mlb_stat_buckets=pro_output_mlbstat_train,
         pro_mlb_stat_mask=pro_mask_mlbstat_train,
+        pro_output_mlb_war=pro_output_mlbwar_train,
+        pro_mask_mlb_war=pro_mask_mlbwar_train,
         
         col_dates= col_dates_train,
         col_bio=col_bio_train,
@@ -409,6 +425,8 @@ def Create_Test_Train_Datasets(
         pro_pt_levelYearGames= pro_pt_levelYearGames_test,
         pro_mlb_stat_buckets=pro_output_mlbstat_test,
         pro_mlb_stat_mask=pro_mask_mlbstat_test,
+        pro_output_mlb_war=pro_output_mlbwar_test,
+        pro_mask_mlb_war=pro_mask_mlbwar_test,
         
         col_dates= col_dates_test,
         col_bio=col_bio_test,

@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class Output_PlayerHighestLevelAggregation
+	public partial class Output_PlayerHighestLevelAggregation
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}

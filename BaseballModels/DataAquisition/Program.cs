@@ -193,6 +193,9 @@ namespace DataAquisition
                 }
             }
 
+            GenerateModelWarStats.CalculateHitterWar();
+            GenerateModelWarStats.CalculatePitcherWar();
+
             ////////// Statcast Data //////////
             if (STATCAST_ONLY_UPDATE || DATA_UPDATE || FULL_REFRESH)
             {

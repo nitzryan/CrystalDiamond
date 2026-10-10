@@ -1,9 +1,8 @@
 from sklearn.decomposition import PCA # type: ignore
 from typing import TypeVar, Optional, Callable
 from Model.DBTypes import *
-from Model.Constants import db, DTYPE, NUM_LEVELS
-from Model.Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS
-from Model.Constants import PITCHER_LEVEL_BUCKETS, PITCHER_BF_BUCKETS
+from Model.Constants import *
+from Model.Utilities import Get_PartialYear_Scale
 import math
 import torch
 from tqdm import tqdm
@@ -40,6 +39,9 @@ class Player_IO:
                  
                  mlb_stat_buckets : torch.Tensor,
                  mlb_stat_mask : torch.Tensor,
+                 
+                 mlb_war_outputs : torch.Tensor,
+                 mlb_war_output_mask  : torch.Tensor,
                  ):
         
         self.player = player
@@ -64,6 +66,8 @@ class Player_IO:
         
         self.mlb_stat_buckets = mlb_stat_buckets
         self.mlb_stat_mask = mlb_stat_mask
+        self.mlb_war_outputs = mlb_war_outputs
+        self.mlb_war_output_mask  = mlb_war_output_mask 
         
     @staticmethod
     def GetMaxLength(io_list : list['Player_IO']) -> int:
@@ -80,6 +84,7 @@ class Pro_Hitter_Data:
     level_stats: list[DB_Model_HitterLevelStats]
     mlb_values: list[DB_Model_HitterValue]
     player_wars: list[DB_Model_PlayerWar]
+    war_predictions : list[DB_Model_HitterWarValues]
     ignore_player: bool
         
 @dataclass
@@ -90,6 +95,7 @@ class Pro_Pitcher_Data:
     level_stats: list[DB_Model_PitcherLevelStats]
     mlb_values: list[DB_Model_PitcherValue]
     player_wars: list[DB_Model_PlayerWar]
+    war_predictions : list[DB_Model_PitcherWarValues]
     ignore_player: bool
         
 _T = TypeVar('T')
@@ -337,16 +343,17 @@ class Data_Prep:
             level_stats : list[DB_Model_HitterLevelStats] | None = None,
             mlb_values : list[DB_Model_HitterValue] | None = None,
             player_wars : list[DB_Model_PlayerWar] | None = None,
+            war_predictions : list[DB_Model_HitterWarValues] | None = None,
             modelLevelYearGamesDict : dict | None = None,
             ignore_player : bool = False) -> Player_IO:
 
         # Output/masking arguments are all-or-nothing
-        output_group = (level_stats, mlb_values, player_wars)
+        output_group = (level_stats, mlb_values, player_wars, war_predictions)
         compute_outputs = any(g is not None for g in output_group)
         if compute_outputs and any(g is None for g in output_group):
             raise ValueError(
-            "level_stats, mlb_values and player_wars are all-or-nothing: provide "
-            "all three to generate outputs/masks, or none to only generate "
+            "level_stats, mlb_values, player_wars and war_predictions are all-or-nothing: provide "
+            "all four to generate outputs/masks, or none to only generate "
             "input/length/pt_levelYearGames.")
 
         # Built here if not supplied (standalone / what-if calls)
@@ -386,6 +393,12 @@ class Data_Prep:
             
 
         if compute_outputs:
+            # Help the typechecker know the values are not null
+            assert level_stats is not None
+            assert mlb_values is not None
+            assert player_wars is not None
+            assert war_predictions is not None
+            
             # Norm tensors
             hitlvlstat_means : torch.Tensor = getattr(self, "__hitlvlstat_means")
             hitlvlstat_devs : torch.Tensor = getattr(self, "__hitlvlstat_devs")
@@ -506,6 +519,22 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
 
+            # MLB WAR/PA predictions: bucket targets [T, M, 2] (0 = WAR, 1 = PA) and mask [T, M]
+            mlb_war_outputs = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, 2, dtype=torch.long)
+            mlb_war_output_mask = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, dtype=torch.float)
+            if len(stats) > 0:
+                # Timestep t (t >= 1) corresponds to stats[t - 1]
+                stat_timestep = {(s.Year, s.Month): i + 1 for i, s in enumerate(stats)}
+                for p in war_predictions:
+                    t = stat_timestep.get((p.Year, p.Month))
+                    if t is None:
+                        continue
+                    assert p.Offset < NUM_MLB_YEAR_OFFSETS
+                    scale = Get_PartialYear_Scale(p.Offset, p.Month)
+                    mlb_war_outputs[t, p.Offset, 0] = torch.bucketize(torch.tensor(p.WAR * scale, dtype=DTYPE), MLB_YEAR_WAR_BUCKETS_HITTER)
+                    mlb_war_outputs[t, p.Offset, 1] = torch.bucketize(torch.tensor(p.PA * scale, dtype=DTYPE), MLB_YEAR_PA_BUCKETS_HITTER)
+                    mlb_war_output_mask[t, p.Offset] = 1
+
         else: # What-if analysis
             output = None
             prospect_value = None
@@ -521,6 +550,8 @@ class Data_Prep:
             mlb_value_stats = None
             mlb_stat_buckets = None
             mlb_stat_mask = None
+            mlb_war_outputs = None
+            mlb_war_output_mask = None
 
         return Player_IO(player=hitter,
                             input=input,
@@ -541,9 +572,10 @@ class Data_Prep:
                             mlb_value_mask=mlb_value_mask,
                             mlb_value_stats=mlb_value_stats,
                             pt_levelYearGames = mlyg,
-
                             mlb_stat_buckets = mlb_stat_buckets,
-                            mlb_stat_mask = mlb_stat_mask,)
+                            mlb_stat_mask = mlb_stat_mask,
+                            mlb_war_outputs = mlb_war_outputs,
+                            mlb_war_output_mask = mlb_war_output_mask,)
         
     def Generate_IO_Single_Pitcher(self,
                 pitcher : DB_Model_Players,
@@ -552,16 +584,17 @@ class Data_Prep:
                 level_stats : list[DB_Model_HitterLevelStats] | None,
                 mlb_values : list[DB_Model_HitterValue] | None,
                 player_wars : list[DB_Model_PlayerWar] | None,
+                war_predictions : list[DB_Model_PitcherWarValues] | None = None,
                 modelLevelYearGamesDict : dict | None = None,
                 ignore_player : bool = False) -> Player_IO:
         
         # Output/masking arguments are all-or-nothing
-        output_group = (level_stats, mlb_values, player_wars)
+        output_group = (level_stats, mlb_values, player_wars, war_predictions)
         compute_outputs = any(g is not None for g in output_group)
         if compute_outputs and any(g is None for g in output_group):
             raise ValueError(
-            "level_stats, mlb_values and player_wars are all-or-nothing: provide "
-            "all three to generate outputs/masks, or none to only generate "
+            "level_stats, mlb_values, player_wars and war_predictions are all-or-nothing: provide "
+            "all four to generate outputs/masks, or none to only generate "
             "input/length/pt_levelYearGames.")
             
         # Built here if not supplied (standalone / what-if calls)
@@ -600,6 +633,12 @@ class Data_Prep:
             mlyg[0,:] = mlyg[1,:]
             
         if compute_outputs:
+            # Help the typechecker know the values are not null
+            assert level_stats is not None
+            assert mlb_values is not None
+            assert player_wars is not None
+            assert war_predictions is not None
+                        
             # Norm tensors
             pitlvlstat_means : torch.Tensor = getattr(self, "__pitlvlstat_means")
             pitlvlstat_devs : torch.Tensor = getattr(self, "__pitlvlstat_devs")
@@ -717,6 +756,26 @@ class Data_Prep:
                 mlb_value_mask[0] = mlb_value_mask[1]
                 mlb_value_stats[0] = mlb_value_stats[1]
                 
+            # MLB outs/WAR predictions: bucket targets [T, M, 4] and mask [T, M]
+            # Index 0 = outsSP, 1 = WarSP, 2 = outsRP, 3 = WarRP
+            mlb_war_outputs = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, 4, dtype=torch.long)
+            mlb_war_output_mask = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, dtype=torch.float)
+            if len(stats) > 0:
+                # Timestep t (t >= 1) corresponds to stats[t - 1]
+                stat_timestep = {(s.Year, s.Month): i + 1 for i, s in enumerate(stats)}
+                value_buckets = (MLB_YEAR_OUTS_BUCKETS_SP, MLB_YEAR_WAR_BUCKETS_SP,
+                                 MLB_YEAR_OUTS_BUCKETS_RP, MLB_YEAR_WAR_BUCKETS_RP)
+                for p in war_predictions:
+                    t = stat_timestep.get((p.Year, p.Month))
+                    if t is None:
+                        continue
+                    assert p.Offset < NUM_MLB_YEAR_OFFSETS
+                    scale = Get_PartialYear_Scale(p.Offset, p.Month)
+                    values = (p.outsSP, p.WarSP, p.outsRP, p.WarRP)
+                    for k in range(4):
+                        mlb_war_outputs[t, p.Offset, k] = torch.bucketize(torch.tensor(values[k] * scale, dtype=DTYPE), value_buckets[k])
+                    mlb_war_output_mask[t, p.Offset] = 1
+                
         else: # What-if analysis
             output = None
             prospect_value = None
@@ -732,6 +791,8 @@ class Data_Prep:
             mlb_value_stats = None
             mlb_stat_buckets = None
             mlb_stat_mask = None
+            mlb_war_outputs = None
+            mlb_war_output_mask = None
                 
         return Player_IO(player=pitcher, 
             input=input, 
@@ -754,7 +815,9 @@ class Data_Prep:
             pt_levelYearGames=mlyg,
             
             mlb_stat_buckets = mlb_stat_buckets,
-            mlb_stat_mask = mlb_stat_mask,)
+            mlb_stat_mask = mlb_stat_mask,
+            mlb_war_outputs = mlb_war_outputs,
+            mlb_war_output_mask = mlb_war_output_mask,)
             
         
     def Load_Hitter_Data(self, mlbId: int, use_cutoff: bool, player: DB_Model_Players | None) -> Pro_Hitter_Data:
@@ -782,6 +845,8 @@ class Data_Prep:
                 {'mlbId': mlbId, 'year': cutoff_year}),
             player_wars=DB_Model_PlayerWar.Select_From_DB(cursor,
                 "WHERE mlbId=? AND isHitter=1", (mlbId,)),
+            war_predictions=DB_Model_HitterWarValues.Select_From_DB(cursor,
+                "WHERE mlbId=? AND (Year + Offset + (Month >= 9)) <= ?", (mlbId, cutoff_year)),
             ignore_player=cursor.execute(
                 "SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?",
                 (mlbId,)).fetchone()[0] is not None,
@@ -812,6 +877,8 @@ class Data_Prep:
                 {'mlbId': mlbId, 'year': cutoff_year}),
             player_wars=DB_Model_PlayerWar.Select_From_DB(cursor,
                 "WHERE mlbId=? AND isHitter=0", (mlbId,)),
+            war_predictions=DB_Model_PitcherWarValues.Select_From_DB(cursor,
+                "WHERE mlbId=? AND (Year + Offset + (Month >= 9)) <= ?", (mlbId, cutoff_year)),
             ignore_player=cursor.execute(
                 "SELECT ignorePlayer FROM Player_CareerStatus WHERE mlbId=?",
                 (mlbId,)).fetchone()[0] is not None,
@@ -825,6 +892,7 @@ class Data_Prep:
             level_stats=data.level_stats,
             mlb_values=data.mlb_values,
             player_wars=data.player_wars,
+            war_predictions=data.war_predictions,
             modelLevelYearGamesDict=modelLevelYearGamesDict,
             ignore_player=data.ignore_player)
     
@@ -836,6 +904,7 @@ class Data_Prep:
             level_stats=data.level_stats,
             mlb_values=data.mlb_values,
             player_wars=data.player_wars,
+            war_predictions=data.war_predictions,
             modelLevelYearGamesDict=modelLevelYearGamesDict,
             ignore_player=data.ignore_player
         )

@@ -13,6 +13,8 @@ python aggregatedTableCreator.py Output_PlayerWar ModelRun ModelId,year,month,ml
 python aggregatedTableCreator.py Output_PlayerHighestLevel ModelRun ModelId,year,month,mlbId
 python aggregatedTableCreator.py Output_College_Hitter ModelRun ModelId,year,tbcId
 python aggregatedTableCreator.py Output_College_Pitcher ModelRun ModelId,year,tbcId
+python aggregatedTableCreator.py Output_HitterMlbWar ModelRun mlbId,ModelId,year,month
+python aggregatedTableCreator.py Output_Output_PitcherMlbWar ModelRun mlbId,ModelId,year,month
 
 python linqCreation.py
 python pyCreation.py

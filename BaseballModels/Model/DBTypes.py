@@ -2190,5 +2190,51 @@ class DB_Draft_Results:
 		items = cursor.execute("SELECT * FROM Draft_Results " + conditional, values).fetchall()
 		return [DB_Draft_Results(i) for i in items]
 
+class DB_Model_HitterWarValues:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.Offset = values[3]
+		self.PA = values[4]
+		self.OFF = values[5]
+		self.DRAA = values[6]
+		self.DEF = values[7]
+		self.BSR = values[8]
+		self.WAR = values[9]
+
+	NUM_ELEMENTS = 10
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.Year,self.Month,self.Offset,self.PA,self.OFF,self.DRAA,self.DEF,self.BSR,self.WAR)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_HitterWarValues']:
+		items = cursor.execute("SELECT * FROM Model_HitterWarValues " + conditional, values).fetchall()
+		return [DB_Model_HitterWarValues(i) for i in items]
+
+class DB_Model_PitcherWarValues:
+	def __init__(self, values : tuple[any]):
+		self.mlbId = values[0]
+		self.Year = values[1]
+		self.Month = values[2]
+		self.Offset = values[3]
+		self.outsSP = values[4]
+		self.outsRP = values[5]
+		self.WarSP = values[6]
+		self.WarRP = values[7]
+
+	NUM_ELEMENTS = 8
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.mlbId,self.Year,self.Month,self.Offset,self.outsSP,self.outsRP,self.WarSP,self.WarRP)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_Model_PitcherWarValues']:
+		items = cursor.execute("SELECT * FROM Model_PitcherWarValues " + conditional, values).fetchall()
+		return [DB_Model_PitcherWarValues(i) for i in items]
+
 
 ##############################################################################################

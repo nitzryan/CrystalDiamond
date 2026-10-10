@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class ModelId
+	public partial class ModelId
 	{
 		public required int Id {get; set;}
 		public required string ModelName {get; set;}

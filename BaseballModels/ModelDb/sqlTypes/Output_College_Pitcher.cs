@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class Output_College_Pitcher
+	public partial class Output_College_Pitcher
 	{
 		public required int TbcId {get; set;}
 		public required int ModelId {get; set;}

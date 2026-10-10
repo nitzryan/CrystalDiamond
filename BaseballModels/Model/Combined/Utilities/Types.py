@@ -85,4 +85,5 @@ class TrainResults:
     best_loss_mlbvalue : float
     best_loss_pt : float
     best_loss_mlbstat : float
+    best_loss_mlbwar : float
     test_losses : list[list[float]]

@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class PlayersInTrainingData
+	public partial class PlayersInTrainingData
 	{
 		public required int MlbId {get; set;}
 		public required int TbcId {get; set;}

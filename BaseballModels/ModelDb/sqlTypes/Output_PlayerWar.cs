@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class Output_PlayerWar
+	public partial class Output_PlayerWar
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}

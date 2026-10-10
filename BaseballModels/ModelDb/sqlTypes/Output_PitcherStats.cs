@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class Output_PitcherStats
+	public partial class Output_PitcherStats
 	{
 		public required int MlbId {get; set;}
 		public required int ModelId {get; set;}

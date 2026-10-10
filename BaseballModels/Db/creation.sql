@@ -354,6 +354,32 @@ CREATE TABLE Model_LeaguePitchingBaselines (
 	PRIMARY KEY("Year", "Month", "LeagueId")
 );
 
+CREATE TABLE "Model_HitterWarValues" (
+    "mlbId"      INTEGER NOT NULL,
+    "Year"       INTEGER NOT NULL,
+    "Month"      INTEGER NOT NULL,
+    "Offset"     INTEGER NOT NULL,
+    "PA"         INTEGER NOT NULL,
+    "OFF"        REAL NOT NULL,
+    "DRAA"       REAL NOT NULL,
+    "DEF"        REAL NOT NULL,
+    "BSR"        REAL NOT NULL,
+    "WAR"        REAL NOT NULL,
+    PRIMARY KEY ("mlbId","Year","Month","Offset")
+);
+
+CREATE TABLE "Model_PitcherWarValues" (
+    "mlbId"      INTEGER NOT NULL,
+    "Year"       INTEGER NOT NULL,
+    "Month"      INTEGER NOT NULL,
+    "Offset"     INTEGER NOT NULL,
+    "outsSP"     INTEGER NOT NULL,
+    "outsRP"     INTEGER NOT NULL,
+    "WarSP"      REAL NOT NULL,
+    "WarRP"      REAL NOT NULL,
+    PRIMARY KEY ("mlbId","Year","Month","Offset")
+);
+
 CREATE TABLE "Park_Factors" (
 	"StadiumId"	INTEGER NOT NULL,
 	"LeagueId"	INTEGER NOT NULL,

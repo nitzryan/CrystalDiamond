@@ -14,12 +14,18 @@ namespace ModelDb
 		public DbSet<Model_TrainingHistory> Model_TrainingHistory {get; set;}
 		public DbSet<PlayersInTrainingData> PlayersInTrainingData {get; set;}
 		public DbSet<ModelId> ModelId {get; set;}
+		public DbSet<Output_HitterMlbWar> Output_HitterMlbWar {get; set;}
+		public DbSet<Output_PitcherMlbWar> Output_PitcherMlbWar {get; set;}
 		public DbSet<Output_HitterStatsAggregation> Output_HitterStatsAggregation {get; set;}
 		public DbSet<Output_PitcherStatsAggregation> Output_PitcherStatsAggregation {get; set;}
 		public DbSet<Output_PlayerWarAggregation> Output_PlayerWarAggregation {get; set;}
 		public DbSet<Output_PlayerHighestLevelAggregation> Output_PlayerHighestLevelAggregation {get; set;}
 		public DbSet<Output_College_HitterAggregation> Output_College_HitterAggregation {get; set;}
 		public DbSet<Output_College_PitcherAggregation> Output_College_PitcherAggregation {get; set;}
+		public DbSet<Output_HitterMlbWarAggregation> Output_HitterMlbWarAggregation {get; set;}
+		public DbSet<Output_PitcherMlbWarAggregation> Output_PitcherMlbWarAggregation {get; set;}
+		public DbSet<SingleYearHitterBucketAverages> SingleYearHitterBucketAverages {get; set;}
+		public DbSet<SingleYearPitcherBucketAverages> SingleYearPitcherBucketAverages {get; set;}
 
 		public ModelDbContext(DbContextOptions<ModelDbContext> options) : base(options) { }
 
@@ -35,12 +41,18 @@ namespace ModelDb
 			modelBuilder.Entity<Model_TrainingHistory>().HasKey(f => new {f.ModelName,f.IsHitter,f.ModelRun});
 			modelBuilder.Entity<PlayersInTrainingData>().HasKey(f => new {f.MlbId,f.TbcId,f.ModelId,f.ModelRun,f.IsHitter});
 			modelBuilder.Entity<ModelId>().HasKey(f => new {f.Id});
+			modelBuilder.Entity<Output_HitterMlbWar>().HasKey(f => new {f.MlbId,f.ModelId,f.ModelRun,f.Year,f.Month});
+			modelBuilder.Entity<Output_PitcherMlbWar>().HasKey(f => new {f.MlbId,f.ModelId,f.ModelRun,f.Year,f.Month});
 			modelBuilder.Entity<Output_HitterStatsAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PitcherStatsAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Output_PlayerWarAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.IsHitter,f.Year,f.Month});
 			modelBuilder.Entity<Output_PlayerHighestLevelAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.IsHitter,f.Year,f.Month});
 			modelBuilder.Entity<Output_College_HitterAggregation>().HasKey(f => new {f.TbcId,f.ModelId,f.Year});
 			modelBuilder.Entity<Output_College_PitcherAggregation>().HasKey(f => new {f.TbcId,f.ModelId,f.Year});
+			modelBuilder.Entity<Output_HitterMlbWarAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
+			modelBuilder.Entity<Output_PitcherMlbWarAggregation>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
+			modelBuilder.Entity<SingleYearHitterBucketAverages>().HasKey(f => new {f.Month});
+			modelBuilder.Entity<SingleYearPitcherBucketAverages>().HasKey(f => new {f.Month});
 		}
 	}
 }

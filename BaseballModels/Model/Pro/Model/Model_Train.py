@@ -4,10 +4,11 @@ from Model.Pro.Model.Player_Model import Stats_Loss, Position_Classification_Los
 from Model.Combined.Model.GetWarClassCounts import *
 from Model.Combined.Utilities.Types import *
 from Model.Combined.Utilities.BrierScore import Brier_Score
+from Model.Pro.Model.Losses import *
 
 from Model.Utilities import profiler
 
-ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "PlayingTime", "MLBValue", "MLBStat"]
+ELEMENT_LIST = ["WAR", "Level", "PA", "Stats", "Position", "PlayingTime", "MLBValue", "MLBStat", "MLBWar"]
 NUM_ELEMENTS = len(ELEMENT_LIST)
 
 @profiler
@@ -21,7 +22,7 @@ def GetLossesPro(
   is_hitter: bool) -> ProLossResult | None:
   
   # Get Model Output
-  data, length, pt_levelYearGames, player_demo, player_bios = data
+  data, length, pt_levelYearGames, player_demo, player_bios, months = data
   mask_valid = length > 0
   if mask_valid.sum() == 0:
     return None
@@ -32,12 +33,13 @@ def GetLossesPro(
   i0 = i0[mask_valid].to(device, non_blocking=True)
   player_demo = player_demo[mask_valid].to(device, non_blocking=True)
   player_bios = player_bios[mask_valid].to(device, non_blocking=True)
+  months = months[mask_valid].to(device, non_blocking=True)
   
-  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat = network(data, length, pt_levelYearGames, i0, player_demo, player_bios)
+  output_war, output_level, output_pa, output_stats, output_pos, output_mlbValue, output_pt, output_mlbstat, output_mlbwar = network(data, length, pt_levelYearGames, i0, player_demo, player_bios, months)
   
   # Move targets and masks to GPU
-  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat = targets
-  mask_labels, mask_stats, mask_year, mask_mlbValue, mask_mlbstat = masks
+  target_war, target_level, target_pa, target_yearStats, target_yearPos, target_mlbValue, target_pt, target_mlbstat, target_mlbwar = targets
+  mask_labels, mask_stats, mask_year, mask_mlbValue, mask_mlbstat, mask_mlbwar = masks
   
   target_war = target_war[mask_valid].to(device, non_blocking=True)
   target_level = target_level[mask_valid].to(device, non_blocking=True)
@@ -47,12 +49,14 @@ def GetLossesPro(
   target_mlbValue = target_mlbValue[mask_valid].to(device, non_blocking=True)
   target_pt = target_pt[mask_valid].to(device, non_blocking=True)
   target_mlbstat = target_mlbstat[mask_valid].to(device, non_blocking=True)
+  target_mlbwar = target_mlbwar[mask_valid].to(device, non_blocking=True)
   
   mask_labels = mask_labels[mask_valid].to(device, non_blocking=True)
   mask_year = mask_year[mask_valid].to(device, non_blocking=True)
   mask_stats = mask_stats[mask_valid].to(device, non_blocking=True)
   mask_mlbValue = mask_mlbValue[mask_valid].to(device, non_blocking=True)
   mask_mlbstat = mask_mlbstat[mask_valid].to(device, non_blocking=True)
+  mask_mlbwar = mask_mlbwar[mask_valid].to(device, non_blocking=True)
   
   # Track per-class WAR prediction/actual counts over valid timesteps
   with torch.no_grad():
@@ -69,14 +73,15 @@ def GetLossesPro(
   loss_yearPos = Position_Classification_Loss(output_pos, target_yearPos, mask_year)
   loss_mlbValue = Mlb_Value_Loss_Hitter(output_mlbValue, target_mlbValue, mask_mlbValue) if is_hitter else Mlb_Value_Loss_Pitcher(output_mlbValue, target_mlbValue, mask_mlbValue)
   loss_mlbStat = MLB_Stat_Classification_Loss(output_mlbstat, target_mlbstat, mask_mlbstat, is_hitter)
+  loss_mlbWar = MLB_War_Loss(output_mlbwar, target_mlbwar, mask_mlbwar, MLB_WAR_HEAD_CLASSES_HITTER if is_hitter else MLB_WAR_HEAD_CLASSES_PITCHER)
   
-  losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat]
+  losses = [loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat, loss_mlbWar]
   
   if shouldBackprop:
     torch.autograd.backward(losses)
   
   return ProLossResult(
-    losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat),
+    losses=(loss_war, loss_level, loss_pa, loss_yearStats, loss_yearPos, loss_yearPt, loss_mlbValue, loss_mlbStat, loss_mlbWar),
     war_counts=WarClassCounts(predicted=war_predicted_counts, actual=war_actual_counts),
     brier=BrierAccumulator(per_class_sum=brier_per_class_sum, count=brier_count),
   )

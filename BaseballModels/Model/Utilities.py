@@ -1,6 +1,6 @@
 from typing import TypeVar, Type
 import torch
-from Model.Constants import DTYPE
+from Model.Constants import *
 
 from line_profiler import LineProfiler
 profiler = LineProfiler()
@@ -41,3 +41,8 @@ def GetModelMaps(model_id : int) -> tuple[Prep_Map, Output_Map, College_Prep_Map
         return MakeMeanRevertPrepMap(cutoff=4), base_output_map, college_base_prep_map, college_output_map
     raise Exception(f"No mapping found for model_id={model_id}")
 
+# Handles scaling a partial year data
+def Get_PartialYear_Scale(offset : int, month : int) -> float:
+    if offset == 0 and month < SEASON_END_MONTH:
+        return SEASON_LENGTH_MONTHS / (SEASON_END_MONTH - month)
+    return 1.0

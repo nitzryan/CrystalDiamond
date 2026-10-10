@@ -1,6 +1,6 @@
 namespace ModelDb
 {
-	public class Model_TrainingHistory
+	public partial class Model_TrainingHistory
 	{
 		public required string ModelName {get; set;}
 		public required bool IsHitter {get; set;}

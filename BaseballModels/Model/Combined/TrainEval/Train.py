@@ -20,6 +20,6 @@ cursor.execute(f"INSERT INTO ModelId VALUES(1,'Base_{day_str}')")
 model_db.commit()
 
 Train_Players(NUM_MODEL_VARIANTS, True)
-Train_Players(NUM_MODEL_VARIANTS, False)
+#Train_Players(NUM_MODEL_VARIANTS, False)
 Eval_Players(eval_update=False, is_hitter=True, train_only=False)
-Eval_Players(eval_update=False, is_hitter=False, train_only=False)
+#Eval_Players(eval_update=False, is_hitter=False, train_only=False)

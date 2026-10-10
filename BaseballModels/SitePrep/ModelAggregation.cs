@@ -2,6 +2,7 @@
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
+using System.Data;
 
 namespace SitePrep
 {
@@ -355,10 +356,55 @@ namespace SitePrep
             db.BulkInsert(items);
         }
 
+        private static readonly HashSet<string> MlbWarKeyColumns = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "mlbId", "ModelId", "ModelRun", "year", "month"
+        };
+
+        private static List<string> GetTableColumns(ModelDbContext db, string table)
+        {
+            var columns = new List<string>();
+            var connection = db.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT name FROM pragma_table_info('{table}')";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+                columns.Add(reader.GetString(0));
+
+            return columns;
+        }
+
+        private static void AggregateMlbWar(string sourceTable, string targetTable)
+        {
+            using ModelDbContext db = new(Constants.MODELDB_OPTIONS);
+
+            List<string> valueColumns = GetTableColumns(db, sourceTable)
+                .Where(c => !MlbWarKeyColumns.Contains(c))
+                .ToList();
+            if (valueColumns.Count == 0)
+                throw new Exception($"No value columns found in {sourceTable}");
+
+            string targetColumns = string.Join(", ", valueColumns);
+            string averages = string.Join(", ", valueColumns.Select(c => $"AVG({c})"));
+
+            // The insert is a single statement, so if it fails nothing is written to the target.
+            db.Database.ExecuteSqlRaw($"DELETE FROM {targetTable}");
+            db.Database.ExecuteSqlRaw(
+                $"INSERT INTO {targetTable} (mlbId, ModelId, year, month, {targetColumns}) " +
+                $"SELECT mlbId, ModelId, year, month, {averages} " +
+                $"FROM {sourceTable} " +
+                $"GROUP BY mlbId, ModelId, year, month");
+        }
+
         public static void Update()
         {
             try
             {
+                AggregateMlbWar("Output_HitterMlbWar", "Output_HitterMlbWarAggregation");
+                AggregateMlbWar("Output_PitcherMlbWar", "Output_PitcherMlbWarAggregation");
                 ModelAggregation.PlayerWar();
                 ModelAggregation.PlayerLevel();
                 ModelAggregation.HitterStats();

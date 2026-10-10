@@ -8,7 +8,7 @@ from Model.Utilities import GetPropertyValue
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
 from Model.Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
-from Model.Constants import HITTER_LEVEL_BUCKETS, HITTER_PA_BUCKETS, NUM_LEVELS, NUM_POSITIONS
+from Model.Constants import *
 
 class LayerArch(nn.Module):
     def __init__(self, layer_size: int, num_layers: int, nonlin=F.leaky_relu):
@@ -64,13 +64,14 @@ class LayerArch(nn.Module):
 
 DEFAULT_DATA_ARCH = LayerArch(layer_size=35, num_layers=2, nonlin=F.leaky_relu)
 DEFAULT_WAR_ARCH = LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
-DEFAULT_STATS_ARCH = LayerArch(layer_size=101, num_layers=3, nonlin=F.tanh)
+DEFAULT_STATS_ARCH = LayerArch(layer_size=118, num_layers=5, nonlin=F.silu)
 DEFAULT_PT_ARCH = LayerArch(layer_size=87, num_layers=3, nonlin=F.silu)
 DEFAULT_POS_ARCH = LayerArch(layer_size=123, num_layers=7, nonlin=F.silu)
 DEFAULT_LVL_ARCH = LayerArch(layer_size=112, num_layers=3, nonlin=F.gelu)
 DEFAULT_PA_ARCH = LayerArch(layer_size=94, num_layers=2, nonlin=F.gelu)
 DEFAULT_VALUE_ARCH = LayerArch(layer_size=64, num_layers=2)
 DEFAULT_MLBSTAT_ARCH = LayerArch(layer_size=30, num_layers=2)
+DEFAULT_MLBWAR_ARCH = LayerArch(layer_size=64, num_layers=2, nonlin=F.leaky_relu)
 
 DEFAULT_DATA_ARCH_P = LayerArch(layer_size=113, num_layers=2, nonlin=F.silu)
 DEFAULT_WAR_ARCH_P = LayerArch(layer_size=52, num_layers=3, nonlin=F.tanh)
@@ -81,6 +82,7 @@ DEFAULT_LVL_ARCH_P = LayerArch(layer_size=106, num_layers=3, nonlin=F.relu)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=93, num_layers=5, nonlin=F.tanh)
 DEFAULT_VALUE_ARCH_P = LayerArch(layer_size=120, num_layers=2)
 DEFAULT_MLBSTAT_ARCH_P = LayerArch(layer_size=100, num_layers=3)
+DEFAULT_MLBWAR_ARCH_P = LayerArch(layer_size=64, num_layers=3, nonlin=F.silu)
 
 DEFAULT_PRO_HIDDEN_SIZE = 100
 DEFAULT_PRO_NUM_LAYERS = 2
@@ -102,10 +104,11 @@ LOSS_IDX_POS = 4
 LOSS_IDX_PT = 5
 LOSS_IDX_MLBVALUE = 6
 LOSS_IDX_MLBSTAT = 7
+LOSS_IDX_MLBWAR = 8
 
 VAR_IDX_SHARED = 0
-VAR_IDX_DATAINIT = 9
-VAR_IDX_PLAYERINIT = 10
+VAR_IDX_DATAINIT = 10
+VAR_IDX_PLAYERINIT = 11
 
 def _InitModelHeadLists(
         *,
@@ -118,10 +121,11 @@ def _InitModelHeadLists(
         mlbvalue : float,
         pt : float,
         mlbstat : float,
+        mlbwar : float,
         init : float,
         player : float) -> list[float]:
     
-    vals = [0] * 11
+    vals = [0] * 12
     
     vals[VAR_IDX_SHARED] = shared
     vals[VAR_IDX_DATAINIT] = init
@@ -135,6 +139,7 @@ def _InitModelHeadLists(
     vals[LOSS_IDX_PT + 1] = pt
     vals[LOSS_IDX_MLBVALUE + 1] = mlbvalue
     vals[LOSS_IDX_MLBSTAT + 1] = mlbstat
+    vals[LOSS_IDX_MLBWAR + 1] = mlbwar
     
     return vals
 
@@ -143,13 +148,14 @@ DEFAULT_LEARNING_RATES = _InitModelHeadLists(
     war=5.8e-3,
     level=8.2e-3,
     pa=3.8e-4,
-    stats=9.5e-3,
+    stats=3.6e-3,
     pos=1.07e-2,
     mlbvalue=0.003,
     pt=2.1e-3,
     mlbstat=0.003,
+    mlbwar=4e-3,
     init=0.0055,
-    player=4.4e-4
+    player=4.4e-4,
 )
 DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
     shared=5.3e-2,
@@ -161,6 +167,7 @@ DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
     mlbvalue=1e-7,
     pt=5.7e-3,
     mlbstat=1e-7,
+    mlbwar=0,
     init=4.8e-4,
     player=1.2e-6
 )
@@ -175,6 +182,7 @@ DEFAULT_LEARNING_RATES_P = _InitModelHeadLists(
     mlbvalue=0.003,
     pt=2.3e-3,
     mlbstat=0.003,
+    mlbwar=1e-3,
     init=0.017,
     player=1e-7
 )
@@ -188,6 +196,7 @@ DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
     mlbvalue=1e-7,
     pt=1.9e-5,
     mlbstat=1e-7,
+    mlbwar=0,
     init=4.1e-7,
     player=1e-7
 )
@@ -200,9 +209,11 @@ DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=128, num_layers=3, nonlin=F.lea
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
+NUM_MONTH_SLOTS = 13
+MONTH_EMB_SIZE = 8
 
-DEFAULT_HITTER_GRAD_SCALES = [1, 0.022, 1.48, 0.006, 0.007, 5.4, 0.03, 0.04]
-DEFAULT_PITCHER_GRAD_SCALES = [1, 0.005, 2.0, 0.02, 1.05, 2.66, 0.05, 0.01]
+DEFAULT_HITTER_GRAD_SCALES = [1, 0.022, 1.48, 0.075, 0.007, 5.4, 0.03, 0.04, 0.01]
+DEFAULT_PITCHER_GRAD_SCALES = [1, 0.005, 2.0, 0.02, 1.05, 2.66, 0.05, 0.01, 0.01]
 
 class _ScaleBackboneGradient(torch.autograd.Function):
     @staticmethod
@@ -243,6 +254,7 @@ class Recurrent_Model(nn.Module):
                 pa_arch : LayerArch | None = None,
                 val_arch : LayerArch | None = None,
                 mlbstat_arch : LayerArch | None = None,
+                mlbwar_arch : LayerArch | None = None,
                 
                 weight_decay : list[float] | None = None,
                 learning_rates : list[float] | None = None,
@@ -270,6 +282,7 @@ class Recurrent_Model(nn.Module):
         pa_arch = GetPropertyValue(pa_arch, is_hitter, DEFAULT_PA_ARCH, DEFAULT_PA_ARCH_P)
         val_arch = GetPropertyValue(val_arch, is_hitter, DEFAULT_VALUE_ARCH, DEFAULT_VALUE_ARCH_P)
         mlbstat_arch = GetPropertyValue(mlbstat_arch, is_hitter, DEFAULT_MLBSTAT_ARCH, DEFAULT_MLBSTAT_ARCH_P)
+        mlbwar_arch = GetPropertyValue(mlbwar_arch, is_hitter, DEFAULT_MLBWAR_ARCH, DEFAULT_MLBWAR_ARCH_P)
 
         weight_decay = GetPropertyValue(weight_decay, is_hitter, DEFAULT_PRO_WEIGHT_DECAY, DEFAULT_PRO_WEIGHT_DECAY_P)
         learning_rates = GetPropertyValue(learning_rates, is_hitter, DEFAULT_LEARNING_RATES, DEFAULT_LEARNING_RATES_P)
@@ -306,6 +319,7 @@ class Recurrent_Model(nn.Module):
                     "pa_arch": pa_arch.ToDict(),
                     "val_arch": val_arch.ToDict(),
                     "mlbstat_arch": mlbstat_arch.ToDict(),
+                    "mlbwar_arch": mlbwar_arch.ToDict(),
                     
                     # Training / other hyperparameters
                     "weight_decay": weight_decay,
@@ -343,6 +357,11 @@ class Recurrent_Model(nn.Module):
             self.mlbstat = mlbstat_arch.Build(hidden_size, NUM_HITTER_STATS * NUM_HITTER_BUCKETS_PER_STAT)
         else:
             self.mlbstat = mlbstat_arch.Build(hidden_size, NUM_PITCHER_STATS * NUM_PITCHER_BUCKETS_PER_STAT)
+        
+        # MLB WAR/PA class logits, one block of bucket-sum size per prediction offset
+        self.month_emb = nn.Embedding(NUM_MONTH_SLOTS, MONTH_EMB_SIZE)
+        mlbwar_classes_sum = MLB_WAR_HEAD_SUM_HITTER if is_hitter else MLB_WAR_HEAD_SUM_PITCHER
+        self.mlbwar = mlbwar_arch.Build(hidden_size + MONTH_EMB_SIZE, NUM_MLB_YEAR_OFFSETS * mlbwar_classes_sum)
         
         self.register_buffer('stat_offsets', data_prep.Get_HitStat_Offset() if is_hitter else data_prep.Get_PitStat_Offset())
         self.yearStats_output_transform = nn.Softplus(threshold=0.25)
@@ -400,6 +419,7 @@ class Recurrent_Model(nn.Module):
                                             {'params': self.pt.parameters(), 'lr': learning_rates[LOSS_IDX_PT + 1], 'weight_decay': weight_decay[LOSS_IDX_PT + 1]},
                                             {'params': self.value.parameters(), 'lr': learning_rates[LOSS_IDX_MLBVALUE + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBVALUE + 1]},
                                             {'params': self.mlbstat.parameters(), 'lr': learning_rates[LOSS_IDX_MLBSTAT + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBSTAT + 1]},
+                                            {'params': list(self.mlbwar.parameters()) + list(self.month_emb.parameters()), 'lr': learning_rates[LOSS_IDX_MLBWAR + 1], 'weight_decay': weight_decay[LOSS_IDX_MLBWAR + 1]},
                                             {'params': self.data_init.parameters(), 'lr': learning_rates[VAR_IDX_DATAINIT], 'weight_decay': weight_decay[VAR_IDX_DATAINIT]},
                                             {'params': chain([self.init_hidden_hs, self.init_hidden_intl], self.init_hidden.parameters()), 'lr': learning_rates[VAR_IDX_PLAYERINIT], 'weight_decay': weight_decay[VAR_IDX_PLAYERINIT]}])
 
@@ -432,11 +452,7 @@ class Recurrent_Model(nn.Module):
     def GetInitStateSize(self) -> int:
         return self.init_state_size
     
-    def forward(self, x, lengths, pt_levelYearGames, i0, player_demo, player_bios):
-        if self.training and self.input_noise > 0:
-            noise = torch.rand_like(x, requires_grad=False) * self.input_noise
-            x += noise
-        
+    def forward(self, x, lengths, pt_levelYearGames, i0, player_demo, player_bios, months):
         # Get entries for valid length
         lengths = lengths.to(torch.device("cpu")).long()
         
@@ -464,7 +480,6 @@ class Recurrent_Model(nn.Module):
         h0 = h0.reshape(h0.shape[0], self.num_layers, self.hidden_size)
         h0 = h0.transpose(0, 1)
         
-        
         # Allow data to be transformed before entering RNN
         x = self.data_init(x)
         packedInput = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
@@ -481,6 +496,11 @@ class Recurrent_Model(nn.Module):
         output_yearPositions= self.pos(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_POS]))
         output_mlbValue     = self.value(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_MLBVALUE]))
         output_mlbStat      = self.mlbstat(ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_MLBSTAT]))
+        
+        month_emb = self.month_emb(months[:, :output.size(1)])
+        output_mlbWar = self.mlbwar(torch.cat((
+            ScaleBackboneGradient(output, self.trunk_grad_scales[LOSS_IDX_MLBWAR]),
+            month_emb), dim=-1))
         
         # Apply softplus to pa prediction to limit to positive values
         if (self.is_hitter):
@@ -505,7 +525,7 @@ class Recurrent_Model(nn.Module):
             output_pt = F.tanh(layer(output_pt))
         output_pt = self.softplus(self.pt.layers[-1](output_pt)) + self.pt_offset
         
-        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat
+        return output_war, output_level, output_pa, output_yearStats, output_yearPositions, output_mlbValue, output_pt, output_mlbStat, output_mlbWar
     
     @classmethod
     def LoadFromFile(cls, args_file : str, data_prep : Data_Prep):
@@ -537,6 +557,7 @@ class Recurrent_Model(nn.Module):
                 pa_arch=LayerArch.LoadFromDict(args_dict["pa_arch"]),
                 val_arch=LayerArch.LoadFromDict(args_dict["val_arch"]),
                 mlbstat_arch=LayerArch.LoadFromDict(args_dict["mlbstat_arch"]),
+                mlbwar_arch=LayerArch.LoadFromDict(args_dict["mlbwar_arch"]),
                 
                 # Training hyperparameters
                 weight_decay=args_dict["weight_decay"],

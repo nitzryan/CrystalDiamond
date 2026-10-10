@@ -10,7 +10,7 @@ from Model.Combined.DataPrep.Player_Dataset import Create_Test_Train_Datasets
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Pro.Model.Player_Model import Recurrent_Model as ProModel
 from Model.College.Model.College_Model import RNN_Model as ColModel
-from Model.Constants import device, model_db, db, DRAFT_MEANS, NUM_LEVELS, TOTAL_WAR_BUCKETS, GetDataPrepBinaryFile
+from Model.Constants import *
 from Model.Utilities import GetModelMaps
 from Model.EvalStats import getOutputHitterStats, getOutputPitcherStats
 from Model.ModelDBTypes import *
@@ -23,6 +23,9 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
         player_type = "hit" if is_hitter else "pit"
         college_table = "Output_College_Hitter" if is_hitter else "Output_College_Pitcher"
         stats_table = "Output_HitterStats" if is_hitter else "Output_PitcherStats"
+        mlbwar_table = "Output_HitterMlbWar" if is_hitter else "Output_PitcherMlbWar"
+        mlbwar_avg_table = "SingleYearHitterBucketAverages" if is_hitter else "SingleYearPitcherBucketAverages"
+        mlbwar_slot_classes = MLB_WAR_HEAD_CLASSES_HITTER if is_hitter else MLB_WAR_HEAD_CLASSES_PITCHER
         war_col = "warHitter" if is_hitter else "warPitcher"
         eligible_col = "IsHitter" if is_hitter else "IsPitcher"
         pt_means_attr = f"__{player_type}lvlpt_means"
@@ -48,6 +51,7 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
             cursor.execute(f"DELETE FROM Output_PlayerHighestLevel WHERE isHitter={is_hitter_int}")
             cursor.execute(f"DELETE FROM {college_table}")
             cursor.execute(f"DELETE FROM {stats_table}")
+            cursor.execute(f"DELETE FROM {mlbwar_table}")
             model_db.commit()
         cursor = model_db.cursor()
         model_list = cursor.execute("SELECT modelName, id FROM ModelId ORDER BY id ASC").fetchall()
@@ -71,6 +75,15 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                  war_bucket_averages[6],))
             model_db.commit()
             cursor = model_db.cursor()
+        
+        # Single-year average value of each bucket, per prediction offset
+        mlbwar_bucket_averages = Get_MlbWar_Bucket_Averages(is_hitter)
+        if not eval_update:
+            cursor.execute(f"DELETE FROM {mlbwar_avg_table}")
+            Insert_MlbWar_Bucket_Averages(cursor, mlbwar_avg_table, mlbwar_bucket_averages)
+            model_db.commit()
+            cursor = model_db.cursor()
+
         
         for model_name, model_id in tqdm(model_list, desc=arch_desc):
             # Get data for model
@@ -194,8 +207,8 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     
                     
                     # Run Through Pro Model
-                    pro_data, pro_length, pro_pt_levelYearGames, player_demo, player_bios = pro_data
-                    prospect_mask, _, _, _, _ = pro_masks
+                    pro_data, pro_length, pro_pt_levelYearGames, player_demo, player_bios, months = pro_data
+                    prospect_mask, _, _, _, _, _ = pro_masks
                     
                     mask_valid = pro_length > 0
                     pro_data = pro_data[mask_valid].to(device, non_blocking=True)
@@ -204,8 +217,9 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     i0 = i0[mask_valid].to(device, non_blocking=True)
                     player_demo = player_demo[mask_valid].to(device, non_blocking=True)
                     player_bios = player_bios[mask_valid].to(device, non_blocking=True)
+                    months = months[mask_valid].to(device, non_blocking=True)
                     
-                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios)
+                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat, pro_output_mlbwar = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios, months)
                     
                     # Insert Pro Data
                     pro_output_war = F.softmax(pro_output_war, dim=2) 
@@ -249,6 +263,23 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                         if len(vals) > 0:
                             cursor.executemany(f"INSERT INTO Output_PlayerHighestLevel VALUES(?,{model_id},{is_hitter_int},?,?,?,?,?,?,?,?,?,?,?)", vals)
                     
+                    # Insert MLB WAR/PA/Outs predictions: one row per player/timestep
+                    mlbwar_heads = Split_MlbWar_Heads(pro_output_mlbwar, mlbwar_slot_classes)
+                    mlbwar_values = Build_MlbWar_Rows(mlbwar_heads, mlbwar_bucket_averages, Get_MlbWar_Row_Keys(pro_dtes[:,:,1]))
+                    mlbwar_data = torch.cat((mlbIds, pro_model_runs, pro_dtes, mlbwar_values), dim=2)
+                    mlbwar_data = torch.nn.utils.rnn.unpad_sequence(mlbwar_data, pro_length, batch_first=True)
+                    for dbd in mlbwar_data:
+                        d = dbd[1:]  # Skip initialization timestep
+                        if eval_update:
+                            vals = [tuple(x) for x in d.tolist() if x[2] == year and x[3] == month]
+                        else:
+                            vals = [tuple(x) for x in d.tolist()]
+                        if len(vals) > 0:
+                            n_params = len(vals[0])
+                            placeholders = ','.join(['?'] * (n_params - 1))
+                            cursor.executemany(f"INSERT INTO {mlbwar_table} VALUES(?,{model_id},{placeholders})", vals)
+
+                    
                     # Insert Pro Level Stats
                     # Reshape into levels
                     pro_output_pt = pro_output_pt.reshape((pro_output_pt.size(0), pro_output_pt.size(1), NUM_LEVELS, pro_output_pt.size(2) // NUM_LEVELS))
@@ -286,3 +317,69 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
             
             model_db.commit()
         
+def Insert_MlbWar_Bucket_Averages(cursor : sqlite3.Cursor, table : str, averages : list[torch.Tensor]) -> None:
+    for key in MLB_WAR_AVERAGE_KEYS:
+        vals = [key] + [x for avg in averages for x in avg[key].tolist()]
+        placeholders = ','.join(['?'] * len(vals))
+        cursor.execute(f"INSERT INTO {table} VALUES({placeholders})", vals)
+        
+def Get_MlbWar_Bucket_Averages(is_hitter : bool) -> list[torch.Tensor]:
+    # Average actual value in each bucket of each slot, from single-year target rows on a full-season scale.
+    # Row key 0 = full-year targets, row key m (4-8) = partial-year targets from source month m.
+    # Returns one [MLB_WAR_ROW_COUNT, C_k] tensor per slot.
+    cursor = db.cursor()
+    if is_hitter:
+        rows = cursor.execute("SELECT Offset, Month, WAR, PA FROM Model_HitterWarValues").fetchall()
+        slot_bounds = [MLB_YEAR_WAR_BUCKETS_HITTER, MLB_YEAR_PA_BUCKETS_HITTER]
+    else:
+        rows = cursor.execute("SELECT Offset, Month, outsSP, WarSP, outsRP, WarRP FROM Model_PitcherWarValues").fetchall()
+        slot_bounds = [MLB_YEAR_OUTS_BUCKETS_SP, MLB_YEAR_WAR_BUCKETS_SP, MLB_YEAR_OUTS_BUCKETS_RP, MLB_YEAR_WAR_BUCKETS_RP]
+
+    data = torch.tensor(rows, dtype=DTYPE)
+    offsets = data[:, 0].long()
+    months = data[:, 1].long()
+
+    # Same scaling and keying as Generate_IO
+    is_partial = (offsets == 0) & (months < SEASON_END_MONTH)
+    denom = (SEASON_END_MONTH - months).clamp(min=1).to(DTYPE)
+    scale = torch.where(is_partial, SEASON_LENGTH_MONTHS / denom, torch.ones_like(denom))
+    keys = torch.where(is_partial, months, torch.zeros_like(months))
+
+    averages = []
+    for k, bounds in enumerate(slot_bounds):
+        values = data[:, 2 + k] * scale # Need to get bucket for scale value
+        num_classes = len(bounds) + 1
+        buckets = torch.bucketize(values, bounds)
+        values /= scale # Need to store actual value
+        idx = keys * num_classes + buckets
+
+        sums = torch.zeros(MLB_WAR_ROW_COUNT * num_classes, dtype=DTYPE).index_add_(0, idx, values)
+        counts = torch.zeros(MLB_WAR_ROW_COUNT * num_classes, dtype=DTYPE).index_add_(0, idx, torch.ones_like(values))
+        averages.append((sums / counts.clamp(min=1)).reshape(MLB_WAR_ROW_COUNT, num_classes))
+    return averages
+
+def Split_MlbWar_Heads(pred : torch.Tensor, classes : list[int]) -> list[torch.Tensor]:
+    # pred: [B, T, M * sum(classes)] -> one probability tensor per slot, each [B, T, M, C_k]
+    batch_size = pred.size(0)
+    time_steps = pred.size(1)
+    pred = pred.reshape(batch_size, time_steps, NUM_MLB_YEAR_OFFSETS, sum(classes))
+    return [F.softmax(slot, dim=-1) for slot in torch.split(pred, classes, dim=-1)]
+
+def Build_MlbWar_Rows(heads : list[torch.Tensor], averages : list[torch.Tensor], row_keys : torch.Tensor) -> torch.Tensor:
+    # heads[k]: [B, T, M, C_k] probabilities; averages[k]: [MLB_WAR_ROW_COUNT, C_k]; row_keys: [B, T, M]
+    # Returns [B, T, M * sum(C_k + 1)], ordered offset -> slot -> (bucket probabilities, expected value)
+    parts = []
+    for m in range(NUM_MLB_YEAR_OFFSETS):
+        for head, avg in zip(heads, averages):
+            probs = head[:, :, m, :]
+            avg_rows = avg.to(probs.device)[row_keys[:, :, m]]   # [B, T, C_k]
+            expected = (probs * avg_rows).sum(dim=-1, keepdim=True)
+            parts.append(probs)
+            parts.append(expected)
+    return torch.cat(parts, dim=2)
+
+def Get_MlbWar_Row_Keys(months : torch.Tensor) -> torch.Tensor:
+    # months: [B, T] source month of each timestep -> [B, T, M] average-table row keys
+    keys = torch.zeros(months.size(0), months.size(1), NUM_MLB_YEAR_OFFSETS, dtype=torch.long, device=months.device)
+    keys[:, :, 0] = torch.where(months < SEASON_END_MONTH, months, torch.zeros_like(months))
+    return keys

@@ -4,7 +4,7 @@ from Model.Pro.Model.Model_Train import ELEMENT_LIST, NUM_ELEMENTS
 from Model.College.Model.Model_Train import HITTER_ELEMENT_LIST, PITCHER_ELEMENT_LIST, NUM_ELEMENTS_HITTER, NUM_ELEMENTS_PITCHER
 
 from Model.Pro.Model.Player_Model import Recurrent_Model as Pro_Model
-from Model.Pro.Model.Player_Model import LOSS_IDX_WAR, LOSS_IDX_LEVEL, LOSS_IDX_PA, LOSS_IDX_STATS, LOSS_IDX_MLBSTAT, LOSS_IDX_MLBVALUE, LOSS_IDX_PT, LOSS_IDX_POS
+from Model.Pro.Model.Player_Model import LOSS_IDX_WAR, LOSS_IDX_LEVEL, LOSS_IDX_PA, LOSS_IDX_STATS, LOSS_IDX_MLBSTAT, LOSS_IDX_MLBVALUE, LOSS_IDX_PT, LOSS_IDX_POS, LOSS_IDX_MLBWAR
 from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 from Model.Combined.Model.RunEpoch import RunEpoch
@@ -111,5 +111,6 @@ def TrainAndGraph(
         best_loss_pt=test_result.avg_loss[LOSS_IDX_PT],
         best_loss_mlbstat=test_result.avg_loss[LOSS_IDX_MLBSTAT],
         best_loss_mlbvalue=test_result.avg_loss[LOSS_IDX_MLBVALUE],
+        best_loss_mlbwar=test_result.avg_loss[LOSS_IDX_MLBWAR],
         test_losses=test_losses
     )
