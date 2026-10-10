@@ -78,12 +78,8 @@ class Combined_Data_Prep:
             year_level_mask=torch.zeros(0, *player_template.year_level_mask.shape[1:]),
             year_stat_output=torch.zeros(0, *player_template.year_stat_output.shape[1:]),
             year_pos_output=torch.zeros(0, *player_template.year_pos_output.shape[1:]),
-            mlb_value_mask=torch.zeros(0, *player_template.mlb_value_mask.shape[1:]),
-            mlb_value_stats=torch.zeros(0, *player_template.mlb_value_stats.shape[1:]),
             pt_year_output=torch.zeros(0, *player_template.pt_year_output.shape[1:]),
             pt_levelYearGames=torch.zeros(0, *player_template.pt_levelYearGames.shape[1:]),
-            mlb_stat_buckets=torch.zeros(0, *player_template.mlb_stat_buckets.shape[1:], dtype=torch.long),
-            mlb_stat_mask=torch.zeros(0, *player_template.mlb_stat_mask.shape[1:]),
             mlb_war_outputs=torch.zeros(0, *player_template.mlb_war_outputs.shape[1:], dtype=torch.long),
             mlb_war_output_mask=torch.zeros(0, *player_template.mlb_war_output_mask.shape[1:]),
         )

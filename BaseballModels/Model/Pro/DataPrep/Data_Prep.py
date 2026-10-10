@@ -32,14 +32,8 @@ class Player_IO:
                  year_level_mask : torch.Tensor,
                  year_stat_output : torch.Tensor,
                  year_pos_output : torch.Tensor,
-                 mlb_value_mask : torch.Tensor,
-                 mlb_value_stats : torch.Tensor,
                  pt_year_output : torch.Tensor,
                  pt_levelYearGames : torch.Tensor,
-                 
-                 mlb_stat_buckets : torch.Tensor,
-                 mlb_stat_mask : torch.Tensor,
-                 
                  mlb_war_outputs : torch.Tensor,
                  mlb_war_output_mask  : torch.Tensor,
                  ):
@@ -59,13 +53,8 @@ class Player_IO:
         self.year_level_mask = year_level_mask
         self.year_stat_output = year_stat_output
         self.year_pos_output = year_pos_output
-        self.mlb_value_mask = mlb_value_mask
-        self.mlb_value_stats = mlb_value_stats
         self.pt_year_output = pt_year_output
         self.pt_levelYearGames = pt_levelYearGames
-        
-        self.mlb_stat_buckets = mlb_stat_buckets
-        self.mlb_stat_mask = mlb_stat_mask
         self.mlb_war_outputs = mlb_war_outputs
         self.mlb_war_output_mask  = mlb_war_output_mask 
         
@@ -477,48 +466,6 @@ class Data_Prep:
                         _p, stat_start_idx = Aggregate_HitterStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                     pos_year_output[i + 1,:] = _p
 
-            # MLB Stat Buckets
-            mlb_stat_buckets = torch.zeros(l, NUM_HITTER_STATS, dtype=torch.long)
-            mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
-            if len(stats) > 1:
-                start_month = stats[1].Month
-                start_year = stats[1].Year
-                stat_start_idx = 0
-
-                for i, stat in enumerate(stats):
-                    if i == 0:
-                        buckets, mask, _ = Aggregate_HitterMlbBuckets(
-                            startMonth=start_month - 1, endMonth=start_month - 1,
-                            startYear=start_year, endYear=start_year + 1,
-                            stats=level_stats, start_idx=stat_start_idx)
-                    else:
-                        buckets, mask, stat_start_idx = Aggregate_HitterMlbBuckets(
-                            startMonth=stat.Month, endMonth=stat.Month,
-                            startYear=stat.Year, endYear=stat.Year + 1,
-                            stats=level_stats, start_idx=stat_start_idx)
-                    mlb_stat_buckets[i, :] = buckets
-                    mlb_stat_mask[i]       = mask
-
-            # MLB Value stats and mask
-            mlb_value_mask = torch.zeros(l, 3, 2, dtype=torch.float)
-            mlb_value_stats = torch.zeros(l, self.output_map.mlb_hitter_values_size, dtype=DTYPE)
-
-            for i, value in enumerate(mlb_values):
-                mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_hitter_values(value)) - mlb_value_means) / mlb_value_devs
-                current_value_year = stats[i].Year
-                # Mask on whether the PA count should be counted
-                mlb_value_mask[i+1,0,0] = current_value_year < Data_Prep.__Cutoff_Year
-                mlb_value_mask[i+1,1,0] = current_value_year < (Data_Prep.__Cutoff_Year - 1)
-                mlb_value_mask[i+1,2,0] = current_value_year < (Data_Prep.__Cutoff_Year - 2)
-                # Mask on whether the rate stats should be counted
-                # Scale so don't take too much from small samples, but cap to prevent bias (players who perform poorly get cut/sent down, so uncapped scale would overestimate marginal players)
-                mlb_value_mask[i+1,0,1] = min(value.Pa1Year / 100, 1)
-                mlb_value_mask[i+1,1,1] = min(value.Pa2Year / 100, 1)
-                mlb_value_mask[i+1,2,1] = min(value.Pa3Year / 100, 1)
-            if len(mlb_values) > 0:
-                mlb_value_mask[0] = mlb_value_mask[1]
-                mlb_value_stats[0] = mlb_value_stats[1]
-
             # MLB WAR/PA predictions: bucket targets [T, M, 2] (0 = WAR, 1 = PA) and mask [T, M]
             mlb_war_outputs = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, 2, dtype=torch.long)
             mlb_war_output_mask = torch.zeros(l, NUM_MLB_YEAR_OFFSETS, dtype=torch.float)
@@ -546,10 +493,6 @@ class Data_Prep:
             stat_year_output = None
             pos_year_output = None
             pt_year_output = None
-            mlb_value_mask = None
-            mlb_value_stats = None
-            mlb_stat_buckets = None
-            mlb_stat_mask = None
             mlb_war_outputs = None
             mlb_war_output_mask = None
 
@@ -569,11 +512,7 @@ class Data_Prep:
                             year_stat_output=stat_year_output,
                             year_pos_output=pos_year_output,
                             pt_year_output=pt_year_output,
-                            mlb_value_mask=mlb_value_mask,
-                            mlb_value_stats=mlb_value_stats,
                             pt_levelYearGames = mlyg,
-                            mlb_stat_buckets = mlb_stat_buckets,
-                            mlb_stat_mask = mlb_stat_mask,
                             mlb_war_outputs = mlb_war_outputs,
                             mlb_war_output_mask = mlb_war_output_mask,)
         
@@ -716,45 +655,6 @@ class Data_Prep:
                         else:
                             _p, stat_start_idx = Aggregate_PitcherStats(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, output_map=self.output_map, stats=stats, start_idx=stat_start_idx)
                         pos_year_output[i,:] = _p
-            
-            # MLB Stat Buckets
-            mlb_stat_buckets = torch.zeros(l, NUM_PITCHER_STATS, dtype=torch.long)
-            mlb_stat_mask = torch.zeros(l, dtype=DTYPE)
-            if len(level_stats) > 1 and len(stats) > 1:
-                start_month = stats[1].Month
-                start_year = stats[1].Year
-                stat_start_idx = 0
-                
-                for i in range(l):
-                    if i == 0:
-                        buckets, mask, _ = Aggregate_PitcherMlbBuckets(startMonth=start_month - 1, endMonth=start_month - 1, startYear=start_year, endYear=start_year + 1, stats=level_stats, start_idx=stat_start_idx)
-                    else:
-                        buckets, mask, stat_start_idx = Aggregate_PitcherMlbBuckets(startMonth=stat.Month, endMonth=stat.Month, startYear=stat.Year, endYear=stat.Year + 1, stats=level_stats, start_idx=stat_start_idx)
-                    
-                    mlb_stat_buckets[i,:] = buckets
-                    mlb_stat_mask[i] = mask
-            
-            # MLB Value stats and mask
-            mlb_value_mask = torch.zeros(l, 3, 3, dtype=torch.float)
-            mlb_value_stats = torch.zeros(l, self.output_map.mlb_pitcher_values_size, dtype=DTYPE)
-            for i, value in enumerate(mlb_values):
-                mlb_value_stats[i+1] = (torch.tensor(self.output_map.map_mlb_pitcher_values(value)) - mlb_value_means) / mlb_value_devs
-                current_value_year = stats[i].Year
-                # Mask on whether the PA count should be counted
-                mlb_value_mask[i+1,0,0] = current_value_year < Data_Prep.__Cutoff_Year
-                mlb_value_mask[i+1,1,0] = current_value_year < (Data_Prep.__Cutoff_Year - 1)
-                mlb_value_mask[i+1,2,0] = current_value_year < (Data_Prep.__Cutoff_Year - 2)
-                # Mask on whether the rate stats should be counted
-                # Scale so don't take too much from small samples, but cap to prevent bias (players who perform poorly get cut/sent down, so uncapped scale would overestimate marginal players)
-                mlb_value_mask[i+1,0,1] = min(value.IPSP1Year / 25, 1)
-                mlb_value_mask[i+1,0,2] = min(value.IPRP1Year / 15, 1)
-                mlb_value_mask[i+1,1,1] = min(value.IPSP2Year / 25, 1)
-                mlb_value_mask[i+1,1,2] = min(value.IPRP2Year / 15, 1)
-                mlb_value_mask[i+1,2,1] = min(value.IPSP3Year / 25, 1)
-                mlb_value_mask[i+1,2,2] = min(value.IPRP3Year / 15, 1)
-            if len(mlb_values) > 0:
-                mlb_value_mask[0] = mlb_value_mask[1]
-                mlb_value_stats[0] = mlb_value_stats[1]
                 
             # MLB outs/WAR predictions: bucket targets [T, M, 4] and mask [T, M]
             # Index 0 = outsSP, 1 = WarSP, 2 = outsRP, 3 = WarRP
@@ -787,10 +687,6 @@ class Data_Prep:
             stat_year_output = None
             pos_year_output = None
             pt_year_output = None
-            mlb_value_mask = None
-            mlb_value_stats = None
-            mlb_stat_buckets = None
-            mlb_stat_mask = None
             mlb_war_outputs = None
             mlb_war_output_mask = None
                 
@@ -810,12 +706,7 @@ class Data_Prep:
             year_stat_output=stat_year_output, 
             year_pos_output=pos_year_output, 
             pt_year_output=pt_year_output, 
-            mlb_value_mask=mlb_value_mask, 
-            mlb_value_stats=mlb_value_stats,
             pt_levelYearGames=mlyg,
-            
-            mlb_stat_buckets = mlb_stat_buckets,
-            mlb_stat_mask = mlb_stat_mask,
             mlb_war_outputs = mlb_war_outputs,
             mlb_war_output_mask = mlb_war_output_mask,)
             

@@ -3,7 +3,7 @@ from Model.College.Model.College_Model import RNN_Model as Col_Model
 from Model.Combined.DataPrep.Player_Dataset import Combined_Player_Dataset
 
 from Model.College.Model.Model_Train import GetLossesCollege
-from Model.Pro.Model.Player_Model import Classification_Loss
+from Model.Pro.Model.Losses import Classification_Loss
 from Model.Constants import device
 
 import torch

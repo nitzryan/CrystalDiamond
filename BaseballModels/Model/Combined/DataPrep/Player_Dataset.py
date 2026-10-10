@@ -17,14 +17,10 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
                 pro_mask_year, 
                 pro_output_stats, 
                 pro_output_positions, 
-                pro_mask_mlb_value, 
-                pro_output_mlb_value, 
                 pro_variants_war_class, 
                 pro_variants_war_regression, 
                 pro_output_pt,
                 pro_pt_levelYearGames,
-                pro_mlb_stat_buckets,
-                pro_mlb_stat_mask,
                 pro_output_mlb_war,
                 pro_mask_mlb_war,
                 
@@ -62,16 +58,12 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
         
         self.pro_o_stats = pro_output_stats.to(device, non_blocking=True).transpose(0, 1)
         self.pro_o_positions = pro_output_positions.to(device, non_blocking=True).transpose(0, 1)
-        self.pro_o_mlb_value = pro_output_mlb_value.to(device, non_blocking=True).transpose(0, 1)
         self.pro_o_pt = pro_output_pt.to(device, non_blocking=True).transpose(0, 1)
-        self.pro_o_mlb_stat_buckets = pro_mlb_stat_buckets.to(device, non_blocking=True).transpose(0, 1)
         self.pro_o_mlb_war = pro_output_mlb_war.to(device, non_blocking=True).transpose(0, 1)
         
         self.pro_m_labels = pro_mask_labels.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_stats = pro_mask_stats.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_year = pro_mask_year.to(device, non_blocking=True).transpose(0, 1)
-        self.pro_m_mlb_value = pro_mask_mlb_value.to(device, non_blocking=True).transpose(0, 1)
-        self.pro_m_mlb_stat = pro_mlb_stat_mask.to(device, non_blocking=True).transpose(0, 1)
         self.pro_m_mlb_war = pro_mask_mlb_war.to(device, non_blocking=True).transpose(0, 1)
         
         self.pro_v_war_class = pro_variants_war_class.to(device, non_blocking=True)
@@ -146,9 +138,7 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_o_pa_buckets[batch_indices],
             self.pro_o_stats[batch_indices],
             self.pro_o_positions[batch_indices],
-            self.pro_o_mlb_value[batch_indices],
             self.pro_o_pt[batch_indices],
-            self.pro_o_mlb_stat_buckets[batch_indices],
             self.pro_o_mlb_war[batch_indices],
         )
 
@@ -156,8 +146,6 @@ class Combined_Player_Dataset(torch.utils.data.Dataset):
             self.pro_m_labels[batch_indices],
             self.pro_m_stats[batch_indices],
             self.pro_m_year[batch_indices],
-            self.pro_m_mlb_value[batch_indices],
-            self.pro_m_mlb_stat[batch_indices],
             self.pro_m_mlb_war[batch_indices],
         )
 
@@ -290,11 +278,6 @@ def Create_Test_Train_Datasets(
     pro_output_positions_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.year_pos_output for io in io_train])
     pro_output_positions_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.year_pos_output for io in io_test])
 
-    pro_mask_mlb_value_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_mask for io in io_train])
-    pro_mask_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_mask for io in io_test])
-    pro_output_mlb_value_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_stats for io in io_train])
-    pro_output_mlb_value_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_value_stats for io in io_test])
-
     pro_output_mlbwar_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_outputs for io in io_train])
     pro_output_mlbwar_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_outputs for io in io_test])
     pro_mask_mlbwar_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_war_output_mask for io in io_train])
@@ -304,11 +287,6 @@ def Create_Test_Train_Datasets(
     pro_variants_warclass_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.output_war_class_variants for io in io_test])
     pro_variants_warregression_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.output_war_regression_variants for io in io_train])
     pro_variants_warregression_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.output_war_regression_variants for io in io_test])
-
-    pro_output_mlbstat_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_buckets for io in io_train])
-    pro_output_mlbstat_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_buckets for io in io_test])
-    pro_mask_mlbstat_train = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_mask for io in io_train])
-    pro_mask_mlbstat_test = torch.nn.utils.rnn.pad_sequence([io.pro_io.mlb_stat_mask for io in io_test])
 
     # College
     col_dates_train = torch.nn.utils.rnn.pad_sequence([io.college_io.dates for io in io_train])
@@ -373,14 +351,10 @@ def Create_Test_Train_Datasets(
         pro_mask_year = pro_mask_year_train, 
         pro_output_stats = pro_output_stats_train, 
         pro_output_positions = pro_output_positions_train, 
-        pro_mask_mlb_value = pro_mask_mlb_value_train, 
-        pro_output_mlb_value = pro_output_mlb_value_train, 
         pro_variants_war_class = pro_variants_warclass_train, 
         pro_variants_war_regression = pro_variants_warregression_train, 
         pro_output_pt = pro_output_pt_train,
         pro_pt_levelYearGames= pro_pt_levelYearGames_train,
-        pro_mlb_stat_buckets=pro_output_mlbstat_train,
-        pro_mlb_stat_mask=pro_mask_mlbstat_train,
         pro_output_mlb_war=pro_output_mlbwar_train,
         pro_mask_mlb_war=pro_mask_mlbwar_train,
         
@@ -417,14 +391,10 @@ def Create_Test_Train_Datasets(
         pro_mask_year = pro_mask_year_test, 
         pro_output_stats = pro_output_stats_test, 
         pro_output_positions = pro_output_positions_test, 
-        pro_mask_mlb_value = pro_mask_mlb_value_test, 
-        pro_output_mlb_value = pro_output_mlb_value_test, 
         pro_variants_war_class = pro_variants_warclass_test, 
         pro_variants_war_regression = pro_variants_warregression_test, 
         pro_output_pt = pro_output_pt_test,
         pro_pt_levelYearGames= pro_pt_levelYearGames_test,
-        pro_mlb_stat_buckets=pro_output_mlbstat_test,
-        pro_mlb_stat_mask=pro_mask_mlbstat_test,
         pro_output_mlb_war=pro_output_mlbwar_test,
         pro_mask_mlb_war=pro_mask_mlbwar_test,
         

@@ -105,17 +105,11 @@ HITTER_DEFAULTS = {
     "wd_pt": DEFAULT_PRO_WEIGHT_DECAY[LOSS_IDX_PT + 1],
     "lr_pt": DEFAULT_LEARNING_RATES[LOSS_IDX_PT + 1],
 
-    "mlbstat_layers": DEFAULT_MLBSTAT_ARCH.num_layers,
-    "mlbstat_size": DEFAULT_MLBSTAT_ARCH.layer_size,
-    "mlbstat_activation": _ACTIVATION_NAME[DEFAULT_MLBSTAT_ARCH.nonlin],
-    "wd_mlbstat": DEFAULT_PRO_WEIGHT_DECAY[LOSS_IDX_MLBSTAT + 1],
-    "lr_mlbstat": DEFAULT_LEARNING_RATES[LOSS_IDX_MLBSTAT + 1],
-
-    "mlbvalue_layers": DEFAULT_VALUE_ARCH.num_layers,
-    "mlbvalue_size": DEFAULT_VALUE_ARCH.layer_size,
-    "mlbvalue_activation": _ACTIVATION_NAME[DEFAULT_VALUE_ARCH.nonlin],
-    "wd_mlbvalue": DEFAULT_PRO_WEIGHT_DECAY[LOSS_IDX_MLBVALUE + 1],
-    "lr_mlbvalue": DEFAULT_LEARNING_RATES[LOSS_IDX_MLBVALUE + 1],
+    "mlbwar_layers": DEFAULT_MLBWAR_ARCH.num_layers,
+    "mlbwar_size": DEFAULT_MLBWAR_ARCH.layer_size,
+    "mlbwar_activation": _ACTIVATION_NAME[DEFAULT_MLBWAR_ARCH.nonlin],
+    "wd_mlbwar": DEFAULT_PRO_WEIGHT_DECAY[LOSS_IDX_MLBWAR + 1],
+    "lr_mlbwar": DEFAULT_LEARNING_RATES[LOSS_IDX_MLBWAR + 1],
 }
 
 PITCHER_DEFAULTS = {
@@ -149,17 +143,11 @@ PITCHER_DEFAULTS = {
     "wd_pt": DEFAULT_PRO_WEIGHT_DECAY_P[LOSS_IDX_PT + 1],
     "lr_pt": DEFAULT_LEARNING_RATES_P[LOSS_IDX_PT + 1],
 
-    "mlbstat_layers": DEFAULT_MLBSTAT_ARCH_P.num_layers,
-    "mlbstat_size": DEFAULT_MLBSTAT_ARCH_P.layer_size,
-    "mlbstat_activation": _ACTIVATION_NAME[DEFAULT_MLBSTAT_ARCH_P.nonlin],
-    "wd_mlbstat": DEFAULT_PRO_WEIGHT_DECAY_P[LOSS_IDX_MLBSTAT + 1],
-    "lr_mlbstat": DEFAULT_LEARNING_RATES_P[LOSS_IDX_MLBSTAT + 1],
-
-    "mlbvalue_layers": DEFAULT_VALUE_ARCH_P.num_layers,
-    "mlbvalue_size": DEFAULT_VALUE_ARCH_P.layer_size,
-    "mlbvalue_activation": _ACTIVATION_NAME[DEFAULT_VALUE_ARCH_P.nonlin],
-    "wd_mlbvalue": DEFAULT_PRO_WEIGHT_DECAY_P[LOSS_IDX_MLBVALUE + 1],
-    "lr_mlbvalue": DEFAULT_LEARNING_RATES_P[LOSS_IDX_MLBVALUE + 1],
+    "mlbwar_layers": DEFAULT_MLBWAR_ARCH_P.num_layers,
+    "mlbwar_size": DEFAULT_MLBWAR_ARCH_P.layer_size,
+    "mlbwar_activation": _ACTIVATION_NAME[DEFAULT_MLBWAR_ARCH_P.nonlin],
+    "wd_mlbwar": DEFAULT_PRO_WEIGHT_DECAY_P[LOSS_IDX_MLBWAR + 1],
+    "lr_mlbwar": DEFAULT_LEARNING_RATES_P[LOSS_IDX_MLBWAR + 1],
 }
 
 @dataclass
@@ -169,8 +157,7 @@ class MultiHeadEvalResult:
     pt : float = 0
     pos : float = 0
     stats : float = 0
-    mlbvalue : float = 0
-    mlbstat : float = 0
+    mlbwar : float = 0
 
 def GetHeadTypeResult(result: MultiHeadEvalResult, recipe: ProModelHeadTuningRecipe) -> float:
     match recipe.name:
@@ -184,10 +171,8 @@ def GetHeadTypeResult(result: MultiHeadEvalResult, recipe: ProModelHeadTuningRec
             return result.stats
         case "LEVEL":
             return result.level
-        case "MLBSTAT":
-            return result.mlbstat
-        case "MLBVALUE":
-            return result.mlbvalue
+        case "MLBWAR":
+            return result.mlbwar
         case _:
             raise ValueError(recipe)
 
@@ -222,8 +207,7 @@ def run_evaluation(
             pt_arch : LayerArch,
             pos_arch : LayerArch,
             stats_arch : LayerArch,
-            mlbvalue_arch : LayerArch,
-            mlbstat_arch : LayerArch,
+            mlbwar_arch : LayerArch,
             lr_list: list[float],
             wd_list: list[float],
             repeats: int) -> MultiHeadEvalResult:
@@ -246,8 +230,7 @@ def run_evaluation(
             pt_arch=pt_arch,
             stats_arch=stats_arch,
             pos_arch=pos_arch,
-            mlbstat_arch=mlbstat_arch,
-            val_arch=mlbvalue_arch,
+            mlbwar_arch=mlbwar_arch,
             
             weight_decay=wd_list,
             learning_rates=lr_list,
@@ -291,8 +274,7 @@ def run_evaluation(
         result.pt += RangeBound(train_results.best_loss_pt)
         result.stats += RangeBound(train_results.best_loss_stats)
         result.level += RangeBound(train_results.best_loss_level)
-        result.mlbstat += RangeBound(train_results.best_loss_mlbstat)
-        result.mlbvalue += RangeBound(train_results.best_loss_mlbvalue)
+        result.mlbwar += RangeBound(train_results.best_loss_mlbwar)
         
     return result
 
@@ -317,10 +299,8 @@ def objective(
                             nonlin=ACTIVATION_MAP[p["pos_activation"]])
     pt_arch = LayerArch(num_layers=p["pt_layers"], layer_size=p["pt_size"],
                             nonlin=ACTIVATION_MAP[p["pt_activation"]])
-    mlbstat_arch = LayerArch(num_layers=p["mlbstat_layers"], layer_size=p["mlbstat_size"],
-                            nonlin=ACTIVATION_MAP[p["mlbstat_activation"]])
-    mlbvalue_arch = LayerArch(num_layers=p["mlbvalue_layers"], layer_size=p["mlbvalue_size"],
-                            nonlin=ACTIVATION_MAP[p["mlbvalue_activation"]])
+    mlbwar_arch = LayerArch(num_layers=p["mlbwar_layers"], layer_size=p["mlbwar_size"],
+                            nonlin=ACTIVATION_MAP[p["mlbwar_activation"]])
     
     lr_list = list(DEFAULT_LEARNING_RATES if is_hitter else DEFAULT_LEARNING_RATES_P)
     wd_list = list(DEFAULT_PRO_WEIGHT_DECAY if is_hitter else DEFAULT_PRO_WEIGHT_DECAY_P)
@@ -330,8 +310,7 @@ def objective(
     lr_list[LOSS_IDX_STATS + 1], wd_list[LOSS_IDX_STATS + 1] = p["lr_stats"], p["wd_stats"]
     lr_list[LOSS_IDX_POS + 1], wd_list[LOSS_IDX_POS + 1] = p["lr_pos"], p["wd_pos"]
     lr_list[LOSS_IDX_PT + 1], wd_list[LOSS_IDX_PT + 1] = p["lr_pt"], p["wd_pt"]
-    lr_list[LOSS_IDX_MLBSTAT + 1], wd_list[LOSS_IDX_MLBSTAT + 1] = p["lr_mlbstat"], p["wd_mlbstat"]
-    lr_list[LOSS_IDX_MLBVALUE + 1], wd_list[LOSS_IDX_MLBVALUE + 1] = p["lr_mlbvalue"], p["wd_mlbvalue"]
+    lr_list[LOSS_IDX_MLBWAR + 1], wd_list[LOSS_IDX_MLBWAR + 1] = p["lr_mlbwar"], p["wd_mlbwar"]
 
     result = run_evaluation(
         io_list=io_list,
@@ -342,8 +321,7 @@ def objective(
         pt_arch=pt_arch,
         pos_arch=pos_arch,
         stats_arch=stats_arch,
-        mlbvalue_arch=mlbvalue_arch,
-        mlbstat_arch=mlbstat_arch,
+        mlbwar_arch=mlbwar_arch,
         lr_list=lr_list,
         wd_list=wd_list,
         repeats=repeats

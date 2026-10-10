@@ -208,7 +208,7 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     
                     # Run Through Pro Model
                     pro_data, pro_length, pro_pt_levelYearGames, player_demo, player_bios, months = pro_data
-                    prospect_mask, _, _, _, _, _ = pro_masks
+                    prospect_mask, _, _, _ = pro_masks
                     
                     mask_valid = pro_length > 0
                     pro_data = pro_data[mask_valid].to(device, non_blocking=True)
@@ -219,7 +219,7 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     player_bios = player_bios[mask_valid].to(device, non_blocking=True)
                     months = months[mask_valid].to(device, non_blocking=True)
                     
-                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_mlbValue, pro_output_pt, pro_output_mlbstat, pro_output_mlbwar = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios, months)
+                    pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_pt, pro_output_mlbwar = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios, months)
                     
                     # Insert Pro Data
                     pro_output_war = F.softmax(pro_output_war, dim=2) 
