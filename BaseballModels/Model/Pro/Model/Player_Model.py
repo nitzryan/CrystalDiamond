@@ -5,10 +5,20 @@ import torch.nn.functional as F
 import json
 from itertools import chain
 from Model.Utilities import GetPropertyValue
+import math
 
 from Model.Pro.DataPrep.Data_Prep import Data_Prep
 from Model.Pro.DataPrep.Output_StatAggregation import NUM_HITTER_STATS, NUM_HITTER_BUCKETS_PER_STAT, NUM_PITCHER_STATS, NUM_PITCHER_BUCKETS_PER_STAT
 from Model.Constants import *
+
+# Keeps activation variance constant across hidden layers
+_NONLIN_GAIN = {
+    F.relu:       init.calculate_gain('relu'),
+    F.leaky_relu: init.calculate_gain('leaky_relu', 0.01),
+    F.tanh:       init.calculate_gain('tanh'),
+    F.silu:       1.68,
+    F.gelu:       1.53,
+}
 
 class LayerArch(nn.Module):
     def __init__(self, layer_size: int, num_layers: int, nonlin=F.leaky_relu):
@@ -24,6 +34,17 @@ class LayerArch(nn.Module):
             layers.append(nn.Linear(self.layer_size, self.layer_size))
         layers.append(nn.Linear(self.layer_size, output_size))
         self.layers = nn.ModuleList(layers)
+        return self
+
+    def InitWeights(self, output_gain: float = 1.0):
+        # Hidden layers: He-style normal, fan_in, scaled for this arch's nonlinearity
+        gain = _NONLIN_GAIN[self.nonlin]
+        for layer in self.layers[:-1]:
+            init.normal_(layer.weight, mean=0.0, std=gain / math.sqrt(layer.in_features))
+            init.zeros_(layer.bias)
+        # Output layer has no nonlinearity after it: Xavier, gain 1 unless the caller says otherwise
+        init.xavier_uniform_(self.layers[-1].weight, gain=output_gain)
+        init.zeros_(self.layers[-1].bias)
         return self
 
     def ToDict(self):
@@ -350,28 +371,33 @@ class Recurrent_Model(nn.Module):
         self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
         self.is_hitter = is_hitter
         
-        # Initialize weights
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='leaky_relu')
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
+        # Initialize weights: hidden layers scaled for each arch's nonlinearity, output layers Xavier
+        self.data_init.InitWeights()
+        self.init_hidden.InitWeights()
+        self.war.InitWeights()
+        self.level.InitWeights()
+        self.pa.InitWeights()
+        self.yearStats.InitWeights()
+        self.pos.InitWeights()
+        self.mlbwar.InitWeights()
+        self.pt.InitWeights(output_gain=init.calculate_gain('tanh'))
+        init.constant_(self.pt.layers[-1].bias, -self.pt_offset.mean() * 0.75)
         
         # Set softmax-classification layers to Xavier for uniform initial predictions
-        for layer in [self.war.layers[-1],
-                      self.pa.layers[-1], self.level.layers[-1]]:
-            init.xavier_uniform_(layer.weight, gain=1.0)
-            if layer.bias is not None:
-                init.zeros_(layer.bias)
+        # for layer in [self.war.layers[-1],
+        #               self.pa.layers[-1], self.level.layers[-1]]:
+        #     init.xavier_uniform_(layer.weight, gain=1.0)
+        #     if layer.bias is not None:
+        #         init.zeros_(layer.bias)
                 
         # Set softmax-regression layers
-        pt_mean = -self.pt_offset.mean()
-        for layer in [self.pt.layers[-1]]:
-            if isinstance(layer, nn.Linear):
-                init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
+        # pt_mean = -self.pt_offset.mean()
+        # for layer in [self.pt.layers[-1]]:
+        #     if isinstance(layer, nn.Linear):
+        #         init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
                 
-        init.constant_(self.yearStats.layers[-1].bias, 0)
-        init.constant_(self.pt.layers[-1].bias, pt_mean * 0.75)
+        # init.constant_(self.yearStats.layers[-1].bias, 0)
+        # init.constant_(self.pt.layers[-1].bias, pt_mean * 0.75)
     
         # Create parameter groups for differentiating learning rates
         self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[VAR_IDX_SHARED], 'weight_decay': weight_decay[VAR_IDX_SHARED]},
