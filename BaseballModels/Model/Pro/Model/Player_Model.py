@@ -382,22 +382,6 @@ class Recurrent_Model(nn.Module):
         self.mlbwar.InitWeights()
         self.pt.InitWeights(output_gain=init.calculate_gain('tanh'))
         init.constant_(self.pt.layers[-1].bias, -self.pt_offset.mean() * 0.75)
-        
-        # Set softmax-classification layers to Xavier for uniform initial predictions
-        # for layer in [self.war.layers[-1],
-        #               self.pa.layers[-1], self.level.layers[-1]]:
-        #     init.xavier_uniform_(layer.weight, gain=1.0)
-        #     if layer.bias is not None:
-        #         init.zeros_(layer.bias)
-                
-        # Set softmax-regression layers
-        # pt_mean = -self.pt_offset.mean()
-        # for layer in [self.pt.layers[-1]]:
-        #     if isinstance(layer, nn.Linear):
-        #         init.xavier_uniform_(layer.weight, gain=init.calculate_gain('tanh'))
-                
-        # init.constant_(self.yearStats.layers[-1].bias, 0)
-        # init.constant_(self.pt.layers[-1].bias, pt_mean * 0.75)
     
         # Create parameter groups for differentiating learning rates
         self.optimizer = torch.optim.AdamW([{'params': self.recurrent.parameters(), 'lr': learning_rates[VAR_IDX_SHARED], 'weight_decay': weight_decay[VAR_IDX_SHARED]},
