@@ -19,7 +19,7 @@ db = sqlite3.connect(__DB_PATH)
 model_db = sqlite3.connect(__MODEL_DB_PATH)
 experimental_db = sqlite3.connect(__EXP_DB_PATH)
 
-NUM_MODEL_VARIANTS = 2
+NUM_MODEL_VARIANTS = 4
 
 DTYPE = torch.float32
 DTYPE_NUMPY = np.float32
@@ -43,13 +43,13 @@ SEASON_LENGTH_MONTHS = 6
 MLB_WAR_ROW_COUNT = SEASON_END_MONTH + 1
 MLB_WAR_AVERAGE_KEYS = [0] + list(range(4, 9))
 
-MLB_YEAR_PA_BUCKETS_HITTER = torch.tensor([0, 30, 100, 200, 400, 600], dtype=DTYPE)
+MLB_YEAR_PA_BUCKETS_HITTER = torch.tensor([0, 30, 100, 200, 350, 600], dtype=DTYPE)
 MLB_YEAR_WAR_BUCKETS_HITTER = torch.tensor([-MLB_WAR_ZERO_EPSILON, 0, 1, 2, 3, 4, 6], dtype=DTYPE)
 NUM_MLB_YEAR_OFFSETS = 7
 
-MLB_YEAR_OUTS_BUCKETS_SP = torch.tensor([0, 30, 80, 150, 250, 400, 600], dtype=DTYPE)
+MLB_YEAR_OUTS_BUCKETS_SP = torch.tensor([0, 50, 150, 250, 400, 600], dtype=DTYPE)
 MLB_YEAR_WAR_BUCKETS_SP = torch.tensor([-MLB_WAR_ZERO_EPSILON, 0, 1, 2, 3, 4, 6], dtype=DTYPE)
-MLB_YEAR_OUTS_BUCKETS_RP = torch.tensor([0, 10, 30, 70, 100, 150, 200], dtype=DTYPE)
+MLB_YEAR_OUTS_BUCKETS_RP = torch.tensor([0, 10, 50, 100, 150, 200], dtype=DTYPE)
 MLB_YEAR_WAR_BUCKETS_RP = torch.tensor([-MLB_WAR_ZERO_EPSILON, 0, 0.3, 0.6, 1, 1.5, 2], dtype=DTYPE)
 
 MLB_WAR_HEAD_CLASSES_HITTER = [len(MLB_YEAR_WAR_BUCKETS_HITTER) + 1, len(MLB_YEAR_PA_BUCKETS_HITTER) + 1]

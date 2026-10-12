@@ -10,7 +10,6 @@ namespace ModelDb
 		public required float OutsSP4 {get; set;}
 		public required float OutsSP5 {get; set;}
 		public required float OutsSP6 {get; set;}
-		public required float OutsSP7 {get; set;}
 		public required float WarSP0 {get; set;}
 		public required float WarSP1 {get; set;}
 		public required float WarSP2 {get; set;}
@@ -26,7 +25,6 @@ namespace ModelDb
 		public required float OutsRP4 {get; set;}
 		public required float OutsRP5 {get; set;}
 		public required float OutsRP6 {get; set;}
-		public required float OutsRP7 {get; set;}
 		public required float WarRP0 {get; set;}
 		public required float WarRP1 {get; set;}
 		public required float WarRP2 {get; set;}
@@ -48,7 +46,6 @@ namespace ModelDb
 				OutsSP4 = this.OutsSP4,
 				OutsSP5 = this.OutsSP5,
 				OutsSP6 = this.OutsSP6,
-				OutsSP7 = this.OutsSP7,
 				WarSP0 = this.WarSP0,
 				WarSP1 = this.WarSP1,
 				WarSP2 = this.WarSP2,
@@ -64,7 +61,6 @@ namespace ModelDb
 				OutsRP4 = this.OutsRP4,
 				OutsRP5 = this.OutsRP5,
 				OutsRP6 = this.OutsRP6,
-				OutsRP7 = this.OutsRP7,
 				WarRP0 = this.WarRP0,
 				WarRP1 = this.WarRP1,
 				WarRP2 = this.WarRP2,

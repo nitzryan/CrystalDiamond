@@ -230,10 +230,10 @@ def Create_Test_Train_Datasets(
                 output_class : int = player.college_io.output_war.item() if player.college_io.player is not None else player.pro_io.output[0].item()
                 player_buckets_list[output_class].append(player)
                
-        # if total_training_runs % (train_test_ratio + 1) != 0:
-        #     raise ValueError("M must be divisible by N")
-        # if not (0 <= train_idx < total_training_runs):
-        #     raise ValueError("C must satisfy 0 <= C < M")
+        if total_training_runs % (train_test_ratio + 1) != 0:
+            raise ValueError("M must be divisible by N")
+        if not (0 <= train_idx < total_training_runs):
+            raise ValueError("C must satisfy 0 <= C < M")
                 
         for sublist in player_buckets_list:
             train_part, test_part = split_sublist(sublist, train_test_ratio, total_training_runs, train_idx)

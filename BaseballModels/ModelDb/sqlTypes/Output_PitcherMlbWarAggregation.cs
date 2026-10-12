@@ -13,7 +13,6 @@ namespace ModelDb
 		public required float OutsSP_Yr0_Bkt4 {get; set;}
 		public required float OutsSP_Yr0_Bkt5 {get; set;}
 		public required float OutsSP_Yr0_Bkt6 {get; set;}
-		public required float OutsSP_Yr0_Bkt7 {get; set;}
 		public required float OutsSP0 {get; set;}
 		public required float WarSP_Yr0_Bkt0 {get; set;}
 		public required float WarSP_Yr0_Bkt1 {get; set;}
@@ -31,7 +30,6 @@ namespace ModelDb
 		public required float OutsRP_Yr0_Bkt4 {get; set;}
 		public required float OutsRP_Yr0_Bkt5 {get; set;}
 		public required float OutsRP_Yr0_Bkt6 {get; set;}
-		public required float OutsRP_Yr0_Bkt7 {get; set;}
 		public required float OutsRP0 {get; set;}
 		public required float WarRP_Yr0_Bkt0 {get; set;}
 		public required float WarRP_Yr0_Bkt1 {get; set;}
@@ -49,7 +47,6 @@ namespace ModelDb
 		public required float OutsSP_Yr1_Bkt4 {get; set;}
 		public required float OutsSP_Yr1_Bkt5 {get; set;}
 		public required float OutsSP_Yr1_Bkt6 {get; set;}
-		public required float OutsSP_Yr1_Bkt7 {get; set;}
 		public required float OutsSP1 {get; set;}
 		public required float WarSP_Yr1_Bkt0 {get; set;}
 		public required float WarSP_Yr1_Bkt1 {get; set;}
@@ -67,7 +64,6 @@ namespace ModelDb
 		public required float OutsRP_Yr1_Bkt4 {get; set;}
 		public required float OutsRP_Yr1_Bkt5 {get; set;}
 		public required float OutsRP_Yr1_Bkt6 {get; set;}
-		public required float OutsRP_Yr1_Bkt7 {get; set;}
 		public required float OutsRP1 {get; set;}
 		public required float WarRP_Yr1_Bkt0 {get; set;}
 		public required float WarRP_Yr1_Bkt1 {get; set;}
@@ -85,7 +81,6 @@ namespace ModelDb
 		public required float OutsSP_Yr2_Bkt4 {get; set;}
 		public required float OutsSP_Yr2_Bkt5 {get; set;}
 		public required float OutsSP_Yr2_Bkt6 {get; set;}
-		public required float OutsSP_Yr2_Bkt7 {get; set;}
 		public required float OutsSP2 {get; set;}
 		public required float WarSP_Yr2_Bkt0 {get; set;}
 		public required float WarSP_Yr2_Bkt1 {get; set;}
@@ -103,7 +98,6 @@ namespace ModelDb
 		public required float OutsRP_Yr2_Bkt4 {get; set;}
 		public required float OutsRP_Yr2_Bkt5 {get; set;}
 		public required float OutsRP_Yr2_Bkt6 {get; set;}
-		public required float OutsRP_Yr2_Bkt7 {get; set;}
 		public required float OutsRP2 {get; set;}
 		public required float WarRP_Yr2_Bkt0 {get; set;}
 		public required float WarRP_Yr2_Bkt1 {get; set;}
@@ -121,7 +115,6 @@ namespace ModelDb
 		public required float OutsSP_Yr3_Bkt4 {get; set;}
 		public required float OutsSP_Yr3_Bkt5 {get; set;}
 		public required float OutsSP_Yr3_Bkt6 {get; set;}
-		public required float OutsSP_Yr3_Bkt7 {get; set;}
 		public required float OutsSP3 {get; set;}
 		public required float WarSP_Yr3_Bkt0 {get; set;}
 		public required float WarSP_Yr3_Bkt1 {get; set;}
@@ -139,7 +132,6 @@ namespace ModelDb
 		public required float OutsRP_Yr3_Bkt4 {get; set;}
 		public required float OutsRP_Yr3_Bkt5 {get; set;}
 		public required float OutsRP_Yr3_Bkt6 {get; set;}
-		public required float OutsRP_Yr3_Bkt7 {get; set;}
 		public required float OutsRP3 {get; set;}
 		public required float WarRP_Yr3_Bkt0 {get; set;}
 		public required float WarRP_Yr3_Bkt1 {get; set;}
@@ -157,7 +149,6 @@ namespace ModelDb
 		public required float OutsSP_Yr4_Bkt4 {get; set;}
 		public required float OutsSP_Yr4_Bkt5 {get; set;}
 		public required float OutsSP_Yr4_Bkt6 {get; set;}
-		public required float OutsSP_Yr4_Bkt7 {get; set;}
 		public required float OutsSP4 {get; set;}
 		public required float WarSP_Yr4_Bkt0 {get; set;}
 		public required float WarSP_Yr4_Bkt1 {get; set;}
@@ -175,7 +166,6 @@ namespace ModelDb
 		public required float OutsRP_Yr4_Bkt4 {get; set;}
 		public required float OutsRP_Yr4_Bkt5 {get; set;}
 		public required float OutsRP_Yr4_Bkt6 {get; set;}
-		public required float OutsRP_Yr4_Bkt7 {get; set;}
 		public required float OutsRP4 {get; set;}
 		public required float WarRP_Yr4_Bkt0 {get; set;}
 		public required float WarRP_Yr4_Bkt1 {get; set;}
@@ -193,7 +183,6 @@ namespace ModelDb
 		public required float OutsSP_Yr5_Bkt4 {get; set;}
 		public required float OutsSP_Yr5_Bkt5 {get; set;}
 		public required float OutsSP_Yr5_Bkt6 {get; set;}
-		public required float OutsSP_Yr5_Bkt7 {get; set;}
 		public required float OutsSP5 {get; set;}
 		public required float WarSP_Yr5_Bkt0 {get; set;}
 		public required float WarSP_Yr5_Bkt1 {get; set;}
@@ -211,7 +200,6 @@ namespace ModelDb
 		public required float OutsRP_Yr5_Bkt4 {get; set;}
 		public required float OutsRP_Yr5_Bkt5 {get; set;}
 		public required float OutsRP_Yr5_Bkt6 {get; set;}
-		public required float OutsRP_Yr5_Bkt7 {get; set;}
 		public required float OutsRP5 {get; set;}
 		public required float WarRP_Yr5_Bkt0 {get; set;}
 		public required float WarRP_Yr5_Bkt1 {get; set;}
@@ -229,7 +217,6 @@ namespace ModelDb
 		public required float OutsSP_Yr6_Bkt4 {get; set;}
 		public required float OutsSP_Yr6_Bkt5 {get; set;}
 		public required float OutsSP_Yr6_Bkt6 {get; set;}
-		public required float OutsSP_Yr6_Bkt7 {get; set;}
 		public required float OutsSP6 {get; set;}
 		public required float WarSP_Yr6_Bkt0 {get; set;}
 		public required float WarSP_Yr6_Bkt1 {get; set;}
@@ -247,7 +234,6 @@ namespace ModelDb
 		public required float OutsRP_Yr6_Bkt4 {get; set;}
 		public required float OutsRP_Yr6_Bkt5 {get; set;}
 		public required float OutsRP_Yr6_Bkt6 {get; set;}
-		public required float OutsRP_Yr6_Bkt7 {get; set;}
 		public required float OutsRP6 {get; set;}
 		public required float WarRP_Yr6_Bkt0 {get; set;}
 		public required float WarRP_Yr6_Bkt1 {get; set;}
@@ -274,7 +260,6 @@ namespace ModelDb
 				OutsSP_Yr0_Bkt4 = this.OutsSP_Yr0_Bkt4,
 				OutsSP_Yr0_Bkt5 = this.OutsSP_Yr0_Bkt5,
 				OutsSP_Yr0_Bkt6 = this.OutsSP_Yr0_Bkt6,
-				OutsSP_Yr0_Bkt7 = this.OutsSP_Yr0_Bkt7,
 				OutsSP0 = this.OutsSP0,
 				WarSP_Yr0_Bkt0 = this.WarSP_Yr0_Bkt0,
 				WarSP_Yr0_Bkt1 = this.WarSP_Yr0_Bkt1,
@@ -292,7 +277,6 @@ namespace ModelDb
 				OutsRP_Yr0_Bkt4 = this.OutsRP_Yr0_Bkt4,
 				OutsRP_Yr0_Bkt5 = this.OutsRP_Yr0_Bkt5,
 				OutsRP_Yr0_Bkt6 = this.OutsRP_Yr0_Bkt6,
-				OutsRP_Yr0_Bkt7 = this.OutsRP_Yr0_Bkt7,
 				OutsRP0 = this.OutsRP0,
 				WarRP_Yr0_Bkt0 = this.WarRP_Yr0_Bkt0,
 				WarRP_Yr0_Bkt1 = this.WarRP_Yr0_Bkt1,
@@ -310,7 +294,6 @@ namespace ModelDb
 				OutsSP_Yr1_Bkt4 = this.OutsSP_Yr1_Bkt4,
 				OutsSP_Yr1_Bkt5 = this.OutsSP_Yr1_Bkt5,
 				OutsSP_Yr1_Bkt6 = this.OutsSP_Yr1_Bkt6,
-				OutsSP_Yr1_Bkt7 = this.OutsSP_Yr1_Bkt7,
 				OutsSP1 = this.OutsSP1,
 				WarSP_Yr1_Bkt0 = this.WarSP_Yr1_Bkt0,
 				WarSP_Yr1_Bkt1 = this.WarSP_Yr1_Bkt1,
@@ -328,7 +311,6 @@ namespace ModelDb
 				OutsRP_Yr1_Bkt4 = this.OutsRP_Yr1_Bkt4,
 				OutsRP_Yr1_Bkt5 = this.OutsRP_Yr1_Bkt5,
 				OutsRP_Yr1_Bkt6 = this.OutsRP_Yr1_Bkt6,
-				OutsRP_Yr1_Bkt7 = this.OutsRP_Yr1_Bkt7,
 				OutsRP1 = this.OutsRP1,
 				WarRP_Yr1_Bkt0 = this.WarRP_Yr1_Bkt0,
 				WarRP_Yr1_Bkt1 = this.WarRP_Yr1_Bkt1,
@@ -346,7 +328,6 @@ namespace ModelDb
 				OutsSP_Yr2_Bkt4 = this.OutsSP_Yr2_Bkt4,
 				OutsSP_Yr2_Bkt5 = this.OutsSP_Yr2_Bkt5,
 				OutsSP_Yr2_Bkt6 = this.OutsSP_Yr2_Bkt6,
-				OutsSP_Yr2_Bkt7 = this.OutsSP_Yr2_Bkt7,
 				OutsSP2 = this.OutsSP2,
 				WarSP_Yr2_Bkt0 = this.WarSP_Yr2_Bkt0,
 				WarSP_Yr2_Bkt1 = this.WarSP_Yr2_Bkt1,
@@ -364,7 +345,6 @@ namespace ModelDb
 				OutsRP_Yr2_Bkt4 = this.OutsRP_Yr2_Bkt4,
 				OutsRP_Yr2_Bkt5 = this.OutsRP_Yr2_Bkt5,
 				OutsRP_Yr2_Bkt6 = this.OutsRP_Yr2_Bkt6,
-				OutsRP_Yr2_Bkt7 = this.OutsRP_Yr2_Bkt7,
 				OutsRP2 = this.OutsRP2,
 				WarRP_Yr2_Bkt0 = this.WarRP_Yr2_Bkt0,
 				WarRP_Yr2_Bkt1 = this.WarRP_Yr2_Bkt1,
@@ -382,7 +362,6 @@ namespace ModelDb
 				OutsSP_Yr3_Bkt4 = this.OutsSP_Yr3_Bkt4,
 				OutsSP_Yr3_Bkt5 = this.OutsSP_Yr3_Bkt5,
 				OutsSP_Yr3_Bkt6 = this.OutsSP_Yr3_Bkt6,
-				OutsSP_Yr3_Bkt7 = this.OutsSP_Yr3_Bkt7,
 				OutsSP3 = this.OutsSP3,
 				WarSP_Yr3_Bkt0 = this.WarSP_Yr3_Bkt0,
 				WarSP_Yr3_Bkt1 = this.WarSP_Yr3_Bkt1,
@@ -400,7 +379,6 @@ namespace ModelDb
 				OutsRP_Yr3_Bkt4 = this.OutsRP_Yr3_Bkt4,
 				OutsRP_Yr3_Bkt5 = this.OutsRP_Yr3_Bkt5,
 				OutsRP_Yr3_Bkt6 = this.OutsRP_Yr3_Bkt6,
-				OutsRP_Yr3_Bkt7 = this.OutsRP_Yr3_Bkt7,
 				OutsRP3 = this.OutsRP3,
 				WarRP_Yr3_Bkt0 = this.WarRP_Yr3_Bkt0,
 				WarRP_Yr3_Bkt1 = this.WarRP_Yr3_Bkt1,
@@ -418,7 +396,6 @@ namespace ModelDb
 				OutsSP_Yr4_Bkt4 = this.OutsSP_Yr4_Bkt4,
 				OutsSP_Yr4_Bkt5 = this.OutsSP_Yr4_Bkt5,
 				OutsSP_Yr4_Bkt6 = this.OutsSP_Yr4_Bkt6,
-				OutsSP_Yr4_Bkt7 = this.OutsSP_Yr4_Bkt7,
 				OutsSP4 = this.OutsSP4,
 				WarSP_Yr4_Bkt0 = this.WarSP_Yr4_Bkt0,
 				WarSP_Yr4_Bkt1 = this.WarSP_Yr4_Bkt1,
@@ -436,7 +413,6 @@ namespace ModelDb
 				OutsRP_Yr4_Bkt4 = this.OutsRP_Yr4_Bkt4,
 				OutsRP_Yr4_Bkt5 = this.OutsRP_Yr4_Bkt5,
 				OutsRP_Yr4_Bkt6 = this.OutsRP_Yr4_Bkt6,
-				OutsRP_Yr4_Bkt7 = this.OutsRP_Yr4_Bkt7,
 				OutsRP4 = this.OutsRP4,
 				WarRP_Yr4_Bkt0 = this.WarRP_Yr4_Bkt0,
 				WarRP_Yr4_Bkt1 = this.WarRP_Yr4_Bkt1,
@@ -454,7 +430,6 @@ namespace ModelDb
 				OutsSP_Yr5_Bkt4 = this.OutsSP_Yr5_Bkt4,
 				OutsSP_Yr5_Bkt5 = this.OutsSP_Yr5_Bkt5,
 				OutsSP_Yr5_Bkt6 = this.OutsSP_Yr5_Bkt6,
-				OutsSP_Yr5_Bkt7 = this.OutsSP_Yr5_Bkt7,
 				OutsSP5 = this.OutsSP5,
 				WarSP_Yr5_Bkt0 = this.WarSP_Yr5_Bkt0,
 				WarSP_Yr5_Bkt1 = this.WarSP_Yr5_Bkt1,
@@ -472,7 +447,6 @@ namespace ModelDb
 				OutsRP_Yr5_Bkt4 = this.OutsRP_Yr5_Bkt4,
 				OutsRP_Yr5_Bkt5 = this.OutsRP_Yr5_Bkt5,
 				OutsRP_Yr5_Bkt6 = this.OutsRP_Yr5_Bkt6,
-				OutsRP_Yr5_Bkt7 = this.OutsRP_Yr5_Bkt7,
 				OutsRP5 = this.OutsRP5,
 				WarRP_Yr5_Bkt0 = this.WarRP_Yr5_Bkt0,
 				WarRP_Yr5_Bkt1 = this.WarRP_Yr5_Bkt1,
@@ -490,7 +464,6 @@ namespace ModelDb
 				OutsSP_Yr6_Bkt4 = this.OutsSP_Yr6_Bkt4,
 				OutsSP_Yr6_Bkt5 = this.OutsSP_Yr6_Bkt5,
 				OutsSP_Yr6_Bkt6 = this.OutsSP_Yr6_Bkt6,
-				OutsSP_Yr6_Bkt7 = this.OutsSP_Yr6_Bkt7,
 				OutsSP6 = this.OutsSP6,
 				WarSP_Yr6_Bkt0 = this.WarSP_Yr6_Bkt0,
 				WarSP_Yr6_Bkt1 = this.WarSP_Yr6_Bkt1,
@@ -508,7 +481,6 @@ namespace ModelDb
 				OutsRP_Yr6_Bkt4 = this.OutsRP_Yr6_Bkt4,
 				OutsRP_Yr6_Bkt5 = this.OutsRP_Yr6_Bkt5,
 				OutsRP_Yr6_Bkt6 = this.OutsRP_Yr6_Bkt6,
-				OutsRP_Yr6_Bkt7 = this.OutsRP_Yr6_Bkt7,
 				OutsRP6 = this.OutsRP6,
 				WarRP_Yr6_Bkt0 = this.WarRP_Yr6_Bkt0,
 				WarRP_Yr6_Bkt1 = this.WarRP_Yr6_Bkt1,

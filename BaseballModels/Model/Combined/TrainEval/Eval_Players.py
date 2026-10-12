@@ -15,6 +15,13 @@ from Model.Utilities import GetModelMaps
 from Model.EvalStats import getOutputHitterStats, getOutputPitcherStats
 from Model.ModelDBTypes import *
 
+from dataclasses import dataclass
+@dataclass(frozen=True)
+class PlayerTickKey:
+    mlbId : int
+    year : int
+    month : int
+
 def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
     with torch.no_grad():
         BATCH_SIZE = 12000

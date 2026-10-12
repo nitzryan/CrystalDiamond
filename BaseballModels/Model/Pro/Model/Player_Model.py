@@ -36,15 +36,26 @@ class LayerArch(nn.Module):
         self.layers = nn.ModuleList(layers)
         return self
 
-    def InitWeights(self, output_gain: float = 1.0):
+    def InitWeights(self, *, output_gain: float = 1.0, class_probs : list[float] | None = None):
         # Hidden layers: He-style normal, fan_in, scaled for this arch's nonlinearity
         gain = _NONLIN_GAIN[self.nonlin]
         for layer in self.layers[:-1]:
             init.normal_(layer.weight, mean=0.0, std=gain / math.sqrt(layer.in_features))
             init.zeros_(layer.bias)
-        # Output layer has no nonlinearity after it: Xavier, gain 1 unless the caller says otherwise
-        init.xavier_uniform_(self.layers[-1].weight, gain=output_gain)
-        init.zeros_(self.layers[-1].bias)
+            
+        # Output layer
+        if class_probs is not None:
+            init.zeros_(self.layers[-1].weight)
+        else:
+            init.xavier_uniform_(self.layers[-1].weight, gain=output_gain)
+        
+        # Bias based on class probs, or equal if regression
+        if class_probs is not None:
+            probs = torch.as_tensor(class_probs, dtype=self.layers[-1].bias.dtype,
+                                    device=self.layers[-1].bias.device)
+            self.layers[-1].bias.data.copy_(probs.log())
+        else:
+            init.zeros_(self.layers[-1].bias)
         return self
 
     def ToDict(self):
@@ -124,6 +135,9 @@ LOSS_IDX_MLBWAR = 6
 VAR_IDX_SHARED = 0
 VAR_IDX_DATAINIT = LOSS_IDX_MLBWAR + 2
 VAR_IDX_PLAYERINIT = VAR_IDX_DATAINIT + 1
+
+DEFAULT_HITTER_GRAD_SCALES = [1, 2.7, 0.9, 0.03, 0.01, 7.9, 0.025]
+DEFAULT_PITCHER_GRAD_SCALES = [1, 0.005, 0.5, 0.01, 0.07, 0.88, 0.01]
 
 def _InitModelHeadLists(
         *,
@@ -215,8 +229,7 @@ DEFAULT_RNN_NONLINEARITY_P = 'relu'
 NUM_MONTH_SLOTS = 13
 MONTH_EMB_SIZE = 8
 
-DEFAULT_HITTER_GRAD_SCALES = [1, 0.022, 1.48, 0.075, 0.007, 5.4, 0.01]
-DEFAULT_PITCHER_GRAD_SCALES = [1, 0.005, 2.0, 0.02, 1.05, 2.66, 0.01]
+
 
 class _ScaleBackboneGradient(torch.autograd.Function):
     @staticmethod
@@ -371,15 +384,24 @@ class Recurrent_Model(nn.Module):
         self.register_buffer('ip_offsets', data_prep.Get_Ip_Offsets())
         self.is_hitter = is_hitter
         
-        # Initialize weights: hidden layers scaled for each arch's nonlinearity, output layers Xavier
+        # Initialize weights
         self.data_init.InitWeights()
         self.init_hidden.InitWeights()
-        self.war.InitWeights()
-        self.level.InitWeights()
-        self.pa.InitWeights()
+        self.war.InitWeights(class_probs=[0.919, 0.028, 0.021, 0.013, 0.013, 0.003, 0.002] if is_hitter else \
+                                         [0.899, 0.051, 0.031, 0.012, 0.006, 0.001, 0.001])
+        self.level.InitWeights(class_probs=[0.162, 0.176, 0.140, 0.143, 0.105, 0.047, 0.093, 0.134] if is_hitter else \
+                                           [0.194, 0.165, 0.123, 0.147, 0.103, 0.048, 0.103, 0.117])
+        self.pa.InitWeights(class_probs=[0.890, 0.026, 0.009, 0.017, 0.013, 0.016, 0.029] if is_hitter else \
+                                        [0.0863, 0.015, 0.030, 0.046, 0.025, 0.021, 0.001])
         self.yearStats.InitWeights()
         self.pos.InitWeights()
-        self.mlbwar.InitWeights()
+        hitter_war_probs = [0.035, 0.904, 0.026, 0.013, 0.009, 0.006, 0.006, 0.003, \
+                            0.902, 0.012, 0.015, 0.015, 0.023, 0.020, 0.014] * NUM_MLB_YEAR_OFFSETS
+        pitcher_war_probs = [0.0963, 0.008, 0.007, 0.005, 0.006, 0.020, 0.004, \
+                             0.009, 0.963, 0.013, 0.006, 0.004, 0.002, 0.002, 0.001, \
+                             0.930, 0.006, 0.020, 0.014, 0.011, 0.012, 0.008,  \
+                             0.029, 0.930, 0.020, 0.008, 0.006, 0.004, 0.002, 0.002] * NUM_MLB_YEAR_OFFSETS
+        self.mlbwar.InitWeights(class_probs=hitter_war_probs if is_hitter else pitcher_war_probs)
         self.pt.InitWeights(output_gain=init.calculate_gain('tanh'))
         init.constant_(self.pt.layers[-1].bias, -self.pt_offset.mean() * 0.75)
     
