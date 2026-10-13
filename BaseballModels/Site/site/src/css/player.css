@@ -6,25 +6,6 @@
     justify-content: flex-start;
 }
 
-#model {
-    align-items: stretch;
-    justify-content: space-between;
-}
-
-#graph_selector {
-    width: 10em;
-    align-self: center;
-    font-size: 1.5em;
-}
-
-#piediv {
-    width: 24%;
-}
-
-#wardiv {
-    width: 74%;
-}
-
 #right_column {
     width: 1%;
     flex-grow: 1;
@@ -75,4 +56,34 @@
     text-align: center;
     font-size: 1.25em;
     margin-top: 2em;
+}
+
+.model_selectors {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+}
+
+.model_selector {
+    width: 10em;
+    font-size: 1.5em;
+}
+
+.model_row {
+    align-items: stretch;
+    justify-content: space-between;
+}
+
+.model_pie {
+    position: relative;
+    width: 24%;
+}
+
+.model_line {
+    position: relative;
+    width: 74%;
+}
+
+#model_toggle {
+    justify-content: center;
 }

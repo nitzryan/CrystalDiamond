@@ -11,7 +11,9 @@ namespace SiteDb
 		public DbSet<PitcherMonthStats> PitcherMonthStats {get; set;}
 		public DbSet<Prediction_HitterStats> Prediction_HitterStats {get; set;}
 		public DbSet<Prediction_PitcherStats> Prediction_PitcherStats {get; set;}
+		public DbSet<PlayerModel> PlayerModel {get; set;}
 		public DbSet<PlayerRank> PlayerRank {get; set;}
+		public DbSet<DraftRank> DraftRank {get; set;}
 		public DbSet<TeamRank> TeamRank {get; set;}
 		public DbSet<Models> Models {get; set;}
 		public DbSet<PlayerYearPositions> PlayerYearPositions {get; set;}
@@ -19,10 +21,12 @@ namespace SiteDb
 		public DbSet<HomeDataType> HomeDataType {get; set;}
 		public DbSet<QualityCode> QualityCode {get; set;}
 		public DbSet<TeamDraftOverview> TeamDraftOverview {get; set;}
-		public DbSet<ModelDraftPickValues> ModelDraftPickValues {get; set;}
-		public DbSet<DraftRank> DraftRank {get; set;}
-		public DbSet<PlayerModel> PlayerModel {get; set;}
 		public DbSet<TeamDraftPlayer> TeamDraftPlayer {get; set;}
+		public DbSet<HitterMlbWarModel> HitterMlbWarModel {get; set;}
+		public DbSet<PitcherMlbWarModel> PitcherMlbWarModel {get; set;}
+		public DbSet<ModelDraftPickValues> ModelDraftPickValues {get; set;}
+		public DbSet<HitterMlbWarBucketAverages> HitterMlbWarBucketAverages {get; set;}
+		public DbSet<PitcherMlbWarBucketAverages> PitcherMlbWarBucketAverages {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -35,7 +39,9 @@ namespace SiteDb
 			modelBuilder.Entity<PitcherMonthStats>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.TeamId,f.LeagueId});
 			modelBuilder.Entity<Prediction_HitterStats>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
 			modelBuilder.Entity<Prediction_PitcherStats>().HasKey(f => new {f.MlbId,f.Model,f.Year,f.Month,f.LevelId});
+			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId,f.IsHitter});
 			modelBuilder.Entity<PlayerRank>().HasKey(f => new {f.MlbId,f.ModelId,f.IsHitter,f.Year,f.Month});
+			modelBuilder.Entity<DraftRank>().HasKey(f => new {f.TbcId,f.MlbId,f.ModelId,f.IsHitter,f.Year});
 			modelBuilder.Entity<TeamRank>().HasKey(f => new {f.TeamId,f.ModelId,f.Year,f.Month});
 			modelBuilder.Entity<Models>().HasKey(f => new {f.ModelId});
 			modelBuilder.Entity<PlayerYearPositions>().HasKey(f => new {f.MlbId,f.Year,f.IsHitter});
@@ -43,10 +49,12 @@ namespace SiteDb
 			modelBuilder.Entity<HomeDataType>().HasKey(f => new {f.Type});
 			modelBuilder.Entity<QualityCode>().HasKey(f => new {f.Category,f.Code});
 			modelBuilder.Entity<TeamDraftOverview>().HasKey(f => new {f.ModelId,f.DraftYear,f.EvaluationYear,f.TeamId});
-			modelBuilder.Entity<ModelDraftPickValues>().HasKey(f => new {f.Pick});
-			modelBuilder.Entity<DraftRank>().HasKey(f => new {f.TbcId,f.MlbId,f.ModelId,f.IsHitter,f.Year});
-			modelBuilder.Entity<PlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId,f.IsHitter});
 			modelBuilder.Entity<TeamDraftPlayer>().HasKey(f => new {f.ModelId,f.MlbId,f.IsHitter});
+			modelBuilder.Entity<HitterMlbWarModel>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
+			modelBuilder.Entity<PitcherMlbWarModel>().HasKey(f => new {f.MlbId,f.ModelId,f.Year,f.Month});
+			modelBuilder.Entity<ModelDraftPickValues>().HasKey(f => new {f.Pick});
+			modelBuilder.Entity<HitterMlbWarBucketAverages>().HasKey(f => new {f.Month});
+			modelBuilder.Entity<PitcherMlbWarBucketAverages>().HasKey(f => new {f.Month});
 		}
 	}
 }

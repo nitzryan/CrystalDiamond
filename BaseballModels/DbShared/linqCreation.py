@@ -47,7 +47,6 @@ def linqCreation(
             classFile.write(f"\tpublic partial class {table}\n" + '\t{\n')
             for _, name, type, notnull, _, pk in vals:
                 name = name[0].capitalize() + name[1:]
-                cloneFunctionString += f"\t{name} = this.{name},\n\t\t\t"
                 
                 # Need to write primary keys
                 if pk > 0:
@@ -60,12 +59,23 @@ def linqCreation(
                     csharp_type = "float"
                 elif type == "TEXT":
                     csharp_type = "string"
+                elif type == "BLOB":
+                    csharp_type = "byte[]"
                 else:
                     raise Exception(f"Invalid SQLite type found: {type} for {name}")
             
                 for to in type_overrides:
                     if (to.table == table) and (to.column == name):
                         csharp_type = to.structName
+            
+                if csharp_type == "byte[]":
+                    if notnull == 0:
+                        clone_value = f"(byte[]?)this.{name}?.Clone()"
+                    else:
+                        clone_value = f"(byte[])this.{name}.Clone()"
+                else:
+                    clone_value = f"this.{name}"
+                cloneFunctionString += f"\t{name} = {clone_value},\n\t\t\t"
             
                 for bt in boolean_types:
                     if bt.table == table:

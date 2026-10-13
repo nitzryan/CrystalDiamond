@@ -4,14 +4,65 @@ const POINT_HIGHLIGHT_SIZE : number = 9
 type GraphDataset = {
     points : Point[],
     title : string,
-    isLog : boolean,
-    isHitter : boolean,
-    modelId : number,
+    yscale : any,
 }
 
 type GraphObj = {
     dataset : JsonObject,
     yscale : JsonObject
+}
+
+function getRankScale(title : string) : any
+{
+    return {
+        type: 'logarithmic',
+        reverse: true,
+        min: 0.1,
+        max: 20000,
+        grid: {
+            color: css.background_low
+        },
+        // @ts-ignore
+        ticks: {
+            // @ts-ignore
+            callback: function(value, index, ticks) {
+                if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
+                    return value.toLocaleString()
+                return null
+            }
+        },
+        title: {
+            display: true,
+            text: title
+        },
+    }
+}
+
+function getWarScale(title : string, points : Point[], minMax : number) : any
+{
+    const values = points.map(g => g.y)
+    return {
+        // grid, position, ticks: copy from the else branch of the LineGraph constructor
+        min: Math.min(0, Math.floor(values.reduce((a,b) => Math.min(a,b), 0))),
+        max: Math.max(minMax, values.reduce((a,b) => Math.max(a,b), 0) + 2),
+        title: {
+            display: true,
+            text: title
+        },
+        grid: {
+            color: css.background_low
+        },
+        position: 'left',
+        // @ts-ignore
+        ticks: {
+            // @ts-ignore
+            callback: function(value, index, ticks) {
+                if (value % 2 === 0)
+                    return value.toLocaleString()
+                return null
+            }
+        }
+    }
 }
 
 class LineGraph
@@ -21,7 +72,7 @@ class LineGraph
     private points : Point[]
     private datasetIdx : number
     private pointIdx : number
-    private callback : (index : number, modelId : number) => void
+    private callback : (datasetIdx : number, pointIdx : number) => void
     private readonly chart : any
 
     constructor(element : HTMLCanvasElement, datasets : GraphDataset[], callback : (index : number, modelId : number) => void, colorscale : string[] | null = null)
@@ -42,60 +93,8 @@ class LineGraph
                     data : f.points.map(f => f.y),
                     pointRadius : new Array(f.points.length).fill(POINT_DEFAULT_SIZE),
                 },
-                yscale: {}
+                yscale: f.yscale
             }
-
-            if (f.isLog)
-            {
-                go.yscale = {
-                type: 'logarithmic',
-                    reverse: true,
-                    min: 0.1,
-                    max: 20000,
-                    title: {
-                        display: true,
-                        text: 'Prospect Ranking'
-                    },
-                    grid: {
-                        color: css.background_low
-                    },
-                    // @ts-ignore
-                    ticks: {
-                        // @ts-ignore
-                        callback: function(value, index, ticks) {
-                            if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000)
-                                return value.toLocaleString()
-                            return null
-                        }
-                    }
-                }
-            }
-            else
-            {
-                go.yscale = {
-                    min: 0,
-                    max: Math.max(23, 
-                        f.points.map(g => g.y).reduce((a,b) => Math.max(a,b), 0) + 2),
-                    grid: {
-                        color: css.background_low
-                    },
-                    title: {
-                        display: true,
-                        text: 'Expected WAR Through Control'
-                    },
-                    position: 'left',
-                    // @ts-ignore
-                    ticks: {
-                        // @ts-ignore
-                        callback: function(value, index, ticks) {
-                            if (value % 2 === 0)
-                                return value.toLocaleString()
-                            return null
-                        }
-                    }
-                }
-            }
-
             return go
         })
 
@@ -125,7 +124,7 @@ class LineGraph
                         const firstPoint = points[0]
                         const index = firstPoint.index;
                         this.highlight_index(index)
-                        this.callback(index, this.getSelectedModel())
+                        this.callback(this.datasetIdx, index)
                     }
                 },
                 scales: {
@@ -159,27 +158,13 @@ class LineGraph
         {
             this.pointIdx += x_inc
             this.highlight_index(this.pointIdx)
-            this.callback(this.getAdjustedPointIndex(), this.getSelectedModel())
+            this.callback(this.datasetIdx, this.pointIdx)
         }
     }
 
     fireCallback() : void
     {
-        
-        this.callback(this.getAdjustedPointIndex(), this.getSelectedModel())
-    }
-
-    private getAdjustedPointIndex() : number
-    {
-        let index = this.pointIdx
-        if (this.datasets[this.datasetIdx].isLog)
-            index++
-        return index
-    }
-
-    graphIsHitter() : boolean
-    {
-        return this.datasets[this.datasetIdx].isHitter
+        this.callback(this.datasetIdx, this.pointIdx)
     }
 
     setDataset(idx : number) : void
@@ -195,8 +180,5 @@ class LineGraph
             this.highlight_index(this.points.length - 1);
     }
 
-    getSelectedModel() : number
-    {
-        return this.datasets[this.datasetIdx].modelId
-    }
+    
 }

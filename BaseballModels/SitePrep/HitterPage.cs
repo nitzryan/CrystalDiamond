@@ -18,7 +18,6 @@ namespace SitePrep
             siteDb.Player.ExecuteDelete();
             siteDb.HitterYearStats.ExecuteDelete();
             siteDb.HitterMonthStats.ExecuteDelete();
-            siteDb.SaveChanges();
 
             // Pre-load which players are in trainingData
             HashSet<(int MlbId, int ModelIdx)> hitterTrainSet = modelDb.PlayersInTrainingData

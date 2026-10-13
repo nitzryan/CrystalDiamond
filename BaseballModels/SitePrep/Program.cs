@@ -25,10 +25,13 @@ namespace SitePrep
             Homepage.Update();
             SetTimestepQuality.Create();
             WriteWarBucketAverages.Update();
-            TeamDraftPlayerGen.Calculate();
+
+            ProWar.GenerateWarModels.HitterModels();
+            ProWar.GenerateWarModels.PitcherModels();
 
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Actual);
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Model);
+            TeamDraftPlayerGen.Calculate();
 
             Draft.PickExpectedValueCalibration.CreateTimeGraph(Draft.DraftPickTarget.Actual);
             Draft.PickExpectedValueCalibration.CreateTimeGraph(Draft.DraftPickTarget.Model);

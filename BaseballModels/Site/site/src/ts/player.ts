@@ -86,228 +86,83 @@ function getModels(obj : JsonObject, name : string) : DB_PlayerModel[][]
     return models_list;
 }
 
-const WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
+const PROSPECT_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
+const MLB_HIT_WAR_LABELS = ["<0", "0", "0-1", "1-2", "2-3", "3-4", "4-6", "6+"]
+const MLB_SP_WAR_LABELS = ["<0", "0", "0-1", "1-2", "2-3", "3-4", "4-6", "6+"]
+const MLB_RP_WAR_LABELS = ["<0", "0", "0-0.3", "0.3-0.6", "0.6-1", "1-1.5", "1.5-2", "2+"]
 
-function piePointGenerator(model : DB_PlayerModel) : Point[]
+// Show whichever model has the more recent timestep, preferring prospect on a tie
+function getDefaultModelSection() : string
 {
-    let points : Point[] = []
-    const probs = getModelProbs(model)
-    for (let i = 0; i < WAR_LABELS.length; i++)
-    {
-        points.push({y: probs[i], label:WAR_LABELS[i]})
-    }
-    return points
+    const prospect = prospectSources[0][prospectSources[0].length - 1]
+    const mlb = mlbSources[0].timesteps[mlbSources[0].timesteps.length - 1]
+    const prospectDate = prospect.year * 100 + prospect.month
+    const mlbDate = mlb.year * 100 + mlb.month
+    return prospectDate >= mlbDate ? 'prospect' : 'mlb'
 }
 
-function lineCallback(index : number, modelId : number)
+function setupModelSections(hasProspect : boolean, hasMlb : boolean) : void
 {
-    if (line_graph === null)
+    const prospectSection = getElementByIdStrict('prospect_section')
+    const mlbSection = getElementByIdStrict('mlb_section')
+
+    if (hasProspect && hasMlb)
+    {
+        modelSections = new SectionSelector({
+            groupId: 'model_toggle',
+            initial: getDefaultModelSection(),
+            sections: { prospect: [prospectSection], mlb: [mlbSection] }
+        })
         return
-
-    let model : DB_PlayerModel
-    if (line_graph.graphIsHitter())
-    {
-        model = hitterModels[modelId - 1][index]
-    } else
-    {
-        model = pitcherModels[modelId - 1][index]
     }
 
-    if (model !== null)
+    // Set single button visible and selected, other invisible
+    const prospect_toggle_button = getElementByIdStrict('prospect_toggle')
+    const mlb_toggle_button = getElementByIdStrict('mlb_toggle')
+    if (hasProspect)
     {
-        if (pie_graph === null)
-            throw new Error("Pie Graph null at lineCallback")
-
-        const title_text : string = model.month == 0 ? 
-            "Iniitial Outcome Distribution" :
-            `${model.month}-${model.year} Outcome Distribution`
-        
-        pie_graph.updateChart(getModelProbs(model), title_text, WAR_LABELS)
-    } else {
-        throw new Error("Model was not set for hitter or pitcher")
+        prospect_toggle_button.classList.add('selected')
+        mlb_toggle_button.classList.add('hidden')
     }
+    else
+    {
+        mlb_toggle_button.classList.add('selected')
+        prospect_toggle_button.classList.add('hidden')
+        mlb_toggle_button.style.setProperty("border-left", "1px solid var(--text-high)")
+    }
+    
+    prospectSection.classList.toggle('hidden', !hasProspect)
+    mlbSection.classList.toggle('hidden', !hasMlb)
+    if (!hasProspect && !hasMlb)
+        getElementByIdStrict('noModelData').classList.remove('hidden')
 }
 
-function getDatasets(hitter_war_list : Point[][], hitter_ranks_list : Point[][], pitcher_war_list : Point[][], pitcher_ranks_list : Point[][]) : GraphDataset[]
+function getVisibleLineGraph() : LineGraph | null
 {
-    let datasets : GraphDataset[] = []
-    if (hitter_ranks_list.length !== hitter_war_list.length)
-        throw new Error("getDatasets: Hitter War vs Ranks length mismatch")
-
-    for (let i = 0; i < hitter_war_list.length; i++)
-    {
-        if (hitter_war_list[i].length > 0)
-        {
-            datasets.push({
-                points: hitter_war_list[i],
-                title: MODEL_STRINGS[i],
-                modelId: MODEL_VALUES[i],
-                isLog: false,
-                isHitter : true
-            })
-        }
-        if (hitter_ranks_list[i].length > 0)
-        {
-            datasets.push({
-                points: hitter_ranks_list[i],
-                title: MODEL_STRINGS[i] + " Rank",
-                modelId: MODEL_VALUES[i],
-                isLog: true,
-                isHitter: true
-            })
-        }
-    }
-
-    if (pitcher_ranks_list.length !== pitcher_war_list.length)
-        throw new Error("getDatasets: Pitcher War vs Ranks length mismatch")
-    for (let i = 0; i < pitcher_war_list.length; i++)
-    {
-        if (pitcher_war_list[i].length > 0)
-        {
-            datasets.push({
-                points: pitcher_war_list[i],
-                title: MODEL_STRINGS[i],
-                modelId: MODEL_VALUES[i],
-                isLog: false,
-                isHitter : false
-            })
-        }
-        if (pitcher_ranks_list[i].length > 0)
-        {
-            datasets.push({
-                points: pitcher_ranks_list[i],
-                title: MODEL_STRINGS[i] + " Rank",
-                modelId: MODEL_VALUES[i],
-                isLog: true,
-                isHitter: false
-            })
-        }
-    }
-
-    return datasets
+    if (modelSections === null)
+        return null
+    return modelSections.selected === 'mlb' ? mlb_line_graph : prospect_line_graph
 }
 
-function setupSelector(hitter_war_list : Point[][], hitter_ranks_list : Point[][], pitcher_war_list : Point[][], pitcher_ranks_list : Point[][])
-{
-    for (let i = 0; i < hitter_war_list.length; i++)
-    {
-        if (hitter_war_list[i].length > 0)
-        {
-            let opt = document.createElement('option') as HTMLOptionElement
-            opt.text = "Hitter " + MODEL_STRINGS[i]
-            opt.value = graph_selector.children.length.toString()
-
-            graph_selector.appendChild(opt)
-        }
-        if (hitter_ranks_list[i].length > 0)
-        {
-            let opt = document.createElement('option') as HTMLOptionElement
-            opt.text = "Hitter " + MODEL_STRINGS[i] + " Rank"
-            opt.value = graph_selector.children.length.toString()
-
-            graph_selector.appendChild(opt)
-        }
-    }
-    for (let i = 0; i < pitcher_war_list.length; i++)
-    {
-        if (pitcher_war_list[i].length > 0)
-        {
-            let opt = document.createElement('option') as HTMLOptionElement
-            opt.text = "Pitcher " + MODEL_STRINGS[i]
-            opt.value = graph_selector.children.length.toString()
-
-            graph_selector.appendChild(opt)
-        }
-        if (pitcher_ranks_list[i].length > 0)
-        {
-            let opt = document.createElement('option') as HTMLOptionElement
-            opt.text = "Pitcher " + MODEL_STRINGS[i] + " Rank"
-            opt.value = graph_selector.children.length.toString()
-
-            graph_selector.appendChild(opt)
-        }
-    }
-
-    graph_selector.value = "0"
-
-    graph_selector.addEventListener('change', () => {
-        if (line_graph !== null)
-        {
-            const idx = parseInt(graph_selector.value)
-            line_graph.setDataset(idx)
-            hitterTable?.setPredictions(predHitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
-            pitcherTable?.setPredictions(predPitStats.filter(f => f.Model == Math.trunc(idx / 2) + 1))
-            line_graph.fireCallback()
-        }
-    })
-}
-
-function setupModel(hitterModels : DB_PlayerModel[][], pitcherModels : DB_PlayerModel[][]) : void
-{
-    let war_map = (f: DB_PlayerModel, buckets : number[]) => {
-        const probs = getModelProbs(f)
-        let war = 0;
-        for (let i = 0; i < probs.length; i++)
-            war += probs[i] * buckets[i];
-
-        const label : string = f.month == 0 ? 'Initial' : `${f.month}-${f.year}`
-        const p : Point = {y: war, label : label}
-        return p;
-    }
-
-    let rank_map = (f : DB_PlayerModel) => {
-        let month = f.month
-        let year = f.year
-        if (f.rankWar === null)
-            throw new Error("No Rank")
-        const p : Point = {y: f.rankWar, label: year == 0 ? "Initial" : `${month}-${year}`}
-        return p
-    }
-    
-    let hitter_war_points : Point[][] = []
-    let pitcher_war_points : Point[][] = []
-    
-    for (var idx of MODEL_VALUES)
-    {
-        if (hitterModels.length > 0)
-            hitter_war_points.push(hitterModels[idx - 1].map(f => war_map(f, assetLoader.war_buckets_hitter)))
-        if (pitcherModels.length > 0)
-            pitcher_war_points.push(pitcherModels[idx - 1].map(f => war_map(f, assetLoader.war_buckets_pitcher)))
-    }
-
-    let hitter_rank_points : Point[][] = hitterModels.map(m => m.filter(f => f.rankWar !== null).map(rank_map))
-    let pitcher_rank_points : Point[][] = pitcherModels.map(m => m.filter(f => f.rankWar !== null).map(rank_map))
-
-    
-    const datasets = getDatasets(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
-    if (datasets.length > 0)
-    {
-        line_graph = new LineGraph(model_graph, datasets, lineCallback)
-        setupSelector(hitter_war_points, hitter_rank_points, pitcher_war_points, pitcher_rank_points)
-
-        const pie_points = person.isHitter ? 
-            piePointGenerator(hitterModels[0][hitterModels[0].length - 1]) :
-            piePointGenerator(pitcherModels[0][pitcherModels[0].length - 1])
-        pie_graph = new PieGraph(model_pie, pie_points, "Outcome Distribution")
-    } else {
-        line_graph = null
-        graph_selector.classList.add('hidden')
-        let noProspectData = getElementByIdStrict('noProspectData')
-        noProspectData.classList.remove('hidden')
-    }
-    
-}
-
-const model_pie = getElementByIdStrict("projWarPie") as HTMLCanvasElement
-const model_graph = getElementByIdStrict("projWarGraph") as HTMLCanvasElement
-let graph_selector = getElementByIdStrict('graph_selector') as HTMLSelectElement
-let line_graph : LineGraph | null
-let pie_graph : PieGraph
+const prospect_pie_canvas = getElementByIdStrict("prospect_pie_canvas") as HTMLCanvasElement
+const prospect_line_canvas = getElementByIdStrict("prospect_line_canvas") as HTMLCanvasElement
+let prospect_graph_selector = getElementByIdStrict('prospect_graph_selector') as HTMLSelectElement
+let prospect_line_graph : LineGraph | null = null
+let prospect_pie_graph : PieGraph
 let keyControls : KeyControls
 
+const mlb_pie_canvas = getElementByIdStrict("mlb_pie_canvas") as HTMLCanvasElement
+const mlb_graph = getElementByIdStrict("mlb_line_canvas") as HTMLCanvasElement
+let mlb_graph_selector = getElementByIdStrict('mlb_graph_selector') as HTMLSelectElement
+let mlb_year_selector = getElementByIdStrict('mlb_year_selector') as HTMLSelectElement
+let mlb_line_graph : LineGraph | null = null
+let mlb_pie_graph : PieGraph | null = null
+
+let modelSections : SectionSelector | null = null
+const MLB_PIE_COLORS = ['#d43d51', '#dd7077', '#e19d9e', '#dfc8c8', '#c3d1cc', '#8fb8ab', '#55a08b', '#00876c']
+
 let person : DB_Player
-let hitterModels : DB_PlayerModel[][]
-let pitcherModels : DB_PlayerModel[][]
+let prospectSources : DB_PlayerModel[][] = []
 
 let hitterTable : HitterStatsTable | null = null
 let pitcherTable : PitcherStatsTable | null = null
@@ -334,12 +189,16 @@ async function main()
         pitcherTable = new PitcherStatsTable(pitcherStats)
     
     // Get Models
-    hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
-    pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
+    const hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
+    const pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 
-    setupModel(hitterModels, pitcherModels)
-    if (line_graph !== null)
-        line_graph.fireCallback()
+    const hasProspect = setupProspectModel(hitterModels, pitcherModels)
+
+    const hitterMlbWar = person.isHitter ? getHitterMlbWar(pd) : []
+    const pitcherMlbWar = person.isPitcher ? getPitcherMlbWar(pd) : { starter: [], reliever: [] }
+    const hasMlb = setupMlbModel(hitterMlbWar, pitcherMlbWar.starter, pitcherMlbWar.reliever)
+
+    setupModelSections(hasProspect, hasMlb)
 
     // Set person
     updateElementText("player_name", `${person.firstName} ${person.lastName}`)
@@ -377,8 +236,9 @@ async function main()
     document.title = person.firstName + " " + person.lastName
 
     keyControls = new KeyControls(document, (x_inc) => {
-        if (line_graph !== null)
-            line_graph.increment_index(x_inc)
+        const graph = getVisibleLineGraph()
+        if (graph !== null)
+            graph.increment_index(x_inc)
     })
 
     // Update stats date

@@ -331,6 +331,40 @@ CREATE TABLE TeamDraftPlayer (
     PRIMARY KEY("modelId", "mlbId", "isHitter")
 );
 
+CREATE TABLE "HitterMlbWarModel" (
+    "mlbId" INTEGER NOT NULL,
+    "modelId" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "month" INTEGER NOT NULL,
+    "probsWar" BLOB NOT NULL,      -- 56 x uint16
+	"ranksWar" BLOB NOT NULL,      -- 7 x uint16
+    PRIMARY KEY("mlbId","modelId","year","month")
+) WITHOUT ROWID;
+CREATE TABLE "PitcherMlbWarModel" (
+    "mlbId" INTEGER NOT NULL,
+    "modelId" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "month" INTEGER NOT NULL,
+    "probsWarSP" BLOB NOT NULL,    -- 56 x uint16
+    "probsWarRP" BLOB NOT NULL,    -- 56 x uint16
+	"ranksWarSP" BLOB NOT NULL,    -- 7 x uint16
+	"ranksWarRP" BLOB NOT NULL,    -- 7 x uint16
+    PRIMARY KEY("mlbId","modelId","year","month")
+) WITHOUT ROWID;
+
+CREATE TABLE "HitterMlbWarBucketAverages" (
+    "month" INTEGER NOT NULL PRIMARY KEY,
+    "war0" REAL NOT NULL, "war1" REAL NOT NULL, "war2" REAL NOT NULL, "war3" REAL NOT NULL,
+    "war4" REAL NOT NULL, "war5" REAL NOT NULL, "war6" REAL NOT NULL, "war7" REAL NOT NULL
+);
+CREATE TABLE "PitcherMlbWarBucketAverages" (
+    "month" INTEGER NOT NULL PRIMARY KEY,
+    "warSP0" REAL NOT NULL, "warSP1" REAL NOT NULL, "warSP2" REAL NOT NULL, "warSP3" REAL NOT NULL,
+    "warSP4" REAL NOT NULL, "warSP5" REAL NOT NULL, "warSP6" REAL NOT NULL, "warSP7" REAL NOT NULL,
+    "warRP0" REAL NOT NULL, "warRP1" REAL NOT NULL, "warRP2" REAL NOT NULL, "warRP3" REAL NOT NULL,
+    "warRP4" REAL NOT NULL, "warRP5" REAL NOT NULL, "warRP6" REAL NOT NULL, "warRP7" REAL NOT NULL
+);
+
 CREATE INDEX idx_TeamDraftPlayer_DraftYear ON TeamDraftPlayer
 (
 	"draftYear", "modelId"

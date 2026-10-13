@@ -23,16 +23,45 @@
                 <div id="player_draft" class="center_text"></div>
             </div>
             <div id="right_column" class="column">
-                <select id="graph_selector"></select>
-                <div id="model" class="row">
-                    <div id="piediv" style="position: relative;">
-                        <canvas id="projWarPie"></canvas>
+                <div id="model_toggle" class="toggle_group">
+                    <button data-section="prospect" id="prospect_toggle">Prospect</button>
+                    <button data-section="mlb" id="mlb_toggle">MLB</button>
+                </div>
+                <div id="prospect_section">
+                    <div class="model_selectors">
+                        <select id="prospect_graph_selector" class="model_selector"></select>
                     </div>
-                    <div id="wardiv" style="position: relative;">
-                        <canvas id="projWarGraph"></canvas>
+                    <div class="row model_row">
+                        <div class="model_pie">
+                            <canvas id="prospect_pie_canvas"></canvas>
+                        </div>
+                        <div class="model_line">
+                            <canvas id="prospect_line_canvas"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div id="noProspectData" class="hidden center_text">Player does not have prospect data</div>
+                <div id="mlb_section">
+                    <div class="model_selectors">
+                        <select id="mlb_graph_selector" class="model_selector"></select>
+                        <select id="mlb_year_selector" class="model_selector">
+                            <option value="0">1 Year Ahead</option>
+                            <option value="1">2 Years Ahead</option>
+                            <option value="2">3 Years Ahead</option>
+                            <option value="3">4 Years Ahead</option>
+                            <option value="4">5 Years Ahead</option>
+                            <option value="5">6 Years Ahead</option>
+                        </select>
+                    </div>
+                    <div class="row model_row">
+                        <div class="model_pie">
+                            <canvas id="mlb_pie_canvas"></canvas>
+                        </div>
+                        <div class="model_line">
+                            <canvas id="mlb_line_canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div id="noModelData" class="hidden center_text">Player does not have model data</div>
                 <div id="playerInTraining">Player included in training data</div>
 
                 <div id="hitter_stats" class="stats player_stats hidden">

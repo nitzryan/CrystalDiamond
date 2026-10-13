@@ -1,3 +1,23 @@
+function decodeBlobU16(b64 : string, rows : number, cols : number, divisor : number) : number[][]
+{
+    const bin = atob(b64)
+    if (bin.length !== rows * cols * 2)
+        throw new Error(`decodeBlobU16: expected ${rows * cols * 2} bytes for ${rows}x${cols}, got ${bin.length}`)
+
+    let result : number[][] = []
+    for (let r = 0; r < rows; r++)
+    {
+        let row : number[] = []
+        for (let c = 0; c < cols; c++)
+        {
+            const i = (r * cols + c) * 2
+            row.push((bin.charCodeAt(i) | (bin.charCodeAt(i + 1) << 8)) / divisor)
+        }
+        result.push(row)
+    }
+    return result
+}
+
 class DB_Player
 {
 	public mlbId : number
@@ -332,6 +352,34 @@ class DB_Prediction_PitcherStats
 	}
 }
 
+class DB_PlayerModel
+{
+	public mlbId : number
+	public year : number
+	public month : number
+	public modelId : number
+	public isHitter : boolean
+	public probsWar : string
+	public war : number
+	public rankWar : number | null
+	public trainingBias : boolean
+	public timestepQuality : number
+
+	constructor(data : JsonObject)
+	{
+		this.mlbId = data['mlbId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as boolean
+		this.probsWar = data['probsWar'] as string
+		this.war = data['war'] as number
+		this.rankWar = data['rankWar'] as number | null
+		this.trainingBias = data['trainingBias'] as boolean
+		this.timestepQuality = data['timestepQuality'] as number
+	}
+}
+
 class DB_PlayerRank
 {
 	public mlbId : number
@@ -367,6 +415,50 @@ class DB_PlayerRank
 		this.timestepQuality = data['timestepQuality'] as number
 		this.acqType = data['acqType'] as number
 		this.draftPick = data['draftPick'] as number | null
+	}
+}
+
+class DB_DraftRank
+{
+	public tbcId : number
+	public mlbId : number
+	public modelId : number
+	public isHitter : boolean
+	public Name : string | null
+	public Position : string | null
+	public BirthYear : number
+	public BirthMonth : number
+	public BirthDate : number
+	public year : number
+	public isEligible : boolean
+	public rankEligible : number
+	public warPre : number | null
+	public warPost : number | null
+	public draftPick : number | null
+	public draftTeamid : number | null
+	public trainingBias : boolean
+	public timestepQuality : number
+
+	constructor(data : JsonObject)
+	{
+		this.tbcId = data['tbcId'] as number
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as boolean
+		this.Name = data['Name'] as string | null
+		this.Position = data['Position'] as string | null
+		this.BirthYear = data['BirthYear'] as number
+		this.BirthMonth = data['BirthMonth'] as number
+		this.BirthDate = data['BirthDate'] as number
+		this.year = data['year'] as number
+		this.isEligible = data['isEligible'] as boolean
+		this.rankEligible = data['rankEligible'] as number
+		this.warPre = data['warPre'] as number | null
+		this.warPost = data['warPost'] as number | null
+		this.draftPick = data['draftPick'] as number | null
+		this.draftTeamid = data['draftTeamid'] as number | null
+		this.trainingBias = data['trainingBias'] as boolean
+		this.timestepQuality = data['timestepQuality'] as number
 	}
 }
 
@@ -528,92 +620,6 @@ class DB_TeamDraftOverview
 	}
 }
 
-class DB_ModelDraftPickValues
-{
-	public Pick : number
-	public WarHitter : number
-	public WarPitcher : number
-
-	constructor(data : JsonObject)
-	{
-		this.Pick = data['Pick'] as number
-		this.WarHitter = data['WarHitter'] as number
-		this.WarPitcher = data['WarPitcher'] as number
-	}
-}
-
-class DB_DraftRank
-{
-	public tbcId : number
-	public mlbId : number
-	public modelId : number
-	public isHitter : boolean
-	public Name : string | null
-	public Position : string | null
-	public BirthYear : number
-	public BirthMonth : number
-	public BirthDate : number
-	public year : number
-	public isEligible : boolean
-	public rankEligible : number
-	public warPre : number | null
-	public warPost : number | null
-	public draftPick : number | null
-	public draftTeamid : number | null
-	public trainingBias : boolean
-	public timestepQuality : number
-
-	constructor(data : JsonObject)
-	{
-		this.tbcId = data['tbcId'] as number
-		this.mlbId = data['mlbId'] as number
-		this.modelId = data['modelId'] as number
-		this.isHitter = data['isHitter'] as boolean
-		this.Name = data['Name'] as string | null
-		this.Position = data['Position'] as string | null
-		this.BirthYear = data['BirthYear'] as number
-		this.BirthMonth = data['BirthMonth'] as number
-		this.BirthDate = data['BirthDate'] as number
-		this.year = data['year'] as number
-		this.isEligible = data['isEligible'] as boolean
-		this.rankEligible = data['rankEligible'] as number
-		this.warPre = data['warPre'] as number | null
-		this.warPost = data['warPost'] as number | null
-		this.draftPick = data['draftPick'] as number | null
-		this.draftTeamid = data['draftTeamid'] as number | null
-		this.trainingBias = data['trainingBias'] as boolean
-		this.timestepQuality = data['timestepQuality'] as number
-	}
-}
-
-class DB_PlayerModel
-{
-	public mlbId : number
-	public year : number
-	public month : number
-	public modelId : number
-	public isHitter : boolean
-	public probsWar : string
-	public war : number
-	public rankWar : number | null
-	public trainingBias : boolean
-	public timestepQuality : number
-
-	constructor(data : JsonObject)
-	{
-		this.mlbId = data['mlbId'] as number
-		this.year = data['year'] as number
-		this.month = data['month'] as number
-		this.modelId = data['modelId'] as number
-		this.isHitter = data['isHitter'] as boolean
-		this.probsWar = data['probsWar'] as string
-		this.war = data['war'] as number
-		this.rankWar = data['rankWar'] as number | null
-		this.trainingBias = data['trainingBias'] as boolean
-		this.timestepQuality = data['timestepQuality'] as number
-	}
-}
-
 class DB_TeamDraftPlayer
 {
 	public modelId : number
@@ -649,6 +655,132 @@ class DB_TeamDraftPlayer
 		this.warYear6 = data['warYear6'] as number | null
 		this.currentWar = data['currentWar'] as number
 		this.postEligibleYear = data['postEligibleYear'] as number | null
+	}
+}
+
+class DB_HitterMlbWarModel
+{
+	public mlbId : number
+	public modelId : number
+	public year : number
+	public month : number
+	public probsWar : number[][]
+	public ranksWar : number[][]
+
+	constructor(data : JsonObject)
+	{
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.probsWar = decodeBlobU16(data['probsWar'] as string, 7, 8, 65535)
+		this.ranksWar = decodeBlobU16(data['ranksWar'] as string, 7, 1, 1)
+	}
+}
+
+class DB_PitcherMlbWarModel
+{
+	public mlbId : number
+	public modelId : number
+	public year : number
+	public month : number
+	public probsWarSP : number[][]
+	public probsWarRP : number[][]
+	public ranksWarSP : number[][]
+	public ranksWarRP : number[][]
+
+	constructor(data : JsonObject)
+	{
+		this.mlbId = data['mlbId'] as number
+		this.modelId = data['modelId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.probsWarSP = decodeBlobU16(data['probsWarSP'] as string, 7, 8, 65535)
+		this.probsWarRP = decodeBlobU16(data['probsWarRP'] as string, 7, 8, 65535)
+		this.ranksWarSP = decodeBlobU16(data['ranksWarSP'] as string, 7, 1, 1)
+		this.ranksWarRP = decodeBlobU16(data['ranksWarRP'] as string, 7, 1, 1)
+	}
+}
+
+class DB_ModelDraftPickValues
+{
+	public Pick : number
+	public WarHitter : number
+	public WarPitcher : number
+
+	constructor(data : JsonObject)
+	{
+		this.Pick = data['Pick'] as number
+		this.WarHitter = data['WarHitter'] as number
+		this.WarPitcher = data['WarPitcher'] as number
+	}
+}
+
+class DB_HitterMlbWarBucketAverages
+{
+	public month : number
+	public war0 : number
+	public war1 : number
+	public war2 : number
+	public war3 : number
+	public war4 : number
+	public war5 : number
+	public war6 : number
+	public war7 : number
+
+	constructor(data : JsonObject)
+	{
+		this.month = data['month'] as number
+		this.war0 = data['war0'] as number
+		this.war1 = data['war1'] as number
+		this.war2 = data['war2'] as number
+		this.war3 = data['war3'] as number
+		this.war4 = data['war4'] as number
+		this.war5 = data['war5'] as number
+		this.war6 = data['war6'] as number
+		this.war7 = data['war7'] as number
+	}
+}
+
+class DB_PitcherMlbWarBucketAverages
+{
+	public month : number
+	public warSP0 : number
+	public warSP1 : number
+	public warSP2 : number
+	public warSP3 : number
+	public warSP4 : number
+	public warSP5 : number
+	public warSP6 : number
+	public warSP7 : number
+	public warRP0 : number
+	public warRP1 : number
+	public warRP2 : number
+	public warRP3 : number
+	public warRP4 : number
+	public warRP5 : number
+	public warRP6 : number
+	public warRP7 : number
+
+	constructor(data : JsonObject)
+	{
+		this.month = data['month'] as number
+		this.warSP0 = data['warSP0'] as number
+		this.warSP1 = data['warSP1'] as number
+		this.warSP2 = data['warSP2'] as number
+		this.warSP3 = data['warSP3'] as number
+		this.warSP4 = data['warSP4'] as number
+		this.warSP5 = data['warSP5'] as number
+		this.warSP6 = data['warSP6'] as number
+		this.warSP7 = data['warSP7'] as number
+		this.warRP0 = data['warRP0'] as number
+		this.warRP1 = data['warRP1'] as number
+		this.warRP2 = data['warRP2'] as number
+		this.warRP3 = data['warRP3'] as number
+		this.warRP4 = data['warRP4'] as number
+		this.warRP5 = data['warRP5'] as number
+		this.warRP6 = data['warRP6'] as number
+		this.warRP7 = data['warRP7'] as number
 	}
 }
 
