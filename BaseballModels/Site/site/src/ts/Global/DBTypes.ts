@@ -784,3 +784,23 @@ class DB_PitcherMlbWarBucketAverages
 	}
 }
 
+class DB_PostProspectPlayerModel
+{
+	public mlbId : number
+	public year : number
+	public month : number
+	public modelId : number
+	public isHitter : number
+	public war : number
+
+	constructor(data : JsonObject)
+	{
+		this.mlbId = data['mlbId'] as number
+		this.year = data['year'] as number
+		this.month = data['month'] as number
+		this.modelId = data['modelId'] as number
+		this.isHitter = data['isHitter'] as number
+		this.war = data['war'] as number
+	}
+}
+

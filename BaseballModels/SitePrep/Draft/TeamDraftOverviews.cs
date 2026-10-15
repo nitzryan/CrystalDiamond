@@ -13,6 +13,7 @@ namespace SitePrep.Draft
 
         private static void CreateTeamDraftOverviews(
             int draftYear,
+            int maxTeamRankYear,
             List<int> evaluationYears,
             List<int> modelIds,
             SqliteDbContext db,
@@ -39,61 +40,56 @@ namespace SitePrep.Draft
             List<int> teamIds = signedPicks.Select(f => f.TeamId).Distinct().ToList();
 
             // All OPWA rows for drafted players up to the evaluation year
-            var opwaRows = modelDb.Output_PlayerWarAggregation
-                .Where(f => draftedMlbIds.Contains(f.MlbId) && f.Year <= maxEvaluationYear)
-                .Select(f => new
-                {
-                    f.MlbId,
-                    f.ModelId,
-                    f.IsHitter,
-                    f.Year,
-                    f.Month,
-                    f.War
-                })
+            var teamDraftPlayers = siteDb.TeamDraftPlayer
+                .AsNoTracking()
+                .Where(f => f.DraftYear == draftYear)
                 .ToList();
 
             foreach (int evaluationYear in evaluationYears)
             {
-                if (evaluationYear != evaluationYears.First())
-                    opwaRows = opwaRows.Where(f => f.Year <= evaluationYear).ToList();
+                int yearsAfterDraft = evaluationYear - draftYear;
+                float GetYearWar(TeamDraftPlayer f)
+                {
+                    float? value = yearsAfterDraft switch
+                    {
+                        0 => f.InitialWar,
+                        1 => f.WarYear1,
+                        2 => f.WarYear2,
+                        3 => f.WarYear3,
+                        4 => f.WarYear4,
+                        5 => f.WarYear5,
+                        6 => f.WarYear6,
+                        _ => f.CurrentWar
+                    };
 
-                // Get last model results of year for player
-                var latestModelResults = opwaRows
-                    .GroupBy(f => (f.MlbId, f.ModelId))
-                    .ToDictionary(
-                        g => g.Key,
-                        g =>
-                        {
-                            int maxYear = g.Max(x => x.Year);
-                            int maxMonth = g.Where(x => x.Year == maxYear).Max(x => x.Month);
-                            return g.Where(x => x.Year == maxYear && x.Month == maxMonth)
-                                    .OrderByDescending(x => x.War)
-                                    .First();
-                        });
+                    // Last year is written as current year until the next year occurs.
+                    if (evaluationYear == maxTeamRankYear)
+                        return f.CurrentWar;
 
+                    return value ?? throw new Exception(
+                        $"GetYearWar searched into the future for draftYear={draftYear}, evaluationYear={evaluationYear}, mlbId={f.MlbId}");
+                }
                 foreach (int modelId in modelIds)
                 {
                     foreach (int teamId in teamIds)
                     {
                         float hitterCapital = 0, pitcherCapital = 0, hitterValue = 0, pitcherValue = 0;
 
-                        var teamPicks = signedPicks.Where(f => f.TeamId == teamId);
-                        foreach (Draft_Results pick in teamPicks)
+                        var teamPlayers = teamDraftPlayers.Where(f => f.DraftTeamId == teamId);
+                        foreach (TeamDraftPlayer player in teamPlayers)
                         {
-                            if (!latestModelResults.TryGetValue((pick.MlbId, modelId), out var modelResults))
-                                throw new Exception($"No valid OPWA entry for MlbId={pick.MlbId}, ModelId={modelId}, DraftYear={draftYear}, EvaluationYear={evaluationYear}");
-                            if (!pickValues.TryGetValue(pick.Pick, out DraftPickValues? value))
-                                throw new Exception($"No DraftPickValues entry for Pick={pick.Pick}");
+                            if (!pickValues.TryGetValue(player.DraftPick, out DraftPickValues? value))
+                                throw new Exception($"No DraftPickValues entry for Pick={player.DraftPick}");
 
-                            if (modelResults.IsHitter)
+                            if (player.IsHitter)
                             {
                                 hitterCapital += value.WarHitter;
-                                hitterValue += modelResults.War;
+                                hitterValue += GetYearWar(player);
                             }
                             else
                             {
                                 pitcherCapital += value.WarPitcher;
-                                pitcherValue += modelResults.War;
+                                pitcherValue += GetYearWar(player);
                             }
                         }
 
@@ -148,7 +144,7 @@ namespace SitePrep.Draft
             using ProgressBar progressBar = new(totalTicks, "Regenerating team draft overviews");
             foreach (var (draftYear, evaluationYears) in evaluationYearsByDraftYear)
             {
-                CreateTeamDraftOverviews(draftYear, evaluationYears, modelIds, db, siteDb, modelDb, progressBar);
+                CreateTeamDraftOverviews(draftYear,  maxTeamRankYear, evaluationYears, modelIds, db, siteDb, modelDb, progressBar);
             }
 
             siteDb.SaveChanges();

@@ -179,6 +179,17 @@ CREATE TABLE "PlayerModel" (
 	PRIMARY KEY("mlbId","modelId", "isHitter", "year","month")
 );
 
+CREATE TABLE PostProspectPlayerModel (
+	"mlbId" INTEGER NOT NULL,
+	"year" INTEGER NOT NULL,
+	"month" INTEGER NOT NULL,
+	"modelId" INTEGER NOT NULL,
+	"isHitter" INTEGER NOT NULL,
+	"war" REAL NOT NULL,
+
+	PRIMARY KEY("mlbId","modelId", "isHitter", "year","month")
+)
+
 CREATE TABLE "PlayerRank" (
 	"mlbId" INTEGER NOT NULL,
 	"modelId" INTEGER NOT NULL,

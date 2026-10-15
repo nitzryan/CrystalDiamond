@@ -13,6 +13,7 @@ boolean_types = [
     BooleanTypes("PlayerRank", ["IsHitter", "TrainingBias"]),
     BooleanTypes("PlayerYearPositions", ["IsHitter"]),
     BooleanTypes("TeamDraftPlayer", ["IsHitter"]),
+    BooleanTypes("PostProspectPlayerModel", ["IsHitter"])
                 ]
 
 type_overrides = [

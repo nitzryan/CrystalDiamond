@@ -27,6 +27,7 @@ namespace SiteDb
 		public DbSet<ModelDraftPickValues> ModelDraftPickValues {get; set;}
 		public DbSet<HitterMlbWarBucketAverages> HitterMlbWarBucketAverages {get; set;}
 		public DbSet<PitcherMlbWarBucketAverages> PitcherMlbWarBucketAverages {get; set;}
+		public DbSet<PostProspectPlayerModel> PostProspectPlayerModel {get; set;}
 
 		public SiteDbContext(DbContextOptions<SiteDbContext> options) : base(options) { }
 
@@ -55,6 +56,7 @@ namespace SiteDb
 			modelBuilder.Entity<ModelDraftPickValues>().HasKey(f => new {f.Pick});
 			modelBuilder.Entity<HitterMlbWarBucketAverages>().HasKey(f => new {f.Month});
 			modelBuilder.Entity<PitcherMlbWarBucketAverages>().HasKey(f => new {f.Month});
+			modelBuilder.Entity<PostProspectPlayerModel>().HasKey(f => new {f.MlbId,f.Year,f.Month,f.ModelId,f.IsHitter});
 		}
 	}
 }

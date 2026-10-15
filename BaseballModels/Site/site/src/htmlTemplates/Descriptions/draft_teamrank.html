@@ -14,12 +14,15 @@
     </p>
     <p>
         For each year's value, the team results are the sum of the WAR for the
-        last output for each player that year, or if a player has exhausted prospect
-        eligibility or retired, it is their final result in the model.  This does not
-        reevaluate how well prospects do in the majors, which can lead to some
-        nonsensical results in later years where a team is given credit for drafting
-        a player who becomes a top prospect but then busts in the majors. This is something
-        that is being looked at, but the current model capabilities do not give a 
-        better solution.
+        last output for each player that year, unless the player has exhausted prospect
+        eligibility.  In that case, it goes through a separate evaluation that 
+        takes in their projected MLB WAR in their remaining seasons of team control
+        as well as their already accumulated WAR.
+    </p>
+    <p>
+        The biggest drawback to these results is that they do not account for trades;
+        if a player was drafted by Team A and traded to Team B, their results count
+        towards Team A, regardless of whether they were traded in their final year
+        of team control or the offseason after the draft.
     </p>
 </div>

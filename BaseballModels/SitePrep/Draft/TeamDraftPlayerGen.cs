@@ -25,6 +25,7 @@ namespace SitePrep.Draft
             int Month,
             float War);
 
+        private sealed record PlayerModelKey(int MlbId, int ModelId, bool IsHitter);
         private sealed record StatRow(int MlbId, int Year, int Month);
 
         // Year and month combined into one comparable key, e.g. 2022-09 => 202209
@@ -53,14 +54,21 @@ namespace SitePrep.Draft
             var modelIds = draftEntries.Select(d => d.ModelId).Distinct().ToList();
 
             // Filter to drafted players in SQL, then to exact (model, mlbId, isHitter) in memory
-            var playerModelHistory = siteDb.PlayerModel
+            Dictionary<PlayerModelKey, List<WarRow>> playerModelHistory = siteDb.PlayerModel
                 .Where(p => modelIds.Contains(p.ModelId) && mlbIds.Contains(p.MlbId))
                 .Select(p => new WarRow(p.ModelId, p.MlbId, p.IsHitter, p.Year, p.Month, p.War))
                 .AsEnumerable()
-                .GroupBy(r => (r.ModelId, r.MlbId, r.IsHitter))
+                .GroupBy(r => new PlayerModelKey(r.MlbId, r.ModelId, r.IsHitter))
                 .ToDictionary(
                     g => g.Key,
                     g => g.OrderBy(r => r.Year).ThenBy(r => r.Month).ToList());
+
+            // Get PostProspect valuations
+            Dictionary<PlayerModelKey, List<WarRow>> postProspectPlayerModelHistory = siteDb.PostProspectPlayerModel
+                .GroupBy(f => new PlayerModelKey(f.MlbId, f.ModelId, f.IsHitter))
+                .ToDictionary(f => f.Key, 
+                        f => f.Select(g => new WarRow(g.ModelId, g.MlbId, g.IsHitter, g.Year, g.Month, g.War))
+                            .ToList());
 
             var pickSet = siteDb.ModelDraftPickValues
                 .Select(p => p.Pick)
@@ -87,7 +95,7 @@ namespace SitePrep.Draft
                 foreach (var draft in draftEntries)
                 {
                     pbar.Tick(draft.Name ?? $"mlbId {draft.MlbId}");
-                    rows.Add(BuildRow(draft, playerModelHistory, pickSet, maxYear, hitterKeys, pitcherKeys));
+                    rows.Add(BuildRow(draft, playerModelHistory, postProspectPlayerModelHistory, pickSet, maxYear, hitterKeys, pitcherKeys));
                 }
             }
 
@@ -96,7 +104,8 @@ namespace SitePrep.Draft
 
         private static TeamDraftPlayer BuildRow(
             DraftEntry draft,
-            IReadOnlyDictionary<(int ModelId, int MlbId, bool IsHitter), List<WarRow>> playerModelHistory,
+            IReadOnlyDictionary<PlayerModelKey, List<WarRow>> playerModelHistory,
+            IReadOnlyDictionary<PlayerModelKey, List<WarRow>> postProspectPlayerModelHistory,
             HashSet<int> pickSet,
             int maxYear,
             IReadOnlyDictionary<int, List<int>> hitterKeys,
@@ -115,8 +124,11 @@ namespace SitePrep.Draft
             if (draft.Year > maxYear)
                 throw new InvalidDataException($"{name}: draft year {draft.Year} is after latest data year {maxYear}");
 
-            if (!playerModelHistory.TryGetValue((draft.ModelId, draft.MlbId, draft.IsHitter), out var warRows))
+            if (!playerModelHistory.TryGetValue(new PlayerModelKey(draft.MlbId, draft.ModelId, draft.IsHitter), out var warRows))
                 throw new InvalidDataException($"{name}: no PlayerModel rows for model {draft.ModelId}");
+
+            if (!postProspectPlayerModelHistory.TryGetValue(new PlayerModelKey(draft.MlbId, draft.ModelId, draft.IsHitter), out var postWarRows))
+                postWarRows = [];
 
             var initial = warRows.SingleOrDefault(r => r.Year == 0 && r.Month == 0)
                 ?? throw new InvalidDataException($"{name}: no initial PlayerModel row");
@@ -133,6 +145,16 @@ namespace SitePrep.Draft
                     draft.IsHitter ? hitterKeys : pitcherKeys,
                     draft.MlbId,
                     MonthKey(last.Year, last.Month));
+
+            // Add in postWarRows that are after the last date so it uses those.
+            if (ranks.Count > 0)
+                ranks = ranks
+                    .Concat(postWarRows
+                        .Where(f => MonthKey(f.Year, f.Month) > ranks.Max(g => MonthKey(g.Year, g.Month)))
+                    )
+                    .OrderBy(f => MonthKey(f.Year, f.Month))
+                    .ToList()
+                    ;
 
             // Year n is shown only when it is strictly before the latest data year
             float? YearWar(int n)

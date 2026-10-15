@@ -5,17 +5,27 @@
         The description for that table shows the methods to generate these numbers.
     </p>
     <p>
-        For older drafts, this page shows the effects of keeping the last result
-        from the model and propagating it forward forever.  For a result that is marked
-        with a *, this represents that the player has stopped getting results from the
-        prospect model—through exhausting rookie eligibility or retirement—which 
-        leads to their last result being held in perpetuity.
+        When looking at the results, especially in older drafts, many of the
+        results are marked with a *.  This indicates that the player has exhausted
+        prospect eligibility and now is being evaluated through an alternative method.
     </p>
     <p>
-        The current plan to address this is to expand upon the model by projecting
-        future WAR for these players and combining that projection with the WAR that 
-        they accumulated to build a more representative system for how well teams are
-        at drafting MLB players, while the current one actually ends up measuring how well
-        teams are at drafting good prospects.
+        For this alternative method, there is a separate head in the combined neural net
+        model that is predicting a player's MLB WAR by using the bucketing method used
+        in the prospect model.  The result shown is the sum of the WAR the player has already
+        accumulated in the majors as well as the expected WAR that the MLB WAR model has
+        for their remaining years of control.
+    </p>
+    <p>
+        One issue with this current version is that it doesn't actually 
+        track their control, rather just using the 6 years after prospect
+        eligibility has been exhausted.  This creates issues where individual players
+        can both be overcounted and undercounted.  The prospect eligibility metric used
+        often has it exhausting later than it actually does for players who do lose it
+        through service time rather than PA/IP, potentially giving a player an extra
+        year.  Conversely, a player who spends considerable time in the minors after
+        losing prospect status could contribute an extra year, or even 2, more than this
+        approach does.  While this does lead to some inaccuracies on individual players,
+        on aggregate this balances out.
     </p>
 </div>

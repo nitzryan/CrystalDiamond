@@ -29,6 +29,8 @@ namespace SitePrep
             ProWar.GenerateWarModels.HitterModels();
             ProWar.GenerateWarModels.PitcherModels();
 
+            ProWar.ProModelPlayerValues.Create();
+
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Actual);
             Draft.CalculateDraftPickValue.Update(Draft.DraftPickTarget.Model);
             TeamDraftPlayerGen.Calculate();
