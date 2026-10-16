@@ -188,7 +188,7 @@ CREATE TABLE PostProspectPlayerModel (
 	"war" REAL NOT NULL,
 
 	PRIMARY KEY("mlbId","modelId", "isHitter", "year","month")
-)
+);
 
 CREATE TABLE "PlayerRank" (
 	"mlbId" INTEGER NOT NULL,
