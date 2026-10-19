@@ -94,8 +94,11 @@ class LayerArch(nn.Module):
                 x = self.nonlin(x)
         return x
 
+
 DEFAULT_DATA_ARCH = LayerArch(layer_size=35, num_layers=2, nonlin=F.leaky_relu)
 DEFAULT_WAR_ARCH = LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
+DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=65, num_layers=3, nonlin=F.relu)
+
 DEFAULT_STATS_ARCH = LayerArch(layer_size=118, num_layers=5, nonlin=F.silu)
 DEFAULT_PT_ARCH = LayerArch(layer_size=87, num_layers=3, nonlin=F.silu)
 DEFAULT_POS_ARCH = LayerArch(layer_size=123, num_layers=7, nonlin=F.silu)
@@ -105,6 +108,8 @@ DEFAULT_MLBWAR_ARCH = LayerArch(layer_size=64, num_layers=2, nonlin=F.leaky_relu
 
 DEFAULT_DATA_ARCH_P = LayerArch(layer_size=113, num_layers=2, nonlin=F.silu)
 DEFAULT_WAR_ARCH_P = LayerArch(layer_size=52, num_layers=3, nonlin=F.tanh)
+DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=128, num_layers=3, nonlin=F.leaky_relu)
+
 DEFAULT_STATS_ARCH_P = LayerArch(layer_size=94, num_layers=2, nonlin=F.tanh)
 DEFAULT_PT_ARCH_P = LayerArch(layer_size=126, num_layers=7, nonlin=F.relu)
 DEFAULT_POS_ARCH_P = LayerArch(layer_size=78, num_layers=7, nonlin=F.relu)
@@ -120,6 +125,11 @@ DEFAULT_PRO_NUM_LAYERS_P = 2
 
 DEFAULT_DROPOUT = 0.045
 DEFAULT_DROPOUT_P = 0.252
+
+DEFAULT_INIT_STATE_SIZE = 24
+DEFAULT_INIT_STATE_SIZE_P = 24
+
+
 
 DEFAULT_INPUT_NOISE = 0
 DEFAULT_INPUT_NOISE_P = 0
@@ -217,11 +227,6 @@ DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
     init=4.1e-7,
     player=1e-7
 )
-
-DEFAULT_INIT_STATE_SIZE = 24
-DEFAULT_INIT_STATE_SIZE_P = 24
-DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=65, num_layers=3, nonlin=F.relu)
-DEFAULT_INIT_STATE_ARCH_P = LayerArch(layer_size=128, num_layers=3, nonlin=F.leaky_relu)
 
 DEFAULT_RNN_NONLINEARITY = 'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'

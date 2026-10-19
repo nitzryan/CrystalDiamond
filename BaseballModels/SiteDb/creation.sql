@@ -186,7 +186,9 @@ CREATE TABLE PostProspectPlayerModel (
 	"modelId" INTEGER NOT NULL,
 	"isHitter" INTEGER NOT NULL,
 	"war" REAL NOT NULL,
-
+	"warAccumulated" REAL NOT NULL,
+	"warProjected" REAL NOT NULL,
+	"monthsProjected" INTEGER NOT NULL,
 	PRIMARY KEY("mlbId","modelId", "isHitter", "year","month")
 );
 

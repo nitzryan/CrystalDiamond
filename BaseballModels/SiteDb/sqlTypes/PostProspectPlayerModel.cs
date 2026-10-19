@@ -8,6 +8,9 @@ namespace SiteDb
 		public required int ModelId {get; set;}
 		public required bool IsHitter {get; set;}
 		public required float War {get; set;}
+		public required float WarAccumulated {get; set;}
+		public required float WarProjected {get; set;}
+		public required int MonthsProjected {get; set;}
 
 		public PostProspectPlayerModel Clone()
 		{
@@ -19,6 +22,9 @@ namespace SiteDb
 				ModelId = this.ModelId,
 				IsHitter = this.IsHitter,
 				War = this.War,
+				WarAccumulated = this.WarAccumulated,
+				WarProjected = this.WarProjected,
+				MonthsProjected = this.MonthsProjected,
 			};
 		}
 	}

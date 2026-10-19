@@ -3,9 +3,7 @@ using EFCore.BulkExtensions;
 using MathNet.Numerics;
 using Microsoft.EntityFrameworkCore;
 using ModelDb;
-using ScottPlot.TickGenerators.TimeUnits;
 using SiteDb;
-using System.Collections.Generic;
 
 namespace SitePrep.ProWar
 {
@@ -26,7 +24,7 @@ namespace SitePrep.ProWar
         }
         private record MlbModelPoint(Date date, float[] War);
         private record AccumulatedWarValue(Date date, float HitterWar, float PitcherWar);
-        private record PlayerValuePoint(PlayerModelKey Key, float ProspectWar, float MlbWar);
+        private record PlayerValuePoint(PlayerModelKey Key, float ProspectWar, int YearsLeft, float MlbWarAcc, float MlbWarProj);
 
         private const int YEARS_TO_PLOT = 5;
 
@@ -149,7 +147,10 @@ namespace SitePrep.ProWar
                         IsHitter = item.Key.IsHitter,
                         Year = date.Year,
                         Month = date.Month,
-                        War = point.MlbWar
+                        War = point.MlbWarAcc + point.MlbWarProj,
+                        WarAccumulated = point.MlbWarAcc,
+                        WarProjected = point.MlbWarProj,
+                        MonthsProjected = (point.YearsLeft * 6) + (9 - date.Month)
                     });
                 }
             }
@@ -170,7 +171,7 @@ namespace SitePrep.ProWar
         }
 
         // Get the expected amount of WAR a player will produce under his remaining team control that has not yet occured
-        private static float? GetMlbValueProjectionWar(Date prospectEndDate, Date evalDate, IReadOnlyList<MlbModelPoint> mlbProjections)
+        private static (float, int)? GetMlbValueProjectionWar(Date prospectEndDate, Date evalDate, IReadOnlyList<MlbModelPoint> mlbProjections)
         {
             MlbModelPoint currentEval = mlbProjections
                 .Where(f => f.date <= evalDate)
@@ -181,15 +182,19 @@ namespace SitePrep.ProWar
             // If player loses eligility in April they will only have 6 years
             // If in September, they get 6 more, but september MLB projections start at next year
             // Otherwise, get rest of current year and 6 more
-            int totalEligibilityYears = prospectEndDate.Month == 4 || prospectEndDate.Month == 9 ?
+            int totalEligibilityYears = prospectEndDate.Month == 4 ?
                 6 : 7;
 
             int yearsPassed = evalDate.Year - prospectEndDate.Year;
+
             int yearsToTake = totalEligibilityYears - yearsPassed;
-            if (yearsToTake < 0) // Post Team Control
+            if (yearsToTake <= 0) // Post Team Control
                 return null;
 
-            return currentEval.War.Take(yearsToTake).Sum();
+            if (evalDate.Month == 9)
+                yearsToTake--;
+
+            return (currentEval.War.Take(yearsToTake).Sum(), totalEligibilityYears - yearsPassed - 1);
         }
 
         // Get the end prospect WAR as well as the mlb model estimate (MLB projection + already accumulated)
@@ -202,15 +207,17 @@ namespace SitePrep.ProWar
         {
             (float prospectWar, Date endProspectDate) = prospectProjections[key];
             float accumulatedWar = GetAccumulatedValue(key, evalDate, accWar);
-            float? mlbProjectionWar = GetMlbValueProjectionWar(endProspectDate, evalDate, mlbProjections[key]);
+            (float, int)? mlbProj = GetMlbValueProjectionWar(endProspectDate, evalDate, mlbProjections[key]);
 
-            if (mlbProjectionWar == null)
+            if (mlbProj == null)
                 return null;
+
+            (float mlbProjectionWar, int yearsLeft) = mlbProj.Value;
 
             if (prospectWar > 20)
                 prospectWar += 0;
 
-            return new PlayerValuePoint(key, prospectWar, accumulatedWar + mlbProjectionWar.Value);
+            return new PlayerValuePoint(key, prospectWar, yearsLeft, accumulatedWar, mlbProjectionWar);
         }
 
         private static void PlotByModel(IEnumerable<PlayerValuePoint> points, string outputDir, string title)
@@ -223,7 +230,7 @@ namespace SitePrep.ProWar
             {
                 string role = group.Key.IsHitter ? "Hitters" : "Pitchers";
                 double[] xs = group.Select(p => (double)p.ProspectWar).ToArray();
-                double[] ys = group.Select(p => (double)p.MlbWar).ToArray();
+                double[] ys = group.Select(p => (double)(p.MlbWarAcc + p.MlbWarProj)).ToArray();
                 if (xs.Length < 2)
                     throw new Exception($"Less than 2 points found in plot ${title}");
 

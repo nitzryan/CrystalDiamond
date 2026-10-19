@@ -18,8 +18,7 @@ class ProModelHeadTuningRecipe(Enum):
     STATS = auto()
     POS = auto()
     PT = auto()
-    MLBSTAT = auto()
-    MLBVALUE = auto()
+    MLBWAR = auto()
     
 SEARCH_SPACE: dict[ProModelHeadTuningRecipe, list[ParamSpec]] = {
     ProModelHeadTuningRecipe.LEVEL : [
@@ -57,19 +56,12 @@ SEARCH_SPACE: dict[ProModelHeadTuningRecipe, list[ParamSpec]] = {
         ParamSpec("lr_pt", 1e-5, 1e-2, log=True),
         ParamSpec("wd_pt", 1e-7, 1e-2, log=True)
     ],
-    ProModelHeadTuningRecipe.MLBSTAT : [
-        ParamSpec("mlbstat_layers", 2, 7, is_int=True),
-        ParamSpec("mlbstat_size", 4, 128, is_int=True),
-        ParamSpec("mlbstat_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_mlbstat", 1e-5, 1e-2, log=True),
-        ParamSpec("wd_mlbstat", 1e-7, 1e-2, log=True)
-    ],
-    ProModelHeadTuningRecipe.MLBVALUE : [
-        ParamSpec("mlbvalue_layers", 2, 7, is_int=True),
-        ParamSpec("mlbvalue_size", 4, 128, is_int=True),
-        ParamSpec("mlbvalue_activation", choices=ACTIVATION_FUNCTIONS),
-        ParamSpec("lr_mlbvalue", 1e-5, 1e-2, log=True),
-        ParamSpec("wd_mlbvalue", 1e-7, 1e-2, log=True)
+    ProModelHeadTuningRecipe.MLBWAR : [
+        ParamSpec("mlbwar_layers", 2, 7, is_int=True),
+        ParamSpec("mlbwar_size", 4, 128, is_int=True),
+        ParamSpec("mlbwar_activation", choices=ACTIVATION_FUNCTIONS),
+        ParamSpec("lr_mlbwar", 1e-5, 1e-2, log=True),
+        ParamSpec("wd_mlbwar", 1e-7, 1e-2, log=True)
     ],
 }
 
@@ -346,8 +338,11 @@ def trial_runner(
     studies : list[Study] = []
     for recipe in recipes:
         study_name = f"Pro_{"Hitter" if is_hitter else "Pitcher"}_{recipe.name}_Tuning_{width.name}"
-        if delete_study:
-            optuna.delete_study(study_name=study_name, storage="sqlite:///Pro_Tune.db")
+        try:
+            if delete_study:
+                optuna.delete_study(study_name=study_name, storage="sqlite:///Pro_Tune.db")
+        except KeyError: # Study does not exist
+            pass
         study = optuna.create_study(
             direction="minimize",
             load_if_exists=True,

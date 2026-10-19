@@ -19,7 +19,7 @@ db = sqlite3.connect(__DB_PATH)
 model_db = sqlite3.connect(__MODEL_DB_PATH)
 experimental_db = sqlite3.connect(__EXP_DB_PATH)
 
-NUM_MODEL_VARIANTS = 4
+NUM_MODEL_VARIANTS = 12
 
 DTYPE = torch.float32
 DTYPE_NUMPY = np.float32

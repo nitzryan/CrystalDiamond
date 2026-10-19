@@ -16,12 +16,49 @@ from Model.EvalStats import getOutputHitterStats, getOutputPitcherStats
 from Model.ModelDBTypes import *
 
 from dataclasses import dataclass
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PlayerTickKey:
     mlbId : int
     year : int
     month : int
+    
+@dataclass(frozen=True, slots=True)
+class PlayerTickLevelKey:
+    mlbId : int
+    year : int
+    month : int
+    level : int
 
+# Stores dictionaries that handle adding data that may or may not currently exist    
+class AggregationStore[T, Key]:
+    def __init__(self) -> None:
+        self._data: dict[Key, StatAggregationCounter[T]] = {}
+
+    def add(self, key: Key, value: T) -> None:
+        if key not in self._data:
+            self._data[key] = StatAggregationCounter(value)
+        else:
+            self._data[key].add(value)
+
+    def get_all(self) -> list[T]:
+        return [c.get() for c in self._data.values()]
+
+# Handles averaging a list of values, without holding each entry but only the average and count
+class StatAggregationCounter[T]:
+    def __init__(self, value : T):
+        self.value = value
+        self.count = 1
+        
+    def add(self, t : T) -> None:
+        self.count += 1
+        frac = 1 / self.count
+        self.value = (self.value * (1-frac)) + (t * frac)
+        
+    def get(self) -> T:
+        return self.value
+
+# TODO This currently uses 16 GB of memory storing the results in dicts.  This should
+# be able to be improved since the data is only 4.6GB in the DB
 def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
     with torch.no_grad():
         BATCH_SIZE = 12000
@@ -29,8 +66,6 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
         is_hitter_int = 1 if is_hitter else 0
         player_type = "hit" if is_hitter else "pit"
         college_table = "Output_College_Hitter" if is_hitter else "Output_College_Pitcher"
-        stats_table = "Output_HitterStats" if is_hitter else "Output_PitcherStats"
-        mlbwar_table = "Output_HitterMlbWar" if is_hitter else "Output_PitcherMlbWar"
         mlbwar_avg_table = "SingleYearHitterBucketAverages" if is_hitter else "SingleYearPitcherBucketAverages"
         mlbwar_slot_classes = MLB_WAR_HEAD_CLASSES_HITTER if is_hitter else MLB_WAR_HEAD_CLASSES_PITCHER
         war_col = "warHitter" if is_hitter else "warPitcher"
@@ -41,6 +76,15 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
         stat_devs_attr = f"__{player_type}lvlstat_devs"
         arch_desc = "Evaluating Hitting Architectures" if is_hitter else "Evaluating Pitching Architectures"
         
+        college_store_h = AggregationStore[DB_Output_College_HitterAggregation, PlayerTickKey]()
+        college_store_p = AggregationStore[DB_Output_College_PitcherAggregation, PlayerTickKey]()
+        stats_store_h = AggregationStore[DB_Output_HitterStatsAggregation, PlayerTickLevelKey]()
+        stats_store_p = AggregationStore[DB_Output_PitcherStatsAggregation, PlayerTickLevelKey]()
+        war_store = AggregationStore[DB_Output_PlayerWarAggregation, PlayerTickKey]()
+        level_store = AggregationStore[DB_Output_PlayerHighestLevelAggregation, PlayerTickKey]()
+        mlbwar_store_h = AggregationStore[DB_Output_HitterMlbWarAggregation, PlayerTickKey]()
+        mlbwar_store_p = AggregationStore[DB_Output_PitcherMlbWarAggregation, PlayerTickKey]()
+
         cursor = model_db.cursor()
         
         if eval_update:
@@ -54,11 +98,17 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
             college_year, = cursor.execute(f"SELECT year FROM {college_table} ORDER BY year DESC LIMIT 1;").fetchone()
             college_year += 1
         else:
-            cursor.execute(f"DELETE FROM Output_PlayerWar WHERE isHitter={is_hitter_int}")
-            cursor.execute(f"DELETE FROM Output_PlayerHighestLevel WHERE isHitter={is_hitter_int}")
-            cursor.execute(f"DELETE FROM {college_table}")
-            cursor.execute(f"DELETE FROM {stats_table}")
-            cursor.execute(f"DELETE FROM {mlbwar_table}")
+            cursor.execute(f"DELETE FROM Output_PlayerWarAggregation WHERE isHitter={is_hitter_int}")
+            cursor.execute(f"DELETE FROM Output_PlayerHighestLevelAggregation WHERE isHitter={is_hitter_int}")
+            if is_hitter:
+                cursor.execute("DELETE FROM Output_HitterMlbWarAggregation")
+                cursor.execute(f"DELETE FROM Output_HitterStatsAggregation")
+                cursor.execute(f"DELETE FROM Output_College_HitterAggregation")
+            else:
+                cursor.execute("DELETE FROM Output_PitcherMlbWarAggregation")
+                cursor.execute(f"DELETE FROM Output_College_PitcherAggregation")
+                cursor.execute(f"DELETE FROM Output_PitcherStatsAggregation")
+                
             model_db.commit()
         cursor = model_db.cursor()
         model_list = cursor.execute("SELECT modelName, id FROM ModelId ORDER BY id ASC").fetchall()
@@ -193,8 +243,11 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     col_model_runs = torch.zeros_like(years)
                     col_model_runs[:,:,0] = model_run
                         
+                    model_ids = torch.zeros(size=(ids.shape[0], ids.shape[1], 1), dtype=torch.long).to(device)
+                    model_ids[:,:,0] = model_id
+                        
                     db_input = torch.cat(
-                        (ids, col_model_runs, years, col_outputs[0], draftMean.unsqueeze(-1),
+                        (ids, model_ids, years, col_outputs[0], draftMean.unsqueeze(-1),
                          col_outputs[1], warMean.unsqueeze(-1), *col_outputs[2:]), # All remaining outputs
                         dim=2
                     )
@@ -203,14 +256,15 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     # SQL Query for college data
                     for d in db_input:
                         if eval_update:
-                            vals = [tuple(x) for x in d.tolist() if x[2] == college_year]
+                            vals = [tuple(x) for x in d.tolist() if int(x[2]) == college_year]
                         else:
                             vals = [tuple(x) for x in d.tolist()]
-                        if len(vals) > 0:
-                            # Set the # of parameters to the number in the list
-                            n_params = len(vals[0])
-                            placeholders = ','.join(['?'] * (n_params - 1))
-                            cursor.executemany(f"INSERT INTO {college_table} VALUES(?,{model_id},{placeholders})", vals)
+                        for val in vals:
+                            key = PlayerTickKey(int(val[0]), int(val[2]), 0)
+                            if is_hitter:
+                                college_store_h.add(key, DB_Output_College_HitterAggregation(val))
+                            else:
+                                college_store_p.add(key, DB_Output_College_PitcherAggregation(val))
                     
                     
                     # Run Through Pro Model
@@ -228,64 +282,69 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     
                     pro_output_war, pro_output_level, pro_output_pa, pro_output_stats, pro_output_pos, pro_output_pt, pro_output_mlbwar = pro_network(pro_data, pro_length, pro_pt_levelYearGames, i0, player_demo, player_bios, months)
                     
+                    # Setup tensors for logging key data
+                    pro_dates = dataset.pro_dates.to(device)[batch_indices][mask_valid,:pro_output_war.shape[1]]
+                    dates = pro_dates[:,:,1:]
+                    mlbIds = pro_dates[:,:,0].unsqueeze(2)
+                    mask = prospect_mask.to(device)[mask_valid,:pro_output_war.shape[1]]
+                    model_ids = torch.zeros(size=(pro_dates.shape[0], pro_dates.shape[1], 1), dtype=torch.long).to(device)
+                    model_ids[:,:,0] = model_id
+                    
                     # Insert Pro Data
+                    is_hitter_int_tensor = torch.zeros(size=(mlbIds.shape[0], mlbIds.shape[1], 1), dtype=torch.long).to(device)
+                    is_hitter_int_tensor[:,:,0] = is_hitter_int
                     pro_output_war = F.softmax(pro_output_war, dim=2) 
                     pro_war = torch.zeros(size=(pro_output_war.size(0), pro_output_war.size(1))).to(device)
                     for i in range(1, len(war_bucket_averages)):
                         pro_war[:,:] += pro_output_war[:,:,i] * war_bucket_averages[i]
                     
-                    pro_dates = dataset.pro_dates.to(device)[batch_indices][mask_valid,:pro_output_war.shape[1]]
-                    mask = prospect_mask.to(device)[mask_valid,:pro_output_war.shape[1]]
-                    pro_dtes = pro_dates[:,:]
-                    mlbIds = pro_dates[:,:,0].unsqueeze(2)
-                    pro_model_runs = torch.zeros(size=(mlbIds.shape[0], mlbIds.shape[1], 1), dtype=torch.long).to(device)
-                    pro_model_runs[:,:,0] = model_run
-                    pro_dtes = pro_dtes[:,:,1:]
-                    
-                    opw = torch.cat((mask.unsqueeze(-1), mlbIds, pro_model_runs, pro_dtes, pro_output_war, pro_war.unsqueeze(-1)), dim=2)
+                    opw = torch.cat((mask.unsqueeze(-1), mlbIds, model_ids, is_hitter_int_tensor, dates, pro_output_war, pro_war.unsqueeze(-1)), dim=2)
                     db_data = torch.nn.utils.rnn.unpad_sequence(opw, pro_length, batch_first=True)
                     for dbd in db_data:
                         # Only log where player is actually a prospect
                         dbd = dbd[dbd[:,0] != 0]
                         d = dbd[:,1:]
                         if eval_update:
-                            vals = [tuple(x) for x in d.tolist() if x[2] == year and x[3] == month]
+                            vals = [tuple(x) for x in d.tolist() if int(x[2]) == year and int(x[3]) == month]
                         else:
                             vals = [tuple(x) for x in d.tolist()]
-                        if len(vals) > 0:
-                            cursor.executemany(f"INSERT INTO Output_PlayerWar VALUES(?,{model_id},{is_hitter_int},?,?,?,?,?,?,?,?,?,?,?)", vals)
+                        for val in vals:
+                            key = PlayerTickKey(int(val[0]), int(val[3]), int(val[4]))
+                            war_store.add(key, DB_Output_PlayerWarAggregation(val))
                     
                     # Insert Pro Level
                     pro_output_level = F.softmax(pro_output_level, dim=2)
-                    ophl = torch.cat((mask.unsqueeze(-1), mlbIds, pro_model_runs, pro_dtes, pro_output_level), dim=2)
+                    ophl = torch.cat((mask.unsqueeze(-1), mlbIds, model_ids, is_hitter_int_tensor, dates, pro_output_level), dim=2)
                     db_data = torch.nn.utils.rnn.unpad_sequence(ophl, pro_length, batch_first=True)
                     for dbd in db_data:
                         # Only log where player is actually a prospect
                         dbd = dbd[dbd[:,0] != 0]
                         d = dbd[:,1:]
                         if eval_update:
-                            vals = [tuple(x) for x in d.tolist() if x[2] == year and x[3] == month]
+                            vals = [tuple(x) for x in d.tolist() if int(x[2]) == year and int(x[3]) == month]
                         else:
                             vals = [tuple(x) for x in d.tolist()]
-                        if len(vals) > 0:
-                            cursor.executemany(f"INSERT INTO Output_PlayerHighestLevel VALUES(?,{model_id},{is_hitter_int},?,?,?,?,?,?,?,?,?,?,?)", vals)
-                    
+                        for val in vals:
+                            key = PlayerTickKey(int(val[0]), int(val[3]), int(val[4]))
+                            level_store.add(key, DB_Output_PlayerHighestLevelAggregation(val))
+                                
                     # Insert MLB WAR/PA/Outs predictions: one row per player/timestep
                     mlbwar_heads = Split_MlbWar_Heads(pro_output_mlbwar, mlbwar_slot_classes)
-                    mlbwar_values = Build_MlbWar_Rows(mlbwar_heads, mlbwar_bucket_averages, Get_MlbWar_Row_Keys(pro_dtes[:,:,1]))
-                    mlbwar_data = torch.cat((mlbIds, pro_model_runs, pro_dtes, mlbwar_values), dim=2)
+                    mlbwar_values = Build_MlbWar_Rows(mlbwar_heads, mlbwar_bucket_averages, Get_MlbWar_Row_Keys(dates[:,:,0]))
+                    mlbwar_data = torch.cat((mlbIds, model_ids, dates, mlbwar_values), dim=2)
                     mlbwar_data = torch.nn.utils.rnn.unpad_sequence(mlbwar_data, pro_length, batch_first=True)
                     for dbd in mlbwar_data:
                         d = dbd[1:]  # Skip initialization timestep
                         if eval_update:
-                            vals = [tuple(x) for x in d.tolist() if x[2] == year and x[3] == month]
+                            vals = [tuple(x) for x in d.tolist() if int(x[2]) == year and int(x[3]) == month]
                         else:
                             vals = [tuple(x) for x in d.tolist()]
-                        if len(vals) > 0:
-                            n_params = len(vals[0])
-                            placeholders = ','.join(['?'] * (n_params - 1))
-                            cursor.executemany(f"INSERT INTO {mlbwar_table} VALUES(?,{model_id},{placeholders})", vals)
-
+                        for val in vals:
+                            key = PlayerTickKey(int(val[0]), int(val[2]), int(val[3]))
+                            if is_hitter:
+                                mlbwar_store_h.add(key, DB_Output_HitterMlbWarAggregation(val))
+                            else:
+                                mlbwar_store_p.add(key, DB_Output_PitcherMlbWarAggregation(val))
                     
                     # Insert Pro Level Stats
                     # Reshape into levels
@@ -301,18 +360,21 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
                     pro_pt_values = pro_pt_values.to('cpu')
                     pro_stats_values = pro_stats_values.to('cpu')
                     pro_pos_values = pro_pos_values.to('cpu')
-                    pro_dtes = pro_dtes.to('cpu')
+                    dates = dates.to('cpu')
                     pro_length = pro_length.to('cpu')
                     mlbIds = mlbIds.to('cpu')
                     
-                    stats_tensor = getOutputHitterStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_run) if is_hitter \
-                            else getOutputPitcherStats(pro_length, mlbIds, pro_dtes, pro_pt_values, pro_stats_values, pro_pos_values, model_id, model_run)
+                    stats_tensor = getOutputHitterStats(pro_length, mlbIds, dates, pro_pt_values, pro_stats_values, pro_pos_values, model_id) if is_hitter \
+                            else getOutputPitcherStats(pro_length, mlbIds, dates, pro_pt_values, pro_stats_values, pro_pos_values, model_id)
                     if eval_update:
-                        mask = (stats_tensor[:, 3] == year) & (stats_tensor[:, 4] == month)
+                        mask = (stats_tensor[:, 2] == year) & (stats_tensor[:, 3] == month)
                         stats_tensor = stats_tensor[mask]
-                    n_stats_cols = stats_tensor.shape[1]
-                    stats_placeholders = ','.join(['?'] * n_stats_cols)
-                    cursor.executemany(f"INSERT INTO {stats_table} VALUES({stats_placeholders})", stats_tensor.tolist())
+                    for row in stats_tensor.tolist():
+                        key = PlayerTickLevelKey(int(row[0]), int(row[2]), int(row[3]), int(row[4]))
+                        if is_hitter:
+                            stats_store_h.add(key, DB_Output_HitterStatsAggregation(row))
+                        else:
+                            stats_store_p.add(key, DB_Output_PitcherStatsAggregation(row))
                 del dataset
             
             # Force VRAM to get cleared before allocating next iteration
@@ -322,7 +384,39 @@ def Eval_Players(eval_update : bool, is_hitter : bool, train_only : bool):
             torch.cuda.empty_cache()
             gc.collect()
             
-            model_db.commit()
+        # Insert aggregated statistics
+        cursor = model_db.cursor()
+        hitter_values = mlbwar_store_h.get_all()
+        if hitter_values:
+            DB_Output_HitterMlbWarAggregation.Insert_Into_DB(cursor, hitter_values)
+        pitcher_values = mlbwar_store_p.get_all()
+        if pitcher_values:
+            DB_Output_PitcherMlbWarAggregation.Insert_Into_DB(cursor, pitcher_values)
+        
+        college_h_values = college_store_h.get_all()
+        if college_h_values:
+            DB_Output_College_HitterAggregation.Insert_Into_DB(cursor, college_h_values)
+        college_p_values = college_store_p.get_all()
+        if college_p_values:
+            DB_Output_College_PitcherAggregation.Insert_Into_DB(cursor, college_p_values)
+        
+        stats_h_values = stats_store_h.get_all()
+        if stats_h_values:
+            DB_Output_HitterStatsAggregation.Insert_Into_DB(cursor, stats_h_values)
+        stats_p_values = stats_store_p.get_all()
+        if stats_p_values:
+            DB_Output_PitcherStatsAggregation.Insert_Into_DB(cursor, stats_p_values)
+        
+        war_values = war_store.get_all()
+        if war_values:
+            DB_Output_PlayerWarAggregation.Insert_Into_DB(cursor, war_values)
+
+        level_values = level_store.get_all()
+        if level_values:
+            DB_Output_PlayerHighestLevelAggregation.Insert_Into_DB(cursor, level_values)
+        
+        model_db.commit()
+            
         
 def Insert_MlbWar_Bucket_Averages(cursor : sqlite3.Cursor, table : str, averages : list[torch.Tensor]) -> None:
     for key in MLB_WAR_AVERAGE_KEYS:

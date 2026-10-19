@@ -12,7 +12,6 @@ namespace SitePrep
             int year = db.Model_HitterStats.Select(f => f.Year).Max();
             int month = db.Model_HitterStats.Where(f => f.Year == year).Select(f => f.Month).Max();
 
-            ModelAggregation.Update();
             GeneratePlayerPositions.Update();
             GeneratePredictions.Update();
             GenerateRankings.Update(year, month);

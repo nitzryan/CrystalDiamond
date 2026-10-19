@@ -5,7 +5,7 @@
 #define PA_THRESHOLD 0
 #define IP_THRESHOLD 0
 
-at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlbIds, const at::Tensor& dates, const at::Tensor& pt, const at::Tensor& stats, const at::Tensor& pos, float modelId, float modelIdx)
+at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlbIds, const at::Tensor& dates, const at::Tensor& pt, const at::Tensor& stats, const at::Tensor& pos, int modelId)
 {
   // Ensure valid input data
   TORCH_CHECK(dates.device().type() == at::DeviceType::CPU);
@@ -19,6 +19,7 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
   TORCH_CHECK(stats.dim() == 4);
   TORCH_CHECK(pos.dim() == 4);
   TORCH_CHECK(dates.dim() == 3);
+  TORCH_CHECK(mlbIds.dim() == 3);
   TORCH_CHECK(lengths.dim() == 1)
 
   int numPlayers = dates.sizes()[0];
@@ -32,15 +33,16 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
   TORCH_CHECK(stats.sizes()[2] == NUM_LEVELS);
   TORCH_CHECK(pos.sizes()[2] == NUM_LEVELS);
   TORCH_CHECK(dates.sizes()[2] == 2);
+  TORCH_CHECK(mlbIds.sizes()[2] == 1);
 
   // Create output tensor
   int datesSize = dates.sizes()[2];
   int ptSize = pt.sizes()[3];
   int posSize = pos.sizes()[3];
   int statsSize = stats.sizes()[3];
-  int outputSize = datesSize + 4 + ptSize + posSize + statsSize; // 4 represents mlbId, modelId, modelIdx, levelId
+  int outputSize = datesSize + 3 + ptSize + posSize + statsSize; // 3 represents mlbId, modelId, levelId
 
-  int ptOffset = 6;
+  int ptOffset = 5;
   int statOffset = ptOffset + ptSize;
   int posOffset = statOffset + statsSize;
 
@@ -75,6 +77,7 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
 
   at::Tensor results = at::zeros({goodElementsCount, outputSize}, at::dtype(at::kFloat));
   auto results_acc = results.accessor<float, 2>();
+  float modelIdFloat = static_cast<float>(modelId);
 
   int n = 0;
   for (int i = 0; i < numPlayers; i++)
@@ -91,11 +94,10 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
         if (pa >= PA_THRESHOLD)
         {
           results[n][0] = mlbId;
-          results[n][1] = modelId;
-          results[n][2] = modelIdx;
-          results[n][3] = year;
-          results[n][4] = month;
-          results[n][5] = static_cast<float>(k);
+          results[n][1] = modelIdFloat;
+          results[n][2] = year;
+          results[n][3] = month;
+          results[n][4] = static_cast<float>(k);
           for (int m = 0; m < ptSize; m++)
           {
             results_acc[n][ptOffset + m] = pt_acc[i][j][k][m];
@@ -118,7 +120,7 @@ at::Tensor getOutputHitterStats(const at::Tensor& lengths, const at::Tensor& mlb
   return results;
 }
 
-at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& mlbIds, const at::Tensor& dates, const at::Tensor& pt, const at::Tensor& stats, const at::Tensor& pos, float modelId, float modelIdx)
+at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& mlbIds, const at::Tensor& dates, const at::Tensor& pt, const at::Tensor& stats, const at::Tensor& pos, int modelId)
 {
   // Ensure valid input data
   TORCH_CHECK(dates.device().type() == at::DeviceType::CPU);
@@ -151,9 +153,9 @@ at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& ml
   int ptSize = pt.sizes()[3];
   int posSize = pos.sizes()[3];
   int statsSize = stats.sizes()[3];
-  int outputSize = datesSize + 4 + ptSize + posSize + statsSize; // 4 represents mlbId, modelId, modelIdx, levelId
+  int outputSize = datesSize + 3 + ptSize + posSize + statsSize; // 3 represents mlbId, modelId, levelId
 
-  int ptOffset = 6;
+  int ptOffset = 5;
   int statOffset = ptOffset + ptSize;
   int posOffset = statOffset + statsSize;
 
@@ -189,6 +191,7 @@ at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& ml
 
   at::Tensor results = at::zeros({goodElementsCount, outputSize}, at::dtype(at::kFloat));
   auto results_acc = results.accessor<float, 2>();
+  float modelIdFloat = static_cast<float>(modelId);
 
   int n = 0;
   for (int i = 0; i < numPlayers; i++)
@@ -206,11 +209,10 @@ at::Tensor getOutputPitcherStats(const at::Tensor& lengths, const at::Tensor& ml
         if (outs_sp + outs_rp >= (3 * IP_THRESHOLD))
         {
           results[n][0] = mlbId;
-          results[n][1] = modelId;
-          results[n][2] = modelIdx;
-          results[n][3] = year;
-          results[n][4] = month;
-          results[n][5] = static_cast<float>(k);
+          results[n][1] = modelIdFloat;
+          results[n][2] = year;
+          results[n][3] = month;
+          results[n][4] = static_cast<float>(k);
           for (int m = 0; m < ptSize; m++)
           {
             results_acc[n][ptOffset + m] = pt_acc[i][j][k][m];
