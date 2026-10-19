@@ -87,3 +87,9 @@
 #model_toggle {
     justify-content: center;
 }
+
+#prospect_bar_canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}

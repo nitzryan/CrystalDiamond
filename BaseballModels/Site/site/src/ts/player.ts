@@ -86,6 +86,19 @@ function getModels(obj : JsonObject, name : string) : DB_PlayerModel[][]
     return models_list;
 }
 
+function getPostProspectModels(obj : JsonObject, name : string) : DB_PostProspectPlayerModel[][]
+{
+    const models : DB_PostProspectPlayerModel[] = getJsonArray(obj, name)
+        .map(f => new DB_PostProspectPlayerModel(f as JsonObject))
+
+    let models_list : DB_PostProspectPlayerModel[][] = []
+    MODEL_VALUES.forEach(f => {
+        models_list.push(models.filter(g => g.modelId === f))
+    })
+
+    return models_list;
+}
+
 const PROSPECT_WAR_LABELS = ["<=0", "0-1", "1-5", "5-10", "10-20", "20-30", "30+"]
 const MLB_HIT_WAR_LABELS = ["<0", "0", "0-1", "1-2", "2-3", "3-4", "4-6", "6+"]
 const MLB_SP_WAR_LABELS = ["<0", "0", "0-1", "1-2", "2-3", "3-4", "4-6", "6+"]
@@ -149,6 +162,8 @@ const prospect_line_canvas = getElementByIdStrict("prospect_line_canvas") as HTM
 let prospect_graph_selector = getElementByIdStrict('prospect_graph_selector') as HTMLSelectElement
 let prospect_line_graph : LineGraph | null = null
 let prospect_pie_graph : PieGraph
+const prospect_bar_canvas = getElementByIdStrict("prospect_bar_canvas") as HTMLCanvasElement
+let prospect_bar_graph : WarProgressGraph | null = null
 let keyControls : KeyControls
 
 const mlb_pie_canvas = getElementByIdStrict("mlb_pie_canvas") as HTMLCanvasElement
@@ -163,6 +178,8 @@ const MLB_PIE_COLORS = ['#d43d51', '#dd7077', '#e19d9e', '#dfc8c8', '#c3d1cc', '
 
 let person : DB_Player
 let prospectSources : DB_PlayerModel[][] = []
+let postProspectSources : DB_PostProspectPlayerModel[][] = []
+let postProspectBarScales : any[] = []
 
 let hitterTable : HitterStatsTable | null = null
 let pitcherTable : PitcherStatsTable | null = null
@@ -192,7 +209,10 @@ async function main()
     const hitterModels = person.isHitter ? getModels(pd, "hit_models") : []
     const pitcherModels = person.isPitcher ? getModels(pd, "pit_models") : []
 
-    const hasProspect = setupProspectModel(hitterModels, pitcherModels)
+    const hitterPostModels = person.isHitter ? getPostProspectModels(pd, "hit_post_models") : []
+    const pitcherPostModels = person.isPitcher ? getPostProspectModels(pd, "pit_post_models") : []
+
+    const hasProspect = setupProspectModel(hitterModels, pitcherModels, hitterPostModels, pitcherPostModels)
 
     const hitterMlbWar = person.isHitter ? getHitterMlbWar(pd) : []
     const pitcherMlbWar = person.isPitcher ? getPitcherMlbWar(pd) : { starter: [], reliever: [] }

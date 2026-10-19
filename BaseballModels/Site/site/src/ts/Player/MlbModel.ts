@@ -15,7 +15,7 @@ type MlbDatasetSource = {
     labels : string[],
 }
 
-let mlbSources : MlbDatasetSource[] = [] // [datasetIdx], parallel to the MLB datasets
+let mlbSources : MlbDatasetSource[] = []
 
 // Gets data N years into future, handling where the year ticks over
 function getMlbBucketAverages(averages : Map<number, number[]>, month : number, yearOffset : number) : number[]

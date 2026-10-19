@@ -87,7 +87,8 @@ app.get('/player/:id', async (req, res) => {
                     dbAll("SELECT * FROM HitterMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND isHitter=1 ORDER BY YEAR ASC, Month ASC", [req.params.id]),
                     dbAll("SELECT * FROM HitterMlbWarModel WHERE mlbId=? ORDER BY year ASC, month ASC", [req.params.id]),
-                    dbAll("SELECT * FROM HitterMlbWarBucketAverages ORDER BY month ASC", [])
+                    dbAll("SELECT * FROM HitterMlbWarBucketAverages ORDER BY month ASC", []),
+                    dbAll("SELECT * FROM PostProspectPlayerModel WHERE mlbId=? AND isHitter=1 ORDER BY year ASC, month ASC", [req.params.id])
                 ]);
             }
             if (row.isPitcher == 1)
@@ -97,28 +98,31 @@ app.get('/player/:id', async (req, res) => {
                     dbAll("SELECT * FROM PitcherMonthStats WHERE mlbId=? ORDER BY YEAR ASC, MONTH ASC, LevelId DESC, leagueId", [req.params.id]),
                     dbAll("SELECT * FROM PlayerModel WHERE mlbId=? AND isHitter=0 ORDER BY YEAR ASC, Month ASC", [req.params.id]),
                     dbAll("SELECT * FROM PitcherMlbWarModel WHERE mlbId=? ORDER BY modelId, year, month", [req.params.id]),
-                    dbAll("SELECT * FROM PitcherMlbWarBucketAverages ORDER BY month", [])
+                    dbAll("SELECT * FROM PitcherMlbWarBucketAverages ORDER BY month", []),
+                    dbAll("SELECT * FROM PostProspectPlayerModel WHERE mlbId=? AND isHitter=0 ORDER BY year ASC, month ASC", [req.params.id])
                 ]);
             }
             if (row.isHitter == 1)
             {
-                const [hitStats, hitMonthStats, hitModels, hitProModels, hitProBuckets] = await promiseHitter
+                const [hitStats, hitMonthStats, hitModels, hitProModels, hitProBuckets, hitPostModels] = await promiseHitter
 
                 row["hit_mlb_models"] = hitProModels;
                 row["hit_mlb_buckets"] = hitProBuckets;
                 row["hit_stats"] = await hitStats;
                 row["hit_month_stats"] = await hitMonthStats;
                 row["hit_models"] = await hitModels;
+                row["hit_post_models"] = hitPostModels;
             }
             if (row.isPitcher == 1)
             {
-                const [pitStats, pitMonthStats, pitModels, pitMlbModels, pitMlbBuckets] = await promisePitcher
+                const [pitStats, pitMonthStats, pitModels, pitMlbModels, pitMlbBuckets, pitPostModels] = await promisePitcher
 
                 row["pit_mlb_models"] = pitMlbModels;
                 row["pit_mlb_buckets"] = pitMlbBuckets;
                 row["pit_stats"] = await pitStats;
                 row["pit_month_stats"] = await pitMonthStats;
                 row["pit_models"] = await pitModels;
+                row["pit_post_models"] = pitPostModels;
             }
 
             res.json(row)

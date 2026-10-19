@@ -792,6 +792,9 @@ class DB_PostProspectPlayerModel
 	public modelId : number
 	public isHitter : number
 	public war : number
+	public warAccumulated : number
+	public warProjected : number
+	public monthsProjected : number
 
 	constructor(data : JsonObject)
 	{
@@ -801,6 +804,9 @@ class DB_PostProspectPlayerModel
 		this.modelId = data['modelId'] as number
 		this.isHitter = data['isHitter'] as number
 		this.war = data['war'] as number
+		this.warAccumulated = data['warAccumulated'] as number
+		this.warProjected = data['warProjected'] as number
+		this.monthsProjected = data['monthsProjected'] as number
 	}
 }
 
