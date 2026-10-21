@@ -23,6 +23,7 @@ namespace SitePrep.Draft
         {
             // Descending so each iteration can filter opwaRows in place
             evaluationYears = evaluationYears.OrderDescending().ToList();
+            evaluationYears.Add(9000); // Current value
             int maxEvaluationYear = evaluationYears[0];
 
             // Players selected and signed in the draft year
