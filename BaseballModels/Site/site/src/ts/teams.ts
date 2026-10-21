@@ -3,6 +3,7 @@ const rankings_table_body = getElementByIdStrict('rankings_table_body') as HTMLT
 const rankings_header = getElementByIdStrict('rankings_header')
 const rankings_table = getElementByIdStrict('rankings_table') as HTMLTableElement
 const rankings_load = getElementByIdStrict('rankings_load') as HTMLButtonElement
+const rankings_table_pageselector = getElementByIdStrict('rankings_pageselector')
 
 let month : number
 let year : number
@@ -34,6 +35,7 @@ async function main()
     table = new SortableTable<DB_TeamRank, TeamView>({
         head : rankings_table_head,
         body : rankings_table_body,
+        pageChangeElement : rankings_table_pageselector,
         getColumns : getColumns,
         rowClass : 'rankings_item',
         view : {

@@ -144,6 +144,7 @@ class PlayerLoaderTable
         this.table = new SortableTable<TablePlayer, PlayerView>({
             head : rankings_table_head,
             body : rankings_table_body,
+            pageChangeElement : rankings_table_pageselector,
             getColumns : () => this.getColumns(),
             rowClass : 'rankings_item',
             view : {

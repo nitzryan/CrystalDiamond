@@ -1,4 +1,5 @@
-let year : number
+let startYear : number
+let rangeEndYear : number
 let modelId : number
 let month : number = 8
 let draftTable : DraftLoaderTable | null = null
@@ -6,35 +7,36 @@ let teamDraftTable : TeamDraftOverviewTable | null = null
 let teamDraftPlayerTable : TeamDraftPlayerTable | null = null
 let sectionSelector : SectionSelector | null = null
 
-function showTeamDraft(teamId : number)
-{
-    sectionSelector!.select('team_draft')
-    teamDraftPlayerTable!.setTeam(teamId)
-}
-
 async function main()
 {
     await assetLoader.ready;
 
     const dates = await assetLoader.dates();
     endYear = dates.draftEndYear;
-    year = getQueryParamBackup("year", endYear)
+
+    const singleYear = getQueryParamNullable("year")
+    startYear = getQueryParamNullable("startYear") ?? singleYear ?? endYear
+    rangeEndYear = getQueryParamNullable("endYear") ?? singleYear ?? endYear
     modelId = getQueryParamBackup("model", 1)
+    if (startYear > rangeEndYear)
+        throw new Error(`Invalid year range ${startYear}-${rangeEndYear}`)
 
     setupSelector({
         month : month,
-        year : year,
+        year : startYear,
+        rangeEndYear : rangeEndYear,
         modelId : modelId,
         endYear : endYear,
         endMonth : month,
         startYear : dates.startYear,
         startTeam : null,
-        level : null
+        level : null,
+        splitSeasons : startYear !== endYear
     })
 
-    draftTable = new DraftLoaderTable(year, month, modelId)
-    teamDraftTable = new TeamDraftOverviewTable(year, modelId, showTeamDraft)
-    teamDraftPlayerTable = new TeamDraftPlayerTable(year, modelId, getQueryParamBackup("team", 0), draftTable.loaded)
+    draftTable = new DraftLoaderTable(startYear, rangeEndYear, month, modelId)
+    teamDraftTable = new TeamDraftOverviewTable(startYear, rangeEndYear, modelId)
+    teamDraftPlayerTable = new TeamDraftPlayerTable(startYear, rangeEndYear, modelId, getQueryParamBackup("team", 0), draftTable.loaded)
 
     sectionSelector = new SectionSelector({
         groupId : 'panel_select',
@@ -58,15 +60,18 @@ async function main()
     })
 
     rankings_button.addEventListener('click', (event) => {
-        const yr = year_select.value
         const model = model_select.value
+        const start = year_select.value
+        const end = year_end_select!.value
+        if (parseInt(start) > parseInt(end))
+            return
 
-        window.location.href = `./draft?year=${yr}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}&section=${sectionSelector!.selected}&team=${teamDraftPlayerTable!.teamId}`
+        window.location.href = `./draft?startYear=${start}&endYear=${end}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}&section=${sectionSelector!.selected}&team=${teamDraftPlayerTable!.teamId}`
     })
 
     getElementByIdStrict('nav_draft').classList.add('selected')
     
-    document.title = `${year} Draft Rankings`
+    document.title = startYear === rangeEndYear ? `${startYear} Draft Rankings` : `${startYear}-${rangeEndYear} Draft Rankings`
 }
 
 main()

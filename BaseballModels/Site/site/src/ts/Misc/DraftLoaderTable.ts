@@ -22,7 +22,7 @@ function dNameColumn() : DraftColumn
         sortable : false,
         value : p => p.Name,
         render : (p, _) => {
-            const player_href = p.draftPick === null ? '' : `href='./player?id=${p.mlbId}'`
+            const player_href = p.draftPick === null ? '' : `href='/player?id=${p.mlbId}'`
             return `<a ${player_href}>${p.Name}</a>${renderQualityIcon(p.timestepQuality, p.trainingBias)}`
         }
     }
@@ -82,34 +82,47 @@ function plPositionColumn() : DraftColumn
         }
     }
 }
-function plAgeColumn(year : number, month : number) : DraftColumn
+function plAgeColumn(month : number) : DraftColumn
 {
     return {
         header : 'Age',
         cls : 'c_age',
         sortable : true,
-        value : p => playerAge(p.BirthYear, p.BirthMonth, year, month),
-        render : (p, _) => playerAge(p.BirthYear, p.BirthMonth, year, month).toString()
+        value : p => playerAge(p.BirthYear, p.BirthMonth, p.year, month),
+        render : (p, _) => playerAge(p.BirthYear, p.BirthMonth, p.year, month).toString()
+    }
+}
+function dYearColumn() : DraftColumn
+{
+    return {
+        header : 'Year',
+        cls : 'c_year',
+        sortable : true,
+        value : p => p.year,
+        render : (p, _) => p.year.toString()
     }
 }
 
 class DraftLoaderTable
 {
     private table : SortableTable<DB_DraftRank, DraftView>
-    private readonly year : number
+    private readonly startYear : number
+    private readonly endYear : number
     private readonly month : number
     private readonly model : number
     readonly loaded : Promise<DB_DraftRank[]>
 
-    constructor(year : number, month : number, model : number)
+    constructor(startYear : number, endYear : number, month : number, model : number)
     {
-        this.year = year
+        this.startYear = startYear
+        this.endYear = endYear
         this.month = month
         this.model = model
 
         this.table = new SortableTable<DB_DraftRank, DraftView>({
             head : rankings_table_head,
             body : rankings_table_body,
+            pageChangeElement : rankings_table_pageselector,
             getColumns : () => this.getColumns(),
             rowClass : 'rankings_item',
             view : {
@@ -135,10 +148,13 @@ class DraftLoaderTable
                     return 2
                 else
                     return 4
-            }
+            },
+            countPerPage : 50,
         })
 
-        rankings_header.innerText = `Draft Prospect Rankings for ${year}`
+        rankings_header.innerText = startYear === endYear
+            ? `Draft Prospect Rankings for ${startYear}`
+            : `Draft Prospect Rankings for ${startYear}-${endYear}`
         rankings_load.classList.add('hidden')    // single fetch, no pagination
         this.loaded = this.loadAll()
     }
@@ -148,21 +164,25 @@ class DraftLoaderTable
 
     private getColumns() : DraftColumn[]
     {
-        return [
+        // Year goes last so the default sort column indices are unaffected
+        const columns = [
             plRankColumn(),
             dNameColumn(),
             dPreWarColumn(),
             dPostWarColumn(),
             dPickColumn(),
             plPositionColumn(),
-            plAgeColumn(this.year, this.month)
+            plAgeColumn(this.month)
         ]
+        if (this.startYear !== this.endYear)
+            columns.push(dYearColumn())
+        return columns
     }
 
     private async loadAll() : Promise<DB_DraftRank[]>
     {
         const players = await (await fetch(
-            `/draft_rank?year=${this.year}&model=${this.model}`)).json() as JsonArray
+            `/draft_rank?startYear=${this.startYear}&endYear=${this.endYear}&model=${this.model}`)).json() as JsonArray
 
         this.table.rows = players.map(f => new DB_DraftRank(f as JsonObject))
         this.table.render()

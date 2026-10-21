@@ -53,7 +53,29 @@ app.get('/stats/', (req, res) => {
     res.sendFile(path.join(__dirname, "src/html/stats.html"))
 })
 
-app.get('/draft/', (req, res) => {
+app.get('/draft/', async (req, res) => {
+    const year = req.query.year
+    const startYear = req.query.startYear ?? year
+    const endYear = req.query.endYear ?? year
+
+    let error = null
+    for (const value of [year, req.query.startYear, req.query.endYear])
+    {
+        if (value !== undefined && !/^\d+$/.test(value))
+            error = "Years must be whole numbers"
+    }
+    if (error === null && startYear !== undefined && endYear !== undefined && Number(startYear) > Number(endYear))
+        error = `Invalid year range: ${startYear} is after ${endYear}`
+
+    if (error !== null)
+    {
+        let html = await fs.readFile(path.join(__dirname, "src/html/error.html"), "utf8")
+        html = html.replace("<!-- ERROR TEXT -->", `<p class='center_text'>${error}</p>`)
+        html = html.replace("<!-- ERROR CODE -->", "400")
+        res.status(400).type('html').send(html)
+        return
+    }
+    
     res.sendFile(path.join(__dirname, "src/html/draft.html"))
 })
 
@@ -179,15 +201,17 @@ app.get('/rankingsRequest', (req, res) => {
 
 app.get('/draft_rank', (req, res) => {
     try {
-        const year = req.query.year
+        const startYear = req.query.startYear
+        const endYear = req.query.endYear
         const model = req.query.model
 
         db.all(`
             SELECT *
             FROM DraftRank
-            WHERE Year=? AND ModelId=?
-            AND ((isEligible=1) OR (draftPick IS NOT NULL))
-        `, [year, model], (err, rows) => {
+            WHERE Year BETWEEN ? AND ? 
+            AND ModelId=?
+            AND ((isEligible=1 AND warPre>0.1) OR (draftPick IS NOT NULL))
+        `, [startYear, endYear, model], (err, rows) => {
             res.json(rows)
         })
     }
@@ -199,15 +223,16 @@ app.get('/draft_rank', (req, res) => {
 
 app.get('/team_draft_overview', (req, res) => {
     try {
-        const year = req.query.year
+        const startYear = req.query.startYear
+        const endYear = req.query.endYear
         const model = req.query.model
 
         db.all(`
             SELECT *
             FROM TeamDraftOverview
-            WHERE DraftYear=? AND ModelId=?
-            ORDER BY TeamId, EvaluationYear
-        `, [year, model], (err, rows) => {
+            WHERE DraftYear BETWEEN ? AND ? AND ModelId=?
+            ORDER BY DraftYear, TeamId, EvaluationYear
+        `, [startYear, endYear, model], (err, rows) => {
             res.json(rows)
         })
     }
@@ -219,20 +244,20 @@ app.get('/team_draft_overview', (req, res) => {
 
 app.get('/team_draft_players', (req, res) => {
     try {
-        const draftYear = parseInt(req.query.draftYear)
+        const startYear = parseInt(req.query.startYear)
+        const endYear = parseInt(req.query.endYear)
         const modelId = parseInt(req.query.model)
 
-        if (!Number.isInteger(draftYear) || !Number.isInteger(modelId))
+        if (!Number.isInteger(startYear) || !Number.isInteger(endYear) || !Number.isInteger(modelId))
         {
-            res.status(400).send("team_draft_players requires draftYear and model as integers")
-            return
+            res.status(400).send("team_draft_players requires startYear, endYear and model as integers")
         }
 
         db.all(`
             SELECT *
             FROM TeamDraftPlayer
-            WHERE draftYear = ? AND modelId = ?
-        `, [draftYear, modelId], (err, rows) => {
+            WHERE draftYear BETWEEN ? AND ? AND modelId = ?
+        `, [startYear, endYear, modelId], (err, rows) => {
             if (err)
             {
                 res.status(500).send("Error in team_draft_players: " + err)

@@ -12,7 +12,15 @@
         <!-- BANNER -->
         <div id="rankings_main">
             <div id="rankings_selector" class="row">
-                <select id="year_select"></select>
+                <div id="year_select_range">
+                    <select id="year_select"></select>
+                    <span id="year_range_to">−</span>
+                    <select id="year_end_select"></select>
+                </div>
+                <label>
+                    <input id="split_season_checkbox" type="checkbox" name="splitseason" value="yes">
+                    Split Seasons
+                </label>
                 <select id="month_select" class="hidden"></select>
                 <select id="model_select"><!-- MODEL_OPTIONS --></select>
                 <div id="rankings_get">
@@ -50,6 +58,7 @@
                     <thead id="team_draft_head"></thead>
                     <tbody id="team_draft_body"></tbody>
                 </table>
+                <div id="team_draft_pageselector"></div>
             </div>
             <div id="team_draft">
                 <div id="team_draft_header" class="rankings_header"></div>
@@ -57,6 +66,7 @@
                     <thead id="team_draft_players_head"></thead>
                     <tbody id="team_draft_players_body"></tbody>
                 </table>
+                <div id="team_draft_players_pageselector"></div>
             </div>
         </div>
     </body>

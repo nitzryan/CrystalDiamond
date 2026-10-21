@@ -16,9 +16,9 @@ type TeamDraftPlayerRow = {
 }
 
 ////////// Fetching //////////
-async function fetchTeamDraftPlayers(draftYear : number, modelId : number) : Promise<DB_TeamDraftPlayer[]>
+async function fetchTeamDraftPlayers(startYear : number, endYear : number, modelId : number) : Promise<DB_TeamDraftPlayer[]>
 {
-    const response = await fetch(`/team_draft_players?draftYear=${draftYear}&model=${modelId}`)
+    const response = await fetch(`/team_draft_players?startYear=${startYear}&endYear=${endYear}&model=${modelId}`)
     if (!response.ok)
         throw new Error(`team_draft_players request failed: ${response.status}`)
 
@@ -37,9 +37,9 @@ async function fetchModelDraftPickValues() : Promise<DB_ModelDraftPickValues[]>
 }
 
 ////////// Helpers //////////
-function tdpKey(mlbId : number, isHitter : boolean) : string
+function tdpKey(mlbId : number, isHitter : boolean, year : number) : string
 {
-    return `${mlbId}_${isHitter ? 1 : 0}`
+    return `${mlbId}_${isHitter ? 1 : 0}_${year}`
 }
 
 function tdpCapital(player : DB_TeamDraftPlayer, pickValues : Map<number, DB_ModelDraftPickValues>) : number
@@ -107,7 +107,7 @@ function tdpNameColumn() : DraftPlayerColumn
         cls : 'c_name',
         sortable : false,
         value : t => t.draft.Name,
-        render : (t, _) => `<a href='./player?id=${t.draft.mlbId}'>${t.draft.Name}</a>`,
+        render : (t, _) => `<a href='/player?id=${t.draft.mlbId}'>${t.draft.Name}</a>`,
         total : _ => 'Total'
     }
 }
@@ -144,6 +144,10 @@ function tdpValueColumn(header : string, idx : number) : DraftPlayerColumn
     }
 }
 
+function tdpYearColumn() : DraftPlayerColumn
+{
+    return tdpDraftColumn(dYearColumn())
+}
 
 function tdpValueTotal(rows : TeamDraftPlayerRow[], idx : number) : string
 {
@@ -157,13 +161,15 @@ class TeamDraftPlayerTable
 {
     private table : SortableTable<TeamDraftPlayerRow, TeamDraftView>
     private readonly model : number
-    private readonly year : number
+    private readonly startYear : number
+    private readonly endYear : number
     private yearSlots : number[] = []
     private readonly teamSelect : HTMLSelectElement
 
-    constructor(year : number, model : number, teamId : number | null, draftRows : Promise<DB_DraftRank[]>)
+    constructor(startYear : number, endYear : number, model : number, teamId : number | null, draftRows : Promise<DB_DraftRank[]>)
     {
-        this.year = year
+        this.startYear = startYear
+        this.endYear = endYear
         this.model = model
         this.teamSelect = getElementByIdStrict('team_select') as HTMLSelectElement
         setupTeamSelector(teamId)
@@ -171,6 +177,7 @@ class TeamDraftPlayerTable
         this.table = new SortableTable<TeamDraftPlayerRow, TeamDraftView>({
             head : getElementByIdStrict('team_draft_players_head'),
             body : getElementByIdStrict('team_draft_players_body'),
+            pageChangeElement : getElementByIdStrict('team_draft_players_pageselector'),
             getColumns : () => this.getColumns(),
             rowClass : 'rankings_item',
             view : {
@@ -188,7 +195,9 @@ class TeamDraftPlayerTable
                 return true
             },
             view_filter : (t, _view) => this.teamId === 0 || t.draft.draftTeamid === this.teamId,
-            view_split_default_column : (_split, _view) => 1
+            view_split_default_column : (_split, _view) => 1,
+            countPerPage: 30,
+            forceLastVisible: true
         })
 
         this.teamSelect.addEventListener('change', () => this.table.render())
@@ -197,7 +206,9 @@ class TeamDraftPlayerTable
         this.loadAll(draftRows)
 
         let header = getElementByIdStrict('team_draft_header')
-        header.innerText = `Team Player Results for ${year} Draft`
+        header.innerText = startYear === endYear
+            ? `Team Player Results for ${startYear} Draft`
+            : `Team Player Results for ${startYear}-${endYear} Drafts`
     }
 
     get teamId() : number { return parseInt(this.teamSelect.value) }
@@ -215,8 +226,9 @@ class TeamDraftPlayerTable
             tdpDraftColumn(dPickColumn()),
             tdpCapitalColumn(),
             tdpValueColumn('Initial', TDP_INITIAL),
-            ...this.yearSlots.map(n => tdpValueColumn(`${this.year + n}`, n)),
-            tdpValueColumn('Current', TDP_CURRENT)
+            ...this.yearSlots.map(n => tdpValueColumn(this.startYear === this.endYear ? `${this.startYear + n}` : `Yr ${n}`, n)),
+            tdpValueColumn('Current', TDP_CURRENT),
+            ...(this.startYear === this.endYear ? [] : [tdpYearColumn()])
         ]
     }
 
@@ -224,7 +236,7 @@ class TeamDraftPlayerTable
     {
         const [drafts, players, pickValues] = await Promise.all([
             draftRows,
-            fetchTeamDraftPlayers(this.year, this.model),
+            fetchTeamDraftPlayers(this.startYear, this.endYear, this.model),
             fetchModelDraftPickValues()
         ])
 
@@ -237,13 +249,13 @@ class TeamDraftPlayerTable
         // DraftRank still supplies the name and draft-pick presentation
         const draftMap = new Map<string, DB_DraftRank>()
         for (const d of drafts)
-            draftMap.set(tdpKey(d.mlbId, d.isHitter), d)
+            draftMap.set(tdpKey(d.mlbId, d.isHitter, d.year), d)
 
 
         const rows = players.map(p => {
-            const draft = draftMap.get(tdpKey(p.mlbId, p.isHitter))
+            const draft = draftMap.get(tdpKey(p.mlbId, p.isHitter, p.draftYear))
             if (draft === undefined)
-                throw new Error(`No DraftRank entry for mlbId=${p.mlbId} isHitter=${p.isHitter}`)
+                throw new Error(`No DraftRank entry for mlbId=${p.mlbId} isHitter=${p.isHitter} year=${p.draftYear}`)
             return tdpBuildRow(p, draft, pickMap)
         })
 

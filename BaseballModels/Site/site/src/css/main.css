@@ -19,6 +19,10 @@
     display: none !important;
 }
 
+.table_hidden {
+    display: none !important;
+}
+
 .hidden-col {
     width: 0 !important;
     min-width: 0 !important;
@@ -232,4 +236,17 @@ th.sortable:hover {
 
 .dropdown_description p {
     margin: 0.75em 0;
+}
+
+.table_page_count {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.table_page_count_center {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1em;
 }

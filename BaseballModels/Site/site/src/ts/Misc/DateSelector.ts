@@ -1,11 +1,14 @@
 const rankings_selector = getElementByIdStrict('rankings_selector')
 const year_select = getElementByIdStrict('year_select') as HTMLSelectElement
+const year_end_select = document.getElementById('year_end_select') as HTMLSelectElement | null
 const month_select = getElementByIdStrict('month_select') as HTMLSelectElement
 const model_select = getElementByIdStrict('model_select') as HTMLSelectElement
 const team_select = document.getElementById('team_select') as HTMLSelectElement | null
 const level_select = document.getElementById('level_select') as HTMLSelectElement | null
 const rankings_button = getElementByIdStrict('rankings_button') as HTMLButtonElement
 const rankings_error = getElementByIdStrict('rankings_error')
+const splitSeasonsCheckbox = document.getElementById('split_season_checkbox') as HTMLInputElement | null
+const yearRangeSpan = document.getElementById('year_range_to')
 
 let endYear : number = 0
 let endMonth : number = 0
@@ -18,7 +21,9 @@ type SelectorArgs = {
     endYear : number, 
     endMonth : number,
     startTeam : number | null,
-    level : number | null
+    level : number | null,
+    rangeEndYear? : number,
+    splitSeasons? : boolean
 }
 function setupSelector(args : SelectorArgs)
 {
@@ -39,6 +44,37 @@ function setupSelector(args : SelectorArgs)
         opt.value = i.toString()
         opt.innerText = MONTH_CODES[i]
         month_select.appendChild(opt)
+    }
+
+    if (year_end_select !== null)
+    {
+        if (splitSeasonsCheckbox === null)
+            throw Error("Missing Split Seasons Checkbox")
+
+        if (args.splitSeasons === undefined)
+            throw Error("Split Seasons not defined for Selector with Range")
+
+        // Setup End Year Selection
+        for (let i = args.startYear; i <= endYear; i++)
+        {
+            let opt = document.createElement('option')
+            opt.value = i.toString()
+            opt.innerText = i.toString()
+            year_end_select.appendChild(opt)
+        }
+        
+        if (args.splitSeasons)
+            year_end_select.value = (args.rangeEndYear ?? args.year).toString()
+        else
+            year_end_select.value = args.year.toString()
+        year_end_select.addEventListener('change', selectorEventHandler)
+
+        console.log(year_end_select.value)
+
+        // Setup checkbox
+        splitSeasonsCheckbox.checked = args.splitSeasons
+        splitSeasonsCheckbox.addEventListener('change', splitSeasonEventHandler)
+        splitSeasonsCheckbox.dispatchEvent(new Event('change'))
     }
 
     year_select.value = args.year.toString()
@@ -64,14 +100,39 @@ function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
     const selectedMonth : number = parseInt(month_select.value)
     const selectedYear : number = parseInt(year_select.value)
 
-    if (endYear == selectedYear && endMonth < selectedMonth)
+    const rangeInvalid = year_end_select !== null && selectedYear > parseInt(year_end_select.value)
+
+    if (rangeInvalid)
     {
+        rankings_error.innerText = 'Invalid Year Range'
+        rankings_button.classList.add('hidden')
+        rankings_error.classList.remove('hidden')
+    } else if (endYear == selectedYear && endMonth < selectedMonth)
+    {
+        rankings_error.innerText = 'Invalid Date'
         rankings_button.classList.add('hidden')
         rankings_error.classList.remove('hidden')
     } else {
         rankings_error.classList.add('hidden')
         rankings_button.classList.remove('hidden')
     }
+
+    if (year_end_select !== null && splitSeasonsCheckbox !== null && !splitSeasonsCheckbox.checked)
+    {
+        year_end_select.value = year_select.value
+    }
+}
+
+function splitSeasonEventHandler(this : HTMLInputElement, ev : Event) : void
+{
+    if (year_end_select === null)
+        throw Error("Year End Select null with split seasons active")
+    
+    yearRangeSpan?.classList.toggle('hidden', !this.checked)
+    year_end_select.classList.toggle('hidden', !this.checked)
+
+    if (!this.checked)
+        year_end_select.value = year_select.value
 }
 
 function setupTeamSelector(teamId : number | null)
