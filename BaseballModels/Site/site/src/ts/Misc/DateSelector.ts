@@ -46,6 +46,23 @@ function setupSelector(args : SelectorArgs)
         month_select.appendChild(opt)
     }
 
+    year_select.value = args.year.toString()
+    month_select.value = args.month.toString()
+    model_select.value = args.modelId.toString()
+
+    year_select.addEventListener('change', selectorEventHandler)
+    month_select.addEventListener('change', selectorEventHandler)
+    
+    if (team_select !== null){
+        setupTeamSelector(args.startTeam)
+        team_select.addEventListener('change', selectorEventHandler)
+    }
+
+    if (level_select !== null && args.level !== null){
+        level_select.value = args.level.toString()
+        level_select.addEventListener('change', selectorEventHandler)
+    }
+
     if (year_end_select !== null)
     {
         if (splitSeasonsCheckbox === null)
@@ -66,32 +83,13 @@ function setupSelector(args : SelectorArgs)
         if (args.splitSeasons)
             year_end_select.value = (args.rangeEndYear ?? args.year).toString()
         else
-            year_end_select.value = args.year.toString()
+            year_end_select.value = year_select.value
         year_end_select.addEventListener('change', selectorEventHandler)
-
-        console.log(year_end_select.value)
 
         // Setup checkbox
         splitSeasonsCheckbox.checked = args.splitSeasons
         splitSeasonsCheckbox.addEventListener('change', splitSeasonEventHandler)
         splitSeasonsCheckbox.dispatchEvent(new Event('change'))
-    }
-
-    year_select.value = args.year.toString()
-    month_select.value = args.month.toString()
-    model_select.value = args.modelId.toString()
-
-    year_select.addEventListener('change', selectorEventHandler)
-    month_select.addEventListener('change', selectorEventHandler)
-    
-    if (team_select !== null){
-        setupTeamSelector(args.startTeam)
-        team_select.addEventListener('change', selectorEventHandler)
-    }
-
-    if (level_select !== null && args.level !== null){
-        level_select.value = args.level.toString()
-        level_select.addEventListener('change', selectorEventHandler)
     }
 }
 
@@ -127,7 +125,6 @@ function splitSeasonEventHandler(this : HTMLInputElement, ev : Event) : void
 {
     if (year_end_select === null)
         throw Error("Year End Select null with split seasons active")
-    
     yearRangeSpan?.classList.toggle('hidden', !this.checked)
     year_end_select.classList.toggle('hidden', !this.checked)
 
