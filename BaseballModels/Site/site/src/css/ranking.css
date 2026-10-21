@@ -25,6 +25,11 @@
     font-weight: bold;
 }
 
+.rankings_item {
+    vertical-align: middle;
+    line-height: 1.3;
+}
+
 #rankings_table td:first-child, #rankings_table th:first-child {
     border: none;
     background: var(--background-high);

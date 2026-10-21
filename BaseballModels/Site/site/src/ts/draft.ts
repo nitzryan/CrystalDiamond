@@ -66,7 +66,7 @@ async function main()
         if (parseInt(start) > parseInt(end))
             return
 
-        window.location.href = `./draft?startYear=${start}&endYear=${end}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}&section=${sectionSelector!.selected}&team=${teamDraftPlayerTable!.teamId}`
+        window.location.href = `/draft?startYear=${start}&endYear=${end}&model=${model}&view=${draftTable!.view}&split=${draftTable!.split}&section=${sectionSelector!.selected}&team=${teamDraftPlayerTable!.teamId}`
     })
 
     getElementByIdStrict('nav_draft').classList.add('selected')

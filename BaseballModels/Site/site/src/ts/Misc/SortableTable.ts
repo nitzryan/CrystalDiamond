@@ -316,6 +316,15 @@ class SortableTable<T, V extends string>
         if (this.pageTracker === undefined || this.pageTracker.pageCountElement === undefined || this.pageTracker.pageMaxElement === undefined)
             return
 
+        const rows = (this.body as HTMLTableSectionElement).rows
+
+        // Set Max Page
+        this.pageTracker.maxPage = Math.ceil(rows.length / this.pageTracker.elementsPerPage)
+        if (newPage < 1)
+            newPage = 1
+        else if (newPage > this.pageTracker.maxPage)
+            newPage = this.pageTracker.maxPage
+        
         // Set current page and values
         this.pageTracker.currentPage = newPage
         this.pageTracker.pageCountElement.innerText = newPage.toString()
@@ -323,15 +332,6 @@ class SortableTable<T, V extends string>
         const minElement = (this.pageTracker.currentPage - 1) * this.pageTracker.elementsPerPage
         const maxElement = minElement + this.pageTracker.elementsPerPage
 
-        const rows = (this.body as HTMLTableSectionElement).rows
-
-        // Set Max Page
-        this.pageTracker.maxPage = Math.ceil(rows.length / this.pageTracker.elementsPerPage)
-        if (this.pageTracker.currentPage < 1)
-            this.pageTracker.currentPage = 1
-        else if (this.pageTracker.currentPage > this.pageTracker.maxPage)
-            this.pageTracker.currentPage = this.pageTracker.maxPage
-        
         if (this.pageTracker.maxPage === 1)
         {
             this.pageChangeElement.classList.add('hidden')
@@ -343,10 +343,18 @@ class SortableTable<T, V extends string>
         // Hide elements not on page
         for (const row of Array.from(rows))
         {
-            row.classList.toggle('hidden', row.rowIndex < minElement || row.rowIndex >= maxElement)
+            row.classList.toggle('hidden', row.rowIndex <= minElement || row.rowIndex > maxElement)
         }
 
         if (this.pageTracker.forceLastVisible)
             rows[rows.length - 1].classList.remove('hidden')
+
+        // Hide invalid Direction Arrows
+        if (this.pageTracker.pageDownButton !== undefined && this.pageTracker.pageUpButton !== undefined)
+        {
+            this.pageTracker.pageDownButton.classList.toggle('vis_hidden', newPage <= 1)
+            this.pageTracker.pageUpButton.classList.toggle('vis_hidden', newPage >= this.pageTracker.maxPage)
+        }
+        
     }
 }

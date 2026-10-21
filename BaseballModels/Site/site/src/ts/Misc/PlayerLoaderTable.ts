@@ -132,13 +132,13 @@ class PlayerLoaderTable
     private index : number = 0
     private exhausted : boolean = false
     private readonly args : PlayerLoaderTableArgs
-    private readonly pageSize : number
+    private readonly playerLoadSize : number
 
 
     constructor(args : PlayerLoaderTableArgs, pageSize : number)
     {
         this.args = args
-        this.pageSize = pageSize
+        this.playerLoadSize = pageSize
 
 
         this.table = new SortableTable<TablePlayer, PlayerView>({
@@ -168,7 +168,8 @@ class PlayerLoaderTable
             },
             view_split_default_column : (split, view) => {
                 return null
-            }
+            },
+            countPerPage : 30
         })
 
 
@@ -208,7 +209,7 @@ class PlayerLoaderTable
         if (this.exhausted)
             return
         const a = this.args
-        const endRank = this.index + this.pageSize
+        const endRank = this.index + this.playerLoadSize
         let url = `/rankingsRequest?year=${a.year}&month=${a.month}&startRank=${this.index + 1}&endRank=${endRank}&model=${a.model}`
         if (a.teamId !== null)
             url += `&teamId=${a.teamId}`
@@ -217,7 +218,7 @@ class PlayerLoaderTable
         const players = await (await fetch(url)).json() as JsonArray
         const loaded = players.map(f => new TablePlayer(f as JsonObject))
 
-        this.exhausted = players.length !== this.pageSize
+        this.exhausted = players.length !== this.playerLoadSize
         this.index += players.length
         rankings_load.classList.toggle('hidden', this.exhausted)
 
