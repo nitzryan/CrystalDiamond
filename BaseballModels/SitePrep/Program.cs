@@ -25,6 +25,8 @@ namespace SitePrep
             SetTimestepQuality.Create();
             WriteWarBucketAverages.Update();
 
+            ProWar.FixAggregateValues.Update();
+
             ProWar.GenerateWarModels.HitterModels();
             ProWar.GenerateWarModels.PitcherModels();
 

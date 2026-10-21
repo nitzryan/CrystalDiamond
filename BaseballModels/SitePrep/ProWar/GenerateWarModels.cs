@@ -169,7 +169,10 @@ namespace SitePrep.ProWar
             List<WarModelData> rows = modelDb.Output_HitterMlbWarAggregation
                 .AsNoTracking()
                 .Where(f => f.Year > YEAR_CUTOFF)
-                .OrderBy(f => f.MlbId).ThenBy(f => f.ModelId).ThenBy(f => f.Year).ThenBy(f => f.Month)
+                .OrderBy(f => f.MlbId)
+                    .ThenBy(f => f.ModelId)
+                    .ThenBy(f => f.Year)
+                    .ThenBy(f => f.Month)
                 .AsEnumerable()
                 .Select(HitterData)
                 .ToList();
@@ -248,7 +251,10 @@ namespace SitePrep.ProWar
             var aggregation = modelDb.Output_PitcherMlbWarAggregation
                 .AsNoTracking()
                 .Where(f => f.Year > YEAR_CUTOFF)
-                .OrderBy(f => f.MlbId).ThenBy(f => f.ModelId).ThenBy(f => f.Year).ThenBy(f => f.Month);
+                .OrderBy(f => f.MlbId)
+                    .ThenBy(f => f.ModelId)
+                    .ThenBy(f => f.Year)
+                    .ThenBy(f => f.Month);
             foreach (var f in aggregation)
             {
                 spRows.Add(PitcherSPData(f));
