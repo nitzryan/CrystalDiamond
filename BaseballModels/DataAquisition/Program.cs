@@ -193,9 +193,6 @@ namespace DataAquisition
                 }
             }
 
-            GenerateModelWarStats.CalculateHitterWar();
-            GenerateModelWarStats.CalculatePitcherWar();
-
             ////////// Statcast Data //////////
             if (STATCAST_ONLY_UPDATE || DATA_UPDATE || FULL_REFRESH)
             {
@@ -228,6 +225,8 @@ namespace DataAquisition
                 PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);
                 PitchTracking.GenerateModelPitchData.Generate();
             }
+
+            PitchTracking.ResultA.TestFunction();
 
             if (DRAFT_UPDATE || FULL_REFRESH)
             {

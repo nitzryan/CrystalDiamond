@@ -13,6 +13,7 @@ type_overrides = [
     
     TypeOverride("PitchData", "PitchClass", "Db.DbEnums.PitchClass"),
     TypeOverride("PitchFlightpath", "PitchClass", "Db.DbEnums.PitchClass"),
+    TypeOverride("PitchZoneCompetitive", "PitchClass", "Db.DbEnums.PitchClass"),
     
     TypeOverride("PitchData", "PitchType", "Db.DbEnums.PitchType"),
     TypeOverride("PitchFlightpath", "PitchType", "Db.DbEnums.PitchType"),
@@ -26,6 +27,7 @@ type_overrides = [
 boolean_types = [
     BooleanTypes("PitchData", ["HadSwing", "HadContact", "IsInPlay", "PitIsR", "HitIsR"]),
     BooleanTypes("PitchFlightpath", ["PitIsR"]),
+    BooleanTypes("PitchZoneCompetitive", ["PitIsR", "HitIsR", "IsCompetitive", "HasEnoughSample"])
                 ]
 
 linqCreation(

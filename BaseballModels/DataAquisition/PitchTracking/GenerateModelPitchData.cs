@@ -38,6 +38,8 @@ namespace DataAquisition.PitchTracking
                     f => (f.ZoneTop, f.ZoneBot)
                 );
 
+            var hitterAdvancedDict = GetHitterAdvancedDict(db);
+
 
             // Get pitches from flightpath that are not already in PitchData                
             var pitches = pitchDb.PitchFlightpath.AsNoTracking();
@@ -61,6 +63,15 @@ namespace DataAquisition.PitchTracking
                     // Get processed data for that pitch
                     var ps = pitchStatcastDict[(pitch.GameId, pitch.PitchId)];
                     (float zoneTop, float zoneBot) = hitterZoneDict[(ps.Year, ps.HitterId)];
+
+                    // Hitter quality at the level the pitch was thrown at; missing data is a hard error.
+
+                    if (!hitterAdvancedDict.TryGetValue((ps.Year - 1, ps.HitterId, ps.LevelId), out (float iso, float wrc, int pa) hitter))
+                    {
+                        hitter.iso = 0.1f;
+                        hitter.wrc = 100.0f;
+                        hitter.pa = 0;
+                    }
 
                     // Get VAA/HAA above averge
                     float haaaa = pitch.HAA - EvaluateRegression(ps.PX.Value, haaaaDict[new HAAKey(ps.PitIsR, pitch.PitchClass)]);
@@ -104,6 +115,9 @@ namespace DataAquisition.PitchTracking
                         PlateZ = ps.PZ.Value,
                         ZoneTop = zoneTop,
                         ZoneBot = zoneBot,
+                        ISO = hitter.iso,
+                        WRC = hitter.wrc,
+                        HitterPa = hitter.pa,
                     });
                     #pragma warning restore CS8629
 
@@ -112,6 +126,29 @@ namespace DataAquisition.PitchTracking
             }
 
             pitchDb.BulkInsert(pitchData);
+        }
+
+        private static Dictionary<(int year, int mlbId, int levelId), (float iso, float wrc, int pa)> GetHitterAdvancedDict(SqliteDbContext db)
+        {
+            var rows = db.Player_Hitter_YearAdvanced
+                .AsNoTracking()
+                .Select(f => new { f.Year, f.MlbId, f.LevelId, f.PA, f.ISO, f.WRC })
+                .ToList();
+
+            return rows
+                .GroupBy(f => (f.Year, f.MlbId, f.LevelId))
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        int pa = g.Sum(f => f.PA);
+
+                        // PA-weighted mean across the rows, basic value if no PA
+                        float iso = pa > 0 ? g.Sum(f => f.ISO * f.PA) / pa : 0.100f;
+                        float wrc = pa > 0 ? g.Sum(f => f.WRC * f.PA) / pa : 100.0f;
+
+                        return (iso, wrc, pa);
+                    });
         }
 
         // Use to calculate VAA/HAA above average for that pitch class and location

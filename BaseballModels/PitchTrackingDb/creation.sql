@@ -28,6 +28,10 @@ CREATE TABLE PitchData
     "PitIsR" INTEGER NOT NULL,
     "HitIsR" INTEGER NOT NULL,
 
+    "ISO" REAL NOT NULL,
+    "WRC" REAL NOT NULL,
+    "HitterPa" INTEGER NOT NULL,
+
     -- Output Data
     "Result" INTEGER NOT NULL,
     "HadSwing" INTEGER NOT NULL,
@@ -159,4 +163,21 @@ CREATE TABLE PitchFlightpathGameDelta
 CREATE INDEX idx_PitchFlightpathGameData_PitcherGamePitch ON PitchFlightpathGameDelta
 (
     "PitcherId", "GameId", "FastballPitchType"
+);
+
+-- Tracks Which zones are competitive for a pitch type
+-- Uncompetitive pitches will be thrown out rather than used for stuff
+-- evaluation, since they either have SSS or will all rate essentially the same
+-- due to all the pitches having the same result.
+CREATE TABLE PitchZoneCompetitive (
+    "pitchClass"      INTEGER NOT NULL,
+    "pitIsR"          INTEGER NOT NULL,
+    "hitIsR"          INTEGER NOT NULL,
+    "zoneRow"         INTEGER NOT NULL,
+    "zoneCol"         INTEGER NOT NULL,
+    "pitchCount"      INTEGER NOT NULL,
+    "swingCount"      INTEGER NOT NULL,
+    "isCompetitive"   INTEGER NOT NULL,
+    "hasEnoughSample" INTEGER NOT NULL,
+    PRIMARY KEY("pitchClass", "pitIsR", "hitIsR", "zoneRow", "zoneCol")
 );

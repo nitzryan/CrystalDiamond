@@ -1,6 +1,9 @@
+from __future__ import annotations
 import sqlite3
 
 class DB_PitchData:
+	__slots__ = ('GameId','PitchId','Year','LevelId','Month','RunValueSmoothedHitter','RunValueHitter','Scenario','PaResult','PaResultDirectRuns','PitcherId','PitchType','PitchClass','CountBalls','CountStrike','PitIsR','HitIsR','ISO','WRC','HitterPa','Result','HadSwing','HadContact','IsInPlay','RunValueInPlay','Vel','Extension','BreakInduced','BreakHorizontal','SpinRate','SpinAxis','ActiveSpin','VaaAboveAverage','HaaAboveAverage','PlateX','PlateZ','ZoneTop','ZoneBot')
+
 	def __init__(self, values : tuple[any]):
 		self.GameId = values[0]
 		self.PitchId = values[1]
@@ -19,37 +22,44 @@ class DB_PitchData:
 		self.CountStrike = values[14]
 		self.PitIsR = values[15]
 		self.HitIsR = values[16]
-		self.Result = values[17]
-		self.HadSwing = values[18]
-		self.HadContact = values[19]
-		self.IsInPlay = values[20]
-		self.RunValueInPlay = values[21]
-		self.Vel = values[22]
-		self.Extension = values[23]
-		self.BreakInduced = values[24]
-		self.BreakHorizontal = values[25]
-		self.SpinRate = values[26]
-		self.SpinAxis = values[27]
-		self.ActiveSpin = values[28]
-		self.VaaAboveAverage = values[29]
-		self.HaaAboveAverage = values[30]
-		self.PlateX = values[31]
-		self.PlateZ = values[32]
-		self.ZoneTop = values[33]
-		self.ZoneBot = values[34]
+		self.ISO = values[17]
+		self.WRC = values[18]
+		self.HitterPa = values[19]
+		self.Result = values[20]
+		self.HadSwing = values[21]
+		self.HadContact = values[22]
+		self.IsInPlay = values[23]
+		self.RunValueInPlay = values[24]
+		self.Vel = values[25]
+		self.Extension = values[26]
+		self.BreakInduced = values[27]
+		self.BreakHorizontal = values[28]
+		self.SpinRate = values[29]
+		self.SpinAxis = values[30]
+		self.ActiveSpin = values[31]
+		self.VaaAboveAverage = values[32]
+		self.HaaAboveAverage = values[33]
+		self.PlateX = values[34]
+		self.PlateZ = values[35]
+		self.ZoneTop = values[36]
+		self.ZoneBot = values[37]
 
-	NUM_ELEMENTS = 35
+	NUM_ELEMENTS = 38
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.GameId,self.PitchId,self.Year,self.LevelId,self.Month,self.RunValueSmoothedHitter,self.RunValueHitter,self.Scenario,self.PaResult,self.PaResultDirectRuns,self.PitcherId,self.PitchType,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateZ,self.ZoneTop,self.ZoneBot)
+		return (self.GameId,self.PitchId,self.Year,self.LevelId,self.Month,self.RunValueSmoothedHitter,self.RunValueHitter,self.Scenario,self.PaResult,self.PaResultDirectRuns,self.PitcherId,self.PitchType,self.PitchClass,self.CountBalls,self.CountStrike,self.PitIsR,self.HitIsR,self.ISO,self.WRC,self.HitterPa,self.Result,self.HadSwing,self.HadContact,self.IsInPlay,self.RunValueInPlay,self.Vel,self.Extension,self.BreakInduced,self.BreakHorizontal,self.SpinRate,self.SpinAxis,self.ActiveSpin,self.VaaAboveAverage,self.HaaAboveAverage,self.PlateX,self.PlateZ,self.ZoneTop,self.ZoneBot)
                         
 	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchData']:
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchData]:
 		items = cursor.execute("SELECT * FROM PitchData " + conditional, values).fetchall()
 		return [DB_PitchData(i) for i in items]
 
+
+##############################################################################################
 class DB_PitchFlightpath:
+	__slots__ = ('GameId','PitchId','Year','PitcherId','PitchType','PitchClass','PitIsR','BreakHoriz_05','BreakVer_05','BreakHoriz_10','BreakVer_10','BreakHoriz_15','BreakVer_15','BreakHoriz_20','BreakVer_20','BreakHoriz_25','BreakVer_25','HAA','VAA','HB','IVB','VB','Vel','TrackingError','PlateX','PlateZ')
+
 	def __init__(self, values : tuple[any]):
 		self.GameId = values[0]
 		self.PitchId = values[1]
@@ -85,11 +95,15 @@ class DB_PitchFlightpath:
 		return (self.GameId,self.PitchId,self.Year,self.PitcherId,self.PitchType,self.PitchClass,self.PitIsR,self.BreakHoriz_05,self.BreakVer_05,self.BreakHoriz_10,self.BreakVer_10,self.BreakHoriz_15,self.BreakVer_15,self.BreakHoriz_20,self.BreakVer_20,self.BreakHoriz_25,self.BreakVer_25,self.HAA,self.VAA,self.HB,self.IVB,self.VB,self.Vel,self.TrackingError,self.PlateX,self.PlateZ)
                         
 	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchFlightpath']:
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchFlightpath]:
 		items = cursor.execute("SELECT * FROM PitchFlightpath " + conditional, values).fetchall()
 		return [DB_PitchFlightpath(i) for i in items]
 
+
+##############################################################################################
 class DB_PitchFlightpathGameDelta:
+	__slots__ = ('GameId','PitchId','PitcherId','FastballPitchType','BreakHoriz_05Delta','BreakVer_05Delta','BreakHoriz_10Delta','BreakVer_10Delta','BreakHoriz_15Delta','BreakVer_15Delta','BreakHoriz_20Delta','BreakVer_20Delta','BreakHoriz_25Delta','BreakVer_25Delta','BreakHoriz_Delta','BreakVert_Delta','BreakIVB_Delta','Vel_Delta')
+
 	def __init__(self, values : tuple[any]):
 		self.GameId = values[0]
 		self.PitchId = values[1]
@@ -117,9 +131,36 @@ class DB_PitchFlightpathGameDelta:
 		return (self.GameId,self.PitchId,self.PitcherId,self.FastballPitchType,self.BreakHoriz_05Delta,self.BreakVer_05Delta,self.BreakHoriz_10Delta,self.BreakVer_10Delta,self.BreakHoriz_15Delta,self.BreakVer_15Delta,self.BreakHoriz_20Delta,self.BreakVer_20Delta,self.BreakHoriz_25Delta,self.BreakVer_25Delta,self.BreakHoriz_Delta,self.BreakVert_Delta,self.BreakIVB_Delta,self.Vel_Delta)
                         
 	@staticmethod
-	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list['DB_PitchFlightpathGameDelta']:
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchFlightpathGameDelta]:
 		items = cursor.execute("SELECT * FROM PitchFlightpathGameDelta " + conditional, values).fetchall()
 		return [DB_PitchFlightpathGameDelta(i) for i in items]
+
+
+##############################################################################################
+class DB_PitchZoneCompetitive:
+	__slots__ = ('pitchClass','pitIsR','hitIsR','zoneRow','zoneCol','pitchCount','swingCount','isCompetitive','hasEnoughSample')
+
+	def __init__(self, values : tuple[any]):
+		self.pitchClass = values[0]
+		self.pitIsR = values[1]
+		self.hitIsR = values[2]
+		self.zoneRow = values[3]
+		self.zoneCol = values[4]
+		self.pitchCount = values[5]
+		self.swingCount = values[6]
+		self.isCompetitive = values[7]
+		self.hasEnoughSample = values[8]
+
+	NUM_ELEMENTS = 9
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.pitchClass,self.pitIsR,self.hitIsR,self.zoneRow,self.zoneCol,self.pitchCount,self.swingCount,self.isCompetitive,self.hasEnoughSample)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchZoneCompetitive]:
+		items = cursor.execute("SELECT * FROM PitchZoneCompetitive " + conditional, values).fetchall()
+		return [DB_PitchZoneCompetitive(i) for i in items]
 
 
 ##############################################################################################

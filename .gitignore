@@ -25,3 +25,7 @@ node_modules/
 
 # Typescript
 *.tsbuildinfo
+
+# Building sub-workspaces
+archive*.bat
+archive*.zip

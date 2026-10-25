@@ -1,6 +1,6 @@
 namespace PitchTrackingDb
 {
-	public class PitchFlightpath
+	public partial class PitchFlightpath
 	{
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}

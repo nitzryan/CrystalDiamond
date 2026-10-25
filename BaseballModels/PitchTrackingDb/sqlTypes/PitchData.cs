@@ -1,6 +1,6 @@
 namespace PitchTrackingDb
 {
-	public class PitchData
+	public partial class PitchData
 	{
 		public required int GameId {get; set;}
 		public required int PitchId {get; set;}
@@ -19,6 +19,9 @@ namespace PitchTrackingDb
 		public required int CountStrike {get; set;}
 		public required bool PitIsR {get; set;}
 		public required bool HitIsR {get; set;}
+		public required float ISO {get; set;}
+		public required float WRC {get; set;}
+		public required int HitterPa {get; set;}
 		public required Db.DbEnums.PitchResult Result {get; set;}
 		public required bool HadSwing {get; set;}
 		public required bool HadContact {get; set;}
@@ -59,6 +62,9 @@ namespace PitchTrackingDb
 				CountStrike = this.CountStrike,
 				PitIsR = this.PitIsR,
 				HitIsR = this.HitIsR,
+				ISO = this.ISO,
+				WRC = this.WRC,
+				HitterPa = this.HitterPa,
 				Result = this.Result,
 				HadSwing = this.HadSwing,
 				HadContact = this.HadContact,
