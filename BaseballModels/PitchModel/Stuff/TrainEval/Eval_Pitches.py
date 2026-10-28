@@ -32,7 +32,7 @@ def Eval_Pitches(end_year : int):
     
     # Delete old data
     cursor = pitch_db.cursor()
-    cursor.execute("DELETE FROM Output_PitchValue")
+    cursor.execute("DELETE FROM Output_PitchValueAggregation")
     pitch_db.commit()
     
     # Get Models
@@ -48,6 +48,16 @@ def Eval_Pitches(end_year : int):
             data_prep = GetDataPrep(model_id, model_year)
             mth_list = DB_ModelTrainingHistory_PitchValue.Select_From_DB(
                 cursor, "WHERE ModelId=? AND Year=?", (model_id, model_year))
+            
+            # Pitchers that were in the TRAIN split of each run for this model/year.
+            # Pitchers with isTrain=0 (test split) or with no row at all stay eligible.
+            train_pitchers_by_run = {}
+            for mth in mth_list:
+                rows = DB_PlayersInTrainingData.Select_From_DB(
+                    cursor, "WHERE modelId=? AND Year=? AND modelRun=?",
+                    (model_id, model_year, mth.ModelRun))
+                train_pitchers_by_run[mth.ModelRun] = torch.tensor(
+                    sorted({r.mlbId for r in rows if r.isTrain}), dtype=torch.int64)
             
             year = model_year + 1
             if year > end_year:
@@ -67,18 +77,32 @@ def Eval_Pitches(end_year : int):
             num_batches = (n_samples + BATCH_SIZE - 1) // BATCH_SIZE
             indices = torch.arange(n_samples)
             
-            for mth in tqdm(mth_list, desc="Evaluating Model Copies", leave=False):
-                # Iterate through pitches in batches
-                with torch.no_grad():
-                    for batch_i in tqdm(range(num_batches), desc="Batches", leave=False):
-                        # Get data from dataset
-                        start = batch_i * BATCH_SIZE
-                        end = min(start + BATCH_SIZE, n_samples)
-                        batch_indices = indices[start:end]
-                        mappings, data, _ = dataset.GetEntries(batch_indices, eval_mode=True)
-                        mappings = tuple(m.to('cpu', non_blocking=True) for m in mappings)
-                        mapping_game_ids, mapping_pitch_nums, mapping_pitcher_ids, mapping_level_ids = mappings
-                        data_stuff, data_comb = tuple(d.to(device, non_blocking=True) for d in data)
+            # Iterate through pitches in batches
+            with torch.no_grad():
+                for batch_i in tqdm(range(num_batches), desc="Batches", leave=False):
+                    # Get data from dataset
+                    start = batch_i * BATCH_SIZE
+                    end = min(start + BATCH_SIZE, n_samples)
+                    batch_indices = indices[start:end]
+                    mappings, data, _ = dataset.GetEntries(batch_indices, eval_mode=True)
+                    mappings = tuple(m.to('cpu', non_blocking=True) for m in mappings)
+                    mapping_game_ids, mapping_pitch_nums, mapping_pitcher_ids, mapping_level_ids, mapping_balls, mapping_strikes = mappings
+                    data_stuff, data_comb = tuple(d.to(device, non_blocking=True) for d in data)
+                        
+                    # Running sum of outputs across model runs for this batch
+                    output_sum = None
+                    run_counts = torch.zeros(len(batch_indices), dtype=torch.int64)
+                        
+                    for mth in tqdm(mth_list, desc="Evaluating Model Copies", leave=False):
+                        # Only evaluate pitches whose pitcher was NOT in this run's training split
+                        eligible = ~torch.isin(
+                            mapping_pitcher_ids,
+                            train_pitchers_by_run[mth.ModelRun].to(mapping_pitcher_ids.dtype))
+                        eligible_idx = eligible.nonzero(as_tuple=True)[0]
+                        if eligible_idx.numel() == 0:
+                            continue
+                        eligible_idx_dev = eligible_idx.to(device, non_blocking=True)
+                        run_counts[eligible_idx] += 1
                         
                         output_list = []
                         for model_variant_type in tqdm(MODEL_VARIANTS, desc="Model Variants", leave=False):
@@ -94,9 +118,9 @@ def Eval_Pitches(end_year : int):
                                 
                                 match model_variant_type:
                                     case ModelVariantType.Stuff:
-                                        model_data = data_stuff
+                                        model_data = data_stuff[eligible_idx_dev]
                                     case ModelVariantType.Combined:
-                                        model_data = data_comb
+                                        model_data = data_comb[eligible_idx_dev]
                                 
                                 # Run through model
                                 output = network(model_data)
@@ -114,21 +138,38 @@ def Eval_Pitches(end_year : int):
                                 torch.cuda.empty_cache()
                                 gc.collect()
                                 
-                        db_data = [tuple(row.tolist()) for row in torch.cat((\
-                            mapping_game_ids.unsqueeze(-1),
-                            mapping_pitch_nums.unsqueeze(-1),
-                            mapping_level_ids.unsqueeze(-1),
-                            mapping_pitcher_ids.unsqueeze(-1),
-                            *output_list), dim=-1)]
-                                
-                                
-                        cursor.executemany(f"INSERT INTO Output_PitchValue VALUES({model_id},?,?,{model_year},{mth.ModelRun},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", db_data)
-                        
-                        # Clear Memory
+                        # Add this run's outputs to the running sum
+                        run_output = torch.cat(output_list, dim=-1)
+                        if output_sum is None:
+                            output_sum = torch.zeros(len(batch_indices), run_output.shape[-1],
+                                                     dtype=run_output.dtype)
+                        output_sum[eligible_idx] += run_output
                         del output_list
-                        del data
-                        torch.cuda.empty_cache()
-                        gc.collect()
+                                
+                    # Average across the runs each pitch was actually eligible for
+                    if output_sum is None or (run_counts == 0).any():
+                        bad_pitchers = mapping_pitcher_ids[run_counts == 0].unique().tolist()
+                        raise RuntimeError(
+                            f"Model {model_id} year {model_year}: pitchers {bad_pitchers} were in the "
+                            f"training split of every run and cannot be evaluated.")
+                    output_avg = output_sum / run_counts.unsqueeze(-1).to(output_sum.dtype)
+                                
+                    db_data = [tuple(row.tolist()) for row in torch.cat((\
+                        mapping_game_ids.unsqueeze(-1),
+                        mapping_pitch_nums.unsqueeze(-1),
+                        mapping_level_ids.unsqueeze(-1),
+                        mapping_pitcher_ids.unsqueeze(-1),
+                        mapping_balls.unsqueeze(-1),
+                        mapping_strikes.unsqueeze(-1),
+                        output_avg), dim=-1)]
+                            
+                            
+                    cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000)", db_data)
+                        
+                    # Clear Memory
+                    del data
+                    torch.cuda.empty_cache()
+                    gc.collect()
             
             del dataset
             del data_prep

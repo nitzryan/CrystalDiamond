@@ -154,6 +154,8 @@ class DataPrep:
                 game_id=pitch.GameId,
                 pitch_num=pitch.PitchId,
                 level_id=pitch.LevelId,
+                count_balls=pitch.CountBalls,
+                count_strikes=pitch.CountStrike,
                 data_stuff=data_stuff[i],
                 data_combined=data_combined[i],
                 output_type=DataPrep.GetOutputType(pitch),

@@ -8,6 +8,8 @@ class PitchIO:
         pitch_num : int,
         pitcher_id : int,
         level_id : int,
+        count_balls : int,
+        count_strikes : int,
                  
         # Data for model
         data_stuff : torch.Tensor,
@@ -26,6 +28,8 @@ class PitchIO:
         self.pitch_num = pitch_num
         self.pitcher_id = pitcher_id
         self.level_id = level_id
+        self.count_balls = count_balls
+        self.count_strikes = count_strikes
         
         self.data_stuff = data_stuff
         self.data_combined = data_combined

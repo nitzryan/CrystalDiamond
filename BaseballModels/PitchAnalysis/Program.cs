@@ -15,7 +15,6 @@ namespace PitchAnalysis
 
             if (FORCE_REFRESH)
             {
-                pitchDb.Output_PitchValueAggregation.ExecuteDelete();
                 pitchDb.YearLeagueDeviations.ExecuteDelete();
                 pitchDb.PitchValue.ExecuteDelete();
                 pitchDb.PitcherStuff.ExecuteDelete();
