@@ -1,7 +1,9 @@
 ﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using PitchTrackingDb;
 using ScottPlot;
+using ShellProgressBar;
 using System.Linq.Expressions;
 
 namespace DataAquisition.PitchTracking
@@ -659,7 +661,7 @@ namespace DataAquisition.PitchTracking
         }
 
         public sealed record PitchZoneCounts(long[,] Counts, long[,] Swings, long NoZone, long NoZoneSwings);
-        public static PitchZoneCounts CountPitchesPerZone(IQueryable<PitchData> pitches)
+        public static PitchZoneCounts CountPitchesPerZone(List<PitchData> pitches)
         {
             long[,] counts = new long[PitchZoneLayout.GridSize, PitchZoneLayout.GridSize];
             long[,] swings = new long[PitchZoneLayout.GridSize, PitchZoneLayout.GridSize];
@@ -667,7 +669,6 @@ namespace DataAquisition.PitchTracking
             long noZoneSwings = 0;
 
             var projected = pitches
-                .AsNoTracking()
                 .Select(p => new { p.PlateX, p.PlateZ, p.ZoneTop, p.ZoneBot, p.HadSwing });
 
             foreach (var p in projected)
@@ -764,8 +765,9 @@ namespace DataAquisition.PitchTracking
         private static void GenerateZoneCompetitive(PitchTrackingDbContext pitchDb, IQueryable<PitchData> pitches, int minPitches, double minSwingRate)
         {
             var combos = pitches
-                .Select(p => new { p.PitchClass, p.PitIsR, p.HitIsR })
+                .Select(p => new { p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike, p.Year })
                 .Distinct()
+                .OrderBy(f => f.Year)
                 .ToList();
 
             if (Directory.Exists(ZoneCompetitivePlotDirectory))
@@ -776,15 +778,32 @@ namespace DataAquisition.PitchTracking
 
             List<PitchZoneCompetitive> rows = new(combos.Count * PitchZoneLayout.GridSize * PitchZoneLayout.GridSize);
 
+            ProgressBar progressBar = new(combos.Count, $"Generating Pitch Zone Competitive Values");
+
+            // Get each year's pitches so we only need to hit the DB once per year
+            List<PitchData> pitchDataCache = [];
+            int lastYear = -1;
             foreach (var combo in combos)
             {
-                // Locals so EF sends plain parameters.
-                Db.DbEnums.PitchClass pitchClass = combo.PitchClass;
-                bool pitIsR = combo.PitIsR;
-                bool hitIsR = combo.HitIsR;
+                // Check for cache update
+                if (combo.Year != lastYear)
+                {
+                    lastYear = combo.Year;
+                    pitchDataCache = pitches
+                        .AsNoTracking()
+                        .Where(f => f.Year == lastYear)
+                        .ToList();
+                }
 
-                PitchZoneCounts counts = CountPitchesPerZone(
-                    pitches.Where(p => p.PitchClass == pitchClass && p.PitIsR == pitIsR && p.HitIsR == hitIsR));
+                // Get selected pitches from cache
+                var validPitches = pitchDataCache.Where(p =>
+                    p.PitchClass == combo.PitchClass &&
+                    p.PitIsR == combo.PitIsR &&
+                    p.HitIsR == combo.HitIsR &&
+                    p.CountBalls == combo.CountBalls &&
+                    p.CountStrike == combo.CountStrike)
+                    .ToList();
+                PitchZoneCounts counts = CountPitchesPerZone(validPitches);
 
                 // Every cell gets a row, including empty ones, so a missing row never needs interpreting.
                 for (int row = 0; row < PitchZoneLayout.GridSize; row++)
@@ -796,23 +815,31 @@ namespace DataAquisition.PitchTracking
 
                         rows.Add(new PitchZoneCompetitive
                         {
-                            PitchClass = pitchClass,
-                            PitIsR = pitIsR,
-                            HitIsR = hitIsR,
+                            Year = combo.Year,
+                            PitchClass = combo.PitchClass,
+                            PitIsR = combo.PitIsR,
+                            HitIsR = combo.HitIsR,
+                            CountBalls = combo.CountBalls,
+                            CountStrikes = combo.CountStrike,
                             ZoneRow = row,
                             ZoneCol = column,
                             PitchCount = (int)pitchCount,
                             SwingCount = (int)swingCount,
                             IsCompetitive = IsCompetitive(pitchCount, swingCount, minSwingRate),
-                            HasEnoughSample = HasValidSampleSize(pitchCount, minPitches)
+                            HasEnoughSample = HasValidSampleSize(pitchCount, minPitches),
+                            ExpectedValueHitter = validPitches.Any() ? 
+                                validPitches.Average(f => f.RunValueSmoothedHitter)
+                                : 0,
                         });
                     }
                 }
 
                 // Same counts and same rule as the rows above, so the plot matches what gets stored.
-                string label = $"{pitchClass}_{(pitIsR ? "RHP" : "LHP")}_{(hitIsR ? "RHH" : "LHH")}";
+                string label = $"{combo.PitchClass}_{combo.Year}_{(combo.PitIsR ? "RHP" : "LHP")}_{(combo.HitIsR ? "RHH" : "LHH")} {combo.CountBalls}-{combo.CountStrike}";
                 PlotZoneCounts(counts, label, Path.Combine(ZoneCompetitivePlotDirectory, $"{label}.png"),
                     minPitches, minSwingRate);
+
+                progressBar.Tick();
             }
 
             pitchDb.PitchZoneCompetitive.ExecuteDelete();
@@ -824,11 +851,11 @@ namespace DataAquisition.PitchTracking
             PitchTrackingDbContext pitchDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_OPTIONS);
 
             var pitches = pitchDb.PitchData
-                .Where(f => f.Year == 2026 
+                .Where(f => f.Year >= 2017 
                     && f.LevelId == 1
                     && f.PitchClass != Db.DbEnums.PitchClass.Other);
 
-            GenerateZoneCompetitive(pitchDb, pitches, 30, 0.10);
+            GenerateZoneCompetitive(pitchDb, pitches, 5, 0.10);
         }
     }
 }

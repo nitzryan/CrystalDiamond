@@ -170,14 +170,18 @@ CREATE INDEX idx_PitchFlightpathGameData_PitcherGamePitch ON PitchFlightpathGame
 -- evaluation, since they either have SSS or will all rate essentially the same
 -- due to all the pitches having the same result.
 CREATE TABLE PitchZoneCompetitive (
+    "year"            INTEGER NOT NULL,
     "pitchClass"      INTEGER NOT NULL,
     "pitIsR"          INTEGER NOT NULL,
     "hitIsR"          INTEGER NOT NULL,
+    "countBalls"      INTEGER NOT NULL,
+    "countStrikes"    INTEGER NOT NULL,
     "zoneRow"         INTEGER NOT NULL,
     "zoneCol"         INTEGER NOT NULL,
     "pitchCount"      INTEGER NOT NULL,
     "swingCount"      INTEGER NOT NULL,
     "isCompetitive"   INTEGER NOT NULL,
     "hasEnoughSample" INTEGER NOT NULL,
-    PRIMARY KEY("pitchClass", "pitIsR", "hitIsR", "zoneRow", "zoneCol")
+    "expectedValueHitter" REAL NOT NULL,
+    PRIMARY KEY("year", "pitchClass", "pitIsR", "hitIsR", "countBalls", "countStrikes", "zoneRow", "zoneCol")
 );

@@ -138,24 +138,28 @@ class DB_PitchFlightpathGameDelta:
 
 ##############################################################################################
 class DB_PitchZoneCompetitive:
-	__slots__ = ('pitchClass','pitIsR','hitIsR','zoneRow','zoneCol','pitchCount','swingCount','isCompetitive','hasEnoughSample')
+	__slots__ = ('year','pitchClass','pitIsR','hitIsR','countBalls','countStrikes','zoneRow','zoneCol','pitchCount','swingCount','isCompetitive','hasEnoughSample','expectedValueHitter')
 
 	def __init__(self, values : tuple[any]):
-		self.pitchClass = values[0]
-		self.pitIsR = values[1]
-		self.hitIsR = values[2]
-		self.zoneRow = values[3]
-		self.zoneCol = values[4]
-		self.pitchCount = values[5]
-		self.swingCount = values[6]
-		self.isCompetitive = values[7]
-		self.hasEnoughSample = values[8]
+		self.year = values[0]
+		self.pitchClass = values[1]
+		self.pitIsR = values[2]
+		self.hitIsR = values[3]
+		self.countBalls = values[4]
+		self.countStrikes = values[5]
+		self.zoneRow = values[6]
+		self.zoneCol = values[7]
+		self.pitchCount = values[8]
+		self.swingCount = values[9]
+		self.isCompetitive = values[10]
+		self.hasEnoughSample = values[11]
+		self.expectedValueHitter = values[12]
 
-	NUM_ELEMENTS = 9
+	NUM_ELEMENTS = 13
 
                             
 	def To_Tuple(self) -> tuple[any]:
-		return (self.pitchClass,self.pitIsR,self.hitIsR,self.zoneRow,self.zoneCol,self.pitchCount,self.swingCount,self.isCompetitive,self.hasEnoughSample)
+		return (self.year,self.pitchClass,self.pitIsR,self.hitIsR,self.countBalls,self.countStrikes,self.zoneRow,self.zoneCol,self.pitchCount,self.swingCount,self.isCompetitive,self.hasEnoughSample,self.expectedValueHitter)
                         
 	@staticmethod
 	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchZoneCompetitive]:

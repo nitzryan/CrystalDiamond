@@ -224,9 +224,8 @@ namespace DataAquisition
                 PitchTracking.GeneratePitchTrajectory.Calculate(FULL_REFRESH);
                 PitchTracking.GenerateFlightpathDeltas.Calculate(FULL_REFRESH);
                 PitchTracking.GenerateModelPitchData.Generate();
+                PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
             }
-
-            PitchTracking.ResultA.TestFunction();
 
             if (DRAFT_UPDATE || FULL_REFRESH)
             {
