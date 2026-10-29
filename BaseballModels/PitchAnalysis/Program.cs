@@ -23,6 +23,7 @@ namespace PitchAnalysis
             }
 
             PitchAggregation.Update();
+            return;
 
             int startYear = pitchDb.Output_PitchValueAggregation.Min(f => f.Year);
             int endYear = pitchDb.Output_PitchValueAggregation.Max(f => f.Year);

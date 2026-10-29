@@ -68,7 +68,6 @@ def Eval_Pitches(end_year : int):
                 end_year=year,
                 validation_year=None,
                 mlb_only=False,
-                force_mlb=True,
             )
             eval_datasets = CreateTestTrainDatasets(pitch_io_data, eval_mode=True)
             dataset = eval_datasets.train
@@ -86,7 +85,7 @@ def Eval_Pitches(end_year : int):
                     batch_indices = indices[start:end]
                     mappings, data, _ = dataset.GetEntries(batch_indices, eval_mode=True)
                     mappings = tuple(m.to('cpu', non_blocking=True) for m in mappings)
-                    mapping_game_ids, mapping_pitch_nums, mapping_pitcher_ids, mapping_level_ids, mapping_balls, mapping_strikes = mappings
+                    mapping_game_ids, mapping_pitch_nums, mapping_pitcher_ids, mapping_level_ids = mappings
                     data_stuff, data_comb = tuple(d.to(device, non_blocking=True) for d in data)
                         
                     # Running sum of outputs across model runs for this batch
@@ -159,12 +158,9 @@ def Eval_Pitches(end_year : int):
                         mapping_pitch_nums.unsqueeze(-1),
                         mapping_level_ids.unsqueeze(-1),
                         mapping_pitcher_ids.unsqueeze(-1),
-                        mapping_balls.unsqueeze(-1),
-                        mapping_strikes.unsqueeze(-1),
                         output_avg), dim=-1)]
                             
-                            
-                    cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000)", db_data)
+                    cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000,NULL,NULL)", db_data)
                         
                     # Clear Memory
                     del data

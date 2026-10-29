@@ -7,9 +7,6 @@ CREATE TABLE Output_PitchValueAggregation (
 	"LevelId" INTEGER NOT NULL,
 	"mlbId" INTEGER NOT NULL,
 
-	"CountBalls" INTEGER NOT NULL,
-	"CountStrikes" INTEGER NOT NULL,
-
 	-- Stuff
 	"stuffCalledStrike" REAL NOT NULL,
 	"stuffBall" REAL NOT NULL,
@@ -36,6 +33,8 @@ CREATE TABLE Output_PitchValueAggregation (
 
 	"stuffRuns" REAL NOT NULL,
 	"combinedRuns" REAL NOT NULL,
+	"stuffBinRuns" REAL,
+	"locBinRuns" REAL,
 
 	PRIMARY KEY("model", "gameId", "pitchId", "ModelYear")
 );

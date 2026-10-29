@@ -154,8 +154,6 @@ class DataPrep:
                 game_id=pitch.GameId,
                 pitch_num=pitch.PitchId,
                 level_id=pitch.LevelId,
-                count_balls=pitch.CountBalls,
-                count_strikes=pitch.CountStrike,
                 data_stuff=data_stuff[i],
                 data_combined=data_combined[i],
                 output_type=DataPrep.GetOutputType(pitch),
@@ -177,8 +175,7 @@ class DataPrep:
                           start_year : int, 
                           end_year : int, 
                           validation_year : int | None,
-                          mlb_only : bool = True,
-                          force_mlb : bool = False) -> PitchIOData:
+                          mlb_only : bool = True) -> PitchIOData:
         
         
         cursor = tracking_db.cursor()
@@ -190,11 +187,6 @@ class DataPrep:
             conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
             values=(start_year, end_year)
         )
-        
-        # Option to move all pitches to be evaluated as if they were MLB pitches
-        if force_mlb:
-            for p in pitches:
-                p.LevelId = 1
         
         data = self._PitchesToIO(pitches)
            

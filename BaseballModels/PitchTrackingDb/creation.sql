@@ -185,3 +185,16 @@ CREATE TABLE PitchZoneCompetitive (
     "expectedValueHitter" REAL NOT NULL,
     PRIMARY KEY("year", "pitchClass", "pitIsR", "hitIsR", "countBalls", "countStrikes", "zoneRow", "zoneCol")
 );
+
+-- Tracks the aggregate value for pitches that didn't land in a competitive zone
+CREATE TABLE PitchZoneNonCompetitive (
+    "Year" INTEGER NOT NULL,
+    "PitchClass" INTEGER NOT NULL,
+    "PitIsR" INTEGER NOT NULL,
+    "HitIsR" INTEGER NOT NULL,
+    "CountBalls" INTEGER NOT NULL,
+    "CountStrikes" INTEGER NOT NULL,
+    "PitchCount" INTEGER NOT NULL,
+    "ExpectedValueHitter" REAL NOT NULL,
+    PRIMARY KEY("Year", "PitchClass", "PitIsR", "HitIsR", "CountBalls", "CountStrikes")
+);

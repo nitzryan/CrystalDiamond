@@ -168,3 +168,29 @@ class DB_PitchZoneCompetitive:
 
 
 ##############################################################################################
+class DB_PitchZoneNonCompetitive:
+	__slots__ = ('Year','PitchClass','PitIsR','HitIsR','CountBalls','CountStrikes','PitchCount','ExpectedValueHitter')
+
+	def __init__(self, values : tuple[any]):
+		self.Year = values[0]
+		self.PitchClass = values[1]
+		self.PitIsR = values[2]
+		self.HitIsR = values[3]
+		self.CountBalls = values[4]
+		self.CountStrikes = values[5]
+		self.PitchCount = values[6]
+		self.ExpectedValueHitter = values[7]
+
+	NUM_ELEMENTS = 8
+
+                            
+	def To_Tuple(self) -> tuple[any]:
+		return (self.Year,self.PitchClass,self.PitIsR,self.HitIsR,self.CountBalls,self.CountStrikes,self.PitchCount,self.ExpectedValueHitter)
+                        
+	@staticmethod
+	def Select_From_DB(cursor : 'sqlite3.Cursor', conditional: str, values: tuple) -> list[DB_PitchZoneNonCompetitive]:
+		items = cursor.execute("SELECT * FROM PitchZoneNonCompetitive " + conditional, values).fetchall()
+		return [DB_PitchZoneNonCompetitive(i) for i in items]
+
+
+##############################################################################################

@@ -32,8 +32,6 @@ class PitchDataset(torch.utils.data.Dataset):
                 mapping_pitch_nums : torch.Tensor,
                 mapping_pitcher_ids : torch.Tensor,
                 mapping_level_ids : torch.Tensor,
-                mapping_count_balls : torch.Tensor,
-                mapping_count_strikes : torch.Tensor,
                  
                 data_stuff : torch.Tensor,
                 data_combined : torch.Tensor,
@@ -56,8 +54,6 @@ class PitchDataset(torch.utils.data.Dataset):
         self.mapping_pitch_nums = mapping_pitch_nums
         self.mapping_pitcher_ids = mapping_pitcher_ids
         self.mapping_level_ids = mapping_level_ids
-        self.mapping_count_balls = mapping_count_balls
-        self.mapping_count_strikes = mapping_count_strikes
         
         self.data_stuff = data_stuff.t().to(device=dataset_device, non_blocking=True)
         self.data_combined = data_combined.t().to(device=dataset_device, non_blocking=True)
@@ -110,8 +106,6 @@ class PitchDataset(torch.utils.data.Dataset):
             self.mapping_pitch_nums[filtered_indices],
             self.mapping_pitcher_ids[filtered_indices],
             self.mapping_level_ids[filtered_indices],
-            self.mapping_count_balls[filtered_indices],
-            self.mapping_count_strikes[filtered_indices],
         )
         
         # Data used to feed into model
@@ -148,8 +142,6 @@ def _BuildPitchDataset(io_list : list[PitchIO], dataset_device = device) -> Pitc
         torch.tensor([io.pitch_num     for io in io_list], dtype=torch.long),
         torch.tensor([io.pitcher_id    for io in io_list], dtype=torch.long),
         torch.tensor([io.level_id      for io in io_list], dtype=torch.long),
-        torch.tensor([io.count_balls   for io in io_list], dtype=torch.long),
-        torch.tensor([io.count_strikes for io in io_list], dtype=torch.long),
 
         torch.stack([io.data_stuff    for io in io_list], dim=1),
         torch.stack([io.data_combined for io in io_list], dim=1),

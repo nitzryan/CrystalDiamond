@@ -764,6 +764,11 @@ namespace DataAquisition.PitchTracking
 
         private static void GenerateZoneCompetitive(PitchTrackingDbContext pitchDb, IQueryable<PitchData> pitches, int minPitches, double minSwingRate)
         {
+            using var deleteTransaction = pitchDb.Database.BeginTransaction();
+            pitchDb.PitchZoneCompetitive.ExecuteDelete();
+            pitchDb.PitchZoneNonCompetitive.ExecuteDelete();
+            deleteTransaction.Commit();
+
             var combos = pitches
                 .Select(p => new { p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike, p.Year })
                 .Distinct()
@@ -777,6 +782,7 @@ namespace DataAquisition.PitchTracking
             Directory.CreateDirectory(ZoneCompetitivePlotDirectory);
 
             List<PitchZoneCompetitive> rows = new(combos.Count * PitchZoneLayout.GridSize * PitchZoneLayout.GridSize);
+            List<PitchZoneNonCompetitive> nonCompetitiveRows = new(combos.Count);
 
             ProgressBar progressBar = new(combos.Count, $"Generating Pitch Zone Competitive Values");
 
@@ -813,6 +819,12 @@ namespace DataAquisition.PitchTracking
                         long pitchCount = counts.Counts[row, column];
                         long swingCount = counts.Swings[row, column];
 
+                        var currentZone = new PitchZone(row, column);
+
+                        var cellPitches = validPitches
+                            .Where(f => GetZone(f) == currentZone)
+                            .ToList();
+
                         rows.Add(new PitchZoneCompetitive
                         {
                             Year = combo.Year,
@@ -827,12 +839,33 @@ namespace DataAquisition.PitchTracking
                             SwingCount = (int)swingCount,
                             IsCompetitive = IsCompetitive(pitchCount, swingCount, minSwingRate),
                             HasEnoughSample = HasValidSampleSize(pitchCount, minPitches),
-                            ExpectedValueHitter = validPitches.Any() ? 
-                                validPitches.Average(f => f.RunValueSmoothedHitter)
+                            ExpectedValueHitter = cellPitches.Any() ?
+                                cellPitches.Average(f => f.RunValueSmoothedHitter)
                                 : 0,
                         });
                     }
                 }
+
+                // Pitches that will NOT be valued by a competitive bin: no zone, or a bin failing either rule.
+                List<PitchData> nonCompetitivePitches = validPitches
+                    .Where(p =>
+                        GetZone(p) is not PitchZone zone
+                        || !IsCompetitive(counts.Counts[zone.Row, zone.Column], counts.Swings[zone.Row, zone.Column], minSwingRate)
+                        || !HasValidSampleSize(counts.Counts[zone.Row, zone.Column], minPitches))
+                    .ToList();
+                nonCompetitiveRows.Add(new PitchZoneNonCompetitive
+                {
+                    Year = combo.Year,
+                    PitchClass = combo.PitchClass,
+                    PitIsR = combo.PitIsR,
+                    HitIsR = combo.HitIsR,
+                    CountBalls = combo.CountBalls,
+                    CountStrikes = combo.CountStrike,
+                    PitchCount = nonCompetitivePitches.Count,
+                    ExpectedValueHitter = nonCompetitivePitches.Count > 0
+                        ? nonCompetitivePitches.Average(f => f.RunValueSmoothedHitter)
+                        : 0,
+                });
 
                 // Same counts and same rule as the rows above, so the plot matches what gets stored.
                 string label = $"{combo.PitchClass}_{combo.Year}_{(combo.PitIsR ? "RHP" : "LHP")}_{(combo.HitIsR ? "RHH" : "LHH")} {combo.CountBalls}-{combo.CountStrike}";
@@ -842,8 +875,10 @@ namespace DataAquisition.PitchTracking
                 progressBar.Tick();
             }
 
-            pitchDb.PitchZoneCompetitive.ExecuteDelete();
+            using var insertTransaction = pitchDb.Database.BeginTransaction();
             pitchDb.BulkInsert(rows);
+            pitchDb.BulkInsert(nonCompetitiveRows);
+            insertTransaction.Commit();
         }
 
         public static void GenerateZoneCompetitivePlotsAndTable()

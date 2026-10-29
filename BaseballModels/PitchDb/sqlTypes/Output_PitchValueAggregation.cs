@@ -9,8 +9,6 @@ namespace PitchDb
 		public required int Year {get; set;}
 		public required int LevelId {get; set;}
 		public required int MlbId {get; set;}
-		public required int CountBalls {get; set;}
-		public required int CountStrikes {get; set;}
 		public required float StuffCalledStrike {get; set;}
 		public required float StuffBall {get; set;}
 		public required float StuffHBP {get; set;}
@@ -29,6 +27,8 @@ namespace PitchDb
 		public required float CombinedInPlayExpected {get; set;}
 		public required float StuffRuns {get; set;}
 		public required float CombinedRuns {get; set;}
+		public float? StuffBinRuns {get; set;}
+		public float? LocBinRuns {get; set;}
 
 		public Output_PitchValueAggregation Clone()
 		{
@@ -41,8 +41,6 @@ namespace PitchDb
 				Year = this.Year,
 				LevelId = this.LevelId,
 				MlbId = this.MlbId,
-				CountBalls = this.CountBalls,
-				CountStrikes = this.CountStrikes,
 				StuffCalledStrike = this.StuffCalledStrike,
 				StuffBall = this.StuffBall,
 				StuffHBP = this.StuffHBP,
@@ -61,6 +59,8 @@ namespace PitchDb
 				CombinedInPlayExpected = this.CombinedInPlayExpected,
 				StuffRuns = this.StuffRuns,
 				CombinedRuns = this.CombinedRuns,
+				StuffBinRuns = this.StuffBinRuns,
+				LocBinRuns = this.LocBinRuns,
 			};
 		}
 	}
