@@ -2,11 +2,10 @@
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using System.Globalization;
-using System.Text;
 
 namespace DataAquisition.Misc
 {
-    internal class GetDraftSlotValues
+    internal static class GetDraftSlotValues
     {
         private static IWebDriver _driver;
 

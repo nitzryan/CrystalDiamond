@@ -22,7 +22,9 @@ namespace PitchAnalysis
                 pitchDb.PitchModelResultBasis.ExecuteDelete();
             }
 
-            PitchAggregation.Update();
+            //PitchAggregation.Update();
+            //StuffLocationCorrelation.GeneratePlots();
+            BinEvaluation.Evaluate();
             return;
 
             int startYear = pitchDb.Output_PitchValueAggregation.Min(f => f.Year);

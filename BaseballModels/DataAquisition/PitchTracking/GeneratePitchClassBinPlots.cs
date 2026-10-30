@@ -12,10 +12,10 @@ namespace DataAquisition.PitchTracking
     {
         public const double BallDiameter = 0.24;
         public const double BallRadius = BallDiameter / 2;
+        public const double PlateWidth = 17.0 / 12.0;
 
-        // Half the plate width (0.708ft) plus one ball radius: the furthest the ball's centre
-        // can be from the middle of the plate while part of the ball is still over it.
-        public const double ZoneHalfWidth = 0.83;
+        // Furthest a ball centre can be from the plate centre while still touching the zone (~0.828ft).
+        public const double ZoneHalfWidth = PlateWidth / 2 + BallRadius;
     }
 
     internal class GeneratePitchClassBinPlots
@@ -449,15 +449,8 @@ namespace DataAquisition.PitchTracking
 
     public static class PitchBinCompetitiveness
     {
-        public static class BaseballConstants
-        {
-            public const double BallDiameterFt = 0.24;
-            public const double BallRadiusFt = BallDiameterFt / 2;
-            public const double PlateWidthFt = 17.0 / 12.0;
-
-            // Furthest a ball centre can be from the plate centre while still touching the zone (~0.828ft).
-            public const double ZoneHalfWidthFt = PlateWidthFt / 2 + BallRadiusFt;
-        }
+        public static int MIN_PITCHES = 5;
+        public static float MIN_SWING_RATE = 0.10f;
 
         private const string ZoneCompetitivePlotDirectory = "ZoneCompetitivePlots";
 
@@ -470,7 +463,7 @@ namespace DataAquisition.PitchTracking
             public const int MiddleRowIndex = OutsideCells + SquareRowsPerSide; // the variable-height row
 
             // In-zone cells are square (except the middle row): zone width split into ZoneCells columns.
-            public const double ZoneCellSize = 2 * BaseballConstants.ZoneHalfWidthFt / ZoneCells;
+            public const double ZoneCellSize = 2 * BaseballConstants.ZoneHalfWidth / ZoneCells;
 
             // Fixed size of cells outside the zone. 3 x 0.19ft reaches +-1.40ft horizontally.
             public const double OutsideCellSize = ZoneCellSize;
@@ -492,8 +485,8 @@ namespace DataAquisition.PitchTracking
         private static double[] BuildColumnEdges()
         {
             double[] edges = new double[PitchZoneLayout.GridSize + 1];
-            double zoneLeft = -BaseballConstants.ZoneHalfWidthFt;
-            double zoneRight = BaseballConstants.ZoneHalfWidthFt;
+            double zoneLeft = -BaseballConstants.ZoneHalfWidth;
+            double zoneRight = BaseballConstants.ZoneHalfWidth;
 
             // Outside-left edges, ending exactly on the zone's left edge.
             for (int i = 0; i <= PitchZoneLayout.OutsideCells; i++)
@@ -518,8 +511,8 @@ namespace DataAquisition.PitchTracking
 
         public static double[] BuildRowEdges(float zoneTop, float zoneBot)
         {
-            double zoneBottomEdge = zoneBot - BaseballConstants.BallRadiusFt;
-            double zoneTopEdge = zoneTop + BaseballConstants.BallRadiusFt;
+            double zoneBottomEdge = zoneBot - BaseballConstants.BallRadius;
+            double zoneTopEdge = zoneTop + BaseballConstants.BallRadius;
 
             double middleHeight = (zoneTopEdge - zoneBottomEdge) - 2 * PitchZoneLayout.SquareRowsPerSide * PitchZoneLayout.ZoneCellSize;
             if (middleHeight <= 0)
@@ -633,7 +626,7 @@ namespace DataAquisition.PitchTracking
             }
 
             // The ball at true size; with SquareUnits below it renders as a circle.
-            double radius = BaseballConstants.BallRadiusFt;
+            double radius = BaseballConstants.BallRadius;
             var ball = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, radius);
             ball.FillStyle.Color = ScottPlot.Colors.Red.WithAlpha(0.5);
             ball.LineStyle.Color = ScottPlot.Colors.Black;
@@ -890,7 +883,7 @@ namespace DataAquisition.PitchTracking
                     && f.LevelId == 1
                     && f.PitchClass != Db.DbEnums.PitchClass.Other);
 
-            GenerateZoneCompetitive(pitchDb, pitches, 5, 0.10);
+            GenerateZoneCompetitive(pitchDb, pitches, MIN_PITCHES, MIN_SWING_RATE);
         }
     }
 }

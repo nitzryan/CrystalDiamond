@@ -4,6 +4,7 @@ using PitchDb;
 using PitchTrackingDb;
 using ShellProgressBar;
 using DataAquisition.PitchTracking;
+using Db;
 
 namespace PitchAnalysis
 {
@@ -34,13 +35,14 @@ namespace PitchAnalysis
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
+            using SqliteDbContext db = new(Constants.DB_OPTIONS);
 
             // Get expected run values for each scenario each year
             Dictionary<PitchScenarioResult, float> psrDict = new();
             var pitchScenarioPitches = ptDb.PitchData.Where(f =>
                 f.LevelId == 1 && f.Year >= 2017 // Non-comprehensive data before 2017
             )
-            .Select(f => new { f.Year, f.CountBalls, f.CountStrike, f.Result, f.RunValueHitter, f.GameId, f.PitchId })
+            .Select(f => new { f.Year, f.CountBalls, f.CountStrike, f.Result, f.RunValueSmoothedHitter, f.GameId, f.PitchId })
             .ToList();
             
             var scenarios = pitchScenarioPitches.Select(f => new PitchScenario
@@ -59,21 +61,21 @@ namespace PitchAnalysis
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
                         f.Result == Db.DbEnums.PitchResult.Ball)
-                        .Average(f => f.RunValueHitter);
+                        .Average(f => f.RunValueSmoothedHitter);
 
                     float strikeValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
                         (f.Result == Db.DbEnums.PitchResult.CalledStrike || f.Result == Db.DbEnums.PitchResult.SwingingStrike))
-                        .Average(f => f.RunValueHitter);
+                        .Average(f => f.RunValueSmoothedHitter);
 
                     float hbpValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
                         f.Result == Db.DbEnums.PitchResult.HBP)
-                        .Average(f => f.RunValueHitter);
+                        .Average(f => f.RunValueSmoothedHitter);
 
                     psrDict[new PitchScenarioResult(scenario, PitchResult.Ball)] = ballValue;
                     psrDict[new PitchScenarioResult(scenario, PitchResult.Strike)] = strikeValue;
