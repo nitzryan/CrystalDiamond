@@ -98,6 +98,12 @@ function selectorEventHandler(this : HTMLSelectElement, ev : Event) : void
     const selectedMonth : number = parseInt(month_select.value)
     const selectedYear : number = parseInt(year_select.value)
 
+    // If not in multi-year mode, change end year to match start year
+    if (splitSeasonsCheckbox !== null && year_end_select !== null && !splitSeasonsCheckbox.checked)
+    {
+        year_end_select.value = year_select.value
+    }
+
     const rangeInvalid = year_end_select !== null && selectedYear > parseInt(year_end_select.value)
 
     if (rangeInvalid)

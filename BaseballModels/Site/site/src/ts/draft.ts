@@ -31,7 +31,7 @@ async function main()
         startYear : dates.startYear,
         startTeam : null,
         level : null,
-        splitSeasons : startYear !== endYear
+        splitSeasons : startYear !== rangeEndYear
     })
 
     draftTable = new DraftLoaderTable(startYear, rangeEndYear, month, modelId)
@@ -61,8 +61,12 @@ async function main()
 
     rankings_button.addEventListener('click', (event) => {
         const model = model_select.value
+        
+        const multiYearSelected = splitSeasonsCheckbox!.checked
         const start = year_select.value
-        const end = year_end_select!.value
+        const end = multiYearSelected ? 
+            year_end_select!.value :
+            start
         if (parseInt(start) > parseInt(end))
             return
 
