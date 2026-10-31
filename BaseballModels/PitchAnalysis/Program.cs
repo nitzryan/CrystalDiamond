@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DataAquisition.PitchTracking;
+using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using PitchTrackingDb;
 
@@ -22,8 +23,10 @@ namespace PitchAnalysis
                 pitchDb.PitchModelResultBasis.ExecuteDelete();
             }
 
-            //PitchAggregation.Update();
-            //StuffLocationCorrelation.GeneratePlots();
+            PitchZoneBin bin = new PitchZoneBin(new PitchZoneBinArgs());
+            DataAquisition.PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
+            PitchAggregation.Update(bin);
+            StuffLocationCorrelation.GeneratePlots(bin);
             BinEvaluation.Evaluate();
             return;
 

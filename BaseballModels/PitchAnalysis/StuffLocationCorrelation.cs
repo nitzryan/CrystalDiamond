@@ -23,6 +23,7 @@ namespace PitchAnalysis
         private const int TABLE_LINE_HEIGHT = 22;
         private const int TABLE_PADDING = 20;
         private const int MAX_DISPLAY_POINTS = 50000;     // location-response scatter is subsampled for drawing only
+        private const int MIN_BIN_YEAR = 2022;
 
         private readonly record struct GroupKey(int Model, int Year, int MlbId, Db.DbEnums.PitchType PitchType);
         private record DataPoint(GroupKey Key, string Label, double Stuff, double Location);
@@ -37,7 +38,7 @@ namespace PitchAnalysis
         internal readonly record struct PzcKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes, int Row, int Col);
 
-        public static void GeneratePlots()
+        public static void GeneratePlots(PitchZoneBin bin)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
@@ -48,7 +49,7 @@ namespace PitchAnalysis
                 .AsNoTracking()
                 .Select(f => f.Year)
                 .Distinct()
-                .Where(f => f != 2021) // Covid Year lacks data for pitch zones
+                .Where(f => f >= MIN_BIN_YEAR)
                 .ToList();
             Dictionary<(int, int), PitchInfo> pitchInfoDict = ptDb.PitchData
                 .AsNoTracking()
@@ -64,12 +65,7 @@ namespace PitchAnalysis
             Console.WriteLine($"Loaded {pitchInfoDict.Count} Pitches");
 
             // Sample size of every valid bin (the only bins competitive pitches can have been valued with)
-            Dictionary<PzcKey, int> binCountDict = ptDb.PitchZoneCompetitive
-                .AsNoTracking()
-                .Where(f => f.IsCompetitive && f.HasEnoughSample)
-                .ToDictionary(
-                    f => new PzcKey(f.Year, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrikes, f.ZoneRow, f.ZoneCol),
-                    f => f.PitchCount);
+            Dictionary<PzcKey, float> binCountDict = LoadBinCounts(ptDb, bin, years.Select(y => y - 1));
 
             // Competitive pitches per group: (bin value, stuffBinRuns, bin PitchCount); combined = bin + stuffBin
             Dictionary<GroupKey, List<(float Bin, float StuffBin, int BinCount)>> competitivePitches = new();
@@ -77,10 +73,11 @@ namespace PitchAnalysis
             // Stream OPVA, accumulating per model/pitcher/pitchType/year.
             // Every row with a stuff value also has a location value, so filtering on location loses nothing.
             Dictionary<GroupKey, (RunningStatistics Stuff, RunningStatistics Loc)> groups = new();
-            foreach (var pva in pitchDb.Output_PitchValueAggregation
+            var outputPitchStream = pitchDb.Output_PitchValueAggregation
                 .AsNoTracking()
-                .Where(f => f.LocBinRuns != null && f.LevelId == 1 && f.Year != 2021)
-                .Select(f => new { f.Model, f.GameId, f.PitchId, f.Year, f.MlbId, f.StuffBinRuns, f.LocBinRuns }))
+                .Where(f => f.LocBinRuns != null && f.LevelId == 1 && f.Year >= MIN_BIN_YEAR)
+                .Select(f => new { f.Model, f.GameId, f.PitchId, f.Year, f.MlbId, f.StuffBinRuns, f.LocBinRuns });
+            foreach (var pva in outputPitchStream)
             {
                 PitchInfo pitch = pitchInfoDict[(pva.GameId, pva.PitchId)];
                 GroupKey key = new(pva.Model, pva.Year, pva.MlbId, pitch.PitchType);
@@ -98,12 +95,11 @@ namespace PitchAnalysis
                         pitchList = new();
                         competitivePitches[key] = pitchList;
                     }
-                    // Prior-year bin this competitive pitch was valued with; must exist or OPVA is out of sync with PZC
-                    if (PitchBinCompetitiveness.GetZone(pitch.PlateX, pitch.PlateZ, pitch.ZoneTop, pitch.ZoneBot)
-                        is not PitchBinCompetitiveness.PitchZone zone)
+                    // Prior-year bin this competitive pitch was valued with; must exist or OPVA is out of sync with the bin
+                    if (bin.GetZone(pitch.PlateX, pitch.PlateZ, pitch.ZoneTop, pitch.ZoneBot) is not PitchZone zone)
                         throw new InvalidOperationException(
-                            $"Competitive pitch {pva.GameId}/{pva.PitchId} has no zone; OPVA is out of sync with PitchZoneCompetitive.");
-                    int binCount = binCountDict[new PzcKey(pva.Year - 1, pitch.PitchClass, pitch.PitIsR, pitch.HitIsR,
+                            $"Competitive pitch {pva.GameId}/{pva.PitchId} has no zone; OPVA is out of sync with the PitchZoneBin.");
+                    int binCount = (int)binCountDict[new PzcKey(pva.Year - 1, pitch.PitchClass, pitch.PitIsR, pitch.HitIsR,
                         pitch.Balls, pitch.Strikes, zone.Row, zone.Column)];
                     pitchList.Add((pva.LocBinRuns!.Value, pva.StuffBinRuns.Value, binCount));
                 }
@@ -163,6 +159,34 @@ namespace PitchAnalysis
             }
         }
 
+        // Sample size of every valid bin in each bin year, built the same way PitchAggregation values pitches
+        private static Dictionary<PzcKey, float> LoadBinCounts(PitchTrackingDbContext ptDb, PitchZoneBin bin, IEnumerable<int> binYears)
+        {
+            Dictionary<PzcKey, float> binCounts = new();
+            var years = binYears
+                .Where(y => y >= MIN_BIN_YEAR - 1)
+                .Distinct()
+                .OrderBy(y => y);
+            foreach (int binYear in years)
+            {
+                List<PitchData> binPitches = ptDb.PitchData
+                    .AsNoTracking()
+                    .Where(f => f.Year == binYear && f.LevelId == 1 && f.PitchClass != Db.DbEnums.PitchClass.Other)
+                    .ToList();
+                var (competitiveRows, _) = bin.BuildCompetitiveRows(binPitches);
+
+                foreach (PitchZoneCompetitive row in competitiveRows.Where(f => f.IsCompetitive && f.HasEnoughSample))
+                {
+                    PzcKey key = new(row.Year, row.PitchClass, row.PitIsR, row.HitIsR, row.CountBalls, row.CountStrikes, row.ZoneRow, row.ZoneCol);
+                    binCounts[key] = row.PitchCount;
+                }
+
+                Console.WriteLine($"Built {binYear} bins from {binPitches.Count:N0} pitches");
+            }
+
+            return binCounts;
+        }
+
         private static void CreatePlot(List<DataPoint> points, string title, string path)
         {
             if (points.Count < 3)
@@ -176,7 +200,7 @@ namespace PitchAnalysis
 
             // One-sided test of H1: correlation < 0 (Pearson t-test, df = n - 2; identical to the slope t-test)
             int df = points.Count - 2;
-            double t = r * Math.Sqrt(df / (1 - r * r));
+            double t = r * Math.Sqrt(df / (1 - (r * r)));
             double pValue = StudentT.CDF(0, 1, df, t);
 
             using ScottPlot.Plot plot = new();
@@ -186,7 +210,7 @@ namespace PitchAnalysis
 
             double xMin = xs.Min();
             double xMax = xs.Max();
-            var trend = plot.Add.Line(xMin, intercept + slope * xMin, xMax, intercept + slope * xMax);
+            var trend = plot.Add.Line(xMin, intercept + (slope * xMin), xMax, intercept + (slope * xMax));
             trend.LineStyle.Color = ScottPlot.Colors.Red;
             trend.LineStyle.Width = 2;
 
@@ -217,7 +241,7 @@ namespace PitchAnalysis
                 RankingLines("Stuff", points, p => p.Stuff),
                 RankingLines("Location", points, p => p.Location),
             ];
-            int tableHeight = 2 * TABLE_PADDING + columns.Max(c => c.Count) * TABLE_LINE_HEIGHT;
+            int tableHeight = (2 * TABLE_PADDING) + (columns.Max(c => c.Count) * TABLE_LINE_HEIGHT);
 
             using SKBitmap plotBitmap = SKBitmap.Decode(plot.GetImageBytes(IMAGE_WIDTH, PLOT_HEIGHT, ScottPlot.ImageFormat.Png));
             using SKSurface surface = SKSurface.Create(new SKImageInfo(IMAGE_WIDTH, PLOT_HEIGHT + tableHeight));
@@ -229,9 +253,9 @@ namespace PitchAnalysis
             using SKFont font = new(SKTypeface.FromFamilyName("Consolas"), TABLE_FONT_SIZE);   // monospace so values align
             for (int c = 0; c < columns.Length; c++)
             {
-                float x = TABLE_PADDING + c * (IMAGE_WIDTH / columns.Length);
+                float x = TABLE_PADDING + (c * (IMAGE_WIDTH / columns.Length));
                 for (int i = 0; i < columns[c].Count; i++)
-                    canvas.DrawText(columns[c][i], x, PLOT_HEIGHT + TABLE_PADDING + (i + 1) * TABLE_LINE_HEIGHT, font, paint);
+                    canvas.DrawText(columns[c][i], x, PLOT_HEIGHT + TABLE_PADDING + ((i + 1) * TABLE_LINE_HEIGHT), font, paint);
             }
 
             using SKImage image = surface.Snapshot();
@@ -274,7 +298,7 @@ namespace PitchAnalysis
 
             double xMin = xs.Min();
             double xMax = xs.Max();
-            var fit = plot.Add.Line(xMin, intercept + slope * xMin, xMax, intercept + slope * xMax);
+            var fit = plot.Add.Line(xMin, intercept + (slope * xMin), xMax, intercept + (slope * xMax));
             fit.LineStyle.Color = ScottPlot.Colors.Red;
             fit.LineStyle.Width = 2;
             var reference = plot.Add.Line(xMin, xMin, xMax, xMax);   // k = 1
@@ -333,7 +357,7 @@ namespace PitchAnalysis
                 double[] y = ys[b].ToArray();
                 var (intercept, k) = Fit.Line(x, y);
                 // Slope standard error: residual SE / sqrt(sum of squared demeaned x)
-                double kSe = GoodnessOfFit.StandardError(x.Select(v => intercept + k * v), y, 2) / Math.Sqrt(x.Sum(v => v * v));
+                double kSe = GoodnessOfFit.StandardError(x.Select(v => intercept + (k * v)), y, 2) / Math.Sqrt(x.Sum(v => v * v));
 
                 ticks.AddMajor(b, $"{range}\nn={x.Length:N0}");
                 plotXs.Add(b);

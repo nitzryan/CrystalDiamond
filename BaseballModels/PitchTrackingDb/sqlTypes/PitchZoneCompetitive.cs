@@ -10,8 +10,8 @@ namespace PitchTrackingDb
 		public required int CountStrikes {get; set;}
 		public required int ZoneRow {get; set;}
 		public required int ZoneCol {get; set;}
-		public required int PitchCount {get; set;}
-		public required int SwingCount {get; set;}
+		public required float PitchCount {get; set;}
+		public required float SwingCount {get; set;}
 		public required bool IsCompetitive {get; set;}
 		public required bool HasEnoughSample {get; set;}
 		public required float ExpectedValueHitter {get; set;}

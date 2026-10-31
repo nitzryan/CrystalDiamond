@@ -31,7 +31,7 @@ namespace PitchAnalysis
         private readonly record struct PzncKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes);
 
-        public static void Update()
+        public static void Update(PitchZoneBin bin)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
@@ -86,22 +86,6 @@ namespace PitchAnalysis
                 }
             }
 
-            // Only valid bins are stored; a missing key means "no valid bin" (including PitchClass.Other)
-            Dictionary<PzcKey, float> pzcDict = ptDb.PitchZoneCompetitive
-                .AsNoTracking()
-                .Where(f => f.IsCompetitive && f.HasEnoughSample)
-                .ToDictionary(
-                    f => new PzcKey(f.Year, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrikes, f.ZoneRow, f.ZoneCol),
-                    f => f.ExpectedValueHitter);
-
-            // Pooled value of pitches that don't land in a valid bin, per situation
-            Dictionary<PzncKey, float> pzncDict = ptDb.PitchZoneNonCompetitive
-                .AsNoTracking()
-                .Where(f => f.PitchCount > 0)
-                .ToDictionary(
-                    f => new PzncKey(f.Year, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrikes),
-                    f => f.ExpectedValueHitter);
-
             // Load aggregated pitches (probabilities already averaged over eligible runs by Eval_Pitches;
             // StuffRuns/CombinedRuns are -1000 placeholders at this point)
             List<Output_PitchValueAggregation> pvaList = pitchDb.Output_PitchValueAggregation
@@ -127,6 +111,7 @@ namespace PitchAnalysis
                                                f.PlateX, f.PlateZ, f.ZoneTop, f.ZoneBot));
 
                     // Bin value depends only on the pitch, not the model, so compute once per pitch
+                    var (pzcDict, pzncDict) = LoadBinYear(ptDb, bin, year - 1);
                     Dictionary<(int, int), float?> binCache = new();
 
                     // Iterate through pitches in the year
@@ -159,7 +144,7 @@ namespace PitchAnalysis
                         // Bin value from the PREVIOUS year's bins (no leakage)
                         if (!binCache.TryGetValue(pitchKey, out float? binValue))
                         {
-                            binValue = GetBinValue(pzcDict, year - 1, pitch);
+                            binValue = GetBinValue(bin, pzcDict, year - 1, pitch);
                             binCache[pitchKey] = binValue;
                         }
 
@@ -207,15 +192,42 @@ namespace PitchAnalysis
 
         // Hitter expected value of the valid (competitive + enough sample) bin this pitch lands in,
         // using bins built from binYear. Null if there is no such bin.
-        private static float? GetBinValue(Dictionary<PzcKey, float> pzcDict, int binYear, PitchInfo p)
+        private static float? GetBinValue(PitchZoneBin bin, Dictionary<PzcKey, float> pzcDict, int binYear, PitchInfo p)
         {
-            if (PitchBinCompetitiveness.GetZone(p.PlateX, p.PlateZ, p.ZoneTop, p.ZoneBot) is not PitchBinCompetitiveness.PitchZone zone)
+            if (bin.GetZone(p.PlateX, p.PlateZ, p.ZoneTop, p.ZoneBot) is not PitchZone zone)
                 return null;
 
             if (!pzcDict.TryGetValue(new PzcKey(binYear, p.PitchClass, p.PitIsR, p.HitIsR, p.Balls, p.Strikes, zone.Row, zone.Column), out float value))
                 return null;
 
             return value;
+        }
+
+        // Valid bins and the per-situation pool for binYear. A missing PzcKey means "no valid bin" (including PitchClass.Other).
+        private static (Dictionary<PzcKey, float> Competitive, Dictionary<PzncKey, float> Pool) LoadBinYear(
+            PitchTrackingDbContext ptDb, PitchZoneBin bin, int binYear)
+        {
+            List<PitchData> binPitches = [];
+            binPitches = ptDb.PitchData
+                .AsNoTracking()
+                .Where(f => f.Year == binYear && f.LevelId == 1 && f.PitchClass != Db.DbEnums.PitchClass.Other)
+                .ToList();
+
+            var (competitiveRows, nonCompetitiveRows) = bin.BuildCompetitiveRows(binPitches);
+
+            Dictionary<PzcKey, float> competitive = competitiveRows
+                .Where(f => f.IsCompetitive && f.HasEnoughSample)
+                .ToDictionary(
+                    f => new PzcKey(f.Year, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrikes, f.ZoneRow, f.ZoneCol),
+                    f => f.ExpectedValueHitter);
+
+            Dictionary<PzncKey, float> pool = nonCompetitiveRows
+                .Where(f => f.PitchCount > 0)
+                .ToDictionary(
+                    f => new PzncKey(f.Year, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrikes),
+                    f => f.ExpectedValueHitter);
+
+            return (competitive, pool);
         }
     }
 }

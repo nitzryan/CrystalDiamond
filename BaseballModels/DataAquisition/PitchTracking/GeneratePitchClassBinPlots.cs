@@ -1,6 +1,5 @@
 ﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using PitchTrackingDb;
 using ScottPlot;
 using ShellProgressBar;
@@ -15,7 +14,7 @@ namespace DataAquisition.PitchTracking
         public const double PlateWidth = 17.0 / 12.0;
 
         // Furthest a ball centre can be from the plate centre while still touching the zone (~0.828ft).
-        public const double ZoneHalfWidth = PlateWidth / 2 + BallRadius;
+        public const double ZoneHalfWidth = (PlateWidth / 2) + BallRadius;
     }
 
     internal class GeneratePitchClassBinPlots
@@ -449,313 +448,9 @@ namespace DataAquisition.PitchTracking
 
     public static class PitchBinCompetitiveness
     {
-        public static int MIN_PITCHES = 5;
-        public static float MIN_SWING_RATE = 0.10f;
-
         private const string ZoneCompetitivePlotDirectory = "ZoneCompetitivePlots";
 
-        public static class PitchZoneLayout
-        {
-            public const int ZoneCells = 5;                                   // NxN inside the strike zone
-            public const int OutsideCells = 5;                                // rows/columns on each side of the zone
-            public const int GridSize = ZoneCells + (2 * OutsideCells);         
-            public const int SquareRowsPerSide = 2;                           // square rows at top and bottom of the zone
-            public const int MiddleRowIndex = OutsideCells + SquareRowsPerSide; // the variable-height row
-
-            // In-zone cells are square (except the middle row): zone width split into ZoneCells columns.
-            public const double ZoneCellSize = 2 * BaseballConstants.ZoneHalfWidth / ZoneCells;
-
-            // Fixed size of cells outside the zone. 3 x 0.19ft reaches +-1.40ft horizontally.
-            public const double OutsideCellSize = ZoneCellSize;
-        }
-
-        public readonly record struct PitchZone(int Row, int Column)
-        {
-            // Row 0 = lowest row, Column 0 = left-most column (most negative PlateX).
-            public int Id => (Row * PitchZoneLayout.GridSize) + Column;
-
-            public bool IsInStrikeZone =>
-                Row >= PitchZoneLayout.OutsideCells && Row < PitchZoneLayout.OutsideCells + PitchZoneLayout.ZoneCells &&
-                Column >= PitchZoneLayout.OutsideCells && Column < PitchZoneLayout.OutsideCells + PitchZoneLayout.ZoneCells;
-
-            public bool IsMiddleRow => Row == PitchZoneLayout.MiddleRowIndex;
-        }
-
-        private static readonly double[] ColumnEdges = BuildColumnEdges();
-        private static double[] BuildColumnEdges()
-        {
-            double[] edges = new double[PitchZoneLayout.GridSize + 1];
-            double zoneLeft = -BaseballConstants.ZoneHalfWidth;
-            double zoneRight = BaseballConstants.ZoneHalfWidth;
-
-            // Outside-left edges, ending exactly on the zone's left edge.
-            for (int i = 0; i <= PitchZoneLayout.OutsideCells; i++)
-            {
-                edges[i] = zoneLeft - (PitchZoneLayout.OutsideCells - i) * PitchZoneLayout.OutsideCellSize;
-            }
-
-            // Equal-width columns across the zone.
-            for (int i = 1; i < PitchZoneLayout.ZoneCells; i++)
-            {
-                edges[PitchZoneLayout.OutsideCells + i] = zoneLeft + i * PitchZoneLayout.ZoneCellSize;
-            }
-
-            // Zone's right edge, then outside-right edges.
-            for (int i = 0; i <= PitchZoneLayout.OutsideCells; i++)
-            {
-                edges[PitchZoneLayout.OutsideCells + PitchZoneLayout.ZoneCells + i] = zoneRight + i * PitchZoneLayout.OutsideCellSize;
-            }
-
-            return edges;
-        }
-
-        public static double[] BuildRowEdges(float zoneTop, float zoneBot)
-        {
-            double zoneBottomEdge = zoneBot - BaseballConstants.BallRadius;
-            double zoneTopEdge = zoneTop + BaseballConstants.BallRadius;
-
-            double middleHeight = (zoneTopEdge - zoneBottomEdge) - 2 * PitchZoneLayout.SquareRowsPerSide * PitchZoneLayout.ZoneCellSize;
-            if (middleHeight <= 0)
-            {
-                throw new ArgumentException(
-                    $"Zone {zoneBot:F2}-{zoneTop:F2} is too short for {2 * PitchZoneLayout.SquareRowsPerSide} square rows.");
-            }
-
-            double[] edges = new double[PitchZoneLayout.GridSize + 1];
-
-            // Outside-below edges, ending exactly on the zone's bottom edge.
-            for (int i = 0; i <= PitchZoneLayout.OutsideCells; i++)
-            {
-                edges[i] = zoneBottomEdge - (PitchZoneLayout.OutsideCells - i) * PitchZoneLayout.OutsideCellSize;
-            }
-
-            // Square rows up from the bottom of the zone.
-            for (int i = 1; i <= PitchZoneLayout.SquareRowsPerSide; i++)
-            {
-                edges[PitchZoneLayout.OutsideCells + i] = zoneBottomEdge + i * PitchZoneLayout.ZoneCellSize;
-            }
-
-            // Square rows down from the top of the zone (the gap between these and the ones above is the middle row).
-            int topZoneEdgeIndex = PitchZoneLayout.OutsideCells + PitchZoneLayout.ZoneCells;
-            for (int i = 0; i <= PitchZoneLayout.SquareRowsPerSide; i++)
-            {
-                edges[topZoneEdgeIndex - i] = zoneTopEdge - i * PitchZoneLayout.ZoneCellSize;
-            }
-
-            // Outside-above edges.
-            for (int i = 1; i <= PitchZoneLayout.OutsideCells; i++)
-            {
-                edges[topZoneEdgeIndex + i] = zoneTopEdge + i * PitchZoneLayout.OutsideCellSize;
-            }
-
-            return edges;
-        }
-
-        private static int FindCell(double[] edges, double value)
-        {
-            if (value < edges[0] || value >= edges[^1])
-            {
-                return -1;
-            }
-
-            int cell = 0;
-            while (value >= edges[cell + 1])
-            {
-                cell++;
-            }
-            return cell;
-        }
-
-        public static PitchZone? GetZone(float plateX, float plateZ, float zoneTop, float zoneBot)
-        {
-            int column = FindCell(ColumnEdges, plateX);
-            int row = FindCell(BuildRowEdges(zoneTop, zoneBot), plateZ);
-
-            return column < 0 || row < 0 ? null : new PitchZone(row, column);
-        }
-
-        public static PitchZone? GetZone(PitchData pitch)
-        {
-            return GetZone(pitch.PlateX, pitch.PlateZ, pitch.ZoneTop, pitch.ZoneBot);
-        }
-
-        // Plot the strike zone and the zone bins
-        private static void AddZoneGrid(ScottPlot.Plot plot, double[] columnEdges, double[] rowEdges)
-        {
-            foreach (double x in columnEdges)
-            {
-                var line = plot.Add.Line(x, rowEdges[0], x, rowEdges[^1]);
-                line.LineStyle.Color = ScottPlot.Colors.Gray;
-                line.LineStyle.Width = 1;
-            }
-
-            foreach (double z in rowEdges)
-            {
-                var line = plot.Add.Line(columnEdges[0], z, columnEdges[^1], z);
-                line.LineStyle.Color = ScottPlot.Colors.Gray;
-                line.LineStyle.Width = 1;
-            }
-
-            int zoneStart = PitchZoneLayout.OutsideCells;
-            int zoneEnd = zoneStart + PitchZoneLayout.ZoneCells;
-            var outline = plot.Add.Rectangle(columnEdges[zoneStart], columnEdges[zoneEnd], rowEdges[zoneStart], rowEdges[zoneEnd]);
-            outline.FillStyle.Color = ScottPlot.Colors.Transparent;
-            outline.LineStyle.Color = ScottPlot.Colors.Black;
-            outline.LineStyle.Width = 2.5f;
-        }
-
-        // Plot where a single pitch was, and what zone is hit
-        public static void PlotPitchZone(PitchData pitch, string outputPath, int imageSize = 900)
-        {
-            double[] rowEdges = BuildRowEdges(pitch.ZoneTop, pitch.ZoneBot);
-            PitchZone? zone = GetZone(pitch);
-
-            using var plot = new ScottPlot.Plot();
-            AddZoneGrid(plot, ColumnEdges, rowEdges);
-
-            string description = "no zone (uncompetitive)";
-            if (zone is PitchZone z)
-            {
-                var cell = plot.Add.Rectangle(ColumnEdges[z.Column], ColumnEdges[z.Column + 1], rowEdges[z.Row], rowEdges[z.Row + 1]);
-                cell.FillStyle.Color = ScottPlot.Colors.Orange.WithAlpha(0.4);
-                cell.LineStyle.Color = ScottPlot.Colors.Orange;
-                cell.LineStyle.Width = 2;
-
-                description = $"zone {z.Id} (row {z.Row}, col {z.Column}), " +
-                              (z.IsInStrikeZone ? "in strike zone" : "outside strike zone");
-            }
-
-            // The ball at true size; with SquareUnits below it renders as a circle.
-            double radius = BaseballConstants.BallRadius;
-            var ball = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, radius);
-            ball.FillStyle.Color = ScottPlot.Colors.Red.WithAlpha(0.5);
-            ball.LineStyle.Color = ScottPlot.Colors.Black;
-            ball.LineStyle.Width = 1.5f;
-
-            // Exact ball centre, for reading position against a boundary.
-            var centre = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, 0.015);
-            centre.FillStyle.Color = ScottPlot.Colors.Black;
-            centre.LineStyle.Color = ScottPlot.Colors.Black;
-
-            plot.Title($"Game {pitch.GameId} pitch {pitch.PitchId}: {description}");
-            plot.XLabel("PlateX (ft)");
-            plot.YLabel("PlateZ (ft)");
-
-            // Cover the grid and the ball, whichever is larger, with a little padding.
-            const double pad = 0.2;
-            plot.Axes.SetLimits(
-                Math.Min(ColumnEdges[0], pitch.PlateX - radius) - pad,
-                Math.Max(ColumnEdges[^1], pitch.PlateX + radius) + pad,
-                Math.Min(rowEdges[0], pitch.PlateZ - radius) - pad,
-                Math.Max(rowEdges[^1], pitch.PlateZ + radius) + pad);
-            plot.Axes.SquareUnits();
-
-            plot.SavePng(outputPath, imageSize, imageSize);
-        }
-
-        public sealed record PitchZoneCounts(long[,] Counts, long[,] Swings, long NoZone, long NoZoneSwings);
-        public static PitchZoneCounts CountPitchesPerZone(List<PitchData> pitches)
-        {
-            long[,] counts = new long[PitchZoneLayout.GridSize, PitchZoneLayout.GridSize];
-            long[,] swings = new long[PitchZoneLayout.GridSize, PitchZoneLayout.GridSize];
-            long noZone = 0;
-            long noZoneSwings = 0;
-
-            var projected = pitches
-                .Select(p => new { p.PlateX, p.PlateZ, p.ZoneTop, p.ZoneBot, p.HadSwing });
-
-            foreach (var p in projected)
-            {
-                int swing = p.HadSwing ? 1 : 0;
-                if (GetZone(p.PlateX, p.PlateZ, p.ZoneTop, p.ZoneBot) is PitchZone zone)
-                {
-                    counts[zone.Row, zone.Column]++;
-                    swings[zone.Row, zone.Column] += swing;
-                }
-                else
-                {
-                    noZone++;
-                    noZoneSwings += swing;
-                }
-            }
-
-            return new PitchZoneCounts(counts, swings, noZone, noZoneSwings);
-        }
-
-        // Rules for valid pitches
-        public static bool IsCompetitive(long pitchCount, long swingCount, double minSwingRate)
-        {
-            return swingCount >= minSwingRate * pitchCount;
-        }
-
-        public static bool HasValidSampleSize(long pitchCount,  int minPitches)
-        {
-            return pitchCount >= minPitches;
-        }
-
-        public static void PlotZoneCounts(PitchZoneCounts result, string label, string outputPath,
-            int minPitches, double minSwingRate,
-            float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000)
-        {
-            long total = result.NoZone;
-            long maxCount = 0;
-            foreach (long count in result.Counts)
-            {
-                total += count;
-                maxCount = Math.Max(maxCount, count);
-            }
-
-            double[] columnEdges = BuildColumnEdges();
-            double[] rowEdges = BuildRowEdges(displayZoneTop, displayZoneBot);
-
-            using var plot = new ScottPlot.Plot();
-
-            for (int row = 0; row < PitchZoneLayout.GridSize; row++)
-            {
-                for (int column = 0; column < PitchZoneLayout.GridSize; column++)
-                {
-                    long count = result.Counts[row, column];
-                    double share = maxCount == 0 ? 0 : (double)count / maxCount;
-                    double percent = total == 0 ? 0 : 100.0 * count / total;
-
-                    var cell = plot.Add.Rectangle(columnEdges[column], columnEdges[column + 1], rowEdges[row], rowEdges[row + 1]);
-                    
-                    // Color depending on competitiveness and percentage of pitches
-                    bool competitive = IsCompetitive(count, result.Swings[row, column], minSwingRate)
-                        && HasValidSampleSize(count, minPitches);
-                    cell.FillStyle.Color = competitive
-                        ? ScottPlot.Colors.SteelBlue.WithAlpha(0.15 + (0.7 * share))
-                        : ScottPlot.Colors.Red.WithAlpha(0.15);
-
-                    cell.LineStyle.Color = ScottPlot.Colors.Gray;
-                    cell.LineStyle.Width = 1;
-
-                    double centreX = (columnEdges[column] + columnEdges[column + 1]) / 2;
-                    double centreZ = (rowEdges[row] + rowEdges[row + 1]) / 2;
-
-                    string swingRate = count == 0 ? "-" : $"{100.0 * result.Swings[row, column] / count:F0}% sw";
-                    var text = plot.Add.Text($"{count:N0}\n{percent:F1}%\n{swingRate}", centreX, centreZ);
-                    text.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
-                    text.LabelFontSize = 10;
-                }
-            }
-
-            AddZoneGrid(plot, columnEdges, rowEdges); // drawn last so the zone outline sits on top of the cells
-
-            double noZonePercent = total == 0 ? 0 : 100.0 * result.NoZone / total;
-            string noZoneSwingRate = result.NoZone == 0 ? "-" : $"{100.0 * result.NoZoneSwings / result.NoZone:F0}% sw";
-            plot.Title($"{label} | n={total:N0} | no zone: {result.NoZone:N0} ({noZonePercent:F1}%, {noZoneSwingRate})");
-            plot.XLabel("PlateX (ft)");
-            plot.YLabel("PlateZ (ft)");
-
-            const double pad = 0.1;
-            plot.Axes.SetLimits(columnEdges[0] - pad, columnEdges[^1] + pad, rowEdges[0] - pad, rowEdges[^1] + pad);
-            plot.Axes.SquareUnits();
-
-            plot.SavePng(outputPath, imageSize, imageSize);
-        }
-
-        private static void GenerateZoneCompetitive(PitchTrackingDbContext pitchDb, IQueryable<PitchData> pitches, int minPitches, double minSwingRate)
+        private static void GenerateZoneCompetitive(PitchTrackingDbContext pitchDb, IQueryable<PitchData> pitches, PitchZoneBin bin)
         {
             using var deleteTransaction = pitchDb.Database.BeginTransaction();
             pitchDb.PitchZoneCompetitive.ExecuteDelete();
@@ -774,98 +469,31 @@ namespace DataAquisition.PitchTracking
             }
             Directory.CreateDirectory(ZoneCompetitivePlotDirectory);
 
-            List<PitchZoneCompetitive> rows = new(combos.Count * PitchZoneLayout.GridSize * PitchZoneLayout.GridSize);
-            List<PitchZoneNonCompetitive> nonCompetitiveRows = new(combos.Count);
+            List<PitchZoneCompetitive> rows = [];
+            List<PitchZoneNonCompetitive> nonCompetitiveRows = [];
 
             ProgressBar progressBar = new(combos.Count, $"Generating Pitch Zone Competitive Values");
 
-            // Get each year's pitches so we only need to hit the DB once per year
-            List<PitchData> pitchDataCache = [];
-            int lastYear = -1;
-            foreach (var combo in combos)
+            var years = combos.Select(c => c.Year).Distinct().ToList();
+            foreach (var year in years)
             {
-                // Check for cache update
-                if (combo.Year != lastYear)
-                {
-                    lastYear = combo.Year;
-                    pitchDataCache = pitches
-                        .AsNoTracking()
-                        .Where(f => f.Year == lastYear)
-                        .ToList();
-                }
-
-                // Get selected pitches from cache
-                var validPitches = pitchDataCache.Where(p =>
-                    p.PitchClass == combo.PitchClass &&
-                    p.PitIsR == combo.PitIsR &&
-                    p.HitIsR == combo.HitIsR &&
-                    p.CountBalls == combo.CountBalls &&
-                    p.CountStrike == combo.CountStrike)
+                List<PitchData> yearPitches = pitches
+                    .AsNoTracking()
+                    .Where(f => f.Year == year)
                     .ToList();
-                PitchZoneCounts counts = CountPitchesPerZone(validPitches);
-
-                // Every cell gets a row, including empty ones, so a missing row never needs interpreting.
-                for (int row = 0; row < PitchZoneLayout.GridSize; row++)
+                var comboGroups = yearPitches
+                    .GroupBy(p => new { p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike });
+                foreach (var group in comboGroups)
                 {
-                    for (int column = 0; column < PitchZoneLayout.GridSize; column++)
-                    {
-                        long pitchCount = counts.Counts[row, column];
-                        long swingCount = counts.Swings[row, column];
-
-                        var currentZone = new PitchZone(row, column);
-
-                        var cellPitches = validPitches
-                            .Where(f => GetZone(f) == currentZone)
-                            .ToList();
-
-                        rows.Add(new PitchZoneCompetitive
-                        {
-                            Year = combo.Year,
-                            PitchClass = combo.PitchClass,
-                            PitIsR = combo.PitIsR,
-                            HitIsR = combo.HitIsR,
-                            CountBalls = combo.CountBalls,
-                            CountStrikes = combo.CountStrike,
-                            ZoneRow = row,
-                            ZoneCol = column,
-                            PitchCount = (int)pitchCount,
-                            SwingCount = (int)swingCount,
-                            IsCompetitive = IsCompetitive(pitchCount, swingCount, minSwingRate),
-                            HasEnoughSample = HasValidSampleSize(pitchCount, minPitches),
-                            ExpectedValueHitter = cellPitches.Any() ?
-                                cellPitches.Average(f => f.RunValueSmoothedHitter)
-                                : 0,
-                        });
-                    }
+                    var (comboRows, comboNonCompetitiveRows) = bin.BuildCompetitiveRows(group);
+                    rows.AddRange(comboRows);
+                    nonCompetitiveRows.AddRange(comboNonCompetitiveRows);
+                    // Same bin (same layout and rules) as the rows above, so the plot matches what gets stored.
+                    var combo = group.Key;
+                    string label = $"{combo.PitchClass}_{year}_{(combo.PitIsR ? "RHP" : "LHP")}_{(combo.HitIsR ? "RHH" : "LHH")} {combo.CountBalls}-{combo.CountStrike}";
+                    bin.PlotZoneCounts(group, label, Path.Combine(ZoneCompetitivePlotDirectory, $"{label}.png"));
+                    progressBar.Tick();
                 }
-
-                // Pitches that will NOT be valued by a competitive bin: no zone, or a bin failing either rule.
-                List<PitchData> nonCompetitivePitches = validPitches
-                    .Where(p =>
-                        GetZone(p) is not PitchZone zone
-                        || !IsCompetitive(counts.Counts[zone.Row, zone.Column], counts.Swings[zone.Row, zone.Column], minSwingRate)
-                        || !HasValidSampleSize(counts.Counts[zone.Row, zone.Column], minPitches))
-                    .ToList();
-                nonCompetitiveRows.Add(new PitchZoneNonCompetitive
-                {
-                    Year = combo.Year,
-                    PitchClass = combo.PitchClass,
-                    PitIsR = combo.PitIsR,
-                    HitIsR = combo.HitIsR,
-                    CountBalls = combo.CountBalls,
-                    CountStrikes = combo.CountStrike,
-                    PitchCount = nonCompetitivePitches.Count,
-                    ExpectedValueHitter = nonCompetitivePitches.Count > 0
-                        ? nonCompetitivePitches.Average(f => f.RunValueSmoothedHitter)
-                        : 0,
-                });
-
-                // Same counts and same rule as the rows above, so the plot matches what gets stored.
-                string label = $"{combo.PitchClass}_{combo.Year}_{(combo.PitIsR ? "RHP" : "LHP")}_{(combo.HitIsR ? "RHH" : "LHH")} {combo.CountBalls}-{combo.CountStrike}";
-                PlotZoneCounts(counts, label, Path.Combine(ZoneCompetitivePlotDirectory, $"{label}.png"),
-                    minPitches, minSwingRate);
-
-                progressBar.Tick();
             }
 
             using var insertTransaction = pitchDb.Database.BeginTransaction();
@@ -883,7 +511,7 @@ namespace DataAquisition.PitchTracking
                     && f.LevelId == 1
                     && f.PitchClass != Db.DbEnums.PitchClass.Other);
 
-            GenerateZoneCompetitive(pitchDb, pitches, MIN_PITCHES, MIN_SWING_RATE);
+            GenerateZoneCompetitive(pitchDb, pitches, new PitchZoneBin(new PitchZoneBinArgs()));
         }
     }
 }
