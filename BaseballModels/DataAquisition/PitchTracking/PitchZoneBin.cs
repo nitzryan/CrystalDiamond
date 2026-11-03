@@ -1,4 +1,5 @@
-﻿using PitchTrackingDb;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using PitchTrackingDb;
 
 namespace DataAquisition.PitchTracking
 {
@@ -68,9 +69,6 @@ namespace DataAquisition.PitchTracking
         // (2 * radius + 1) square kernel with weight exp(-d^2 / (2 * sigma^2)), d measured in cells; the centre is 1.
         public static PitchZoneKernel Gaussian(int radius, double sigma)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(radius);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sigma);
-
             int size = (2 * radius) + 1;
             double[,] weights = new double[size, size];
             for (int row = 0; row < size; row++)
@@ -97,7 +95,12 @@ namespace DataAquisition.PitchTracking
         public int OutsideRows { get; init; } = 5;
         public int MinPitches { get; init; } = 5;
         public double MinSwingRate { get; init; } = 0.10;
-        public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(1, 0.5);
+        public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(1, 1.0);
+
+        // Max total weight (in pitches) the neighbours may add to a cell, chosen by whether the cell is in the strike zone.
+        // Ignored when Kernel is null.
+        public double? InZoneNeighbourCap { get; init; } = 100;
+        public double? OutZoneNeighbourCap { get; init; } = 8;
     }
 
     // Row 0 = lowest row, Column 0 = left-most column (most negative PlateX).
@@ -130,6 +133,10 @@ namespace DataAquisition.PitchTracking
             if (args.MinSwingRate is < 0 or > 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(args), $"MinSwingRate must be in [0, 1], was {args.MinSwingRate}.");
+            }
+            if (args.InZoneNeighbourCap is < 0 || args.OutZoneNeighbourCap is < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(args), "Neighbour caps must be non-negative.");
             }
 
             this.args = args;
@@ -517,7 +524,7 @@ namespace DataAquisition.PitchTracking
             return pitchCount >= args.MinPitches;
         }
 
-        private bool IsInStrikeZone(PitchZone zone)
+        public bool IsInStrikeZone(PitchZone zone)
         {
             return zone.Row >= args.OutsideRows && zone.Row < args.OutsideRows + zoneRows
                 && zone.Column >= args.OutsideColumns && zone.Column < args.OutsideColumns + args.ZoneColumns;
@@ -583,11 +590,15 @@ namespace DataAquisition.PitchTracking
             double[,] pitches = new double[gridRows, gridColumns];
             double[,] swings = new double[gridRows, gridColumns];
             double[,] valueSum = new double[gridRows, gridColumns];
+
+            
             for (int row = 0; row < gridRows; row++)
             {
                 for (int column = 0; column < gridColumns; column++)
                 {
                     bool cellInZone = IsInStrikeZone(new PitchZone(row, column));
+                    double? cap = cellInZone ? args.InZoneNeighbourCap : args.OutZoneNeighbourCap;
+                    double neighbourPitches = 0, neighbourSwings = 0, neighbourValue = 0;
                     for (int rowOffset = -kernel.Radius; rowOffset <= kernel.Radius; rowOffset++)
                     {
                         for (int columnOffset = -kernel.Radius; columnOffset <= kernel.Radius; columnOffset++)
@@ -606,11 +617,27 @@ namespace DataAquisition.PitchTracking
                             }
 
                             double weight = kernel.Weight(rowOffset, columnOffset);
-                            pitches[row, column] += weight * raw.Pitches[sourceRow, sourceColumn];
-                            swings[row, column] += weight * raw.Swings[sourceRow, sourceColumn];
-                            valueSum[row, column] += weight * raw.ValueSum[sourceRow, sourceColumn];
+                            if (rowOffset == 0 && columnOffset == 0)
+                            {
+                                // Centre weight is 1 after normalisation, so the cell always counts fully
+                                pitches[row, column] = raw.Pitches[row, column];
+                                swings[row, column] = raw.Swings[row, column];
+                                valueSum[row, column] = raw.ValueSum[row, column];
+                            }
+                            else
+                            {
+                                neighbourPitches += weight * raw.Pitches[sourceRow, sourceColumn];
+                                neighbourSwings += weight * raw.Swings[sourceRow, sourceColumn];
+                                neighbourValue += weight * raw.ValueSum[sourceRow, sourceColumn];
+                            }
                         }
                     }
+
+                    // Shrink the neighbours as a block, so the relative kernel weights are kept but their total mass is capped.
+                    double neighbourScale = cap is double limit && neighbourPitches > limit ? limit / neighbourPitches : 1;
+                    pitches[row, column] += neighbourScale * neighbourPitches;
+                    swings[row, column] += neighbourScale * neighbourSwings;
+                    valueSum[row, column] += neighbourScale * neighbourValue;
                 }
             }
 

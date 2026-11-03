@@ -32,6 +32,7 @@ namespace PitchAnalysis
             OutsideColumns = 5,
             OutsideRows = 5,
             Kernel=null,
+            InZoneNeighbourCap=null,
         };
         private static readonly PitchZoneBinArgs ZONE_BIGGER = new()
         {
@@ -40,6 +41,7 @@ namespace PitchAnalysis
             OutsideColumns = 7,
             OutsideRows = 7,
             Kernel=null,
+            OutZoneNeighbourCap=null,
         };
 
         private sealed record Method(string Name, PitchZoneBin Bin);
@@ -58,6 +60,23 @@ namespace PitchAnalysis
             new("Bigger Gaussian r2 s1.0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
             new("Bigger Gaussian r2 s1.0 Split", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SplitMiddleRow=true })),
             new("Bigger Gaussian r3 s1.0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(3, 1.0) })),
+
+            // Smaller grid
+            new("Gaussian r1 s1.0 Cap 100_7", new PitchZoneBin(ZONE_SMALLER with
+                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 100, OutZoneNeighbourCap = 7 })),
+            new("Gaussian r1 s1.0 Cap 50_5", new PitchZoneBin(ZONE_SMALLER with
+                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 50, OutZoneNeighbourCap = 5 })),
+            new("Gaussian r1 s1.0 Cap 200_14", new PitchZoneBin(ZONE_SMALLER with
+                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 14 })),
+            new("Gaussian r1 s1.0 Cap 300_21", new PitchZoneBin(ZONE_SMALLER with
+            { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 300, OutZoneNeighbourCap = 21 })),
+            // Bigger grid
+            new("Bigger Gaussian r2 s1.0 Cap 200_15", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 15 })),
+            new("Bigger Gaussian r2 s2.0 Cap 200_15", new PitchZoneBin(ZONE_BIGGER with
+            { Kernel = PitchZoneKernel.Gaussian(2, 2.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 15 })),
+            new("Bigger Gaussian r2 s1.0 Cap 100_7", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighbourCap = 100, OutZoneNeighbourCap = 7 })),
         ];
 
         // Index into METHODS of the bins the per-cell plots are compared against

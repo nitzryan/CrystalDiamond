@@ -31,12 +31,14 @@ namespace PitchAnalysis
         // Breaking down by pitches found in bin
         // Bin PitchCount strata for the location-response breakdown: [edge_i, edge_i+1), last is open-ended
         internal static readonly int[] BIN_COUNT_EDGES = [0, 10, 20, 50, 100, 200, 500, 1000, 2000];
-        private const int MIN_STRATUM_PITCHES = 1000;     // strata with fewer competitive pitches aren't plotted
+        private const int MIN_STRATUM_PITCHES = 100;     // strata with fewer competitive pitches aren't plotted
 
         private readonly record struct PitchInfo(Db.DbEnums.PitchType PitchType, Db.DbEnums.PitchClass PitchClass,
             bool PitIsR, bool HitIsR, int Balls, int Strikes, float PlateX, float PlateZ, float ZoneTop, float ZoneBot);
         internal readonly record struct PzcKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes, int Row, int Col);
+        private readonly record struct CompetitivePitch(
+            float Bin, float StuffBin, int BinCount, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, bool InZone);
 
         public static void GeneratePlots(PitchZoneBin bin)
         {
@@ -68,7 +70,7 @@ namespace PitchAnalysis
             Dictionary<PzcKey, float> binCountDict = LoadBinCounts(ptDb, bin, years.Select(y => y - 1));
 
             // Competitive pitches per group: (bin value, stuffBinRuns, bin PitchCount); combined = bin + stuffBin
-            Dictionary<GroupKey, List<(float Bin, float StuffBin, int BinCount)>> competitivePitches = new();
+            Dictionary<GroupKey, List<CompetitivePitch>> competitivePitches = new();
 
             // Stream OPVA, accumulating per model/pitcher/pitchType/year.
             // Every row with a stuff value also has a location value, so filtering on location loses nothing.
@@ -101,7 +103,7 @@ namespace PitchAnalysis
                             $"Competitive pitch {pva.GameId}/{pva.PitchId} has no zone; OPVA is out of sync with the PitchZoneBin.");
                     int binCount = (int)binCountDict[new PzcKey(pva.Year - 1, pitch.PitchClass, pitch.PitIsR, pitch.HitIsR,
                         pitch.Balls, pitch.Strikes, zone.Row, zone.Column)];
-                    pitchList.Add((pva.LocBinRuns!.Value, pva.StuffBinRuns.Value, binCount));
+                    pitchList.Add(new CompetitivePitch(pva.LocBinRuns!.Value, pva.StuffBinRuns.Value, binCount, pitch.PitchClass, pitch.PitIsR, pitch.HitIsR, bin.IsInStrikeZone(zone)));
                 }
             }
             Console.WriteLine($"Created {groups.Count} Pitcher/PitchType/Year Groups");
@@ -147,15 +149,15 @@ namespace PitchAnalysis
                         $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}.png"));
                     CreateLocationResponsePlot(yearPoints, competitivePitches,
                         $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}_LocResponse.png"));
-                    CreateBinCountResponsePlot(yearPoints, competitivePitches,
-                        $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}_BinCount.png"));
+                    //CreateBinCountSplitPlots(yearPoints, competitivePitches,
+                    //    $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}"));
                 }
                 CreatePlot(modelPoints,
                     $"Model {model} - All Years", Path.Combine(PLOT_DIRECTORY, $"Model{model}_AllYears.png"));
                 CreateLocationResponsePlot(modelPoints, competitivePitches,
                     $"Model {model} - All Years", Path.Combine(PLOT_DIRECTORY, $"Model{model}_AllYears_LocResponse.png"));
-                CreateBinCountResponsePlot(modelPoints, competitivePitches,
-                    $"Model {model} - All Years", Path.Combine(PLOT_DIRECTORY, $"Model{model}_AllYears_BinCount.png"));
+                CreateBinCountSplitPlots(modelPoints, competitivePitches,
+                    $"Model {model} - All Years", Path.Combine(PLOT_DIRECTORY, $"Model{model}_AllYears"));
             }
         }
 
@@ -266,20 +268,20 @@ namespace PitchAnalysis
         // Within-group slope of CombinedRuns on bin value over competitive pitches.
         // k = 1: combined fully reflects location, no mechanical coupling. k < 1: stuffBinRuns contains -(1-k)*bin.
         private static void CreateLocationResponsePlot(List<DataPoint> points,
-            Dictionary<GroupKey, List<(float Bin, float StuffBin, int BinCount)>> competitivePitches, string title, string path)
+            Dictionary<GroupKey, List<CompetitivePitch>> competitivePitches, string title, string path)
         {
             // Demean within each pitcher/pitchType/year so only pitch-to-pitch location variation remains
             List<double> xList = new();
             List<double> yList = new();
             foreach (DataPoint p in points)
             {
-                List<(float Bin, float StuffBin, int BinCount)> pitches = competitivePitches[p.Key];
+                List<CompetitivePitch> pitches = competitivePitches[p.Key];
                 double binMean = pitches.Average(f => (double)f.Bin);
                 double combinedMean = pitches.Average(f => (double)f.Bin + f.StuffBin);
-                foreach (var(bin, stuffBin, _) in pitches)
+                foreach (CompetitivePitch f in pitches)
                 {
-                    xList.Add(bin - binMean);
-                    yList.Add(bin + stuffBin - combinedMean);
+                    xList.Add(f.Bin - binMean);
+                    yList.Add(f.Bin + f.StuffBin - combinedMean);
                 }
             }
             double[] xs = xList.ToArray();
@@ -316,7 +318,7 @@ namespace PitchAnalysis
         // Location response k split by the sample size of the bin each pitch was valued with.
         // If low k is bin noise (attenuation), k should climb toward 1 as bin PitchCount grows.
         private static void CreateBinCountResponsePlot(List<DataPoint> points,
-            Dictionary<GroupKey, List<(float Bin, float StuffBin, int BinCount)>> competitivePitches, string title, string path)
+            Dictionary<GroupKey, List<CompetitivePitch>> competitivePitches, string title, string path, Func<CompetitivePitch, bool> include)
         {
             int bucketCount = BIN_COUNT_EDGES.Length;
             List<double>[] xs = Enumerable.Range(0, bucketCount).Select(_ => new List<double>()).ToArray();
@@ -325,15 +327,17 @@ namespace PitchAnalysis
             // Demean within each group AND stratum so every stratum's k is a within-group slope
             foreach (DataPoint p in points)
             {
-                foreach (var stratum in competitivePitches[p.Key]
-                    .GroupBy(f => Array.FindLastIndex(BIN_COUNT_EDGES, e => f.BinCount >= e)))
+                var compPitches = competitivePitches[p.Key]
+                    .Where(include)
+                    .GroupBy(f => Array.FindLastIndex(BIN_COUNT_EDGES, e => f.BinCount >= e));
+                foreach (var stratum in compPitches)
                 {
                     double binMean = stratum.Average(f => (double)f.Bin);
                     double combinedMean = stratum.Average(f => (double)f.Bin + f.StuffBin);
-                    foreach (var (bin, stuffBin, _) in stratum)
+                    foreach (CompetitivePitch f in stratum)
                     {
-                        xs[stratum.Key].Add(bin - binMean);
-                        ys[stratum.Key].Add(bin + stuffBin - combinedMean);
+                        xs[stratum.Key].Add(f.Bin - binMean);
+                        ys[stratum.Key].Add(f.Bin + f.StuffBin - combinedMean);
                     }
                 }
             }
@@ -382,6 +386,53 @@ namespace PitchAnalysis
             plot.XLabel("Bin PitchCount");
             plot.YLabel("Within-group k");
             plot.SavePng(path, IMAGE_WIDTH, PLOT_HEIGHT);
+        }
+
+        private static void CreateBinCountSplitPlots(List<DataPoint> points, Dictionary<GroupKey, List<CompetitivePitch>> competitivePitches, string title, string pathPrefix)
+        {
+            List<(string Name, Func<CompetitivePitch, bool> Include)> splits = [("All", _ => true)];
+
+            var pitchClasses = Enum.GetValues<Db.DbEnums.PitchClass>()
+                .Where(c => c != Db.DbEnums.PitchClass.Other);
+            foreach (Db.DbEnums.PitchClass pitchClass in pitchClasses)
+            {
+                foreach (bool pitHandedness in new[] { true, false })
+                {
+                    string pitStr = pitHandedness ? "RHP" : "LHP";
+                    foreach (bool hitHandedness in new[] { true, false })
+                    {
+                        string hitStr = hitHandedness ? "RHH" : "LHH";
+                        splits.Add((pitchClass.ToString() + "_" + pitStr + "_" + hitStr,
+                            f => f.PitchClass == pitchClass && f.PitIsR == pitHandedness && f.HitIsR == hitHandedness));
+                    }
+                }
+
+                splits.Add((pitchClass.ToString(), f => f.PitchClass == pitchClass));
+            }
+
+            splits.Add(("All_InZone", f => f.InZone));
+            splits.Add(("All_Outside", f => !f.InZone));
+            foreach (Db.DbEnums.PitchClass pitchClass in pitchClasses)
+            {
+                splits.Add(($"{pitchClass}_InZone", f => f.PitchClass == pitchClass && f.InZone));
+                splits.Add(($"{pitchClass}_Outside", f => f.PitchClass == pitchClass && !f.InZone));
+            }
+
+            //foreach (Db.DbEnums.PitchClass pitchClass in Enum.GetValues<Db.DbEnums.PitchClass>()
+            //    .Where(c => c != Db.DbEnums.PitchClass.Other))
+            //{
+            //    splits.Add((pitchClass.ToString(), f => f.PitchClass == pitchClass));
+            //}
+            //splits.Add(("PitR", f => f.PitIsR));
+            //splits.Add(("PitL", f => !f.PitIsR));
+            //splits.Add(("HitR", f => f.HitIsR));
+            //splits.Add(("HitL", f => !f.HitIsR));
+
+            foreach (var (name, include) in splits)
+            {
+                CreateBinCountResponsePlot(points, competitivePitches, $"{title} | {name}",
+                    $"{pathPrefix}_BinCount_{name}.png", include);
+            }
         }
     }
 }
