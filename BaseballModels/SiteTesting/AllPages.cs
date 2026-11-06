@@ -54,6 +54,7 @@ namespace SiteTesting
         // Player
 
         [Test, TestCaseSource(nameof(AllPlayerIds))]
+        [Category("Players")]
         public void LoadPlayersNoErrors(int id)
         {
             string url = $"http://127.0.0.1:3000/player?id={id}";
@@ -72,6 +73,7 @@ namespace SiteTesting
         // Ranking
 
         [Test]
+        [Category("Ranking")]
         public void DefaultRanking()
         {
             var driver = driverDict[DEFAULT_DRIVER_STR];
@@ -82,6 +84,7 @@ namespace SiteTesting
         }
 
         [Test, TestCaseSource(nameof(AllRanks))]
+        [Category("Ranking")]
         public void LoadRanksNoErrors(int year, int month, int modelId)
         {
             string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&model={modelId}";
@@ -101,6 +104,7 @@ namespace SiteTesting
 
         // Teams
         [Test, TestCaseSource(nameof(AllTeamRanks))]
+        [Category("Ranking")]
         public void LoadTeamRanksNoErrors(int year, int month, int teamId, int modelId)
         {
             string url = $"http://127.0.0.1:3000/rankings?year={year}&month={month}&team={teamId}&model={modelId}";
@@ -120,6 +124,7 @@ namespace SiteTesting
 
         // Team ranks
         [Test, TestCaseSource(nameof(AllTeamRankings))]
+        [Category("Teams")]
         public void LoadTeamRankingsNoErrors(int year, int month, int modelId)
         {
             string url = $"http://127.0.0.1:3000/teams?year={year}&month={month}&model={modelId}";
@@ -139,6 +144,7 @@ namespace SiteTesting
 
         // Stat Predictions
         [Test, TestCaseSource(nameof(AllStatPredictions))]
+        [Category("Stats")]
         public void LoadStatPredictionsNoErrors(int year, int month, int modelId, int level)
         {
             string url = $"http://127.0.0.1:3000/stats?year={year}&month={month}&model={modelId}&level={level}";
@@ -158,6 +164,7 @@ namespace SiteTesting
 
         // Team Stat Predictions
         [Test, TestCaseSource(nameof(AllTeamStatPredictions))]
+        [Category("Stats")]
         public void LoadTeamStatPredictionsNoErrors(int year, int month, int modelId, int level, int team)
         {
             string url = $"http://127.0.0.1:3000/stats?year={year}&month={month}&model={modelId}&level={level}&team={team}";
@@ -176,6 +183,62 @@ namespace SiteTesting
             foreach (var d in dates)
                 foreach (var org in orgIds)
                     yield return new object[] { d.Year, d.Month, d.Model, d.LevelId, org };
+        }
+
+        // Draft Pages
+        [Test, TestCaseSource(nameof(AllSingleYearDraftPredictions))]
+        [Category("Draft")]
+        public void LoadSingleYearDraftPrecitionsNoErrors(int year, int modelId)
+        {
+            string url = $"http://127.0.0.1:3000/draft?startYear={year}&endYear={year}&model={modelId}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+
+            Assert.That(pageLoaded, $"{year}-{modelId} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{year}-{modelId} error: {msg}");
+        }
+
+        [Test, TestCaseSource(nameof(AllMultiYearDraftPredictions))]
+        [Category("Draft")]
+        public void LoadMultiYearDraftPredictionsNoErrors(int startYear, int endYear, int modelId)
+        {
+            string url = $"http://127.0.0.1:3000/draft?startYear={startYear}&endYear={endYear}&model={modelId}";
+            var driver = driverDict[TestContext.CurrentContext.WorkerId];
+            bool pageLoaded = SeleniumUtilities.WaitForPageLoad(driver, url);
+
+            Assert.That(pageLoaded, $"{startYear}-{endYear}-{modelId} not loaded");
+            var (errors, msg) = SeleniumUtilities.AnyErrors(driver);
+            Assert.That(!errors, $"{startYear}-{endYear}-{modelId} error: {msg}");
+        }
+
+        static IEnumerable<object> AllSingleYearDraftPredictions()
+        {
+            var yearModels = siteDb.DraftRank
+                .Select(f => new { f.Year, f.ModelId })
+                .Distinct();
+            foreach (var ym in yearModels)
+                yield return new object[] { ym.Year, ym.ModelId };
+        }
+
+        static IEnumerable<object> AllMultiYearDraftPredictions()
+        {
+            var years = siteDb.DraftRank
+                .Select(f => f.Year)
+                .Distinct()
+                .Order();
+            var models = siteDb.DraftRank
+                .Select(f => f.ModelId)
+                .Distinct();
+            int lastYear = years.Max();
+            foreach (int startYear in years)
+                foreach (int modelId in models)
+                {
+                    for (int endYear = startYear + 1; endYear <= lastYear; endYear++)
+                    {
+                        yield return new object[] { startYear, endYear, modelId };
+                    }
+                }
         }
 
         [OneTimeTearDown]
