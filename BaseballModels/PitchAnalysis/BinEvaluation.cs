@@ -12,8 +12,8 @@ namespace PitchAnalysis
         private const int PLOT_HEIGHT = 800;
         private const int MIN_EVAL_YEAR = 2022;
 
-        private readonly record struct SituationKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
-            int Balls, int Strikes);
+        private readonly record struct SituationKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
+        private readonly record struct PitchSplitKey(Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
 
         // A method's prediction for every cell of a situation, plus pitches that land outside the grid
         private sealed record SituationPrediction(double[,] Cells, double OffGrid);
@@ -32,7 +32,7 @@ namespace PitchAnalysis
             OutsideColumns = 5,
             OutsideRows = 5,
             Kernel=null,
-            InZoneNeighbourCap=null,
+            InZoneNeighborCap=null,
         };
         private static readonly PitchZoneBinArgs ZONE_BIGGER = new()
         {
@@ -41,7 +41,7 @@ namespace PitchAnalysis
             OutsideColumns = 7,
             OutsideRows = 7,
             Kernel=null,
-            OutZoneNeighbourCap=null,
+            OutZoneNeighborCap=null,
         };
 
         private sealed record Method(string Name, PitchZoneBin Bin);
@@ -49,34 +49,32 @@ namespace PitchAnalysis
         private static readonly Method[] METHODS =
         [
             new("Current Bins", new PitchZoneBin(ZONE_SMALLER)),
-            new("Adjacent 0.375", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Adjacent(0.375) })),
-            new("Adjacent 0.5", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Adjacent(0.5) })),
-            new("Gaussian r1 s1.0", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Gaussian(1, 1.0) })),
-            new("Bigger Adjacent 0.25", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Adjacent(0.25) })),
-            new("Bigger Adjacent 0.375", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Adjacent(0.375) })),
-            new("Bigger Adjacent 0.375 Split", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Adjacent(0.375), SplitMiddleRow=true })),
-            new("Bigger Adjacent 0.5", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Adjacent(0.5) })),
-            new("Bigger Gaussian r1 s1.0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(1, 1.0) })),
+
+            new("Smaller Gaussian r1 s1.0", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Gaussian(1, 1.0) })),
+            new("Smaller Gaussian r2 s1.0", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
+
+            new("Smaller Gaussian r1 s1.0 Border", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Gaussian(1, 1.0), SeparateBorderRing=true })),
+            new("Smaller Gaussian r2 s1.0 Border", new PitchZoneBin(ZONE_SMALLER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true })),
+
+            new("Bigger Gaussian r2 s0.75", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 0.75) })),
             new("Bigger Gaussian r2 s1.0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
-            new("Bigger Gaussian r2 s1.0 Split", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SplitMiddleRow=true })),
+            new("Bigger Gaussian r2 s1.25", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.25) })),
             new("Bigger Gaussian r3 s1.0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(3, 1.0) })),
 
-            // Smaller grid
-            new("Gaussian r1 s1.0 Cap 100_7", new PitchZoneBin(ZONE_SMALLER with
-                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 100, OutZoneNeighbourCap = 7 })),
-            new("Gaussian r1 s1.0 Cap 50_5", new PitchZoneBin(ZONE_SMALLER with
-                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 50, OutZoneNeighbourCap = 5 })),
-            new("Gaussian r1 s1.0 Cap 200_14", new PitchZoneBin(ZONE_SMALLER with
-                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 14 })),
-            new("Gaussian r1 s1.0 Cap 300_21", new PitchZoneBin(ZONE_SMALLER with
-            { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighbourCap = 300, OutZoneNeighbourCap = 21 })),
-            // Bigger grid
-            new("Bigger Gaussian r2 s1.0 Cap 200_15", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 15 })),
-            new("Bigger Gaussian r2 s2.0 Cap 200_15", new PitchZoneBin(ZONE_BIGGER with
-            { Kernel = PitchZoneKernel.Gaussian(2, 2.0), InZoneNeighbourCap = 200, OutZoneNeighbourCap = 15 })),
-            new("Bigger Gaussian r2 s1.0 Cap 100_7", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighbourCap = 100, OutZoneNeighbourCap = 7 })),
+            new("Bigger Gaussian r2 s0.75 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 0.75), SeparateBorderRing=true })),
+            new("Bigger Gaussian r2 s1.0 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true })),
+            new("Bigger Gaussian r2 s1.25 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.25), SeparateBorderRing=true })),
+            new("Bigger Gaussian r3 s1.0 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(3, 1.0), SeparateBorderRing=true })),
+
+            new("Bigger Gaussian r2 s1.0 Soft 200:15 Taper 500 Border", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighborCap = 200, OutZoneNeighborCap = 15,
+                  SoftNeighborCap = true, NeighborTaper = 500, SeparateBorderRing=true  })),
+            new("Bigger Gaussian r2 s1.0 Soft 400:30 Taper 500 Border", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), InZoneNeighborCap = 400, OutZoneNeighborCap = 30,
+                  SoftNeighborCap = true, NeighborTaper = 500, SeparateBorderRing=true  })),
+            new("Gaussian r1 s1.0 Soft 600:45 Taper 500 Border", new PitchZoneBin(ZONE_SMALLER with
+                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), InZoneNeighborCap = 600, OutZoneNeighborCap = 45,
+                  SoftNeighborCap = true, NeighborTaper = 500, SeparateBorderRing=true })),
         ];
 
         // Index into METHODS of the bins the per-cell plots are compared against
@@ -121,6 +119,7 @@ namespace PitchAnalysis
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
             string[] names = [BASELINE_NAME, .. METHODS.Select(m => m.Name)];
             Dictionary<int, YearTotals> totals = new();
+            Dictionary<PitchSplitKey, YearTotals> splitTotals = new();
             MethodCellTotals[] cellTotals = [.. METHODS.Select(_ => new MethodCellTotals())];
             PitchZone?[] zones = new PitchZone?[METHODS.Length];
             double[] predicted = new double[METHODS.Length];
@@ -148,6 +147,7 @@ namespace PitchAnalysis
 
                 foreach (PitchData p in MlbPitches(ptDb).Where(f => f.Year == evalYear))
                 {
+                    // Keyed based on year
                     SituationKey key = new(binYear, p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
                     if (!means.TryGetValue(key, out double mean))
                     {
@@ -158,6 +158,17 @@ namespace PitchAnalysis
                     double baselineError = mean - p.RunValueSmoothedHitter;
                     yearTotals.Sse[0] += baselineError * baselineError;
 
+                    // Keyed with all years grouped
+                    PitchSplitKey splitKey = new(p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
+                    if (!splitTotals.TryGetValue(splitKey, out YearTotals? split))
+                    {
+                        split = new(names.Length);
+                        splitTotals[splitKey] = split;
+                    }
+                    split.Sse[0] += baselineError * baselineError;
+                    split.Count++;
+
+                    // Evaluated on each Model
                     for (int m = 0; m < METHODS.Length; m++)
                     {
                         SituationPrediction prediction = predictions[m][key];
@@ -171,6 +182,7 @@ namespace PitchAnalysis
                     {
                         double error = predicted[m] - p.RunValueSmoothedHitter;
                         yearTotals.Sse[m + 1] += error * error;
+                        split.Sse[m + 1] += error * error;
                         cellTotals[m].Add(zones[m], error * error, referenceError * referenceError, baselineError * baselineError);
                     }
 
@@ -182,6 +194,7 @@ namespace PitchAnalysis
             Directory.CreateDirectory(PLOT_DIRECTORY);
             PlotMseReduction(names, totals, Path.Combine(PLOT_DIRECTORY, "MseReduction.png"));
             PlotCellReductions(cellTotals);
+            PlotSplitMseReductions(names, splitTotals);
         }
 
         private static IQueryable<PitchData> MlbPitches(PitchTrackingDbContext ptDb)
@@ -330,6 +343,52 @@ namespace PitchAnalysis
                     CellReductionVsReference(cellTotals[m].NoZone),
                     label,
                     Path.Combine(PLOT_DIRECTORY, $"Cells_{METHODS[m].Name}.png"));
+            }
+        }
+
+        private const int MIN_GROUP_PITCHES = 2000;
+        private static void PlotSplitMseReductions(string[] names, Dictionary<PitchSplitKey, YearTotals> groupTotals)
+        {
+            ScottPlot.Palettes.Category10 palette = new();   // same colour per method as PlotMseReduction
+            foreach ((PitchSplitKey key, YearTotals totals) in groupTotals)
+            {
+                if (totals.Count < MIN_GROUP_PITCHES || totals.Sse[0] == 0)
+                {
+                    continue;
+                }
+                string pitStr = key.PitIsR ? "RHP" : "LHP";
+                string hitStr = key.HitIsR ? "RHH" : "LHH";
+                string directory = Path.Combine(PLOT_DIRECTORY, key.PitchClass.ToString(), $"{pitStr}_{hitStr}");
+                Directory.CreateDirectory(directory);
+                using ScottPlot.Plot plot = new();
+                for (int m = 1; m < names.Length; m++)
+                {
+                    double reduction = 100 * (1 - (totals.Sse[m] / totals.Sse[0]));
+                    var bars = plot.Add.Bars(new[]
+                    {
+                        new ScottPlot.Bar
+                        {
+                            Position = m - 1,
+                            Value = reduction,
+                            Size = 0.8,
+                            FillColor = palette.GetColor(m - 1),
+                        },
+                    });
+
+                    bars.LegendText = names[m];
+                    var label = plot.Add.Text($"{reduction:F2}%", m - 1, reduction);
+                    label.LabelFontSize = 16;
+                    label.LabelRotation = -90;
+                    label.LabelAlignment = ScottPlot.Alignment.MiddleLeft;
+                    label.OffsetY = -4;
+                }
+                plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual();   // bars are identified by the legend
+                plot.ShowLegend();
+                double baselineMse = totals.Sse[0] / totals.Count;
+                plot.Title($"{key.PitchClass} {pitStr} vs {hitStr} {key.Balls}-{key.Strikes} | n={totals.Count:N0} | " +
+                    $"MSE reduction vs {names[0]} (baseline MSE={baselineMse:G4})");
+                plot.YLabel("MSE Reduction (%)");
+                plot.SavePng(Path.Combine(directory, $"{key.Balls}-{key.Strikes}.png"), IMAGE_WIDTH, PLOT_HEIGHT);
             }
         }
     }

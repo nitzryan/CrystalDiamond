@@ -23,11 +23,12 @@ namespace PitchAnalysis
                 pitchDb.PitchModelResultBasis.ExecuteDelete();
             }
 
-            PitchZoneBin bin = new PitchZoneBin(new PitchZoneBinArgs());
-            DataAquisition.PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
-            PitchAggregation.Update(bin);
+            PitchZoneBin bin = PitchZoneBin.DEFAULT;
+            //DataAquisition.PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
+            //PitchAggregation.Update(bin);
             StuffLocationCorrelation.GeneratePlots(bin);
-            BinEvaluation.Evaluate();
+            //BinEvaluation.Evaluate();
+            //Plots.PitchValueSurface.GeneratePlots(2025, new PitchZoneBinArgs());
             return;
 
             int startYear = pitchDb.Output_PitchValueAggregation.Min(f => f.Year);

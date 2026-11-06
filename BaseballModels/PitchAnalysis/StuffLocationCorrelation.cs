@@ -13,7 +13,7 @@ namespace PitchAnalysis
 {
     internal static class StuffLocationCorrelation
     {
-        private const int MIN_PITCHES = 100;              // pitches with a location value per pitcher/pitchType/year
+        private const int MIN_PITCHES = 500;              // pitches with a location value per pitcher/pitchType/year
         private const double RUNS_SCALE = 100;            // display as hitter runs per 100 pitches
         private const int RANK_COUNT = 5;
         private const string PLOT_DIRECTORY = "StuffLocationPlots";
@@ -26,7 +26,7 @@ namespace PitchAnalysis
         private const int MIN_BIN_YEAR = 2022;
 
         private readonly record struct GroupKey(int Model, int Year, int MlbId, Db.DbEnums.PitchType PitchType);
-        private record DataPoint(GroupKey Key, string Label, double Stuff, double Location);
+        private record DataPoint(GroupKey Key, string Label, double Stuff, double Location, long StuffCount);
 
         // Breaking down by pitches found in bin
         // Bin PitchCount strata for the location-response breakdown: [edge_i, edge_i+1), last is open-ended
@@ -124,7 +124,7 @@ namespace PitchAnalysis
                         $"Model {key.Model}, {names[key.MlbId]} ({key.MlbId}) {key.PitchType} {key.Year}: " +
                         $"{stats.Loc.Count} pitches with a location value but none with a stuff value.");
                 dataPoints.Add(new DataPoint(key, $"{names[key.MlbId]} {key.PitchType} {key.Year}",
-                    stats.Stuff.Mean * RUNS_SCALE, stats.Loc.Mean * RUNS_SCALE));
+                    stats.Stuff.Mean * RUNS_SCALE, stats.Loc.Mean * RUNS_SCALE, stats.Stuff.Count));
             }
 
             if (Directory.Exists(PLOT_DIRECTORY))
@@ -149,8 +149,6 @@ namespace PitchAnalysis
                         $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}.png"));
                     CreateLocationResponsePlot(yearPoints, competitivePitches,
                         $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}_LocResponse.png"));
-                    //CreateBinCountSplitPlots(yearPoints, competitivePitches,
-                    //    $"Model {model} - {year}", Path.Combine(PLOT_DIRECTORY, $"Model{model}_{year}"));
                 }
                 CreatePlot(modelPoints,
                     $"Model {model} - All Years", Path.Combine(PLOT_DIRECTORY, $"Model{model}_AllYears.png"));
@@ -196,8 +194,11 @@ namespace PitchAnalysis
 
             double[] xs = points.Select(p => p.Stuff).ToArray();
             double[] ys = points.Select(p => p.Location).ToArray();
+            double[] weights = points.Select(p => (double)p.StuffCount).ToArray();
 
-            (double intercept, double slope) = Fit.Line(xs, ys);
+            double[] coefficients = Fit.PolynomialWeighted(xs, ys, weights, 1);
+            double intercept = coefficients[0];
+            double slope = coefficients[1];
             double r = Correlation.Pearson(xs, ys);
 
             // One-sided test of H1: correlation < 0 (Pearson t-test, df = n - 2; identical to the slope t-test)
@@ -417,16 +418,6 @@ namespace PitchAnalysis
                 splits.Add(($"{pitchClass}_InZone", f => f.PitchClass == pitchClass && f.InZone));
                 splits.Add(($"{pitchClass}_Outside", f => f.PitchClass == pitchClass && !f.InZone));
             }
-
-            //foreach (Db.DbEnums.PitchClass pitchClass in Enum.GetValues<Db.DbEnums.PitchClass>()
-            //    .Where(c => c != Db.DbEnums.PitchClass.Other))
-            //{
-            //    splits.Add((pitchClass.ToString(), f => f.PitchClass == pitchClass));
-            //}
-            //splits.Add(("PitR", f => f.PitIsR));
-            //splits.Add(("PitL", f => !f.PitIsR));
-            //splits.Add(("HitR", f => f.HitIsR));
-            //splits.Add(("HitL", f => !f.HitIsR));
 
             foreach (var (name, include) in splits)
             {

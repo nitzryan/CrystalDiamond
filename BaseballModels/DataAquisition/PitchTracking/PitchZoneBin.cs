@@ -88,19 +88,29 @@ namespace DataAquisition.PitchTracking
 
     public sealed record PitchZoneBinArgs
     {
-        public int ZoneColumns { get; init; } = 5;
-        public int SquareRowsPerSide { get; init; } = 2;
+        public int ZoneColumns { get; init; } = 7;
+        public int SquareRowsPerSide { get; init; } = 3;
         public bool SplitMiddleRow { get; init; } = false;
-        public int OutsideColumns { get; init; } = 5;
-        public int OutsideRows { get; init; } = 5;
+        public int OutsideColumns { get; init; } = 7;
+        public int OutsideRows { get; init; } = 7;
         public int MinPitches { get; init; } = 5;
         public double MinSwingRate { get; init; } = 0.10;
-        public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(1, 1.0);
+        public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(2, 1.0);
+
+        public bool SeparateBorderRing { get; init; } = false;
+        public IReadOnlySet<Db.DbEnums.PitchClass>? SeparateBorderRingClasses { get; init; } = null;
+
+        // All parameters below this currently are not used in the optimal model, and can potentially be removed.
 
         // Max total weight (in pitches) the neighbours may add to a cell, chosen by whether the cell is in the strike zone.
         // Ignored when Kernel is null.
-        public double? InZoneNeighbourCap { get; init; } = 100;
-        public double? OutZoneNeighbourCap { get; init; } = 8;
+        public double? InZoneNeighborCap { get; init; } = 200;
+        public double? OutZoneNeighborCap { get; init; } = 15;
+        public double? NeighborDecayRatio { get; init; } = 3;
+
+        public double? NeighborTaper { get; init; } = null;
+        public bool SoftNeighborCap { get; init; } = false;
+        
     }
 
     // Row 0 = lowest row, Column 0 = left-most column (most negative PlateX).
@@ -116,11 +126,27 @@ namespace DataAquisition.PitchTracking
         private readonly int gridColumns;
         private readonly double[] columnEdges;
 
+        public static PitchZoneBin DEFAULT = new(new PitchZoneBinArgs()
+        {
+            ZoneColumns = 7,
+            SquareRowsPerSide = 3,
+            OutsideColumns = 7,
+            OutsideRows = 7,
+            Kernel = PitchZoneKernel.Gaussian(2, 1.0),
+            OutZoneNeighborCap = null,
+            SeparateBorderRing = true,
+            SeparateBorderRingClasses = new HashSet<Db.DbEnums.PitchClass> { Db.DbEnums.PitchClass.Fastball },
+        });
+
         // Pitches from one bin split by cell; NoZone holds everything that fell off the grid.
         private sealed record ZoneBuckets(List<PitchData>[,] Cells, List<PitchData> NoZone);
 
         // Per-cell totals for one combo, either raw or kernel-smoothed.
         private sealed record CellTotals(double[,] Pitches, double[,] Swings, double[,] ValueSum);
+
+        private enum ZoneRegion { Inside, Edge, Corner, Other }
+
+        private readonly ZoneRegion[,] regions;
 
         public PitchZoneBin(PitchZoneBinArgs args)
         {
@@ -134,9 +160,13 @@ namespace DataAquisition.PitchTracking
             {
                 throw new ArgumentOutOfRangeException(nameof(args), $"MinSwingRate must be in [0, 1], was {args.MinSwingRate}.");
             }
-            if (args.InZoneNeighbourCap is < 0 || args.OutZoneNeighbourCap is < 0)
+            if (args.InZoneNeighborCap is < 0 || args.OutZoneNeighborCap is < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(args), "Neighbour caps must be non-negative.");
+            }
+            if (args.NeighborDecayRatio is double decayRatio)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decayRatio, nameof(args.NeighborDecayRatio));
             }
 
             this.args = args;
@@ -144,7 +174,8 @@ namespace DataAquisition.PitchTracking
             zoneRows = (2 * args.SquareRowsPerSide) + (args.SplitMiddleRow ? 2 : 1);
             gridRows = zoneRows + (2 * args.OutsideRows);
             gridColumns = args.ZoneColumns + (2 * args.OutsideColumns);
-            columnEdges = BuildColumnEdges(); // needs cellSize and gridColumns, so it must come last
+            columnEdges = BuildColumnEdges();
+            regions = BuildRegions();
         }
 
         ///////////////////////////////////////// PUBLIC /////////////////////////////
@@ -157,7 +188,7 @@ namespace DataAquisition.PitchTracking
             foreach (var combo in combos)
             {
                 ZoneBuckets buckets = BucketPitches(combo);
-                CellTotals effective = ApplyKernel(SumCells(buckets));
+                CellTotals effective = ApplyKernel(SumCells(buckets), UsesBorderRing(combo.Key.PitchClass));
 
                 // Pitches that will NOT be valued by a competitive bin: no zone, or a bin failing either rule.
                 List<PitchData> nonCompetitivePitches = [.. buckets.NoZone];
@@ -280,10 +311,13 @@ namespace DataAquisition.PitchTracking
             plot.SavePng(outputPath, imageSize, imageSize);
         }
 
-        public void PlotZoneCounts(IEnumerable<PitchData> pitches, string label, string outputPath, float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000)
+        // TODO : This currently has a slight bug where it will give the incorrect counts if the plot checks for pitchClass to determine
+        // if it should smooth around the border and UsesBorderRing(null) returns the wrong value.  However, this is currently
+        // just used to get a rough idea so it doesn't matter enough to deal with it currently
+        public void PlotZoneCounts(IEnumerable<PitchData> pitches, string label, string outputPath, float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000, Db.DbEnums.PitchClass? pitchClass = null)
         {
             ZoneBuckets buckets = BucketPitches(pitches);
-            CellTotals effective = ApplyKernel(SumCells(buckets));
+            CellTotals effective = ApplyKernel(SumCells(buckets), UsesBorderRing(pitchClass));
 
             int total = buckets.NoZone.Count;
             int maxCount = 0;
@@ -427,11 +461,6 @@ namespace DataAquisition.PitchTracking
             double zoneBottomEdge = zoneBot - BaseballConstants.BallRadius;
             double zoneTopEdge = zoneTop + BaseballConstants.BallRadius;
             double middleHeight = (zoneTopEdge - zoneBottomEdge) - (2 * args.SquareRowsPerSide * cellSize);
-            if (middleHeight <= 0)
-            {
-                throw new ArgumentException(
-                    $"Zone {zoneBot:F2}-{zoneTop:F2} is too short for {2 * args.SquareRowsPerSide} square rows of {cellSize:F3}ft.");
-            }
 
             double[] edges = new double[gridRows + 1];
 
@@ -448,7 +477,7 @@ namespace DataAquisition.PitchTracking
             }
 
             // Split the middle into two equal-height rows; the only edge not set by the square-row loops.
-            if (args.SplitMiddleRow)
+            if (args.SplitMiddleRow && middleHeight > 0)
             {
                 edges[args.OutsideRows + args.SquareRowsPerSide + 1] =
                     zoneBottomEdge + (args.SquareRowsPerSide * cellSize) + (middleHeight / 2);
@@ -467,7 +496,61 @@ namespace DataAquisition.PitchTracking
                 edges[topZoneEdgeIndex + i] = zoneTopEdge + (i * cellSize);
             }
 
+            // Need to adjust the some edges if there is not a middle bin
+            if (middleHeight < 0)
+            {
+                double midpoint = ((zoneTopEdge - zoneBottomEdge) / 2) + zoneBottomEdge;
+                edges[topZoneEdgeIndex - args.SquareRowsPerSide] = midpoint;
+                edges[topZoneEdgeIndex - args.SquareRowsPerSide - 1] = midpoint;
+            }
+
             return edges;
+        }
+
+        private ZoneRegion[,] BuildRegions()
+        {
+            ZoneRegion[,] result = new ZoneRegion[gridRows, gridColumns];
+            int zoneBottomRow = args.OutsideRows;
+            int zoneTopRow = args.OutsideRows + zoneRows;       // first row above the zone
+            int zoneLeftColumn = args.OutsideColumns;
+            int zoneRightColumn = args.OutsideColumns + args.ZoneColumns;   // first column right of the zone
+            for (int row = 0; row < gridRows; row++)
+            {
+                for (int column = 0; column < gridColumns; column++)
+                {
+                    // Cells away from the zone on each axis; 0 when the cell is level with the zone.
+                    int rowGap = row < zoneBottomRow ? zoneBottomRow - row
+                        : row >= zoneTopRow ? row - zoneTopRow + 1
+                        : 0;
+                    int columnGap = column < zoneLeftColumn ? zoneLeftColumn - column
+                        : column >= zoneRightColumn ? column - zoneRightColumn + 1
+                        : 0;
+                    if (rowGap == 0 && columnGap == 0)
+                    {
+                        result[row, column] = ZoneRegion.Inside;
+                    }
+                    else if (rowGap <= 1 && columnGap <= 1)
+                    {
+                        result[row, column] = rowGap == 1 && columnGap == 1 ? ZoneRegion.Corner : ZoneRegion.Edge;
+                    }
+                    else
+                    {
+                        result[row, column] = ZoneRegion.Other;
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Whether a cell of region target may use a cell of region source when smoothing (ring mode only).
+        private static bool CanBorrow(ZoneRegion target, ZoneRegion source)
+        {
+            return target switch
+            {
+                ZoneRegion.Inside => source == ZoneRegion.Inside,
+                ZoneRegion.Edge => source is ZoneRegion.Edge or ZoneRegion.Corner,
+                _ => source != ZoneRegion.Inside,
+            };
         }
 
         private static int FindCell(double[] edges, double value)
@@ -580,7 +663,14 @@ namespace DataAquisition.PitchTracking
             return new CellTotals(pitches, swings, valueSum);
         }
 
-        private CellTotals ApplyKernel(CellTotals raw)
+        private bool UsesBorderRing(Db.DbEnums.PitchClass? pitchClass)
+        {
+            return args.SeparateBorderRingClasses is { } classes && pitchClass is { } c
+                ? classes.Contains(c)
+                : args.SeparateBorderRing;
+        }
+
+        private CellTotals ApplyKernel(CellTotals raw, bool useBorderRing)
         {
             if (args.Kernel is not PitchZoneKernel kernel)
             {
@@ -597,7 +687,7 @@ namespace DataAquisition.PitchTracking
                 for (int column = 0; column < gridColumns; column++)
                 {
                     bool cellInZone = IsInStrikeZone(new PitchZone(row, column));
-                    double? cap = cellInZone ? args.InZoneNeighbourCap : args.OutZoneNeighbourCap;
+                    double? cap = cellInZone ? args.InZoneNeighborCap : args.OutZoneNeighborCap;
                     double neighbourPitches = 0, neighbourSwings = 0, neighbourValue = 0;
                     for (int rowOffset = -kernel.Radius; rowOffset <= kernel.Radius; rowOffset++)
                     {
@@ -610,8 +700,15 @@ namespace DataAquisition.PitchTracking
                                 continue;
                             }
 
-                            // Never borrow across the strike-zone border.
-                            if (IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) != cellInZone)
+                            // Check if the cell is eligible for the target to be used in smoothing
+                            if (useBorderRing)
+                            {
+                                if (!CanBorrow(regions[row, column], regions[sourceRow, sourceColumn]))
+                                {
+                                    continue;
+                                }
+                            }
+                            else if (IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) != cellInZone)
                             {
                                 continue;
                             }
@@ -633,11 +730,29 @@ namespace DataAquisition.PitchTracking
                         }
                     }
 
-                    // Shrink the neighbours as a block, so the relative kernel weights are kept but their total mass is capped.
-                    double neighbourScale = cap is double limit && neighbourPitches > limit ? limit / neighbourPitches : 1;
-                    pitches[row, column] += neighbourScale * neighbourPitches;
-                    swings[row, column] += neighbourScale * neighbourSwings;
-                    valueSum[row, column] += neighbourScale * neighbourValue;
+                    // Shrink the neighbours as a block, shrinking the smoothing weight as the block gets more pitches
+                    //double? limit = cap;
+                    //if (cap is double baseCap && args.NeighborDecayRatio is double ratio)
+                    //{
+                    //    limit = baseCap / (1 + (raw.Pitches[row, column] / (ratio * baseCap)));
+                    //}
+                    //double scale = limit is double bound && neighbourPitches > bound ? bound / neighbourPitches : 1;
+
+                    double scale = 1;
+                    if (cap is double limit && neighbourPitches > 0)
+                    {
+                        scale = args.SoftNeighborCap
+                            ? limit / (limit + neighbourPitches)
+                            : Math.Min(1, limit / neighbourPitches);
+                    }
+                    if (args.NeighborTaper is double taper)
+                    {
+                        scale *= taper / (taper + raw.Pitches[row, column]);
+                    }
+
+                    pitches[row, column] += scale * neighbourPitches;
+                    swings[row, column] += scale * neighbourSwings;
+                    valueSum[row, column] += scale * neighbourValue;
                 }
             }
 

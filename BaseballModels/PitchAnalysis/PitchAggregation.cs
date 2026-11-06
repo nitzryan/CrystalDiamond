@@ -31,6 +31,27 @@ namespace PitchAnalysis
         private readonly record struct PzncKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes);
 
+        // Need to make sure that scenarios without enough pitches aren't graded.
+        private readonly record struct ScenarioKey(Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
+        private const int MIN_SCENARIO_YEAR = 2022;
+        private const int MAX_SCENARIO_YEAR = 2026;
+        private const int MIN_SCENARIO_PITCHES = 2000;
+
+        // Scenarios with enough MLB pitches (MIN_SCENARIO_YEAR..MAX_SCENARIO_YEAR, inclusive) to grade against the bins.
+        private static HashSet<ScenarioKey> LoadGradedScenarios(PitchTrackingDbContext ptDb)
+        {
+            return ptDb.PitchData
+                .AsNoTracking()
+                .Where(f => f.LevelId == 1 && f.Year >= MIN_SCENARIO_YEAR && f.Year <= MAX_SCENARIO_YEAR
+                    && f.PitchClass != Db.DbEnums.PitchClass.Other)
+                .GroupBy(f => new { f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrike })
+                .Where(g => g.Count() >= MIN_SCENARIO_PITCHES)
+                .Select(g => new { g.Key.PitchClass, g.Key.PitIsR, g.Key.HitIsR, g.Key.CountBalls, g.Key.CountStrike })
+                .ToList()
+                .Select(g => new ScenarioKey(g.PitchClass, g.PitIsR, g.HitIsR, g.CountBalls, g.CountStrike))
+                .ToHashSet();
+        }
+
         public static void Update(PitchZoneBin bin)
         {
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
@@ -51,6 +72,8 @@ namespace PitchAnalysis
                 strikes = f.CountStrike,
                 year = f.Year
             }).Distinct();
+
+            HashSet<ScenarioKey> gradedScenarios = LoadGradedScenarios(ptDb);
 
             using (ProgressBar progressBar = new ProgressBar(scenarios.Count(), "Creating Year Scenario Pitch Expectancy Dict"))
             {
@@ -140,6 +163,15 @@ namespace PitchAnalysis
                         pva.CombinedRuns = ExpectedRuns(valueBall, valueStrike, valueFoul, valueHBP,
                             pva.CombinedBall, pva.CombinedCalledStrike, pva.CombinedSwing, pva.CombinedWhiff,
                             pva.CombinedFoul, pva.CombinedInPlay, pva.CombinedInPlayExpected, pva.CombinedHBP);
+
+                        // Don't give a bin location/stuff grade if there aren't enough pitches for that to be viable
+                        if (!gradedScenarios.Contains(new ScenarioKey(pitch.PitchClass, pitch.PitIsR, pitch.HitIsR, pitch.Balls, pitch.Strikes)))
+                        {
+                            pva.StuffBinRuns = null;
+                            pva.LocBinRuns = null;
+                            progressBar.Tick();
+                            continue;
+                        }
 
                         // Bin value from the PREVIOUS year's bins (no leakage)
                         if (!binCache.TryGetValue(pitchKey, out float? binValue))
