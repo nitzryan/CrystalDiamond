@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using PitchTrackingDb;
+﻿using PitchTrackingDb;
 
 namespace DataAquisition.PitchTracking
 {
@@ -100,6 +99,11 @@ namespace DataAquisition.PitchTracking
         public bool SeparateBorderRing { get; init; } = false;
         public IReadOnlySet<Db.DbEnums.PitchClass>? SeparateBorderRingClasses { get; init; } = null;
 
+        public double? NeighborCountRatio { get; init; } = null;
+        public double NeighborCountFloor { get; init; } = 5;
+        public double? InZoneSmoothingCutoff { get; init; } = null;
+        public double? OutZoneSmoothingCutoff { get; init; } = null;
+
         // All parameters below this currently are not used in the optimal model, and can potentially be removed.
 
         // Max total weight (in pitches) the neighbours may add to a cell, chosen by whether the cell is in the strike zone.
@@ -132,7 +136,7 @@ namespace DataAquisition.PitchTracking
             SquareRowsPerSide = 3,
             OutsideColumns = 7,
             OutsideRows = 7,
-            Kernel = PitchZoneKernel.Gaussian(2, 1.0),
+            Kernel = null,//PitchZoneKernel.Gaussian(2, 1.0),
             OutZoneNeighborCap = null,
             SeparateBorderRing = true,
             SeparateBorderRingClasses = new HashSet<Db.DbEnums.PitchClass> { Db.DbEnums.PitchClass.Fastball },
@@ -150,7 +154,7 @@ namespace DataAquisition.PitchTracking
 
         public PitchZoneBin(PitchZoneBinArgs args)
         {
-            ArgumentNullException.ThrowIfNull(args);
+            // Validate
             ArgumentOutOfRangeException.ThrowIfLessThan(args.ZoneColumns, 1);
             ArgumentOutOfRangeException.ThrowIfNegative(args.SquareRowsPerSide);
             ArgumentOutOfRangeException.ThrowIfNegative(args.OutsideColumns);
@@ -167,6 +171,19 @@ namespace DataAquisition.PitchTracking
             if (args.NeighborDecayRatio is double decayRatio)
             {
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decayRatio, nameof(args.NeighborDecayRatio));
+            }
+            if (args.NeighborCountRatio is double countRatio)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(countRatio, nameof(args.NeighborCountRatio));
+            }
+            ArgumentOutOfRangeException.ThrowIfNegative(args.NeighborCountFloor);
+            if (args.InZoneSmoothingCutoff is double inZoneCutoff)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(inZoneCutoff, nameof(args.InZoneSmoothingCutoff));
+            }
+            if (args.OutZoneSmoothingCutoff is double outZoneCutoff)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(outZoneCutoff, nameof(args.OutZoneSmoothingCutoff));
             }
 
             this.args = args;
@@ -381,9 +398,9 @@ namespace DataAquisition.PitchTracking
         // Cells missing from the dictionary are drawn grey. noZone is shown in the title.
         public void PlotCellValues(IReadOnlyDictionary<PitchZone, (double Value, string Text)> cells,
             (double Value, string Text)? noZone, string label, string outputPath,
-            float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000)
+            float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000, double? maxAbsValue = null)
         {
-            double maxAbs = cells.Count == 0 ? 0 : cells.Values.Max(v => Math.Abs(v.Value));
+            double maxAbs = maxAbsValue ?? (cells.Count == 0 ? 0 : cells.Values.Max(v => Math.Abs(v.Value)));
             double[] rowEdges = BuildRowEdges(displayZoneTop, displayZoneBot);
             using var plot = new ScottPlot.Plot();
 
@@ -399,9 +416,9 @@ namespace DataAquisition.PitchTracking
                     cell.FillStyle.Color = ScottPlot.Colors.LightGray.WithAlpha(0.3);
                     if (cells.TryGetValue(new PitchZone(row, column), out (double Value, string Text) entry))
                     {
-                        double share = maxAbs == 0 ? 0 : Math.Abs(entry.Value) / maxAbs;
-                        ScottPlot.Color baseColour = entry.Value >= 0 ? ScottPlot.Colors.Green : ScottPlot.Colors.Red;
-                        cell.FillStyle.Color = baseColour.WithAlpha(0.1 + (0.75 * share));
+                        double share = maxAbs == 0 ? 0 : Math.Min(1, Math.Abs(entry.Value) / maxAbs);
+                        ScottPlot.Color extreme = entry.Value >= 0 ? ScottPlot.Colors.Green : ScottPlot.Colors.Red;
+                        cell.FillStyle.Color = BlendFromNeutral(extreme, share);
                         cellText = entry.Text;
                     }
 
@@ -424,6 +441,15 @@ namespace DataAquisition.PitchTracking
             plot.Axes.SetLimits(columnEdges[0] - pad, columnEdges[^1] + pad, rowEdges[0] - pad, rowEdges[^1] + pad);
             plot.Axes.SquareUnits();
             plot.SavePng(outputPath, imageSize, imageSize);
+        }
+
+        // Neutral gray at fraction 0, the full target colour at fraction 1, so near-zero cells read as "about even".
+        private static ScottPlot.Color BlendFromNeutral(ScottPlot.Color target, double fraction)
+        {
+            const byte NEUTRAL = 190;
+            fraction = Math.Clamp(fraction, 0, 1);
+            byte Mix(byte extreme) => (byte)Math.Round(NEUTRAL + ((extreme - NEUTRAL) * fraction));
+            return new ScottPlot.Color(Mix(target.R), Mix(target.G), Mix(target.B), 200);
         }
 
         ///////////////////////////////////////// Build Zone Rows/Columns /////////////////////////////
@@ -688,7 +714,13 @@ namespace DataAquisition.PitchTracking
                 {
                     bool cellInZone = IsInStrikeZone(new PitchZone(row, column));
                     double? cap = cellInZone ? args.InZoneNeighborCap : args.OutZoneNeighborCap;
-                    double neighbourPitches = 0, neighbourSwings = 0, neighbourValue = 0;
+
+                    // Largest effective count any single neighbour may contribute to this cell
+                    double ? maxSourcePitches = args.NeighborCountRatio is double countRatio
+                        ? countRatio * Math.Max(raw.Pitches[row, column], args.NeighborCountFloor)
+                        : null;
+
+                    double neighborPitches = 0, neighborSwings = 0, neighborValue = 0;
                     for (int rowOffset = -kernel.Radius; rowOffset <= kernel.Radius; rowOffset++)
                     {
                         for (int columnOffset = -kernel.Radius; columnOffset <= kernel.Radius; columnOffset++)
@@ -723,36 +755,39 @@ namespace DataAquisition.PitchTracking
                             }
                             else
                             {
-                                neighbourPitches += weight * raw.Pitches[sourceRow, sourceColumn];
-                                neighbourSwings += weight * raw.Swings[sourceRow, sourceColumn];
-                                neighbourValue += weight * raw.ValueSum[sourceRow, sourceColumn];
+
+                                double sourcePitches = raw.Pitches[sourceRow, sourceColumn];
+                                if (maxSourcePitches is double maxSource && sourcePitches > maxSource)
+                                {
+                                    weight *= maxSource / sourcePitches;
+                                }
+                                neighborPitches += weight * raw.Pitches[sourceRow, sourceColumn];
+                                neighborSwings += weight * raw.Swings[sourceRow, sourceColumn];
+                                neighborValue += weight * raw.ValueSum[sourceRow, sourceColumn];
                             }
                         }
                     }
 
-                    // Shrink the neighbours as a block, shrinking the smoothing weight as the block gets more pitches
-                    //double? limit = cap;
-                    //if (cap is double baseCap && args.NeighborDecayRatio is double ratio)
-                    //{
-                    //    limit = baseCap / (1 + (raw.Pitches[row, column] / (ratio * baseCap)));
-                    //}
-                    //double scale = limit is double bound && neighbourPitches > bound ? bound / neighbourPitches : 1;
-
                     double scale = 1;
-                    if (cap is double limit && neighbourPitches > 0)
+                    if (cap is double limit && neighborPitches > 0)
                     {
                         scale = args.SoftNeighborCap
-                            ? limit / (limit + neighbourPitches)
-                            : Math.Min(1, limit / neighbourPitches);
+                            ? limit / (limit + neighborPitches)
+                            : Math.Min(1, limit / neighborPitches);
                     }
                     if (args.NeighborTaper is double taper)
                     {
                         scale *= taper / (taper + raw.Pitches[row, column]);
                     }
+                    // Linear hand-off to the cell's own data, reaching zero neighbour influence at the cutoff
+                    if ((cellInZone ? args.InZoneSmoothingCutoff : args.OutZoneSmoothingCutoff) is double cutoff)
+                    {
+                        scale *= Math.Max(0, 1 - (raw.Pitches[row, column] / cutoff));
+                    }
 
-                    pitches[row, column] += scale * neighbourPitches;
-                    swings[row, column] += scale * neighbourSwings;
-                    valueSum[row, column] += scale * neighbourValue;
+                    pitches[row, column] += scale * neighborPitches;
+                    swings[row, column] += scale * neighborSwings;
+                    valueSum[row, column] += scale * neighborValue;
                 }
             }
 
