@@ -148,7 +148,7 @@ namespace DataAquisition.PitchTracking
         // Per-cell totals for one combo, either raw or kernel-smoothed.
         private sealed record CellTotals(double[,] Pitches, double[,] Swings, double[,] ValueSum);
 
-        private enum ZoneRegion { Inside, Edge, Corner, Other }
+        private enum ZoneRegion { InsideCenter, InsideBorder, Edge, Corner, Other }
 
         private readonly ZoneRegion[,] regions;
 
@@ -503,7 +503,7 @@ namespace DataAquisition.PitchTracking
             }
 
             // Split the middle into two equal-height rows; the only edge not set by the square-row loops.
-            if (args.SplitMiddleRow && middleHeight > 0)
+            if (args.SplitMiddleRow && middleHeight >= 0)
             {
                 edges[args.OutsideRows + args.SquareRowsPerSide + 1] =
                     zoneBottomEdge + (args.SquareRowsPerSide * cellSize) + (middleHeight / 2);
@@ -528,6 +528,11 @@ namespace DataAquisition.PitchTracking
                 double midpoint = ((zoneTopEdge - zoneBottomEdge) / 2) + zoneBottomEdge;
                 edges[topZoneEdgeIndex - args.SquareRowsPerSide] = midpoint;
                 edges[topZoneEdgeIndex - args.SquareRowsPerSide - 1] = midpoint;
+
+                if (args.SplitMiddleRow)
+                {
+                    edges[topZoneEdgeIndex - args.SquareRowsPerSide - 2] = midpoint;
+                }
             }
 
             return edges;
@@ -537,9 +542,9 @@ namespace DataAquisition.PitchTracking
         {
             ZoneRegion[,] result = new ZoneRegion[gridRows, gridColumns];
             int zoneBottomRow = args.OutsideRows;
-            int zoneTopRow = args.OutsideRows + zoneRows;       // first row above the zone
+            int zoneTopRow = args.OutsideRows + zoneRows;
             int zoneLeftColumn = args.OutsideColumns;
-            int zoneRightColumn = args.OutsideColumns + args.ZoneColumns;   // first column right of the zone
+            int zoneRightColumn = args.OutsideColumns + args.ZoneColumns;
             for (int row = 0; row < gridRows; row++)
             {
                 for (int column = 0; column < gridColumns; column++)
@@ -553,7 +558,9 @@ namespace DataAquisition.PitchTracking
                         : 0;
                     if (rowGap == 0 && columnGap == 0)
                     {
-                        result[row, column] = ZoneRegion.Inside;
+                        bool onZoneBoundary = row == zoneBottomRow || row == zoneTopRow - 1
+                                                    || column == zoneLeftColumn || column == zoneRightColumn - 1;
+                        result[row, column] = onZoneBoundary ? ZoneRegion.InsideBorder : ZoneRegion.InsideCenter;
                     }
                     else if (rowGap <= 1 && columnGap <= 1)
                     {
@@ -573,9 +580,10 @@ namespace DataAquisition.PitchTracking
         {
             return target switch
             {
-                ZoneRegion.Inside => source == ZoneRegion.Inside,
+                ZoneRegion.InsideCenter => source is ZoneRegion.InsideBorder or ZoneRegion.InsideCenter,
+                ZoneRegion.InsideBorder => source is ZoneRegion.InsideBorder,
                 ZoneRegion.Edge => source is ZoneRegion.Edge or ZoneRegion.Corner,
-                _ => source != ZoneRegion.Inside,
+                _ => source is not ZoneRegion.InsideCenter or ZoneRegion.InsideBorder,
             };
         }
 

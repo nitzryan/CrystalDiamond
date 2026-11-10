@@ -52,25 +52,28 @@ namespace PitchAnalysis
             new("Current Bins", new PitchZoneBin(ZONE_BIGGER)),
 
             new("Bigger Gaussian r2 s1_0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
-            new("Bigger Gaussian r3 s1_0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(3, 1.0) })),
 
             new("Bigger Gaussian r2 s1_0 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true })),
-            new("Bigger Gaussian r3 s1_0 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(3, 1.0), SeparateBorderRing=true })),
 
+            new("Bigger Gaussian r2 s1.0 CountCap x1", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=false, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
             new("Bigger Gaussian r2 s1.0 Border CountCap x1", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
-            new ("Bigger Gaussian r2 s1.0 Border CountCap x2", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing = true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 2 })),
-            new ("Bigger Gaussian r2 s1.0 Border CountCap x4", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing = true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 4 })),
+            new("Bigger Gaussian r1 s1.0 Border CountCap x1", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
+            new("Bigger Gaussian r2 s1.0 Border CountCap x1 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, SplitMiddleRow=true })),
 
-            new("Fade InZone 1000", new PitchZoneBin(ZONE_BIGGER with
+            new("Fade InZone 3_500 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
-                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 1000, OutZoneSmoothingCutoff = 500 })),
-            new("Fade InZone 500", new PitchZoneBin(ZONE_BIGGER with
+                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 500, OutZoneSmoothingCutoff = 250, SplitMiddleRow=true })),
+            new("Fade InZone 3_500", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
                   NeighborCountRatio = 1, InZoneSmoothingCutoff = 500, OutZoneSmoothingCutoff = 250 })),
-            new("Fade InZone 2000", new PitchZoneBin(ZONE_BIGGER with
+            new("Fade InZone 4_1000", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
+                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 1000, OutZoneSmoothingCutoff = 500 })),
+            new("Fade InZone 5_2000", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
                   NeighborCountRatio = 1, InZoneSmoothingCutoff = 2000, OutZoneSmoothingCutoff = 1000 })),
         ];
@@ -119,9 +122,13 @@ namespace PitchAnalysis
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
             string[] names = [BASELINE_NAME, .. METHODS.Select(m => m.Name)];
             Dictionary<int, YearTotals> totals = new();
+            Dictionary<int, YearTotals> inZoneTotals = new();
+            Dictionary<int, YearTotals> outZoneTotals = new();
+
             Dictionary<PitchSplitKey, YearTotals> splitTotals = new();
             MethodCellTotals[] cellTotals = [.. METHODS.Select(_ => new MethodCellTotals())];
             PitchZone?[] zones = new PitchZone?[METHODS.Length];
+
             double[] predicted = new double[METHODS.Length];
             long skipped = 0;
             long nonCompetitive = 0;
@@ -143,8 +150,13 @@ namespace PitchAnalysis
                 }
 
                 var (means, predictions) = LoadBinYear(ptDb, binYear);
+
                 YearTotals yearTotals = new(names.Length);
                 totals[evalYear] = yearTotals;
+                YearTotals inZoneYear = new(names.Length);
+                YearTotals outZoneYear = new(names.Length);
+                inZoneTotals[evalYear] = inZoneYear;
+                outZoneTotals[evalYear] = outZoneYear;
 
                 foreach (PitchData p in MlbPitches(ptDb).Where(f => f.Year == evalYear))
                 {
@@ -179,6 +191,12 @@ namespace PitchAnalysis
                     double baselineError = mean - p.RunValueSmoothedHitter;
                     yearTotals.Sse[0] += baselineError * baselineError;
 
+                    // Region comes from the reference method's cell so every method is scored on the same pitches per region
+                    YearTotals regionYear = METHODS[REFERENCE_METHOD].Bin.IsInStrikeZone(zones[REFERENCE_METHOD]!.Value)
+                        ? inZoneYear
+                        : outZoneYear;
+                    regionYear.Sse[0] += baselineError * baselineError;
+
                     // Keyed with all years grouped
                     PitchSplitKey splitKey = new(p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
                     if (!splitTotals.TryGetValue(splitKey, out YearTotals? split))
@@ -195,21 +213,99 @@ namespace PitchAnalysis
                     {
                         double error = predicted[m] - p.RunValueSmoothedHitter;
                         yearTotals.Sse[m + 1] += error * error;
+                        regionYear.Sse[m + 1] += error * error;
                         split.Sse[m + 1] += error * error;
                         cellTotals[m].Add(zones[m], error * error, referenceError * referenceError, baselineError * baselineError, -error);
                     }
 
                     yearTotals.Count++;
+                    regionYear.Count++;
                 }
             }
 
             Console.WriteLine($"Scored {totals.Values.Sum(t => t.Count)} competitive pitches, skipped {skipped} with no prior-year situation, " +
                 $"dropped {nonCompetitive} non-competitive");
             Directory.CreateDirectory(PLOT_DIRECTORY);
-            PlotMseReduction(names, totals, Path.Combine(PLOT_DIRECTORY, "MseReduction.png"));
+            PlotMseReduction(names, totals, "All", Path.Combine(PLOT_DIRECTORY, "MseReduction.png"));
+            PlotMseReduction(names, inZoneTotals, "In-Zone", Path.Combine(PLOT_DIRECTORY, "MseReduction_InZone.png"));
+            PlotMseReduction(names, outZoneTotals, "Out-Zone", Path.Combine(PLOT_DIRECTORY, "MseReduction_OutZone.png"));
             PlotCellReductions(cellTotals);
             PlotCellBias(cellTotals);
             PlotSplitMseReductions(names, splitTotals);
+            PlotBiasSummary(cellTotals);
+        }
+
+        // Count-weighted mean |cell bias| (runs/100 pitches), split by whether the cell is in the strike zone.
+        // Equivalent to sum(count * |bias|) / sum(count), since count * |bias| = |sum of residuals|.
+        private static void PlotBiasSummary(MethodCellTotals[] cellTotals)
+        {
+            double[] inZone = new double[METHODS.Length];
+            double[] outZone = new double[METHODS.Length];
+            
+            for (int m = 0; m < METHODS.Length; m++)
+            {
+                double inAbs = 0, outAbs = 0;
+                long inCount = 0, outCount = 0;
+                
+                foreach ((PitchZone zone, CellErrors errors) in cellTotals[m].Cells)
+                {
+                    double absTotal = Math.Abs(errors.MethodResidualSum);
+                    
+                    if (METHODS[m].Bin.IsInStrikeZone(zone))
+                    {
+                        inAbs += absTotal;
+                        inCount += errors.Count;
+                    }
+                    else
+                    {
+                        outAbs += absTotal;
+                        outCount += errors.Count;
+                    }
+                }
+
+                inZone[m] = inCount == 0 ? 0 : 100.0 * inAbs / inCount;
+                outZone[m] = outCount == 0 ? 0 : 100.0 * outAbs / outCount;
+            }
+
+            using ScottPlot.Plot plot = new();
+            ScottPlot.Palettes.Category10 palette = new();
+
+            ScottPlot.TickGenerators.NumericManual ticks = new();
+            ticks.AddMajor(0, "In zone");
+            ticks.AddMajor(1, "Out of zone");
+
+            double barWidth = 0.8 / METHODS.Length;
+            for (int m = 0; m < METHODS.Length; m++)
+            {
+                List<ScottPlot.Bar> bars = new();
+                double[] values = [inZone[m], outZone[m]];
+                for (int group = 0; group < values.Length; group++)
+                {
+                    double position = group + ((m - ((METHODS.Length - 1) / 2.0)) * barWidth);
+                    bars.Add(new ScottPlot.Bar
+                    {
+                        Position = position,
+                        Value = values[group],
+                        Size = barWidth * 0.9,
+                        FillColor = palette.GetColor(m),
+                    });
+
+                    var label = plot.Add.Text($"{values[group]:F3}", position, values[group]);
+                    label.LabelFontSize = 16;
+                    label.LabelRotation = -90;
+                    label.LabelAlignment = ScottPlot.Alignment.MiddleLeft;
+                    label.OffsetY = -4;
+                }
+
+                var barPlot = plot.Add.Bars(bars);
+                barPlot.LegendText = METHODS[m].Name;
+            }
+
+            plot.Axes.Bottom.TickGenerator = ticks;
+            plot.ShowLegend();
+            plot.Title("Count-weighted mean |cell bias| (actual - predicted), all years pooled");
+            plot.YLabel("Runs per 100 pitches");
+            plot.SavePng(Path.Combine(PLOT_DIRECTORY, "BiasSummary.png"), IMAGE_WIDTH, PLOT_HEIGHT);
         }
 
         private static IQueryable<PitchData> MlbPitches(PitchTrackingDbContext ptDb)
@@ -237,7 +333,7 @@ namespace PitchAnalysis
                 .ToDictionary(g => g.Key, g => g.Average(p => (double)p.RunValueSmoothedHitter));
         }
 
-        private static void PlotMseReduction(string[] names, Dictionary<int, YearTotals> totals, string path)
+        private static void PlotMseReduction(string[] names, Dictionary<int, YearTotals> totals, string regionLabel, string path)
         {
             // Columns: each evaluation year, then all years pooled
             List<(string Label, double[] Sse, long Count)> columns = totals
@@ -284,7 +380,7 @@ namespace PitchAnalysis
             double allBaselineMse = columns[^1].Sse[0] / columns[^1].Count;
             plot.Axes.Bottom.TickGenerator = ticks;
             plot.ShowLegend();
-            plot.Title($"Out-of-Sample MSE Reduction vs Prior-Year {names[0]} (all-years baseline MSE={allBaselineMse:G4})");
+            plot.Title($"{regionLabel}: Out-of-Sample MSE Reduction vs Prior-Year {names[0]} (all-years baseline MSE={allBaselineMse:G4})");
             plot.XLabel("Evaluation Year (bins from year − 1)");
             plot.YLabel("MSE Reduction (%)");
             plot.SavePng(path, IMAGE_WIDTH, PLOT_HEIGHT);
@@ -357,7 +453,7 @@ namespace PitchAnalysis
                     noZone,
                     $"{METHODS[m].Name}: mean bias (actual - predicted)",
                     Path.Combine(PLOT_DIRECTORY, $"Bias_{METHODS[m].Name}.png"),
-                    maxAbsValue: 2.0);
+                    maxAbsValue: 1.0);
             }
         }
 
@@ -384,7 +480,8 @@ namespace PitchAnalysis
                     cells,
                     CellReductionVsReference(cellTotals[m].NoZone),
                     label,
-                    Path.Combine(PLOT_DIRECTORY, $"Cells_{METHODS[m].Name}.png"));
+                    Path.Combine(PLOT_DIRECTORY, $"Cells_{METHODS[m].Name}.png"),
+                    maxAbsValue: 5.0);
             }
         }
 

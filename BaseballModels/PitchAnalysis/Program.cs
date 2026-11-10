@@ -24,10 +24,10 @@ namespace PitchAnalysis
             }
 
             PitchZoneBin bin = PitchZoneBin.DEFAULT;
-            DataAquisition.PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
-            PitchAggregation.Update(bin);
-            StuffLocationCorrelation.GeneratePlots(bin);
-            //BinEvaluation.Evaluate();
+            //DataAquisition.PitchTracking.PitchBinCompetitiveness.GenerateZoneCompetitivePlotsAndTable();
+            //PitchAggregation.Update(bin);
+            //StuffLocationCorrelation.GeneratePlots(bin);
+            BinEvaluation.Evaluate();
             //Plots.PitchValueSurface.GeneratePlots(2025, new PitchZoneBinArgs());
             return;
 
