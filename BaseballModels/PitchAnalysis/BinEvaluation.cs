@@ -1,14 +1,19 @@
-﻿using DataAquisition.PitchTracking;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PitchTrackingDb;
-using ScottPlot.MultiplotLayouts;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
+    using YearTotalsDict = System.Collections.Generic.Dictionary<int, YearTotals>;
+    internal sealed class YearTotals(int methodCount)
+    {
+        public double[] Sse { get; } = new double[methodCount];
+        public long Count { get; set; }
+    }
+
     internal static class BinEvaluation
     {
         private const string PLOT_DIRECTORY = "BinEvaluationPlots";
-        private static readonly int[] EXCLUDED_BIN_YEARS = [2020];   // bins built from these years aren't evaluated (60-game season)
         private const int IMAGE_WIDTH = 2000;
         private const int PLOT_HEIGHT = 800;
         private const int MIN_EVAL_YEAR = 2022;
@@ -18,12 +23,6 @@ namespace PitchAnalysis
 
         // A method's prediction for every cell of a situation, plus pitches that land outside the grid
         private sealed record SituationPrediction(double[,] Cells, bool[,] Valid);
-
-        private sealed class YearTotals(int methodCount)
-        {
-            public double[] Sse { get; } = new double[methodCount];
-            public long Count { get; set; }
-        }
 
         private const string BASELINE_NAME = "Situation Mean";
         private static readonly PitchZoneBinArgs ZONE_SMALLER = new()
@@ -116,22 +115,11 @@ namespace PitchAnalysis
                 cell.Count++;
             }
         }
-
+        
         public static void Evaluate()
         {
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
             string[] names = [BASELINE_NAME, .. METHODS.Select(m => m.Name)];
-            Dictionary<int, YearTotals> totals = new();
-            Dictionary<int, YearTotals> inZoneTotals = new();
-            Dictionary<int, YearTotals> outZoneTotals = new();
-
-            Dictionary<PitchSplitKey, YearTotals> splitTotals = new();
-            MethodCellTotals[] cellTotals = [.. METHODS.Select(_ => new MethodCellTotals())];
-            PitchZone?[] zones = new PitchZone?[METHODS.Length];
-
-            double[] predicted = new double[METHODS.Length];
-            long skipped = 0;
-            long nonCompetitive = 0;
 
             List<int> evalYears = MlbPitches(ptDb)
                 .Where(f => f.Year >= MIN_EVAL_YEAR)
@@ -140,30 +128,75 @@ namespace PitchAnalysis
                 .OrderBy(y => y)
                 .ToList();
 
-            // Score every MLB pitch on the previous year's bins
-            foreach (int evalYear in evalYears)
-            {
-                int binYear = evalYear - 1;
-                if (EXCLUDED_BIN_YEARS.Contains(binYear))
-                {
-                    continue;
-                }
+            List<PitchData> pitches = MlbPitches(ptDb).ToList();
+            var (means, predictions) = LoadBinYear(pitches);
+            pitches = pitches.Where(f => f.Year >= MIN_EVAL_YEAR).ToList();
+            Directory.CreateDirectory(PLOT_DIRECTORY);
 
-                var (means, predictions) = LoadBinYear(ptDb, binYear);
+            foreach (var pitchClass in new[]{PitchClass.Fastball, PitchClass.Breaking, PitchClass.Changeup, PitchClass.Other})
+            {
+                // Load Data
+                List<PitchData> classPitches = pitchClass == PitchClass.Other ?
+                    pitches : 
+                    pitches.Where(f => f.PitchClass == pitchClass).ToList();
+
+                (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals) = GetYearTotals(classPitches, means, predictions);
+
+                // Create Subdirectory if applicable
+                string dir = pitchClass switch
+                {
+                    PitchClass.Fastball => PLOT_DIRECTORY + "/Fastball",
+                    PitchClass.Breaking => PLOT_DIRECTORY + "/Breaking",
+                    PitchClass.Changeup => PLOT_DIRECTORY + "/Changeup",
+                    _ => PLOT_DIRECTORY
+                };
+                if (dir != PLOT_DIRECTORY)
+                    Directory.CreateDirectory(dir);
+
+                // Create Plots
+                PlotMseReduction(names, all, "All", Path.Combine(dir, "MseReduction.png"));
+                PlotMseReduction(names, inZone, "In-Zone", Path.Combine(dir, "MseReduction_InZone.png"));
+                PlotMseReduction(names, outZone, "Out-Zone", Path.Combine(dir, "MseReduction_OutZone.png"));
+
+                PlotCellReductions(dir, cellTotals);
+                PlotCellBias(dir, cellTotals);
+                PlotBiasSummary(dir, cellTotals);
+            }
+        }
+
+        private static (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals) 
+            GetYearTotals(List<PitchData> pitches, Dictionary<SituationKey, double> means, Dictionary<SituationKey, SituationPrediction>[] predictions)
+        {
+            YearTotalsDict totals = new();
+            YearTotalsDict inZoneTotals = new();
+            YearTotalsDict outZoneTotals = new();
+            MethodCellTotals[] cellTotals = [.. METHODS.Select(_ => new MethodCellTotals())];
+
+            string[] names = [BASELINE_NAME, .. METHODS.Select(m => m.Name)];
+            var pitchYearGroupings = pitches.GroupBy(f => f.Year);
+            PitchZone?[] zones = new PitchZone?[METHODS.Length];
+            double[] predicted = new double[METHODS.Length];
+
+            foreach (var pitchYears in pitchYearGroupings)
+            {
+                int binYear = pitchYears.Key - 1;
+                var yearPitches = pitchYears.ToList();
+                
 
                 YearTotals yearTotals = new(names.Length);
-                totals[evalYear] = yearTotals;
                 YearTotals inZoneYear = new(names.Length);
                 YearTotals outZoneYear = new(names.Length);
-                inZoneTotals[evalYear] = inZoneYear;
-                outZoneTotals[evalYear] = outZoneYear;
 
-                foreach (PitchData p in MlbPitches(ptDb).Where(f => f.Year == evalYear))
+                totals[pitchYears.Key] = yearTotals;
+                inZoneTotals[pitchYears.Key] = inZoneYear;
+                outZoneTotals[pitchYears.Key] = outZoneYear;
+
+                foreach (var p in yearPitches)
                 {
                     SituationKey key = new(binYear, p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
                     if (!means.TryGetValue(key, out double mean))
                     {
-                        skipped++;   // situation never occurred in the prior year; Update() also leaves these null
+                        // situation never occurred in the prior year
                         continue;
                     }
 
@@ -184,7 +217,6 @@ namespace PitchAnalysis
                     }
                     if (!competitive)
                     {
-                        nonCompetitive++;
                         continue;
                     }
 
@@ -197,25 +229,15 @@ namespace PitchAnalysis
                         : outZoneYear;
                     regionYear.Sse[0] += baselineError * baselineError;
 
-                    // Keyed with all years grouped
-                    PitchSplitKey splitKey = new(p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
-                    if (!splitTotals.TryGetValue(splitKey, out YearTotals? split))
-                    {
-                        split = new(names.Length);
-                        splitTotals[splitKey] = split;
-                    }
-                    split.Sse[0] += baselineError * baselineError;
-                    split.Count++;
-
                     double referenceError = predicted[REFERENCE_METHOD] - p.RunValueSmoothedHitter;
 
                     for (int m = 0; m < METHODS.Length; m++)
                     {
                         double error = predicted[m] - p.RunValueSmoothedHitter;
-                        yearTotals.Sse[m + 1] += error * error;
-                        regionYear.Sse[m + 1] += error * error;
-                        split.Sse[m + 1] += error * error;
-                        cellTotals[m].Add(zones[m], error * error, referenceError * referenceError, baselineError * baselineError, -error);
+                        double mse = error * error;
+                        yearTotals.Sse[m + 1] += mse;
+                        regionYear.Sse[m + 1] += mse;
+                        cellTotals[m].Add(zones[m], mse, referenceError * referenceError, baselineError * baselineError, -error);
                     }
 
                     yearTotals.Count++;
@@ -223,21 +245,12 @@ namespace PitchAnalysis
                 }
             }
 
-            Console.WriteLine($"Scored {totals.Values.Sum(t => t.Count)} competitive pitches, skipped {skipped} with no prior-year situation, " +
-                $"dropped {nonCompetitive} non-competitive");
-            Directory.CreateDirectory(PLOT_DIRECTORY);
-            PlotMseReduction(names, totals, "All", Path.Combine(PLOT_DIRECTORY, "MseReduction.png"));
-            PlotMseReduction(names, inZoneTotals, "In-Zone", Path.Combine(PLOT_DIRECTORY, "MseReduction_InZone.png"));
-            PlotMseReduction(names, outZoneTotals, "Out-Zone", Path.Combine(PLOT_DIRECTORY, "MseReduction_OutZone.png"));
-            PlotCellReductions(cellTotals);
-            PlotCellBias(cellTotals);
-            PlotSplitMseReductions(names, splitTotals);
-            PlotBiasSummary(cellTotals);
+            return (totals, inZoneTotals, outZoneTotals, cellTotals);
         }
 
         // Count-weighted mean |cell bias| (runs/100 pitches), split by whether the cell is in the strike zone.
         // Equivalent to sum(count * |bias|) / sum(count), since count * |bias| = |sum of residuals|.
-        private static void PlotBiasSummary(MethodCellTotals[] cellTotals)
+        private static void PlotBiasSummary(string dir, MethodCellTotals[] cellTotals)
         {
             double[] inZone = new double[METHODS.Length];
             double[] outZone = new double[METHODS.Length];
@@ -305,24 +318,25 @@ namespace PitchAnalysis
             plot.ShowLegend();
             plot.Title("Count-weighted mean |cell bias| (actual - predicted), all years pooled");
             plot.YLabel("Runs per 100 pitches");
-            plot.SavePng(Path.Combine(PLOT_DIRECTORY, "BiasSummary.png"), IMAGE_WIDTH, PLOT_HEIGHT);
+            plot.SavePng(Path.Combine(dir, "BiasSummary.png"), IMAGE_WIDTH, PLOT_HEIGHT);
         }
 
         private static IQueryable<PitchData> MlbPitches(PitchTrackingDbContext ptDb)
         {
             return ptDb.PitchData
                 .AsNoTracking()
-                .Where(f => f.LevelId == 1 && f.PitchClass != Db.DbEnums.PitchClass.Other);
+                .Where(f => f.LevelId == 1 
+                    && f.PitchClass != PitchClass.Other 
+                    // Need 1 year prior to build bins
+                    && f.Year >= MIN_EVAL_YEAR - 1);
         }
 
-        private static (Dictionary<SituationKey, double> Means, Dictionary<SituationKey, SituationPrediction>[] Predictions) LoadBinYear(PitchTrackingDbContext ptDb, int binYear)
+        private static (Dictionary<SituationKey, double> Means, Dictionary<SituationKey, SituationPrediction>[] Predictions) LoadBinYear(List<PitchData> binPitches)
         {
-            List<PitchData> binPitches = MlbPitches(ptDb).Where(f => f.Year == binYear).ToList();
             Dictionary<SituationKey, double> means = SituationMeans(binPitches);
             Dictionary<SituationKey, SituationPrediction>[] predictions = METHODS
                 .Select(m => BuildPredictions(m.Bin, binPitches, means))
                 .ToArray();
-            Console.WriteLine($"Built {means.Count} situations from {binPitches.Count:N0} pitches in {binYear}");
             return (means, predictions);
         }
 
@@ -426,7 +440,7 @@ namespace PitchAnalysis
             return (difference, $"{difference:+0.0;-0.0}%\n{errors.Count / 1000.0:F1}k");
         }
 
-        private static void PlotCellBias(MethodCellTotals[] cellTotals)
+        private static void PlotCellBias(string dir, MethodCellTotals[] cellTotals)
         {
             const int MIN_BIAS_CELL_PITCHES = 500;
             for (int m = 0; m < METHODS.Length; m++)
@@ -452,12 +466,12 @@ namespace PitchAnalysis
                     cells,
                     noZone,
                     $"{METHODS[m].Name}: mean bias (actual - predicted)",
-                    Path.Combine(PLOT_DIRECTORY, $"Bias_{METHODS[m].Name}.png"),
+                    Path.Combine(dir, $"Bias_{METHODS[m].Name}.png"),
                     maxAbsValue: 1.0);
             }
         }
 
-        private static void PlotCellReductions(MethodCellTotals[] cellTotals)
+        private static void PlotCellReductions(string dir, MethodCellTotals[] cellTotals)
         {
             for (int m = 0; m < METHODS.Length; m++)
             {
@@ -480,7 +494,7 @@ namespace PitchAnalysis
                     cells,
                     CellReductionVsReference(cellTotals[m].NoZone),
                     label,
-                    Path.Combine(PLOT_DIRECTORY, $"Cells_{METHODS[m].Name}.png"),
+                    Path.Combine(dir, $"Cells_{METHODS[m].Name}.png"),
                     maxAbsValue: 5.0);
             }
         }

@@ -1,5 +1,4 @@
-﻿using DataAquisition.PitchTracking;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using PitchTrackingDb;
 

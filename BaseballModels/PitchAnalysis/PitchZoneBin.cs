@@ -1,7 +1,17 @@
 ﻿using PitchTrackingDb;
 
-namespace DataAquisition.PitchTracking
+namespace PitchAnalysis
 {
+    public static class BaseballConstants
+    {
+        public const double BallDiameter = 0.24;
+        public const double BallRadius = BallDiameter / 2;
+        public const double PlateWidth = 17.0 / 12.0;
+
+        // Furthest a ball centre can be from the plate centre while still touching the zone (~0.828ft).
+        public const double ZoneHalfWidth = (PlateWidth / 2) + BallRadius;
+    }
+
     // Square, odd-sized weight grid centred on a cell. Offsets are in cells, not feet,
     // so borrowing vertically through the (taller) middle row reaches physically further.
     public sealed class PitchZoneKernel
@@ -583,7 +593,7 @@ namespace DataAquisition.PitchTracking
                 ZoneRegion.InsideCenter => source is ZoneRegion.InsideBorder or ZoneRegion.InsideCenter,
                 ZoneRegion.InsideBorder => source is ZoneRegion.InsideBorder,
                 ZoneRegion.Edge => source is ZoneRegion.Edge or ZoneRegion.Corner,
-                _ => source is not ZoneRegion.InsideCenter or ZoneRegion.InsideBorder,
+                _ => source is not (ZoneRegion.InsideCenter or ZoneRegion.InsideBorder),
             };
         }
 
