@@ -8,7 +8,7 @@ namespace PitchAnalysis
         public const double BallRadius = BallDiameter / 2;
         public const double PlateWidth = 17.0 / 12.0;
 
-        // Furthest a ball centre can be from the plate centre while still touching the zone (~0.828ft).
+        // Furthest a ball center can be from the plate center while still touching the zone (~0.828ft).
         public const double ZoneHalfWidth = (PlateWidth / 2) + BallRadius;
     }
 
@@ -16,7 +16,7 @@ namespace PitchAnalysis
     // so borrowing vertically through the (taller) middle row reaches physically further.
     public sealed class PitchZoneKernel
     {
-        private readonly double[,] weights;   // normalised so the centre is 1
+        private readonly double[,] weights;   // normalised so the center is 1
 
         // Cells reached in each direction from the centre: (size - 1) / 2.
         internal int Radius { get; }
@@ -40,13 +40,13 @@ namespace PitchAnalysis
             }
 
             Radius = size / 2;
-            double centre = weights[Radius, Radius];
-            if (centre <= 0)
+            double center = weights[Radius, Radius];
+            if (center <= 0)
             {
-                throw new ArgumentException("The centre weight must be positive so a cell always counts its own pitches.", nameof(weights));
+                throw new ArgumentException("The center weight must be positive so a cell always counts its own pitches.", nameof(weights));
             }
 
-            // Normalise so the centre is 1; the smoothed mean is unaffected, but the effective count stays comparable to MinPitches.
+            // Normalise so the center is 1; the smoothed mean is unaffected, but the effective count stays comparable to MinPitches.
             this.weights = new double[size, size];
             for (int row = 0; row < size; row++)
             {
@@ -75,7 +75,7 @@ namespace PitchAnalysis
             });
         }
 
-        // (2 * radius + 1) square kernel with weight exp(-d^2 / (2 * sigma^2)), d measured in cells; the centre is 1.
+        // (2 * radius + 1) square kernel with weight exp(-d^2 / (2 * sigma^2)), d measured in cells; the center is 1.
         public static PitchZoneKernel Gaussian(int radius, double sigma)
         {
             int size = (2 * radius) + 1;
@@ -104,6 +104,7 @@ namespace PitchAnalysis
         public int OutsideRows { get; init; } = 7;
         public int MinPitches { get; init; } = 5;
         public double MinSwingRate { get; init; } = 0.10;
+        public int YearsPerBin { get; init; } = 1;
         public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(2, 1.0);
 
         public bool SeparateBorderRing { get; init; } = false;
@@ -120,11 +121,6 @@ namespace PitchAnalysis
         // Ignored when Kernel is null.
         public double? InZoneNeighborCap { get; init; } = 200;
         public double? OutZoneNeighborCap { get; init; } = 15;
-        public double? NeighborDecayRatio { get; init; } = 3;
-
-        public double? NeighborTaper { get; init; } = null;
-        public bool SoftNeighborCap { get; init; } = false;
-        
     }
 
     // Row 0 = lowest row, Column 0 = left-most column (most negative PlateX).
@@ -170,6 +166,7 @@ namespace PitchAnalysis
             ArgumentOutOfRangeException.ThrowIfNegative(args.OutsideColumns);
             ArgumentOutOfRangeException.ThrowIfNegative(args.OutsideRows);
             ArgumentOutOfRangeException.ThrowIfNegative(args.MinPitches);
+            ArgumentOutOfRangeException.ThrowIfLessThan(args.YearsPerBin, 1);
             if (args.MinSwingRate is < 0 or > 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(args), $"MinSwingRate must be in [0, 1], was {args.MinSwingRate}.");
@@ -177,10 +174,6 @@ namespace PitchAnalysis
             if (args.InZoneNeighborCap is < 0 || args.OutZoneNeighborCap is < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(args), "Neighbour caps must be non-negative.");
-            }
-            if (args.NeighborDecayRatio is double decayRatio)
-            {
-                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decayRatio, nameof(args.NeighborDecayRatio));
             }
             if (args.NeighborCountRatio is double countRatio)
             {
@@ -205,16 +198,18 @@ namespace PitchAnalysis
             regions = BuildRegions();
         }
 
+        public int YearsPerBin => args.YearsPerBin;
+
         ///////////////////////////////////////// PUBLIC /////////////////////////////
-        public (List<PitchZoneCompetitive> Competitive, List<PitchZoneNonCompetitive> NonCompetitive) BuildCompetitiveRows(IEnumerable<PitchData> pitches)
+        public (List<PitchZoneCompetitive> Competitive, List<PitchZoneNonCompetitive> NonCompetitive) BuildCompetitiveRows(IEnumerable<PitchData> pitches, int minOutputYear = int.MinValue)
         {
             List<PitchZoneCompetitive> competitiveRows = [];
             List<PitchZoneNonCompetitive> nonCompetitiveRows = [];
 
-            var combos = pitches.GroupBy(p => new { p.Year, p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike });
+            var combos = BuildCombos(pitches, minOutputYear);
             foreach (var combo in combos)
             {
-                ZoneBuckets buckets = BucketPitches(combo);
+                ZoneBuckets buckets = BucketPitches(combo.Value);
                 CellTotals effective = ApplyKernel(SumCells(buckets), UsesBorderRing(combo.Key.PitchClass));
 
                 // Pitches that will NOT be valued by a competitive bin: no zone, or a bin failing either rule.
@@ -274,6 +269,40 @@ namespace PitchAnalysis
             return (competitiveRows, nonCompetitiveRows);
         }
 
+        private readonly record struct ComboKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrike);
+
+        // One entry per (pitch class, handedness, count, year), holding N years data (configurable through YearsPerBin).
+        private List<KeyValuePair<ComboKey, List<PitchData>>> BuildCombos(IEnumerable<PitchData> pitches, int minOutputYear)
+        {
+            List<KeyValuePair<ComboKey, List<PitchData>>> combos = [];
+
+            var scenarios = pitches.GroupBy(p => (p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike));
+            foreach (var scenario in scenarios)
+            {
+                Dictionary<int, List<PitchData>> byYear = scenario
+                    .GroupBy(p => p.Year)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                foreach (int year in byYear.Keys.Where(y => y >= minOutputYear).OrderBy(y => y))
+                {
+                    List<PitchData> window = [];
+                    for (int back = 0; back < args.YearsPerBin; back++)
+                    {
+                        if (byYear.TryGetValue(year - back, out List<PitchData>? yearPitches))
+                        {
+                            window.AddRange(yearPitches);
+                        }
+                    }
+
+                    combos.Add(new(
+                        new ComboKey(year, scenario.Key.PitchClass, scenario.Key.PitIsR, scenario.Key.HitIsR, scenario.Key.CountBalls, scenario.Key.CountStrike),
+                        window));
+                }
+            }
+
+            return combos;
+        }
+
         public PitchZone? GetZone(PitchData pitch)
         {
             return GetZone(pitch.PlateX, pitch.PlateZ, pitch.ZoneTop, pitch.ZoneBot);
@@ -319,7 +348,7 @@ namespace PitchAnalysis
             ball.LineStyle.Width = 1.5f;
 
             // Exact ball centre, for reading position against a boundary.
-            var centre = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, 0.015);
+            var center = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, 0.015);
             centre.FillStyle.Color = ScottPlot.Colors.Black;
             centre.LineStyle.Color = ScottPlot.Colors.Black;
 
@@ -789,9 +818,7 @@ namespace PitchAnalysis
                     double scale = 1;
                     if (cap is double limit && neighborPitches > 0)
                     {
-                        scale = args.SoftNeighborCap
-                            ? limit / (limit + neighborPitches)
-                            : Math.Min(1, limit / neighborPitches);
+                        scale = Math.Min(1, limit / neighborPitches);
                     }
                     if (args.NeighborTaper is double taper)
                     {

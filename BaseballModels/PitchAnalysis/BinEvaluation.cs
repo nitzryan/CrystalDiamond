@@ -1,5 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OpenQA.Selenium.Support.UI;
 using PitchTrackingDb;
+using ShellProgressBar;
+using System.Diagnostics;
+using System;
 using static Db.DbEnums;
 
 namespace PitchAnalysis
@@ -18,8 +22,18 @@ namespace PitchAnalysis
         private const int PLOT_HEIGHT = 800;
         private const int MIN_EVAL_YEAR = 2022;
 
-        private readonly record struct SituationKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
-        private readonly record struct PitchSplitKey(Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
+        private readonly record struct SituationKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
+
+        // Everything accumulated for one scenario (evaluation year x pitch class x handedness x count)
+        private sealed class ScenarioTotals
+        {
+            public YearTotals All { get; } = new(METHODS.Length + 1);
+            public YearTotals InZone { get; } = new(METHODS.Length + 1);
+            public YearTotals OutZone { get; } = new(METHODS.Length + 1);
+            public MethodCellTotals[] Cells { get; } = [.. METHODS.Select(_ => new MethodCellTotals())];
+        }
+        // Scenario-level plots: smaller cells, so a lower count floor and wider colour scales than the pooled plots
+        private const int MIN_SCENARIO_PITCHES = 100;
 
         // A method's prediction for every cell of a situation, plus pitches that land outside the grid
         private sealed record SituationPrediction(double[,] Cells, bool[,] Valid);
@@ -50,31 +64,30 @@ namespace PitchAnalysis
         [
             new("Current Bins", new PitchZoneBin(ZONE_BIGGER)),
 
-            new("Bigger Gaussian r2 s1_0", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
+            new("Gaussian", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0) })),
 
-            new("Bigger Gaussian r2 s1_0 Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true })),
+            new("Gaussian Border", new PitchZoneBin(ZONE_BIGGER with { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true })),
 
-            new("Bigger Gaussian r2 s1.0 CountCap x1", new PitchZoneBin(ZONE_BIGGER with
+            new("CountCap", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=false, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
-            new("Bigger Gaussian r2 s1.0 Border CountCap x1", new PitchZoneBin(ZONE_BIGGER with
+            new("Border CountCap", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
-            new("Bigger Gaussian r1 s1.0 Border CountCap x1", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(1, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1 })),
-            new("Bigger Gaussian r2 s1.0 Border CountCap x1 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
+            
+            new("Border CountCap Split-Middle", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, SplitMiddleRow=true })),
+            new("Border CountCap Split-Middle 2Yr", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, SplitMiddleRow=true, YearsPerBin = 2 })),
+            new("Border CountCap Split-Middle 3Yr", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, SplitMiddleRow=true, YearsPerBin = 3 })),
 
-            new("Fade InZone 3_500 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
-                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 500, OutZoneSmoothingCutoff = 250, SplitMiddleRow=true })),
-            new("Fade InZone 3_500", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
-                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 500, OutZoneSmoothingCutoff = 250 })),
+            new("Border CountCap 2yr", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 2 })),
+            new("Border CountCap 3yr", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 3 })),
+
             new("Fade InZone 4_1000", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
                   NeighborCountRatio = 1, InZoneSmoothingCutoff = 1000, OutZoneSmoothingCutoff = 500 })),
-            new("Fade InZone 5_2000", new PitchZoneBin(ZONE_BIGGER with
-                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
-                  NeighborCountRatio = 1, InZoneSmoothingCutoff = 2000, OutZoneSmoothingCutoff = 1000 })),
         ];
 
         // Index into METHODS of the bins the per-cell plots are compared against
@@ -133,14 +146,18 @@ namespace PitchAnalysis
             pitches = pitches.Where(f => f.Year >= MIN_EVAL_YEAR).ToList();
             Directory.CreateDirectory(PLOT_DIRECTORY);
 
-            foreach (var pitchClass in new[]{PitchClass.Fastball, PitchClass.Breaking, PitchClass.Changeup, PitchClass.Other})
+            Dictionary<SituationKey, ScenarioTotals> allScenarios = new();
+
+            PitchClass[] pitchClasses = [PitchClass.Fastball, PitchClass.Breaking, PitchClass.Changeup, PitchClass.Other];
+            using ProgressBar progressBar = new(pitchClasses.Length, "Pitch classes");
+            foreach (var pitchClass in pitchClasses)
             {
                 // Load Data
                 List<PitchData> classPitches = pitchClass == PitchClass.Other ?
                     pitches : 
                     pitches.Where(f => f.PitchClass == pitchClass).ToList();
 
-                (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals) = GetYearTotals(classPitches, means, predictions);
+                (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals, Dictionary<SituationKey, ScenarioTotals> scenarios) = GetYearTotals(classPitches, means, predictions);
 
                 // Create Subdirectory if applicable
                 string dir = pitchClass switch
@@ -161,16 +178,87 @@ namespace PitchAnalysis
                 PlotCellReductions(dir, cellTotals);
                 PlotCellBias(dir, cellTotals);
                 PlotBiasSummary(dir, cellTotals);
+
+                // Scenario breakdowns only make sense per pitch class
+                if (pitchClass != PitchClass.Other)
+                {
+                    PlotScenarios(dir, names, scenarios, progressBar);
+                    WriteScenarioSummary(dir, names, scenarios);
+
+                    foreach ((SituationKey key, ScenarioTotals scenario) in scenarios)
+                    {
+                        allScenarios[key] = scenario;
+                    }
+                }
+
+                progressBar.Tick();
             }
+
+            WriteSituationSummary(Path.Combine(PLOT_DIRECTORY, "SituationSummary.csv"), names, allScenarios);
         }
 
-        private static (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals) 
+        // Writes the full plot set for every scenario into {pitchClass}/{year}/{balls}-{strikes}/{RHP|LHP}_{RHH|LHH}/
+        private static void PlotScenarios(string classDir, string[] names, Dictionary<SituationKey, ScenarioTotals> scenarios, IProgressBar progress)
+        {
+            List<KeyValuePair<SituationKey, ScenarioTotals>> toPlot = scenarios
+                .Where(pair => pair.Value.All.Count >= MIN_SCENARIO_PITCHES && pair.Value.All.Sse[0] != 0)
+                .ToList();
+
+            using ChildProgressBar scenarioBar = progress.Spawn(toPlot.Count, "Scenarios");
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            object tickLock = new();
+            int completed = 0;
+
+            Parallel.ForEach(toPlot,
+                new ParallelOptions() { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                pair =>
+            {
+                (SituationKey key, ScenarioTotals scenario) = pair;
+
+                string pitStr = key.PitIsR ? "RHP" : "LHP";
+                string hitStr = key.HitIsR ? "RHH" : "LHH";
+                string directory = Path.Combine(classDir, $"{key.Balls}-{key.Strikes}", $"{pitStr}_{hitStr}", key.Year.ToString());
+                Directory.CreateDirectory(directory);
+
+                string label = $"{key.Year} {key.PitchClass} {pitStr} vs {hitStr} {key.Balls}-{key.Strikes}";
+                (string Name, YearTotals Totals)[] regions =
+                [
+                    ("All", scenario.All),
+                    ("In-Zone", scenario.InZone),
+                    ("Out-Zone", scenario.OutZone),
+                ];
+                foreach ((string regionName, YearTotals totals) in regions)
+                {
+                    // A region can be empty or constant in a small scenario, which would divide by zero
+                    if (totals.Count == 0 || totals.Sse[0] == 0)
+                    {
+                        continue;
+                    }
+                    string file = regionName == "All" ? "MseReduction.png" : $"MseReduction_{regionName.Replace("-", "")}.png";
+                    PlotMseReduction(names, new Dictionary<int, YearTotals> { [key.Year] = totals },
+                        $"{label} {regionName}", Path.Combine(directory, file), includePooled: false);
+                }
+
+                //PlotCellBias(directory, scenario.Cells, MIN_SCENARIO_BIAS_CELL_PITCHES, SCENARIO_BIAS_SCALE);
+                PlotBiasSummary(directory, scenario.Cells);
+
+                lock (tickLock)
+                {
+                    completed++;
+                    TimeSpan estimatedTotal = TimeSpan.FromTicks(stopwatch.Elapsed.Ticks * toPlot.Count / completed);
+                    scenarioBar.Tick(completed, estimatedTotal, $"{key.Year} {key.PitchClass} {key.Balls}-{key.Strikes} {pitStr}_{hitStr}");
+                }
+            });
+        }
+
+        private static (YearTotalsDict all, YearTotalsDict inZone, YearTotalsDict outZone, MethodCellTotals[] cellTotals, Dictionary<SituationKey, ScenarioTotals> scenarios) 
             GetYearTotals(List<PitchData> pitches, Dictionary<SituationKey, double> means, Dictionary<SituationKey, SituationPrediction>[] predictions)
         {
             YearTotalsDict totals = new();
             YearTotalsDict inZoneTotals = new();
             YearTotalsDict outZoneTotals = new();
             MethodCellTotals[] cellTotals = [.. METHODS.Select(_ => new MethodCellTotals())];
+            Dictionary<SituationKey, ScenarioTotals> scenarioTotals = new();
 
             string[] names = [BASELINE_NAME, .. METHODS.Select(m => m.Name)];
             var pitchYearGroupings = pitches.GroupBy(f => f.Year);
@@ -200,6 +288,13 @@ namespace PitchAnalysis
                         continue;
                     }
 
+                    SituationKey scenarioKey = new(p.Year, p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike);
+                    if (!scenarioTotals.TryGetValue(scenarioKey, out ScenarioTotals? scenario))
+                    {
+                        scenario = new();
+                        scenarioTotals[scenarioKey] = scenario;
+                    }
+
                     // Only competitive pitches are evaluated: the pitch must land in a cell every method values from its own
                     // bin. Off-grid pitches and pool-fallback cells are thrown out before anything is accumulated.
                     bool competitive = true;
@@ -224,10 +319,12 @@ namespace PitchAnalysis
                     yearTotals.Sse[0] += baselineError * baselineError;
 
                     // Region comes from the reference method's cell so every method is scored on the same pitches per region
-                    YearTotals regionYear = METHODS[REFERENCE_METHOD].Bin.IsInStrikeZone(zones[REFERENCE_METHOD]!.Value)
-                        ? inZoneYear
-                        : outZoneYear;
+                    bool inStrikeZone = METHODS[REFERENCE_METHOD].Bin.IsInStrikeZone(zones[REFERENCE_METHOD]!.Value);
+                    YearTotals regionYear = inStrikeZone ? inZoneYear : outZoneYear;
+                    YearTotals scenarioRegion = inStrikeZone ? scenario.InZone : scenario.OutZone;
                     regionYear.Sse[0] += baselineError * baselineError;
+                    scenario.All.Sse[0] += baselineError * baselineError;
+                    scenarioRegion.Sse[0] += baselineError * baselineError;
 
                     double referenceError = predicted[REFERENCE_METHOD] - p.RunValueSmoothedHitter;
 
@@ -237,15 +334,21 @@ namespace PitchAnalysis
                         double mse = error * error;
                         yearTotals.Sse[m + 1] += mse;
                         regionYear.Sse[m + 1] += mse;
+                        scenario.All.Sse[m + 1] += mse;
+                        scenarioRegion.Sse[m + 1] += mse;
+
                         cellTotals[m].Add(zones[m], mse, referenceError * referenceError, baselineError * baselineError, -error);
+                        scenario.Cells[m].Add(zones[m], mse, referenceError * referenceError, baselineError * baselineError, -error);
                     }
 
                     yearTotals.Count++;
                     regionYear.Count++;
+                    scenario.All.Count++;
+                    scenarioRegion.Count++;
                 }
             }
 
-            return (totals, inZoneTotals, outZoneTotals, cellTotals);
+            return (totals, inZoneTotals, outZoneTotals, cellTotals, scenarioTotals);
         }
 
         // Count-weighted mean |cell bias| (runs/100 pitches), split by whether the cell is in the strike zone.
@@ -323,12 +426,12 @@ namespace PitchAnalysis
 
         private static IQueryable<PitchData> MlbPitches(PitchTrackingDbContext ptDb)
         {
+            int firstLoadedYear = MIN_EVAL_YEAR - METHODS.Max(m => m.Bin.YearsPerBin);
             return ptDb.PitchData
                 .AsNoTracking()
                 .Where(f => f.LevelId == 1 
                     && f.PitchClass != PitchClass.Other 
-                    // Need 1 year prior to build bins
-                    && f.Year >= MIN_EVAL_YEAR - 1);
+                    && f.Year >= firstLoadedYear);
         }
 
         private static (Dictionary<SituationKey, double> Means, Dictionary<SituationKey, SituationPrediction>[] Predictions) LoadBinYear(List<PitchData> binPitches)
@@ -347,16 +450,19 @@ namespace PitchAnalysis
                 .ToDictionary(g => g.Key, g => g.Average(p => (double)p.RunValueSmoothedHitter));
         }
 
-        private static void PlotMseReduction(string[] names, Dictionary<int, YearTotals> totals, string regionLabel, string path)
+        private static void PlotMseReduction(string[] names, Dictionary<int, YearTotals> totals, string regionLabel, string path, bool includePooled = true)
         {
             // Columns: each evaluation year, then all years pooled
             List<(string Label, double[] Sse, long Count)> columns = totals
                 .OrderBy(kv => kv.Key)
                 .Select(kv => (kv.Key.ToString(), kv.Value.Sse, kv.Value.Count))
                 .ToList();
-            columns.Add(("All",
-                Enumerable.Range(0, names.Length).Select(m => totals.Values.Sum(t => t.Sse[m])).ToArray(),
-                totals.Values.Sum(t => t.Count)));
+            if (includePooled)
+            {
+                columns.Add(("All",
+                    Enumerable.Range(0, names.Length).Select(m => totals.Values.Sum(t => t.Sse[m])).ToArray(),
+                    totals.Values.Sum(t => t.Count)));
+            }
 
             using ScottPlot.Plot plot = new();
             ScottPlot.TickGenerators.NumericManual ticks = new();
@@ -394,7 +500,8 @@ namespace PitchAnalysis
             double allBaselineMse = columns[^1].Sse[0] / columns[^1].Count;
             plot.Axes.Bottom.TickGenerator = ticks;
             plot.ShowLegend();
-            plot.Title($"{regionLabel}: Out-of-Sample MSE Reduction vs Prior-Year {names[0]} (all-years baseline MSE={allBaselineMse:G4})");
+            string baselineLabel = includePooled ? "all-years baseline MSE" : "baseline MSE";
+            plot.Title($"{regionLabel}: Out-of-Sample MSE Reduction vs Prior-Year {names[0]} ({baselineLabel}={allBaselineMse:G4})");
             plot.XLabel("Evaluation Year (bins from year − 1)");
             plot.YLabel("MSE Reduction (%)");
             plot.SavePng(path, IMAGE_WIDTH, PLOT_HEIGHT);
@@ -402,7 +509,7 @@ namespace PitchAnalysis
 
         private static Dictionary<SituationKey, SituationPrediction> BuildPredictions(PitchZoneBin bin, List<PitchData> binPitches, Dictionary<SituationKey, double> situationMeans)
         {
-            var (competitiveRows, nonCompetitiveRows) = bin.BuildCompetitiveRows(binPitches);
+            var (competitiveRows, nonCompetitiveRows) = bin.BuildCompetitiveRows(binPitches, MIN_EVAL_YEAR - 1);
 
             Dictionary<SituationKey, SituationPrediction> predictions = new();
             var situations = competitiveRows
@@ -440,15 +547,14 @@ namespace PitchAnalysis
             return (difference, $"{difference:+0.0;-0.0}%\n{errors.Count / 1000.0:F1}k");
         }
 
-        private static void PlotCellBias(string dir, MethodCellTotals[] cellTotals)
+        private static void PlotCellBias(string dir, MethodCellTotals[] cellTotals, int minCellPitches = 500, double maxAbsValue = 1.0)
         {
-            const int MIN_BIAS_CELL_PITCHES = 500;
             for (int m = 0; m < METHODS.Length; m++)
             {
                 Dictionary<PitchZone, (double Value, string Text)> cells = new();
                 foreach ((PitchZone zone, CellErrors errors) in cellTotals[m].Cells)
                 {
-                    if (errors.Count < MIN_BIAS_CELL_PITCHES)
+                    if (errors.Count < minCellPitches)
                     {
                         continue;
                     }
@@ -467,11 +573,11 @@ namespace PitchAnalysis
                     noZone,
                     $"{METHODS[m].Name}: mean bias (actual - predicted)",
                     Path.Combine(dir, $"Bias_{METHODS[m].Name}.png"),
-                    maxAbsValue: 1.0);
+                    maxAbsValue: maxAbsValue);
             }
         }
 
-        private static void PlotCellReductions(string dir, MethodCellTotals[] cellTotals)
+        private static void PlotCellReductions(string dir, MethodCellTotals[] cellTotals, double maxAbsValue = 5.0)
         {
             for (int m = 0; m < METHODS.Length; m++)
             {
@@ -495,54 +601,139 @@ namespace PitchAnalysis
                     CellReductionVsReference(cellTotals[m].NoZone),
                     label,
                     Path.Combine(dir, $"Cells_{METHODS[m].Name}.png"),
-                    maxAbsValue: 5.0);
+                    maxAbsValue: maxAbsValue);
             }
         }
 
-        private const int MIN_GROUP_PITCHES = 2000;
-        private static void PlotSplitMseReductions(string[] names, Dictionary<PitchSplitKey, YearTotals> groupTotals)
+        // One row per scenario (no size threshold) with MSE reduction vs the baseline for every method, so
+        // scenarios can be sorted by size against how each method does.
+        private static void WriteScenarioSummary(string classDir, string[] names, Dictionary<SituationKey, ScenarioTotals> scenarios)
         {
-            ScottPlot.Palettes.Category10 palette = new();   // same colour per method as PlotMseReduction
-            foreach ((PitchSplitKey key, YearTotals totals) in groupTotals)
+            static double Reduction(YearTotals totals, int method)
             {
-                if (totals.Count < MIN_GROUP_PITCHES || totals.Sse[0] == 0)
+                return totals.Count == 0 || totals.Sse[0] == 0
+                    ? double.NaN
+                    : 100 * (1 - (totals.Sse[method] / totals.Sse[0]));
+            }
+
+            List<string> lines = [];
+            List<string> header = ["Year", "Balls", "Strikes", "Hands", "N", "InZoneN", "OutZoneN", "BaselineMse"];
+            for (int m = 1; m < names.Length; m++)
+            {
+                header.Add($"{names[m]} All %");
+                header.Add($"{names[m]} In %");
+                header.Add($"{names[m]} Out %");
+            }
+            lines.Add(string.Join(",", header));
+
+            foreach ((SituationKey key, ScenarioTotals scenario) in scenarios
+                .OrderBy(kv => kv.Key.Year)
+                .ThenBy(kv => kv.Key.Balls)
+                .ThenBy(kv => kv.Key.Strikes)
+                .ThenBy(kv => kv.Key.PitIsR)
+                .ThenBy(kv => kv.Key.HitIsR))
+            {
+                if (scenario.All.Count == 0)
                 {
                     continue;
                 }
-                string pitStr = key.PitIsR ? "RHP" : "LHP";
-                string hitStr = key.HitIsR ? "RHH" : "LHH";
-                string directory = Path.Combine(PLOT_DIRECTORY, key.PitchClass.ToString(), $"{pitStr}_{hitStr}");
-                Directory.CreateDirectory(directory);
-                using ScottPlot.Plot plot = new();
+                List<string> row =
+                [
+                    key.Year.ToString(),
+                    key.Balls.ToString(),
+                    key.Strikes.ToString(),
+                    $"{(key.PitIsR ? "RHP" : "LHP")}_{(key.HitIsR ? "RHH" : "LHH")}",
+                    scenario.All.Count.ToString(),
+                    scenario.InZone.Count.ToString(),
+                    scenario.OutZone.Count.ToString(),
+                    (scenario.All.Sse[0] / scenario.All.Count).ToString("G5"),
+                ];
                 for (int m = 1; m < names.Length; m++)
                 {
-                    double reduction = 100 * (1 - (totals.Sse[m] / totals.Sse[0]));
-                    var bars = plot.Add.Bars(new[]
-                    {
-                        new ScottPlot.Bar
-                        {
-                            Position = m - 1,
-                            Value = reduction,
-                            Size = 0.8,
-                            FillColor = palette.GetColor(m - 1),
-                        },
-                    });
-
-                    bars.LegendText = names[m];
-                    var label = plot.Add.Text($"{reduction:F2}%", m - 1, reduction);
-                    label.LabelFontSize = 16;
-                    label.LabelRotation = -90;
-                    label.LabelAlignment = ScottPlot.Alignment.MiddleLeft;
-                    label.OffsetY = -4;
+                    row.Add(Reduction(scenario.InZone, m).ToString("F3"));
+                    row.Add(Reduction(scenario.OutZone, m).ToString("F3"));
                 }
-                plot.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual();   // bars are identified by the legend
-                plot.ShowLegend();
-                double baselineMse = totals.Sse[0] / totals.Count;
-                plot.Title($"{key.PitchClass} {pitStr} vs {hitStr} {key.Balls}-{key.Strikes} | n={totals.Count:N0} | " +
-                    $"MSE reduction vs {names[0]} (baseline MSE={baselineMse:G4})");
-                plot.YLabel("MSE Reduction (%)");
-                plot.SavePng(Path.Combine(directory, $"{key.Balls}-{key.Strikes}.png"), IMAGE_WIDTH, PLOT_HEIGHT);
+                lines.Add(string.Join(",", row));
             }
+
+            File.WriteAllLines(Path.Combine(classDir, "ScenarioSummary.csv"), lines);
+        }
+
+        // One row per (pitch class, count, handedness, region) with years pooled, listing the best methods by MSE reduction vs baseline.
+        private static void WriteSituationSummary(string path, string[] names, Dictionary<SituationKey, ScenarioTotals> scenarios)
+        {
+            const int ELEMENTS_TO_SHOW = 3;
+
+            List<string> lines = [];
+            List<string> header = ["PitchClass", "Balls", "Strikes", "Hands", "Region", "N", "BaselineMse"];
+            for (int rank = 1; rank <= ELEMENTS_TO_SHOW; rank++)
+            {
+                header.Add($"Best{rank} Method");
+                header.Add($"Best{rank} MSE Reduction %");
+            }
+            lines.Add(string.Join(",", header));
+
+            (string Region, Func<ScenarioTotals, YearTotals> Select)[] regions =
+            [
+                ("In-Zone", s => s.InZone),
+                ("Out-Zone", s => s.OutZone),
+            ];
+
+            var situations = scenarios
+                .GroupBy(pair => (pair.Key.PitchClass, pair.Key.PitIsR, pair.Key.HitIsR, pair.Key.Balls, pair.Key.Strikes))
+                .OrderBy(g => g.Key.PitchClass)
+                .ThenBy(g => g.Key.Balls)
+                .ThenBy(g => g.Key.Strikes)
+                .ThenBy(g => g.Key.PitIsR)
+                .ThenBy(g => g.Key.HitIsR);
+
+            foreach (var situation in situations)
+            {
+                string hands = $"{(situation.Key.PitIsR ? "RHP" : "LHP")}_{(situation.Key.HitIsR ? "RHH" : "LHH")}";
+
+                foreach ((string region, Func<ScenarioTotals, YearTotals> select) in regions)
+                {
+                    // Pool every year's totals for this situation and region
+                    double[] sse = new double[names.Length];
+                    long count = 0;
+                    foreach (KeyValuePair<SituationKey, ScenarioTotals> pair in situation)
+                    {
+                        YearTotals totals = select(pair.Value);
+                        for (int m = 0; m < names.Length; m++)
+                        {
+                            sse[m] += totals.Sse[m];
+                        }
+                        count += totals.Count;
+                    }
+
+                    if (count == 0 || sse[0] == 0)
+                    {
+                        continue;
+                    }
+
+                    List<string> row =
+                    [
+                        situation.Key.PitchClass.ToString(),
+                situation.Key.Balls.ToString(),
+                situation.Key.Strikes.ToString(),
+                hands,
+                region,
+                count.ToString(),
+                (sse[0] / count).ToString("G5"),
+            ];
+
+                    // names[0] is the baseline; rank the rest by lowest pooled SSE
+                    foreach (int m in Enumerable.Range(1, names.Length - 1).OrderBy(m => sse[m]).Take(ELEMENTS_TO_SHOW))
+                    {
+                        row.Add(names[m]);
+                        row.Add((100 * (1 - (sse[m] / sse[0]))).ToString("F3"));
+                    }
+
+                    lines.Add(string.Join(",", row));
+                }
+            }
+
+            File.WriteAllLines(path, lines);
         }
     }
 }
