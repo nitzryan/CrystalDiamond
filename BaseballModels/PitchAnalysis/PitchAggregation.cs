@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using PitchDb;
 using PitchTrackingDb;
 using ShellProgressBar;
-using DataAquisition.PitchTracking;
 using Db;
+using PitchAnalysis.PitchZoneBinNS;
 
 namespace PitchAnalysis
 {

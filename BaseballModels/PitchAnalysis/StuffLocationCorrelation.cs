@@ -1,19 +1,18 @@
-﻿using DataAquisition.PitchTracking;
-using Db;
+﻿using Db;
 using MathNet.Numerics;
 using MathNet.Numerics.Distributions;
 using MathNet.Numerics.Statistics;
 using Microsoft.EntityFrameworkCore;
+using PitchAnalysis.PitchZoneBinNS;
 using PitchDb;
 using PitchTrackingDb;
-using ScottPlot;
 using SkiaSharp;
 
 namespace PitchAnalysis
 {
     internal static class StuffLocationCorrelation
     {
-        private const int MIN_PITCHES = 500;              // pitches with a location value per pitcher/pitchType/year
+        private const int MIN_PITCHES = 100;              // pitches with a location value per pitcher/pitchType/year
         private const double RUNS_SCALE = 100;            // display as hitter runs per 100 pitches
         private const int RANK_COUNT = 5;
         private const string PLOT_DIRECTORY = "StuffLocationPlots";
