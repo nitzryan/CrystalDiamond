@@ -88,6 +88,23 @@ namespace PitchAnalysis
             new("Fade InZone 4_1000", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
                   NeighborCountRatio = 1, InZoneSmoothingCutoff = 1000, OutZoneSmoothingCutoff = 500 })),
+
+            new("Border CountCap x1 4yr d0.75", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 4, YearDecay = 0.75 })),
+
+            new("Border CountCap x1 3yr d0.75 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 3, YearDecay = 0.75, SplitMiddleRow=true })),
+            new("Border CountCap x1 4yr d0.75 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 4, YearDecay = 0.75, SplitMiddleRow=true })),
+            new("Border CountCap x1 5yr d0.75 Split-Middle", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 5, YearDecay = 0.75, SplitMiddleRow=true })),
+
+            new("4yr d0.75 Border Split", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
+                  NeighborCountRatio = 1, YearsPerBin = 4, YearDecay = 0.75, SplitMiddleRow = true })),
+            new("4yr d0.75 Border Split Middle", new PitchZoneBin(ZONE_BIGGER with
+                { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
+                  NeighborCountRatio = 1, YearsPerBin = 4, YearDecay = 0.75, SplitMiddleRow = true, SeparateMiddle = true })),
         ];
 
         // Index into METHODS of the bins the per-cell plots are compared against
@@ -714,13 +731,13 @@ namespace PitchAnalysis
                     List<string> row =
                     [
                         situation.Key.PitchClass.ToString(),
-                situation.Key.Balls.ToString(),
-                situation.Key.Strikes.ToString(),
-                hands,
-                region,
-                count.ToString(),
-                (sse[0] / count).ToString("G5"),
-            ];
+                        situation.Key.Balls.ToString(),
+                        situation.Key.Strikes.ToString(),
+                        hands,
+                        region,
+                        count.ToString(),
+                        (sse[0] / count).ToString("G5"),
+                    ];
 
                     // names[0] is the baseline; rank the rest by lowest pooled SSE
                     foreach (int m in Enumerable.Range(1, names.Length - 1).OrderBy(m => sse[m]).Take(ELEMENTS_TO_SHOW))

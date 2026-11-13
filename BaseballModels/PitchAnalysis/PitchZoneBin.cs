@@ -1,4 +1,5 @@
 ﻿using PitchTrackingDb;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
@@ -12,13 +13,13 @@ namespace PitchAnalysis
         public const double ZoneHalfWidth = (PlateWidth / 2) + BallRadius;
     }
 
-    // Square, odd-sized weight grid centred on a cell. Offsets are in cells, not feet,
+    // Square, odd-sized weight grid centered on a cell. Offsets are in cells, not feet,
     // so borrowing vertically through the (taller) middle row reaches physically further.
     public sealed class PitchZoneKernel
     {
         private readonly double[,] weights;   // normalised so the center is 1
 
-        // Cells reached in each direction from the centre: (size - 1) / 2.
+        // Cells reached in each direction from the center: (size - 1) / 2.
         internal int Radius { get; }
 
         public PitchZoneKernel(double[,] weights)
@@ -52,12 +53,12 @@ namespace PitchAnalysis
             {
                 for (int column = 0; column < size; column++)
                 {
-                    this.weights[row, column] = weights[row, column] / centre;
+                    this.weights[row, column] = weights[row, column] / center;
                 }
             }
         }
 
-        // Weight for the cell rowOffset/columnOffset away from the centre; both must be within [-Radius, Radius].
+        // Weight for the cell rowOffset/columnOffset away from the center ; both must be within [-Radius, Radius].
         internal double Weight(int rowOffset, int columnOffset)
         {
             return weights[rowOffset + Radius, columnOffset + Radius];
@@ -95,6 +96,18 @@ namespace PitchAnalysis
         }
     }
 
+    // Many bins share the same geometry, so much of what is done here can be shared between them
+    public readonly record struct PitchZoneGeometry(int ZoneColumns, int SquareRowsPerSide, bool SplitMiddleRow, int OutsideColumns, int OutsideRows);
+    internal readonly record struct ScenarioKey(PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrike);
+    internal sealed class YearCells(int rows, int columns)
+    {
+        public double[,] Pitches { get; } = new double[rows, columns];
+        public double[,] Swings { get; } = new double[rows, columns];
+        public double[,] ValueSum { get; } = new double[rows, columns];
+        public double NoZonePitches { get; set; }
+        public double NoZoneValue { get; set; }
+    }
+
     public sealed record PitchZoneBinArgs
     {
         public int ZoneColumns { get; init; } = 7;
@@ -105,10 +118,12 @@ namespace PitchAnalysis
         public int MinPitches { get; init; } = 5;
         public double MinSwingRate { get; init; } = 0.10;
         public int YearsPerBin { get; init; } = 1;
+        public double YearDecay { get; init; } = 1.0;
         public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(2, 1.0);
 
         public bool SeparateBorderRing { get; init; } = false;
-        public IReadOnlySet<Db.DbEnums.PitchClass>? SeparateBorderRingClasses { get; init; } = null;
+        public bool SeparateMiddle { get; init; } = false;
+        public IReadOnlySet<PitchClass>? SeparateBorderRingClasses { get; init; } = null;
 
         public double? NeighborCountRatio { get; init; } = null;
         public double NeighborCountFloor { get; init; } = 5;
@@ -132,9 +147,10 @@ namespace PitchAnalysis
         private readonly PitchZoneBinArgs args;
         private readonly double cellSize;
         private readonly int zoneRows;
-        private readonly int gridRows;
-        private readonly int gridColumns;
+        public readonly int gridRows;
+        public readonly int gridColumns;
         private readonly double[] columnEdges;
+        public PitchZoneGeometry Geometry { get; }
 
         public static PitchZoneBin DEFAULT = new(new PitchZoneBinArgs()
         {
@@ -148,13 +164,18 @@ namespace PitchAnalysis
             SeparateBorderRingClasses = new HashSet<Db.DbEnums.PitchClass> { Db.DbEnums.PitchClass.Fastball },
         });
 
+        // One aggregation per grid geometry, valid only for the pitch collection it was built from
+        private sealed record AggregationCacheEntry(WeakReference<IEnumerable<PitchData>> Source, Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> Scenarios);
+        private static readonly Dictionary<PitchZoneGeometry, AggregationCacheEntry> AGGREGATION_CACHE = [];
+        private static readonly object AGGREGATION_LOCK = new();
+
         // Pitches from one bin split by cell; NoZone holds everything that fell off the grid.
         private sealed record ZoneBuckets(List<PitchData>[,] Cells, List<PitchData> NoZone);
 
         // Per-cell totals for one combo, either raw or kernel-smoothed.
         private sealed record CellTotals(double[,] Pitches, double[,] Swings, double[,] ValueSum);
 
-        private enum ZoneRegion { InsideCenter, InsideBorder, Edge, Corner, Other }
+        private enum ZoneRegion { InsideMiddle, InsideCenter, InsideBorder, Edge, Corner, Other }
 
         private readonly ZoneRegion[,] regions;
 
@@ -188,6 +209,10 @@ namespace PitchAnalysis
             {
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(outZoneCutoff, nameof(args.OutZoneSmoothingCutoff));
             }
+            if (args.YearDecay is <= 0 or > 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(args), $"YearDecay must be in (0, 1], was {args.YearDecay}.");
+            }
 
             this.args = args;
             cellSize = 2 * BaseballConstants.ZoneHalfWidth / args.ZoneColumns;
@@ -196,111 +221,212 @@ namespace PitchAnalysis
             gridColumns = args.ZoneColumns + (2 * args.OutsideColumns);
             columnEdges = BuildColumnEdges();
             regions = BuildRegions();
+            Geometry = new PitchZoneGeometry(args.ZoneColumns, args.SquareRowsPerSide, args.SplitMiddleRow, args.OutsideColumns, args.OutsideRows);
         }
 
         public int YearsPerBin => args.YearsPerBin;
 
         ///////////////////////////////////////// PUBLIC /////////////////////////////
+
+        // One scenario-year's weighted window: smoothed-ready cell totals, unweighted counts, and the off-grid pitches
+        private sealed record WindowTotals(CellTotals Cells, double[,] RawCounts, double NoZonePitches, double NoZoneWeighted, double NoZoneValue);
         public (List<PitchZoneCompetitive> Competitive, List<PitchZoneNonCompetitive> NonCompetitive) BuildCompetitiveRows(IEnumerable<PitchData> pitches, int minOutputYear = int.MinValue)
         {
             List<PitchZoneCompetitive> competitiveRows = [];
             List<PitchZoneNonCompetitive> nonCompetitiveRows = [];
 
-            var combos = BuildCombos(pitches, minOutputYear);
-            foreach (var combo in combos)
+            foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in GetScenarioData(pitches))
             {
-                ZoneBuckets buckets = BucketPitches(combo.Value);
-                CellTotals effective = ApplyKernel(SumCells(buckets), UsesBorderRing(combo.Key.PitchClass));
+                bool useBorderRing = UsesBorderRing(scenario.PitchClass);
 
-                // Pitches that will NOT be valued by a competitive bin: no zone, or a bin failing either rule.
-                List<PitchData> nonCompetitivePitches = [.. buckets.NoZone];
-
-                // Every cell gets a row, including empty ones, so a missing row never needs interpreting.
-                for (int row = 0; row < gridRows; row++)
+                // Years below minOutputYear are only history for later windows
+                foreach (int year in years.Keys.Where(y => y >= minOutputYear))
                 {
-                    for (int column = 0; column < gridColumns; column++)
-                    {
-                        List<PitchData> cellPitches = buckets.Cells[row, column];
-                        double effectivePitches = effective.Pitches[row, column];
-                        double effectiveSwings = effective.Swings[row, column];
-                        bool isCompetitive = IsCompetitive(effectivePitches, effectiveSwings);
-                        bool hasEnoughSample = HasValidSampleSize(effectivePitches);
-                        competitiveRows.Add(new PitchZoneCompetitive
-                        {
-                            Year = combo.Key.Year,
-                            PitchClass = combo.Key.PitchClass,
-                            PitIsR = combo.Key.PitIsR,
-                            HitIsR = combo.Key.HitIsR,
-                            CountBalls = combo.Key.CountBalls,
-                            CountStrikes = combo.Key.CountStrike,
-                            ZoneRow = row,
-                            ZoneCol = column,
-                            PitchCount = (float)effectivePitches,
-                            SwingCount = (float)effectiveSwings,
-                            IsCompetitive = isCompetitive,
-                            HasEnoughSample = hasEnoughSample,
-                            ExpectedValueHitter = effectivePitches > 0
-                                ? (float)(effective.ValueSum[row, column] / effectivePitches)
-                                : 0,
-                        });
+                    WindowTotals window = SumWindow(years, year);
+                    CellTotals effective = ApplyKernel(window.Cells, useBorderRing);
 
-                        if (!isCompetitive || !hasEnoughSample)
+                    // Pitches that will NOT be valued by a competitive bin: off the grid, or in a bin failing either rule
+                    double fallbackCount = window.NoZonePitches;
+                    double fallbackWeighted = window.NoZoneWeighted;
+                    double fallbackValue = window.NoZoneValue;
+
+                    // Every cell gets a row, including empty ones, so a missing row never needs interpreting.
+                    for (int row = 0; row < gridRows; row++)
+                    {
+                        for (int column = 0; column < gridColumns; column++)
                         {
-                            nonCompetitivePitches.AddRange(cellPitches);
+                            PitchZoneCompetitive cellRow = CreateCompetitiveRow(scenario, year, row, column, effective);
+                            competitiveRows.Add(cellRow);
+
+                            if (!cellRow.IsCompetitive || !cellRow.HasEnoughSample)
+                            {
+                                // The cell's own (unsmoothed) pitches fall back to the non-competitive pool
+                                fallbackCount += window.RawCounts[row, column];
+                                fallbackWeighted += window.Cells.Pitches[row, column];
+                                fallbackValue += window.Cells.ValueSum[row, column];
+                            }
                         }
                     }
-                }
 
-                nonCompetitiveRows.Add(new PitchZoneNonCompetitive
-                {
-                    Year = combo.Key.Year,
-                    PitchClass = combo.Key.PitchClass,
-                    PitIsR = combo.Key.PitIsR,
-                    HitIsR = combo.Key.HitIsR,
-                    CountBalls = combo.Key.CountBalls,
-                    CountStrikes = combo.Key.CountStrike,
-                    PitchCount = nonCompetitivePitches.Count,
-                    ExpectedValueHitter = nonCompetitivePitches.Count > 0
-                        ? nonCompetitivePitches.Average(f => f.RunValueSmoothedHitter)
-                        : 0,
-                });
+                    nonCompetitiveRows.Add(CreateNonCompetitiveRow(scenario, year, fallbackCount, fallbackWeighted, fallbackValue));
+                }
             }
 
             return (competitiveRows, nonCompetitiveRows);
         }
 
-        private readonly record struct ComboKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrike);
-
-        // One entry per (pitch class, handedness, count, year), holding N years data (configurable through YearsPerBin).
-        private List<KeyValuePair<ComboKey, List<PitchData>>> BuildCombos(IEnumerable<PitchData> pitches, int minOutputYear)
+        // Weighted sum of the raw cell totals for the YearsOfData years ending at targetYear
+        private WindowTotals SumWindow(SortedDictionary<int, YearCells> years, int targetYear)
         {
-            List<KeyValuePair<ComboKey, List<PitchData>>> combos = [];
+            double[,] pitches = new double[gridRows, gridColumns];
+            double[,] swings = new double[gridRows, gridColumns];
+            double[,] valueSum = new double[gridRows, gridColumns];
+            double[,] rawCounts = new double[gridRows, gridColumns];
+            double noZonePitches = 0, noZoneWeighted = 0, noZoneValue = 0;
 
-            var scenarios = pitches.GroupBy(p => (p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike));
-            foreach (var scenario in scenarios)
+            for (int age = 0; age < args.YearsPerBin; age++)
             {
-                Dictionary<int, List<PitchData>> byYear = scenario
-                    .GroupBy(p => p.Year)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-
-                foreach (int year in byYear.Keys.Where(y => y >= minOutputYear).OrderBy(y => y))
+                if (!years.TryGetValue(targetYear - age, out YearCells? yearCells))
                 {
-                    List<PitchData> window = [];
-                    for (int back = 0; back < args.YearsPerBin; back++)
-                    {
-                        if (byYear.TryGetValue(year - back, out List<PitchData>? yearPitches))
-                        {
-                            window.AddRange(yearPitches);
-                        }
-                    }
-
-                    combos.Add(new(
-                        new ComboKey(year, scenario.Key.PitchClass, scenario.Key.PitIsR, scenario.Key.HitIsR, scenario.Key.CountBalls, scenario.Key.CountStrike),
-                        window));
+                    continue;
                 }
+
+                double weight = YearWeight(targetYear, targetYear - age);
+                for (int row = 0; row < gridRows; row++)
+                {
+                    for (int column = 0; column < gridColumns; column++)
+                    {
+                        rawCounts[row, column] += yearCells.Pitches[row, column];
+                        pitches[row, column] += weight * yearCells.Pitches[row, column];
+                        swings[row, column] += weight * yearCells.Swings[row, column];
+                        valueSum[row, column] += weight * yearCells.ValueSum[row, column];
+                    }
+                }
+
+                noZonePitches += yearCells.NoZonePitches;
+                noZoneWeighted += weight * yearCells.NoZonePitches;
+                noZoneValue += weight * yearCells.NoZoneValue;
             }
 
-            return combos;
+            return new WindowTotals(new CellTotals(pitches, swings, valueSum), rawCounts, noZonePitches, noZoneWeighted, noZoneValue);
+        }
+        private PitchZoneCompetitive CreateCompetitiveRow(ScenarioKey scenario, int year, int row, int column, CellTotals effective)
+        {
+            double pitches = effective.Pitches[row, column];
+            double swings = effective.Swings[row, column];
+
+            return new PitchZoneCompetitive
+            {
+                Year = year,
+                PitchClass = scenario.PitchClass,
+                PitIsR = scenario.PitIsR,
+                HitIsR = scenario.HitIsR,
+                CountBalls = scenario.CountBalls,
+                CountStrikes = scenario.CountStrike,
+                ZoneRow = row,
+                ZoneCol = column,
+                PitchCount = (float)pitches,
+                SwingCount = (float)swings,
+                IsCompetitive = IsCompetitive(pitches, swings),
+                HasEnoughSample = HasValidSampleSize(pitches),
+                ExpectedValueHitter = pitches > 0
+                    ? (float)(effective.ValueSum[row, column] / pitches)
+                    : 0,
+            };
+        }
+        private static PitchZoneNonCompetitive CreateNonCompetitiveRow(ScenarioKey scenario, int year, double count, double weightedCount, double weightedValue)
+        {
+            return new PitchZoneNonCompetitive
+            {
+                Year = year,
+                PitchClass = scenario.PitchClass,
+                PitIsR = scenario.PitIsR,
+                HitIsR = scenario.HitIsR,
+                CountBalls = scenario.CountBalls,
+                CountStrikes = scenario.CountStrike,
+                PitchCount = (int)count,
+                ExpectedValueHitter = weightedCount > 0 ? (float)(weightedValue / weightedCount) : 0,
+            };
+        }
+
+        // Buckets every pitch into its cell once, per (scenario, year). Independent of YearsOfData, YearDecay and the kernel.
+        private Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> AggregateYears(IEnumerable<PitchData> pitches)
+        {
+            var groups = pitches
+                .GroupBy(p => new ScenarioKey(p.PitchClass, p.PitIsR, p.HitIsR, p.CountBalls, p.CountStrike))
+                .ToList();
+
+            Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> scenarios = [];
+
+            foreach (var group in groups)
+            {
+                // Row edges depend only on the batter's zone, which repeats heavily, so build each pair once
+                Dictionary<(float Top, float Bot), double[]> rowEdgesByZone = [];
+                SortedDictionary<int, YearCells> years = [];
+
+                foreach (PitchData p in group)
+                {
+                    if (!years.TryGetValue(p.Year, out YearCells? cells))
+                    {
+                        cells = new YearCells(gridRows, gridColumns);
+                        years[p.Year] = cells;
+                    }
+
+                    if (!rowEdgesByZone.TryGetValue((p.ZoneTop, p.ZoneBot), out double[]? rowEdges))
+                    {
+                        rowEdges = BuildRowEdges(p.ZoneTop, p.ZoneBot);
+                        rowEdgesByZone[(p.ZoneTop, p.ZoneBot)] = rowEdges;
+                    }
+
+                    double value = p.RunValueSmoothedHitter;
+                    if (GetZone(p.PlateX, p.PlateZ, rowEdges) is PitchZone zone)
+                    {
+                        cells.Pitches[zone.Row, zone.Column]++;
+                        if (p.HadSwing)
+                        {
+                            cells.Swings[zone.Row, zone.Column]++;
+                        }
+                        cells.ValueSum[zone.Row, zone.Column] += value;
+                    }
+                    else
+                    {
+                        cells.NoZonePitches++;
+                        cells.NoZoneValue += value;
+                    }
+                }
+
+                scenarios[group.Key] = years;
+            }
+
+            return scenarios;
+        }
+
+        // Returns the per-scenario, per-year cell totals for this bin's geometry, building them on first use.
+        // Reused only while the same pitch collection instance is passed in, so a different (or rebuilt) list triggers a fresh build.
+        private Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> GetScenarioData(IEnumerable<PitchData> pitches)
+        {
+            lock (AGGREGATION_LOCK)
+            {
+                if (AGGREGATION_CACHE.TryGetValue(Geometry, out AggregationCacheEntry? entry)
+                    && entry.Source.TryGetTarget(out IEnumerable<PitchData>? source)
+                    && ReferenceEquals(source, pitches))
+                {
+                    return entry.Scenarios;
+                }
+
+                Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> scenarios = AggregateYears(pitches);
+                AGGREGATION_CACHE[Geometry] = new AggregationCacheEntry(new WeakReference<IEnumerable<PitchData>>(pitches), scenarios);
+                return scenarios;
+            }
+        }
+
+        // Drops every cached aggregation, e.g. after the source pitches have changed
+        public static void ClearAggregationCache()
+        {
+            lock (AGGREGATION_LOCK)
+            {
+                AGGREGATION_CACHE.Clear();
+            }
         }
 
         public PitchZone? GetZone(PitchData pitch)
@@ -319,7 +445,6 @@ namespace PitchAnalysis
             int row = FindCell(rowEdges, plateZ);
             return column < 0 || row < 0 ? null : new PitchZone(row, column);
         }
-
 
         public void PlotPitchZone(PitchData pitch, string outputPath, int imageSize = 900)
         {
@@ -347,10 +472,10 @@ namespace PitchAnalysis
             ball.LineStyle.Color = ScottPlot.Colors.Black;
             ball.LineStyle.Width = 1.5f;
 
-            // Exact ball centre, for reading position against a boundary.
+            // Exact ball center , for reading position against a boundary.
             var center = plot.Add.Circle(pitch.PlateX, pitch.PlateZ, 0.015);
-            centre.FillStyle.Color = ScottPlot.Colors.Black;
-            centre.LineStyle.Color = ScottPlot.Colors.Black;
+            center.FillStyle.Color = ScottPlot.Colors.Black;
+            center.LineStyle.Color = ScottPlot.Colors.Black;
 
             plot.Title($"Game {pitch.GameId} pitch {pitch.PitchId}: {description}");
             plot.XLabel("PlateX (ft)");
@@ -372,8 +497,10 @@ namespace PitchAnalysis
         // just used to get a rough idea so it doesn't matter enough to deal with it currently
         public void PlotZoneCounts(IEnumerable<PitchData> pitches, string label, string outputPath, float displayZoneTop = 3.4f, float displayZoneBot = 1.55f, int imageSize = 1000, Db.DbEnums.PitchClass? pitchClass = null)
         {
-            ZoneBuckets buckets = BucketPitches(pitches);
-            CellTotals effective = ApplyKernel(SumCells(buckets), UsesBorderRing(pitchClass));
+            List<PitchData> pitchList = [.. pitches];
+            ZoneBuckets buckets = BucketPitches(pitchList);
+            int targetYear = pitchList.Count == 0 ? 0 : pitchList.Max(p => p.Year);
+            CellTotals effective = ApplyKernel(SumCells(buckets, targetYear), UsesBorderRing(pitchClass));
 
             int total = buckets.NoZone.Count;
             int maxCount = 0;
@@ -408,10 +535,10 @@ namespace PitchAnalysis
                     cell.LineStyle.Color = ScottPlot.Colors.Gray;
                     cell.LineStyle.Width = 1;
 
-                    double centreX = (columnEdges[column] + columnEdges[column + 1]) / 2;
-                    double centreZ = (rowEdges[row] + rowEdges[row + 1]) / 2;
+                    double centerX = (columnEdges[column] + columnEdges[column + 1]) / 2;
+                    double centerZ = (rowEdges[row] + rowEdges[row + 1]) / 2;
                     string swingRate = effectivePitches == 0 ? "-" : $"{100.0 * effectiveSwings / effectivePitches:F0}% sw";
-                    var text = plot.Add.Text($"{effectivePitches:N1}\n{percent:F1}%\n{swingRate}", centreX, centreZ);
+                    var text = plot.Add.Text($"{effectivePitches:N1}\n{percent:F1}%\n{swingRate}", centerX, centerZ);
                     text.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
                     text.LabelFontSize = 10;
                 }
@@ -461,9 +588,9 @@ namespace PitchAnalysis
                         cellText = entry.Text;
                     }
 
-                    double centreX = (columnEdges[column] + columnEdges[column + 1]) / 2;
-                    double centreZ = (rowEdges[row] + rowEdges[row + 1]) / 2;
-                    var text = plot.Add.Text(cellText, centreX, centreZ);
+                    double centerX = (columnEdges[column] + columnEdges[column + 1]) / 2;
+                    double centerZ = (rowEdges[row] + rowEdges[row + 1]) / 2;
+                    var text = plot.Add.Text(cellText, centerX, centerZ);
                     text.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
                     text.LabelFontSize = 10;
                 }
@@ -584,6 +711,13 @@ namespace PitchAnalysis
             int zoneTopRow = args.OutsideRows + zoneRows;
             int zoneLeftColumn = args.OutsideColumns;
             int zoneRightColumn = args.OutsideColumns + args.ZoneColumns;
+
+            // Middle of the zone: half the columns (floored) centred horizontally, and the 1 (or 2 if split) rows at the vertical centre
+            int middleColumns = args.ZoneColumns / 2;
+            int middleLeftColumn = zoneLeftColumn + ((args.ZoneColumns - middleColumns) / 2);
+            int middleBottomRow = args.OutsideRows + args.SquareRowsPerSide;
+            int middleTopRow = middleBottomRow + (args.SplitMiddleRow ? 1 : 0);
+
             for (int row = 0; row < gridRows; row++)
             {
                 for (int column = 0; column < gridColumns; column++)
@@ -599,7 +733,13 @@ namespace PitchAnalysis
                     {
                         bool onZoneBoundary = row == zoneBottomRow || row == zoneTopRow - 1
                                                     || column == zoneLeftColumn || column == zoneRightColumn - 1;
-                        result[row, column] = onZoneBoundary ? ZoneRegion.InsideBorder : ZoneRegion.InsideCenter;
+                        
+                        bool inMiddle = args.SeparateMiddle
+                            && row >= middleBottomRow && row <= middleTopRow
+                            && column >= middleLeftColumn && column < middleLeftColumn + middleColumns;
+                        result[row, column] = onZoneBoundary ? ZoneRegion.InsideBorder
+                            : inMiddle ? ZoneRegion.InsideMiddle
+                            : ZoneRegion.InsideCenter;
                     }
                     else if (rowGap <= 1 && columnGap <= 1)
                     {
@@ -619,10 +759,11 @@ namespace PitchAnalysis
         {
             return target switch
             {
-                ZoneRegion.InsideCenter => source is ZoneRegion.InsideBorder or ZoneRegion.InsideCenter,
+                ZoneRegion.InsideMiddle => source is ZoneRegion.InsideMiddle,
+                ZoneRegion.InsideCenter => source is ZoneRegion.InsideBorder or ZoneRegion.InsideCenter or ZoneRegion.InsideMiddle,
                 ZoneRegion.InsideBorder => source is ZoneRegion.InsideBorder,
                 ZoneRegion.Edge => source is ZoneRegion.Edge or ZoneRegion.Corner,
-                _ => source is not (ZoneRegion.InsideCenter or ZoneRegion.InsideBorder),
+                _ => source is not (ZoneRegion.InsideMiddle or ZoneRegion.InsideCenter or ZoneRegion.InsideBorder),
             };
         }
 
@@ -717,7 +858,12 @@ namespace PitchAnalysis
         }
 
         ///////////////////////////////////////// Kernel Handling /////////////////////////////
-        private CellTotals SumCells(ZoneBuckets buckets)
+        private double YearWeight(int targetYear, int pitchYear)
+        {
+            return Math.Pow(args.YearDecay, targetYear - pitchYear);
+        }
+
+        private CellTotals SumCells(ZoneBuckets buckets, int targetYear)
         {
             double[,] pitches = new double[gridRows, gridColumns];
             double[,] swings = new double[gridRows, gridColumns];
@@ -727,9 +873,9 @@ namespace PitchAnalysis
                 for (int column = 0; column < gridColumns; column++)
                 {
                     List<PitchData> cellPitches = buckets.Cells[row, column];
-                    pitches[row, column] = cellPitches.Count;
-                    swings[row, column] = cellPitches.Count(p => p.HadSwing);
-                    valueSum[row, column] = cellPitches.Sum(p => (double)p.RunValueSmoothedHitter);
+                    pitches[row, column] = cellPitches.Sum(p => YearWeight(targetYear, p.Year));
+                    swings[row, column] = cellPitches.Where(p => p.HadSwing).Sum(p => YearWeight(targetYear, p.Year));
+                    valueSum[row, column] = cellPitches.Sum(p => YearWeight(targetYear, p.Year) * p.RunValueSmoothedHitter);
                 }
             }
 
@@ -754,7 +900,6 @@ namespace PitchAnalysis
             double[,] swings = new double[gridRows, gridColumns];
             double[,] valueSum = new double[gridRows, gridColumns];
 
-            
             for (int row = 0; row < gridRows; row++)
             {
                 for (int column = 0; column < gridColumns; column++)
@@ -763,7 +908,7 @@ namespace PitchAnalysis
                     double? cap = cellInZone ? args.InZoneNeighborCap : args.OutZoneNeighborCap;
 
                     // Largest effective count any single neighbour may contribute to this cell
-                    double ? maxSourcePitches = args.NeighborCountRatio is double countRatio
+                    double? maxSourcePitches = args.NeighborCountRatio is double countRatio
                         ? countRatio * Math.Max(raw.Pitches[row, column], args.NeighborCountFloor)
                         : null;
 
@@ -787,7 +932,8 @@ namespace PitchAnalysis
                                     continue;
                                 }
                             }
-                            else if (IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) != cellInZone)
+                            else if (IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) != cellInZone
+                                || (regions[row, column] == ZoneRegion.InsideMiddle && regions[sourceRow, sourceColumn] != ZoneRegion.InsideMiddle))
                             {
                                 continue;
                             }
@@ -819,10 +965,6 @@ namespace PitchAnalysis
                     if (cap is double limit && neighborPitches > 0)
                     {
                         scale = Math.Min(1, limit / neighborPitches);
-                    }
-                    if (args.NeighborTaper is double taper)
-                    {
-                        scale *= taper / (taper + raw.Pitches[row, column]);
                     }
                     // Linear hand-off to the cell's own data, reaching zero neighbour influence at the cutoff
                     if ((cellInZone ? args.InZoneSmoothingCutoff : args.OutZoneSmoothingCutoff) is double cutoff)
