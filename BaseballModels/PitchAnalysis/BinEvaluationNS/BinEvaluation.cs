@@ -50,7 +50,11 @@ namespace PitchAnalysis.BinEvaluationNS
 
             List<PitchData> pitches = MlbPitches(ptDb).ToList();
             var (means, predictions) = LoadBinYear(pitches);
+            // Same instance LoadBinYear aggregated, so GetCellNoise hits the cache rather than re-aggregating
+            List<PitchData> binPitches = pitches;
             pitches = pitches.Where(f => f.Year >= MIN_EVAL_YEAR).ToList();
+
+
             Directory.CreateDirectory(PLOT_DIRECTORY);
 
             Dictionary<SituationKey, ScenarioTotals> allScenarios = new();
@@ -85,6 +89,7 @@ namespace PitchAnalysis.BinEvaluationNS
                 PlotCellReductions(dir, cellTotals);
                 PlotCellBias(dir, cellTotals);
                 PlotBiasSummary(dir, cellTotals);
+                PlotCellNoise(dir, pitchClass, binPitches, evalYears);
 
                 // Scenario breakdowns only make sense per pitch class
                 if (pitchClass != PitchClass.Other)

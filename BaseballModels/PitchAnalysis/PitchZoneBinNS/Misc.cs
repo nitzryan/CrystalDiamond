@@ -20,6 +20,7 @@ namespace PitchAnalysis.PitchZoneBinNS
         public double[,] Pitches { get; } = new double[rows, columns];
         public double[,] Swings { get; } = new double[rows, columns];
         public double[,] ValueSum { get; } = new double[rows, columns];
+        public double[,] ValueSumSq { get; } = new double[rows, columns];
         public double NoZonePitches { get; set; }
         public double NoZoneValue { get; set; }
     }
@@ -27,4 +28,9 @@ namespace PitchAnalysis.PitchZoneBinNS
     // Row 0 = lowest row, Column 0 = left-most column (most negative PlateX).
     // Row/Column are only meaningful alongside the PitchZoneBin (and its args) that produced them.
     public readonly record struct PitchZone(int Row, int Column);
+
+    // Raw moments of one scenario's cell over a bin window; enough to recover the within-cell variance of pitch values.
+    public sealed record CellNoise(
+        PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrikes,
+        int Row, int Column, double PitchCount, double ValueSum, double ValueSumSq);
 }

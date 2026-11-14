@@ -166,6 +166,7 @@ namespace PitchAnalysis.PitchZoneBinNS
                             cells.Swings[zone.Row, zone.Column]++;
                         }
                         cells.ValueSum[zone.Row, zone.Column] += value;
+                        cells.ValueSumSq[zone.Row, zone.Column] += value * value;
                     }
                     else
                     {
@@ -197,6 +198,47 @@ namespace PitchAnalysis.PitchZoneBinNS
                 AGGREGATION_CACHE[Geometry] = new AggregationCacheEntry(new WeakReference<IEnumerable<PitchData>>(pitches), scenarios);
                 return scenarios;
             }
+        }
+
+        // Unweighted moments of every non-empty scenario-cell over the YearsPerBin years ending at binYear.
+        // Uses the same cache as BuildCompetitiveRows, so pass the same list instance.
+        public List<CellNoise> GetCellNoise(IEnumerable<PitchData> pitches, int binYear)
+        {
+            List<CellNoise> rows = [];
+            foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in GetScenarioData(pitches))
+            {
+                double[,] counts = new double[gridRows, gridColumns];
+                double[,] sums = new double[gridRows, gridColumns];
+                double[,] sumsSq = new double[gridRows, gridColumns];
+                for (int age = 0; age < args.YearsPerBin; age++)
+                {
+                    if (!years.TryGetValue(binYear - age, out YearCells? yearCells))
+                    {
+                        continue;
+                    }
+                    for (int row = 0; row < gridRows; row++)
+                    {
+                        for (int column = 0; column < gridColumns; column++)
+                        {
+                            counts[row, column] += yearCells.Pitches[row, column];
+                            sums[row, column] += yearCells.ValueSum[row, column];
+                            sumsSq[row, column] += yearCells.ValueSumSq[row, column];
+                        }
+                    }
+                }
+                for (int row = 0; row < gridRows; row++)
+                {
+                    for (int column = 0; column < gridColumns; column++)
+                    {
+                        if (counts[row, column] > 0)
+                        {
+                            rows.Add(new CellNoise(scenario.PitchClass, scenario.PitIsR, scenario.HitIsR, scenario.CountBalls,
+                                scenario.CountStrike, row, column, counts[row, column], sums[row, column], sumsSq[row, column]));
+                        }
+                    }
+                }
+            }
+            return rows;
         }
     }
 }

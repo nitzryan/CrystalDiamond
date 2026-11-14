@@ -26,8 +26,8 @@ namespace PitchAnalysis
 
             PitchZoneBin bin = PitchZoneBin.DEFAULT;
             //PitchAggregation.Update(bin);
-            StuffLocationCorrelation.GeneratePlots(bin);
-            //BinEvaluation.Evaluate();
+            //StuffLocationCorrelation.GeneratePlots(bin);
+            BinEvaluation.Evaluate();
             //Plots.PitchValueSurface.GeneratePlots(2025, new PitchZoneBinArgs());
             return;
 

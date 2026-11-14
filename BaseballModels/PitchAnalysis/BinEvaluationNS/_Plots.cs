@@ -1,9 +1,11 @@
 ﻿using PitchAnalysis.PitchZoneBinNS;
+using PitchTrackingDb;
 using ShellProgressBar;
 using System.Diagnostics;
 
 namespace PitchAnalysis.BinEvaluationNS
 {
+    using static Db.DbEnums;
     using YearTotalsDict = Dictionary<int, YearTotals>;
     internal static partial class BinEvaluation
     {
@@ -246,6 +248,78 @@ namespace PitchAnalysis.BinEvaluationNS
                     label,
                     Path.Combine(dir, $"Cells_{METHODS[m].Name}.png"),
                     maxAbsValue: maxAbsValue);
+            }
+        }
+
+        // Pooled within-cell variance of the pitch values used to build the bins, per grid cell.
+        private static void PlotCellNoise(string dir, PitchClass pitchClass, List<PitchData> binPitches, List<int> evalYears)
+        {
+            const double minDegreesOfFreedom = 500;
+            foreach (var geometryGroup in METHODS.GroupBy(m => m.Bin.Geometry))
+            {
+                PitchZoneBin bin = geometryGroup.First().Bin;
+                double[,] withinSs = new double[bin.gridRows, bin.gridColumns];
+                double[,] degreesOfFreedom = new double[bin.gridRows, bin.gridColumns];
+                double[,] counts = new double[bin.gridRows, bin.gridColumns];
+                foreach (int year in evalYears)
+                {
+                    // Bins for an evaluation year are built from the years before it
+                    foreach (CellNoise cell in bin.GetCellNoise(binPitches, year - 1))
+                    {
+                        bool wrongClass = pitchClass != PitchClass.Other && cell.PitchClass != pitchClass;
+                        if (wrongClass || cell.PitchCount < 2)
+                        {
+                            continue;
+                        }
+                        withinSs[cell.Row, cell.Column] += cell.ValueSumSq - (cell.ValueSum * cell.ValueSum / cell.PitchCount);
+                        degreesOfFreedom[cell.Row, cell.Column] += cell.PitchCount - 1;
+                        counts[cell.Row, cell.Column] += cell.PitchCount;
+                    }
+                }
+                double totalSs = 0, totalDf = 0, inSs = 0, inDf = 0, outSs = 0, outDf = 0;
+                for (int row = 0; row < bin.gridRows; row++)
+                {
+                    for (int column = 0; column < bin.gridColumns; column++)
+                    {
+                        totalSs += withinSs[row, column];
+                        totalDf += degreesOfFreedom[row, column];
+                        if (bin.IsInStrikeZone(new PitchZone(row, column)))
+                        {
+                            inSs += withinSs[row, column];
+                            inDf += degreesOfFreedom[row, column];
+                        }
+                        else
+                        {
+                            outSs += withinSs[row, column];
+                            outDf += degreesOfFreedom[row, column];
+                        }
+                    }
+                }
+                if (totalDf == 0)
+                {
+                    continue;
+                }
+                double pooledVariance = totalSs / totalDf;
+                Console.WriteLine($"{pitchClass} noise SD (runs/100 pitches): pooled {Math.Sqrt(pooledVariance) * 100:F2}, "
+                    + $"in-zone {Math.Sqrt(inSs / inDf) * 100:F2}, out-of-zone {Math.Sqrt(outSs / outDf) * 100:F2}");
+                Dictionary<PitchZone, (double Value, string Text)> cells = new();
+                for (int row = 0; row < bin.gridRows; row++)
+                {
+                    for (int column = 0; column < bin.gridColumns; column++)
+                    {
+                        if (degreesOfFreedom[row, column] < minDegreesOfFreedom)
+                        {
+                            continue;
+                        }
+                        double variance = withinSs[row, column] / degreesOfFreedom[row, column];
+                        cells[new PitchZone(row, column)] = (100 * ((variance / pooledVariance) - 1),
+                            $"{Math.Sqrt(variance) * 100:F1}\n{counts[row, column] / 1000.0:F1}k");
+                    }
+                }
+                PitchZoneGeometry g = geometryGroup.Key;
+                string file = $"CellNoise_{g.ZoneColumns}x{g.SquareRowsPerSide}{(g.SplitMiddleRow ? "S" : "")}_{g.OutsideColumns}x{g.OutsideRows}.png";
+                bin.PlotCellValues(cells, null, $"{pitchClass}: within-cell SD (runs/100 pitches); color = variance vs pooled (%)",
+                    Path.Combine(dir, file), maxAbsValue: 150);
             }
         }
     }
