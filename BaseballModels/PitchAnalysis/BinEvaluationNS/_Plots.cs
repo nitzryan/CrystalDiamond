@@ -251,75 +251,98 @@ namespace PitchAnalysis.BinEvaluationNS
             }
         }
 
-        // Pooled within-cell variance of the pitch values used to build the bins, per grid cell.
-        private static void PlotCellNoise(string dir, PitchClass pitchClass, List<PitchData> binPitches, List<int> evalYears)
+        private static void PlotScenarioNoise(string classDir, PitchClass pitchClass, List<PitchData> binPitches, List<int> evalYears)
         {
-            const double minDegreesOfFreedom = 500;
+            foreach (bool pitIsR in new[] { true, false })
+            {
+                foreach (bool hitIsR in new[] { true, false })
+                {
+                    for (int balls = 0; balls <= 3; balls++)
+                    {
+                        for (int strikes = 0; strikes <= 2; strikes++)
+                        {
+                            string pitStr = pitIsR ? "RHP" : "LHP";
+                            string hitStr = hitIsR ? "RHH" : "LHH";
+                            string directory = Path.Combine(classDir, $"{balls}-{strikes}", $"{pitStr}_{hitStr}");
+                            Directory.CreateDirectory(directory);
+
+                            PlotCellKTauSigma(directory, $"{pitchClass} {pitStr} vs {hitStr} {balls}-{strikes}",
+                            c => c.PitchClass == pitchClass && c.PitIsR == pitIsR && c.HitIsR == hitIsR
+                                                        && c.CountBalls == balls && c.CountStrikes == strikes,
+                            binPitches, evalYears, minPitches: 40);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Plots K, noise, variance for each cell
+        private static void PlotCellKTauSigma(string dir, string label, Func<CellTau, bool> include, List<PitchData> binPitches, List<int> evalYears,
+            double minPitches = 500)
+        {
             foreach (var geometryGroup in METHODS.GroupBy(m => m.Bin.Geometry))
             {
                 PitchZoneBin bin = geometryGroup.First().Bin;
-                double[,] withinSs = new double[bin.gridRows, bin.gridColumns];
-                double[,] degreesOfFreedom = new double[bin.gridRows, bin.gridColumns];
-                double[,] counts = new double[bin.gridRows, bin.gridColumns];
-                foreach (int year in evalYears)
+                PitchZoneGeometry g = geometryGroup.Key;
+                string geometryLabel = $"{g.ZoneColumns}x{g.SquareRowsPerSide}{(g.SplitMiddleRow ? "S" : "")}_{g.OutsideColumns}x{g.OutsideRows}";
+                List<CellTau>?[,] observations = new List<CellTau>?[bin.gridRows, bin.gridColumns];
+                
+                foreach (int year in evalYears.Where(y => y - 1 <= MAX_FIT_YEAR))
                 {
-                    // Bins for an evaluation year are built from the years before it
-                    foreach (CellNoise cell in bin.GetCellNoise(binPitches, year - 1))
+                    foreach (CellTau cell in bin.GetCellTau(binPitches, year - 1).Where(include))
                     {
-                        bool wrongClass = pitchClass != PitchClass.Other && cell.PitchClass != pitchClass;
-                        if (wrongClass || cell.PitchCount < 2)
-                        {
-                            continue;
-                        }
-                        withinSs[cell.Row, cell.Column] += cell.ValueSumSq - (cell.ValueSum * cell.ValueSum / cell.PitchCount);
-                        degreesOfFreedom[cell.Row, cell.Column] += cell.PitchCount - 1;
-                        counts[cell.Row, cell.Column] += cell.PitchCount;
+                        (observations[cell.Row, cell.Column] ??= []).Add(cell);
                     }
                 }
-                double totalSs = 0, totalDf = 0, inSs = 0, inDf = 0, outSs = 0, outDf = 0;
+
+                List<(PitchZone Zone, double Tau2, double Noise, double K, double Pitches)> plotted = [];
                 for (int row = 0; row < bin.gridRows; row++)
                 {
                     for (int column = 0; column < bin.gridColumns; column++)
                     {
-                        totalSs += withinSs[row, column];
-                        totalDf += degreesOfFreedom[row, column];
-                        if (bin.IsInStrikeZone(new PitchZone(row, column)))
+                        List<CellTau>? cellObservations = observations[row, column];
+                        if (cellObservations is null || cellObservations.Sum(o => o.PitchCount) < minPitches)
                         {
-                            inSs += withinSs[row, column];
-                            inDf += degreesOfFreedom[row, column];
+                            continue;
                         }
-                        else
-                        {
-                            outSs += withinSs[row, column];
-                            outDf += degreesOfFreedom[row, column];
-                        }
+
+                        double tau2 = PitchZoneBin.EstimateVarianceScale(cellObservations.Select(o => (o.SquaredDeviation, o.TauFactor, o.SamplingVariance)));
+                        double noise = cellObservations.Average(o => o.NoiseVariance);
+                        plotted.Add((new PitchZone(row, column), tau2, noise,
+                            tau2 > 0 ? noise / tau2 : double.PositiveInfinity, cellObservations.Sum(o => o.PitchCount)));
                     }
                 }
-                if (totalDf == 0)
+
+                if (plotted.Count == 0)
                 {
                     continue;
                 }
-                double pooledVariance = totalSs / totalDf;
-                Console.WriteLine($"{pitchClass} noise SD (runs/100 pitches): pooled {Math.Sqrt(pooledVariance) * 100:F2}, "
-                    + $"in-zone {Math.Sqrt(inSs / inDf) * 100:F2}, out-of-zone {Math.Sqrt(outSs / outDf) * 100:F2}");
-                Dictionary<PitchZone, (double Value, string Text)> cells = new();
-                for (int row = 0; row < bin.gridRows; row++)
+
+                const double kPlotMax = 1000;
+                double referenceNoise = plotted.Average(c => c.Noise);
+                double referenceTau = plotted.Average(c => c.Tau2);
+
+                Dictionary<PitchZone, (double Value, string Text)> noiseCells = plotted.ToDictionary(
+                    c => c.Zone,
+                    c => (100 * ((c.Noise / referenceNoise) - 1), $"{Math.Sqrt(c.Noise) * 100:F1}\n{c.Pitches / 1000.0:F1}k"));
+                Dictionary<PitchZone, (double Value, string Text)> kCells = plotted.ToDictionary(
+                    c => c.Zone,
+                    c => (Math.Min(c.K, kPlotMax),
+                        $"{(double.IsInfinity(c.K) ? "inf" : c.K.ToString("F0"))}\n{c.Pitches / 1000.0:F1}k"));
+                
+                bin.PlotCellValues(noiseCells, null, $"{label}: noise SD (runs/100 pitches); color vs mean (%)",
+                    Path.Combine(dir, $"CellNoise_{geometryLabel}.png"), maxAbsValue: 150);
+                bin.PlotCellValues(kCells, null, $"{label}: K = noise variance / tau^2 (inf = no variation beyond noise; colors capped at {kPlotMax})",
+                    Path.Combine(dir, $"CellK_{geometryLabel}.png"), maxAbsValue: kPlotMax);
+                
+                if (referenceTau > 0)
                 {
-                    for (int column = 0; column < bin.gridColumns; column++)
-                    {
-                        if (degreesOfFreedom[row, column] < minDegreesOfFreedom)
-                        {
-                            continue;
-                        }
-                        double variance = withinSs[row, column] / degreesOfFreedom[row, column];
-                        cells[new PitchZone(row, column)] = (100 * ((variance / pooledVariance) - 1),
-                            $"{Math.Sqrt(variance) * 100:F1}\n{counts[row, column] / 1000.0:F1}k");
-                    }
+                    Dictionary<PitchZone, (double Value, string Text)> tauCells = plotted.ToDictionary(
+                        c => c.Zone,
+                        c => (100 * ((c.Tau2 / referenceTau) - 1), $"{Math.Sqrt(c.Tau2) * 100:F1}\n{c.Pitches / 1000.0:F1}k"));
+                    bin.PlotCellValues(tauCells, null, $"{label}: tau (SD of cell around neighbors, runs/100 pitches); color vs mean (%)",
+                        Path.Combine(dir, $"CellTau_{geometryLabel}.png"), maxAbsValue: 150);
                 }
-                PitchZoneGeometry g = geometryGroup.Key;
-                string file = $"CellNoise_{g.ZoneColumns}x{g.SquareRowsPerSide}{(g.SplitMiddleRow ? "S" : "")}_{g.OutsideColumns}x{g.OutsideRows}.png";
-                bin.PlotCellValues(cells, null, $"{pitchClass}: within-cell SD (runs/100 pitches); color = variance vs pooled (%)",
-                    Path.Combine(dir, file), maxAbsValue: 150);
             }
         }
     }

@@ -71,6 +71,10 @@ namespace PitchAnalysis.PitchZoneBinNS
             {
                 throw new ArgumentOutOfRangeException(nameof(args), $"YearDecay must be in (0, 1], was {args.YearDecay}.");
             }
+            if (args.KEdgeFraction is <= 0 or >= 0.5)
+            {
+                throw new ArgumentOutOfRangeException(nameof(args), $"KEdgeFraction must be in (0, 0.5), was {args.KEdgeFraction}.");
+            }
 
             this.args = args;
             cellSize = 2 * BaseballConstants.ZoneHalfWidth / args.ZoneColumns;

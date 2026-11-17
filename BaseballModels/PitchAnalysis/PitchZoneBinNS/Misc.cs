@@ -33,4 +33,10 @@ namespace PitchAnalysis.PitchZoneBinNS
     public sealed record CellNoise(
         PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrikes,
         int Row, int Column, double PitchCount, double ValueSum, double ValueSumSq);
+
+    // One scenario-cell's deviation from its neighborhood mean over a bin window, with the sampling noise expected in that deviation.
+    // SquaredDeviation - SamplingVariance is an unbiased estimate of the cell's true variance around its neighborhood (tau^2).
+    public sealed record CellTau(
+        PitchClass PitchClass, bool PitIsR, bool HitIsR, int CountBalls, int CountStrikes,
+        int Row, int Column, double PitchCount, double SquaredDeviation, double SamplingVariance, double TauFactor, double NoiseVariance);
 }

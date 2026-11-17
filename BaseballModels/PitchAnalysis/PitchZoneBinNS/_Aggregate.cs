@@ -15,6 +15,7 @@ namespace PitchAnalysis.PitchZoneBinNS
         {
             List<PitchZoneCompetitive> competitiveRows = [];
             List<PitchZoneNonCompetitive> nonCompetitiveRows = [];
+            Dictionary<int, Dictionary<KFitKey, Dictionary<KGroup, double>>> kByYear = [];
 
             foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in GetScenarioData(pitches))
             {
@@ -22,7 +23,8 @@ namespace PitchAnalysis.PitchZoneBinNS
                 foreach (int year in years.Keys.Where(y => y >= minOutputYear))
                 {
                     WindowTotals window = SumWindow(years, year);
-                    CellTotals effective = ApplyKernel(window.Cells, args.SeparateBorderRing);
+                    Dictionary<KGroup, double> ? groupK = args.UseFittedK ? GroupKFor(pitches, scenario, year, kByYear) : null;
+                    CellTotals effective = ApplyKernel(window.Cells, args.SeparateBorderRing, groupK);
 
                     // Pitches that will NOT be valued by a competitive bin: off the grid, or in a bin failing either rule
                     double fallbackCount = window.NoZonePitches;

@@ -17,6 +17,17 @@ namespace PitchAnalysis.PitchZoneBinNS
             };
         }
 
+        private bool IsEligibleNeighbor(int row, int column, int sourceRow, int sourceColumn, bool useBorderRing)
+        {
+            if (useBorderRing)
+            {
+                return CanBorrow(regions[row, column], regions[sourceRow, sourceColumn]);
+            }
+            bool cellInZone = IsInStrikeZone(new PitchZone(row, column));
+            return IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) == cellInZone
+                && !(regions[row, column] == ZoneRegion.InsideMiddle && regions[sourceRow, sourceColumn] != ZoneRegion.InsideMiddle);
+        }
+
         private double YearWeight(int targetYear, int pitchYear)
         {
             return Math.Pow(args.YearDecay, targetYear - pitchYear);
@@ -41,7 +52,7 @@ namespace PitchAnalysis.PitchZoneBinNS
             return new CellTotals(pitches, swings, valueSum);
         }
 
-        private CellTotals ApplyKernel(CellTotals raw, bool useBorderRing)
+        private CellTotals ApplyKernel(CellTotals raw, bool useBorderRing, Dictionary<KGroup, double>? groupK = null)
         {
             if (args.Kernel is not PitchZoneKernel kernel)
             {
@@ -58,6 +69,12 @@ namespace PitchAnalysis.PitchZoneBinNS
                 {
                     bool cellInZone = IsInStrikeZone(new PitchZone(row, column));
                     double? cap = cellInZone ? args.InZoneNeighborCap : args.OutZoneNeighborCap;
+
+                    // A fitted K replaces the cap for cells in an applied group (K = infinity leaves the neighbors uncapped)
+                    if (groupK is not null && GetKGroup(row, column) is KGroup group && groupK.TryGetValue(group, out double groupCap))
+                    {
+                        cap = double.IsInfinity(groupCap) ? null : groupCap;
+                    }
 
                     // Largest effective count any single neighbour may contribute to this cell
                     double? maxSourcePitches = args.NeighborCountRatio is double countRatio
@@ -76,16 +93,7 @@ namespace PitchAnalysis.PitchZoneBinNS
                                 continue;
                             }
 
-                            // Check if the cell is eligible for the target to be used in smoothing
-                            if (useBorderRing)
-                            {
-                                if (!CanBorrow(regions[row, column], regions[sourceRow, sourceColumn]))
-                                {
-                                    continue;
-                                }
-                            }
-                            else if (IsInStrikeZone(new PitchZone(sourceRow, sourceColumn)) != cellInZone
-                                || (regions[row, column] == ZoneRegion.InsideMiddle && regions[sourceRow, sourceColumn] != ZoneRegion.InsideMiddle))
+                            if (!IsEligibleNeighbor(row, column, sourceRow, sourceColumn, useBorderRing))
                             {
                                 continue;
                             }
@@ -131,6 +139,94 @@ namespace PitchAnalysis.PitchZoneBinNS
             }
 
             return new CellTotals(pitches, swings, valueSum);
+        }
+
+        // Per scenario-cell deviation from the kernel-weighted mean of its eligible neighbors (cell excluded), over the bin window ending at binYear.
+        public List<CellTau> GetCellTau(IEnumerable<PitchData> pitches, int binYear)
+        {
+            List<CellTau> rows = [];
+            if (args.Kernel is not PitchZoneKernel kernel)
+            {
+                return rows;
+            }
+            
+            var scenarios = GetCellNoise(pitches, binYear)
+                .GroupBy(c => (c.PitchClass, c.PitIsR, c.HitIsR, c.CountBalls, c.CountStrikes));
+            
+            foreach (var scenario in scenarios)
+            {
+                double[,] counts = new double[gridRows, gridColumns];
+                double[,] sums = new double[gridRows, gridColumns];
+                double[,] sumsSq = new double[gridRows, gridColumns];
+                
+                foreach (CellNoise cell in scenario)
+                {
+                    counts[cell.Row, cell.Column] = cell.PitchCount;
+                    sums[cell.Row, cell.Column] = cell.ValueSum;
+                    sumsSq[cell.Row, cell.Column] = cell.ValueSumSq;
+                }
+                
+                for (int row = 0; row < gridRows; row++)
+                {
+                    for (int column = 0; column < gridColumns; column++)
+                    {
+                        double n = counts[row, column];
+                        if (n <= 0)
+                        {
+                            continue;
+                        }
+                        
+                        double? maxSource = args.NeighborCountRatio is double ratio
+                            ? ratio * Math.Max(n, args.NeighborCountFloor)
+                            : null;
+                        double weightSum = 0, weightedMeans = 0, weightedSampling = 0, weightSquares = 0;
+                        double noiseSs = sumsSq[row, column] - (sums[row, column] * sums[row, column] / n);
+                        double noiseDf = n - 1;
+                        
+                        for (int rowOffset = -kernel.Radius; rowOffset <= kernel.Radius; rowOffset++)
+                        {
+                            for (int columnOffset = -kernel.Radius; columnOffset <= kernel.Radius; columnOffset++)
+                            {
+                                int sourceRow = row + rowOffset;
+                                int sourceColumn = column + columnOffset;
+                                bool outside = sourceRow < 0 || sourceRow >= gridRows || sourceColumn < 0 || sourceColumn >= gridColumns;
+                                
+                                if (outside || (rowOffset == 0 && columnOffset == 0) || counts[sourceRow, sourceColumn] <= 0
+                                    || !IsEligibleNeighbor(row, column, sourceRow, sourceColumn, args.SeparateBorderRing))
+                                {
+                                    continue;
+                                }
+                                
+                                double sourceCount = counts[sourceRow, sourceColumn];
+                                double sourceSum = sums[sourceRow, sourceColumn];
+                                double weight = kernel.Weight(rowOffset, columnOffset) * Math.Min(sourceCount, maxSource ?? sourceCount);
+                                
+                                weightSum += weight;
+                                weightSquares += weight * weight;
+                                weightedMeans += weight * (sourceSum / sourceCount);
+                                weightedSampling += weight * weight / sourceCount;
+                                
+                                noiseSs += sumsSq[sourceRow, sourceColumn] - (sourceSum * sourceSum / sourceCount);
+                                noiseDf += sourceCount - 1;
+                            }
+                        }
+                        
+                        if (weightSum <= 0 || noiseDf <= 0)
+                        {
+                            continue;
+                        }
+                        
+                        double noiseVariance = noiseSs / noiseDf;
+                        double deviation = (sums[row, column] / n) - (weightedMeans / weightSum);
+                        double samplingVariance = noiseVariance * ((1 / n) + (weightedSampling / (weightSum * weightSum)));
+                        double tauFactor = 1 + (weightSquares / (weightSum * weightSum));
+                        
+                        rows.Add(new CellTau(scenario.Key.PitchClass, scenario.Key.PitIsR, scenario.Key.HitIsR, scenario.Key.CountBalls,
+                            scenario.Key.CountStrikes, row, column, n, deviation * deviation, samplingVariance, tauFactor, noiseVariance));
+                    }
+                }
+            }
+            return rows;
         }
     }
 }

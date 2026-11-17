@@ -21,6 +21,11 @@
         public double? InZoneSmoothingCutoff { get; init; } = null;
         public double? OutZoneSmoothingCutoff { get; init; } = null;
 
+        // Fit a pseudo-count K per region group from the bin window and use it as the neighbor-weight cap (see IsKApplied for which groups)
+        public bool UseFittedK { get; init; } = false;
+        // Share of the in-zone rows/columns (rounded up) given to each edge band when grouping cells for K
+        public double KEdgeFraction { get; init; } = 0.25;
+
         // All parameters below this currently are not used in the optimal model, and can potentially be removed.
 
         // Max total weight (in pitches) the neighbours may add to a cell, chosen by whether the cell is in the strike zone.

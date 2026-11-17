@@ -19,6 +19,7 @@ namespace PitchAnalysis.BinEvaluationNS
         private const int IMAGE_WIDTH = 2000;
         private const int PLOT_HEIGHT = 800;
         private const int MIN_EVAL_YEAR = 2022;
+        private const int MAX_FIT_YEAR = 2025;
 
         private readonly record struct SituationKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
 
@@ -89,7 +90,13 @@ namespace PitchAnalysis.BinEvaluationNS
                 PlotCellReductions(dir, cellTotals);
                 PlotCellBias(dir, cellTotals);
                 PlotBiasSummary(dir, cellTotals);
-                PlotCellNoise(dir, pitchClass, binPitches, evalYears);
+
+                // Cell Noise
+                PlotCellKTauSigma(dir, pitchClass.ToString(), c => pitchClass == PitchClass.Other || c.PitchClass == pitchClass, binPitches, evalYears);
+                if (pitchClass != PitchClass.Other)
+                {
+                    PlotScenarioNoise(dir, pitchClass, binPitches, evalYears);
+                }
 
                 // Scenario breakdowns only make sense per pitch class
                 if (pitchClass != PitchClass.Other)
