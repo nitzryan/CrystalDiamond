@@ -96,7 +96,7 @@ class LayerArch(nn.Module):
 
 
 DEFAULT_DATA_ARCH = LayerArch(layer_size=35, num_layers=2, nonlin=F.leaky_relu)
-DEFAULT_WAR_ARCH = LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
+DEFAULT_WAR_ARCH = LayerArch(layer_size=64, num_layers=2, nonlin=F.leaky_relu)#LayerArch(layer_size=87, num_layers=2, nonlin=F.relu)
 DEFAULT_INIT_STATE_ARCH = LayerArch(layer_size=65, num_layers=3, nonlin=F.relu)
 
 DEFAULT_STATS_ARCH = LayerArch(layer_size=118, num_layers=5, nonlin=F.silu)
@@ -117,13 +117,13 @@ DEFAULT_LVL_ARCH_P = LayerArch(layer_size=106, num_layers=3, nonlin=F.relu)
 DEFAULT_PA_ARCH_P = LayerArch(layer_size=93, num_layers=5, nonlin=F.tanh)
 DEFAULT_MLBWAR_ARCH_P = LayerArch(layer_size=64, num_layers=3, nonlin=F.silu)
 
-DEFAULT_PRO_HIDDEN_SIZE = 100
+DEFAULT_PRO_HIDDEN_SIZE = 139#100
 DEFAULT_PRO_NUM_LAYERS = 2
 
 DEFAULT_PRO_HIDDEN_SIZE_P = 39
 DEFAULT_PRO_NUM_LAYERS_P = 2
 
-DEFAULT_DROPOUT = 0.045
+DEFAULT_DROPOUT = 0.19#0.045
 DEFAULT_DROPOUT_P = 0.252
 
 DEFAULT_INIT_STATE_SIZE = 24
@@ -179,8 +179,8 @@ def _InitModelHeadLists(
     return vals
 
 DEFAULT_LEARNING_RATES = _InitModelHeadLists(
-    shared=1.04e-3,
-    war=5.8e-3,
+    shared=1.9e-3,#1.04e-3,
+    war=1.2e-3,#5.8e-3,
     level=8.2e-3,
     pa=3.8e-4,
     stats=3.6e-3,
@@ -191,8 +191,8 @@ DEFAULT_LEARNING_RATES = _InitModelHeadLists(
     player=4.4e-4,
 )
 DEFAULT_PRO_WEIGHT_DECAY = _InitModelHeadLists(
-    shared=5.3e-2,
-    war=1.5e-5,
+    shared=7.9e-2,#5.3e-2,
+    war=2.4e-5,#1.5e-5,
     level=2.4e-7,
     pa=5.9e-7,
     stats=1.26e-3,
@@ -228,7 +228,7 @@ DEFAULT_PRO_WEIGHT_DECAY_P = _InitModelHeadLists(
     player=1e-7
 )
 
-DEFAULT_RNN_NONLINEARITY = 'relu'
+DEFAULT_RNN_NONLINEARITY = 'tanh'#'relu'
 DEFAULT_RNN_NONLINEARITY_P = 'relu'
 
 NUM_MONTH_SLOTS = 13

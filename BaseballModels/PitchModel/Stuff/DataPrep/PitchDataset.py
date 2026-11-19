@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from PitchModel.Constants import device, NUM_TRAINING_VARIANTS, TRAIN_TEST_RATIO
 from PitchModel.Stuff.Model.ModelOutputType import ModelOutputType
 from PitchModel.Stuff.DataPrep.PitchIO import PitchIO, PitchIOData
-
+from PitchModel.Stuff.DataPrep.FoldGeneration import _test_groups
 
 def _split_sublist(
     sublist: list,  # list[DATA_CLASS] for one class
@@ -14,10 +14,9 @@ def _split_sublist(
 ) -> tuple[list, list]:
     train = []
     test = []
-    N = N + 1
+    test_groups = _test_groups(N, M, C % M)
     for i, item in enumerate(sublist):
-        g = i % M
-        if (g % N) == (C % N):
+        if (i % M) in test_groups:
             test.append(item)
         else:
             train.append(item)
@@ -81,7 +80,6 @@ class PitchDataset(torch.utils.data.Dataset):
             ModelOutputType.InPlay: self.mask_inplay,
         }
         
-        current_output_type
         self.SetOutputType(current_output_type)
         
     def __len__(self):

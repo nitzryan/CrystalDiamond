@@ -4,9 +4,10 @@ import torch
 import torch.nn.functional as F
 
 from PitchModel.Stuff.Model.PitchModel import PitchModelArgs, PitchModel
-from PitchModel.Stuff.DataPrep.DataPrep import PitchIO, DataPrep
+from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
+from PitchModel.Stuff.DataPrep.PitchIO import PitchIOData
 from PitchModel.Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
-from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
+from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets, GetDisjointTrainIndices
 from PitchModel.Stuff.Model.ModelTrain import TrainAndGraph
 from PitchModel.Constants import device
 
@@ -21,7 +22,7 @@ _ACTIVATION_MAP = {
 
 def RunEvaluation(
             trial : optuna.trial.Trial,
-            pitch_list : list[list[PitchIO]],
+            io_data : PitchIOData,
             data_prep : DataPrep,
             model_variant_type : ModelVariantType,
             model_output_type : ModelOutputType,
@@ -50,29 +51,28 @@ def RunEvaluation(
     )
     
     sum_loss = 0
-    for i in range(max_repeats):
-        train_dataset, test_dataset = CreateTestTrainDatasets(
-            data=pitch_list,
-            train_idx=i
+    # Repeats use folds whose test sets share no pitchers, so they are independent samples
+    for train_idx in GetDisjointTrainIndices(max_repeats):
+        datasets = CreateTestTrainDatasets(
+            io_data=io_data,
+            train_idx=train_idx
         )
-        
-        train_dataset.SetOutputType(model_output_type)
-        test_dataset.SetOutputType(model_output_type)
+        datasets.SetOutputType(model_output_type)
         
         network = PitchModel(args, data_prep).to(device)
-        sum_loss += TrainAndGraph(
+        result = TrainAndGraph(
             network=network,
-            train_dataset=train_dataset,
-            test_dataset=test_dataset,
-            model_name="../../Models/default",
+            datasets=datasets,
+            model_name="tuning",
             should_output=False,
             show_progress=False,
             num_epochs=num_epochs,
-            batch_size=batch_size
+            batch_size=batch_size,
+            save_model=False
         )
+        sum_loss += result.test_loss
         
-        del train_dataset
-        del test_dataset
+        del datasets
         del network
         torch.cuda.empty_cache()
         gc.collect()

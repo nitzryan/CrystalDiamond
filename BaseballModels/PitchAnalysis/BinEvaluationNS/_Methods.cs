@@ -42,7 +42,7 @@ namespace PitchAnalysis.BinEvaluationNS
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null, NeighborCountRatio = 1, YearsPerBin = 5, YearDecay = 0.75, SplitMiddleRow=true })),
 
             
-            new("4yr d0.75 Split-Middle K 2nd col", new PitchZoneBin(ZONE_BIGGER with
+            new("4yr d0.75 Split-Middle K", new PitchZoneBin(ZONE_BIGGER with
                 { Kernel = PitchZoneKernel.Gaussian(2, 1.0), SeparateBorderRing=true, InZoneNeighborCap = null, OutZoneNeighborCap = null,
                   NeighborCountRatio = 1, YearsPerBin = 4, YearDecay = 0.75, SplitMiddleRow = true, SeparateMiddle = true, UseFittedK = true })),
         ];

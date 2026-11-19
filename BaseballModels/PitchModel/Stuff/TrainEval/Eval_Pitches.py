@@ -12,9 +12,6 @@ from PitchModel.Stuff.Model.PitchModel import PitchModel, DEFAULT_ARGS_MAP
 from PitchModel.Stuff.Model.ModelOutputType import *
 from PitchModel.PitchDBTypes import *
 
-from line_profiler import LineProfiler
-eval_profiler = LineProfiler()
-_SHOULD_PROFILE = True
 
 def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     s = pos_sum + neg_sum
@@ -26,7 +23,6 @@ def GetPosNegScale(pos_sum : float, neg_sum : float) -> tuple[float, float]:
     neg_scale = 1.0 - (neg_sum * s) / d
     return pos_scale, neg_scale
 
-@eval_profiler
 def Eval_Pitches(end_year : int):
     BATCH_SIZE = 2000000
     
@@ -43,7 +39,7 @@ def Eval_Pitches(end_year : int):
             "SELECT DISTINCT Year FROM ModelTrainingHistory_PitchValue WHERE ModelId=? ORDER BY Year ASC",
             (model_id,)).fetchall()]
         
-        for model_year in tqdm(model_years[:-1], desc="Model Years", leave=False):
+        for model_year in tqdm(model_years, desc="Model Years", leave=False):
             # DataPrep was saved during training as GetBinaryName(model_id, model_year)
             data_prep = GetDataPrep(model_id, model_year)
             mth_list = DB_ModelTrainingHistory_PitchValue.Select_From_DB(
@@ -153,12 +149,12 @@ def Eval_Pitches(end_year : int):
                             f"training split of every run and cannot be evaluated.")
                     output_avg = output_sum / run_counts.unsqueeze(-1).to(output_sum.dtype)
                                 
-                    db_data = [tuple(row.tolist()) for row in torch.cat((\
-                        mapping_game_ids.unsqueeze(-1),
-                        mapping_pitch_nums.unsqueeze(-1),
-                        mapping_level_ids.unsqueeze(-1),
-                        mapping_pitcher_ids.unsqueeze(-1),
-                        output_avg), dim=-1)]
+                    id_rows = torch.stack((
+                        mapping_game_ids,
+                        mapping_pitch_nums,
+                        mapping_level_ids,
+                        mapping_pitcher_ids), dim=-1).tolist()
+                    db_data = [tuple(ids) + tuple(outputs) for ids, outputs in zip(id_rows, output_avg.tolist())]
                             
                     cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000,NULL,NULL)", db_data)
                         

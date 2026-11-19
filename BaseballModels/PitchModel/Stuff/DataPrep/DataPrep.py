@@ -4,11 +4,9 @@ from PitchModel.Stuff.DataPrep.PrepMap import Prep_Map
 import torch
 from sklearn.decomposition import PCA
 from typing import TypeVar, Callable
-from PitchModel.Constants import tracking_db, DTYPE, BUCKET_INPLAY_VALUE
+from PitchModel.Constants import *
 from PitchModel.Stuff.DataPrep.PitchDataset import PitchIO
-from tqdm import tqdm
-from PitchModel.Constants import profiler
-import gc
+import os
 import dill
 from PitchModel.Stuff.DataPrep.PitchIO import PitchIOData
         
@@ -20,16 +18,8 @@ _GAME_STRING = "game"
 _AVG_STRING = "avg"
 _COMB_STRING = "combined"
         
-SHOULD_PROFILE = False
-   
-if SHOULD_PROFILE:
-    profiler.enable()
-        
-
-        
 _T = TypeVar('T')
 class DataPrep:
-    @profiler
     def __init__(self,
         prep_map : Prep_Map,
         start_year : int,
@@ -42,9 +32,12 @@ class DataPrep:
         cursor = tracking_db.cursor()
         pitches = DB_PitchData.Select_From_DB(
             cursor=cursor,
-            conditional=f"WHERE YEAR>={start_year} AND Year<={end_year}",
-            values=()
+            conditional="WHERE Year>=? AND Year<=? AND LevelId=?",
+            values=(start_year, end_year, MLB_LEVEL_ID)
         )
+        
+        if len(pitches) == 0:
+            raise ValueError(f"No MLB pitches found for years {start_year}-{end_year}")
         
         self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
         self.__Create_PCA_Norms(self.prep_map.pitch_combined_map, pitches, _COMB_STRING, self.prep_map.pitch_combined_size)
@@ -61,8 +54,11 @@ class DataPrep:
         self.ip_bucket_value = value_in_bucket / entries_in_bucket
        
         if save_name is not None:
-           with open(save_name, 'wb') as file:
-               dill.dump(self, file)
+            save_dir = os.path.dirname(save_name)
+            if save_dir != "":
+                os.makedirs(save_dir, exist_ok=True)
+            with open(save_name, 'wb') as file:
+                dill.dump(self, file)
        
     @staticmethod
     def Load_From_File(filename : str) -> DataPrep:
@@ -114,33 +110,32 @@ class DataPrep:
     # Map to <Called Strike, Ball, HBP, Swung>
     @staticmethod
     def GetOutputType(pitch : DB_PitchData) -> int:
-        if pitch.Result == 1:
+        if pitch.Result == PITCH_RESULT_CALLEDSTRIKE:
             return 0
-        if pitch.Result == 4:
+        if pitch.Result == PITCH_RESULT_BALL:
             return 1
-        if pitch.Result == 6:
+        if pitch.Result == PITCH_RESULT_HBP:
             return 2
         return 3
     
     # Map balls hit in play to expected runs bucket
     @staticmethod
     def GetInPlayBucket(pitch : DB_PitchData) -> tuple[int, int]:
-        if pitch.Result == 5:
+        if pitch.Result == PITCH_RESULT_INPLAY:
             return torch.bucketize(torch.tensor([pitch.RunValueInPlay]), BUCKET_INPLAY_VALUE), 1
         return 0, 0
     
     # Map swung balls to <Whiff, Foul, InPlay>
     @staticmethod
     def GetSwingBucket(pitch : DB_PitchData) -> tuple[int, int]:
-        if pitch.Result == 2:
+        if pitch.Result == PITCH_RESULT_SWINGSTRIKE:
             return 0, 1
-        if pitch.Result == 3:
+        if pitch.Result == PITCH_RESULT_FOUL:
             return 1, 1
-        if pitch.Result == 5:
+        if pitch.Result == PITCH_RESULT_INPLAY:
             return 2, 1
         return 0, 0
     
-    @profiler
     def _PitchesToIO(self, pitches : list[DB_PitchData]) -> list[list[PitchIO]]:
         pitcher_dict : dict[int, list[PitchIO]] = {}
 
@@ -170,7 +165,6 @@ class DataPrep:
 
         return list(pitcher_dict.values())
     
-    @profiler
     def GenerateIOPitches(self, 
                           start_year : int, 
                           end_year : int, 
@@ -180,12 +174,13 @@ class DataPrep:
         
         cursor = tracking_db.cursor()
         
-        # TODO : Either add back the level condition or eliminate this
-        level_cond = "" if mlb_only else ""
+        # Training passes mlb_only=True (MLB pitches only); evaluation passes False (all levels).
+        level_cond = "AND LevelId=?" if mlb_only else ""
+        level_values = (MLB_LEVEL_ID,) if mlb_only else ()
         pitches = DB_PitchData.Select_From_DB(
             cursor=cursor,
             conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
-            values=(start_year, end_year)
+            values=(start_year, end_year) + level_values
         )
         
         data = self._PitchesToIO(pitches)
@@ -195,13 +190,9 @@ class DataPrep:
             val_pitches = DB_PitchData.Select_From_DB(
                 cursor=cursor,
                 conditional=f"WHERE Year=? {level_cond}",
-                values=(validation_year,)
+                values=(validation_year,) + level_values
             )
             validation_data = self._PitchesToIO(val_pitches)
-            
-            if SHOULD_PROFILE:
-                profiler.disable()
-                profiler.dump_stats("data_prep.lprof")
         
         return PitchIOData(data=data, validation_data=validation_data)
     

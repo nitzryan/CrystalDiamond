@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import torch
@@ -11,9 +12,7 @@ from PitchModel.Stuff.Model.ModelOutputType import ModelVariantType, ModelOutput
 from PitchModel.Stuff.DataPrep.PitchDataset import PitchDataset, PitchDatasets
 from PitchModel.Stuff.Model.LossFunctions import *
 from torch.optim.lr_scheduler import CosineAnnealingLR 
-from PitchModel.Constants import profiler
 
-SHOULD_PROFILE = False
 
 @dataclass
 class TrainResult:
@@ -31,13 +30,11 @@ def TrainAndGraph(
     should_output : bool = True,
     show_progress : bool = True,
     model_name : str = "no_name",
+    save_model : bool = True,
 ) -> TrainResult:
     
     if num_epochs <= 0:
         raise Exception("num_epochs must be positive")
-    
-    if SHOULD_PROFILE:
-        profiler.enable()
     
     test_loss_history : list[float] = []
     train_loss_history : list[float] = []
@@ -111,11 +108,12 @@ def TrainAndGraph(
         if val_unseen_loss_history is not None:
             val_unseen_loss_history.append(_GetValUnseenLoss())
 
-    torch.save(network.state_dict(), f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt")
-        
-    if SHOULD_PROFILE:    
-        profiler.disable()
-        profiler.dump_stats("train_profile.lprof")
+    if save_model:
+        model_path = f"{model_name}_{network.model_variant_type.name}_{network.model_output_type.name}.pt"
+        model_dir = os.path.dirname(model_path)
+        if model_dir != "":
+            os.makedirs(model_dir, exist_ok=True)
+        torch.save(network.state_dict(), model_path)
         
     if should_output:
         print(f"End result with loss={test_loss}")
@@ -128,7 +126,6 @@ def TrainAndGraph(
     )
 
 
-@profiler
 def TrainTest(network : PitchModel, 
               dataset : PitchDataset, 
               optimizer : torch.optim.Optimizer | None, 
@@ -171,7 +168,6 @@ def TrainTest(network : PitchModel,
     avg_loss /= size
     return avg_loss
         
-@profiler
 def GetLosses(
     network : PitchModel, 
     data : tuple[torch.Tensor, ...], 
@@ -186,7 +182,8 @@ def GetLosses(
         case ModelVariantType.Combined:
             input_data = combined
     
-    outputs = network(input_data)
+    with torch.set_grad_enabled(should_backprop):
+        outputs = network(input_data)
     
     loss, count = Classification_Loss(outputs, targets)
         

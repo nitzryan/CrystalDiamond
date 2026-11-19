@@ -44,6 +44,10 @@ class ParamSpec:
             low = default - span
             high = default + span
             
+            # Prevent searching for 1 RNN layer
+            if self.name == "num_layers" and low < 2:
+                low = 2
+            
             # Low int should always round down, high int round up
             if self.is_int:
                 low = round(low) if self.low == 0 else math.floor(low)

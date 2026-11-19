@@ -1,7 +1,6 @@
 import torch
 import sqlite3
 from pathlib import Path
-from line_profiler import LineProfiler
 
 use_cuda = torch.cuda.is_available()
 if (use_cuda):
@@ -18,15 +17,15 @@ pitch_db = sqlite3.connect(__PITCH_DB_PATH)
 
 DTYPE = torch.float32
 
-profiler = LineProfiler()
+MLB_LEVEL_ID = 1
 
 # Pitch Results
-PITCH_RESULT_CALLEDSTRIKE = 0
-PITCH_RESULT_SWINGSTRIKE = 1
-PITCH_RESULT_FOUL = 2
-PITCH_RESULT_BALL = 3
-PITCH_RESULT_INPLAY = 4
-PITCH_RESULT_HBP = 5
+PITCH_RESULT_CALLEDSTRIKE = 1
+PITCH_RESULT_SWINGSTRIKE = 2
+PITCH_RESULT_FOUL = 3
+PITCH_RESULT_BALL = 4
+PITCH_RESULT_INPLAY = 5
+PITCH_RESULT_HBP = 6
 
 NUM_TRAINING_VARIANTS = 12
 TRAIN_TEST_RATIO = 3

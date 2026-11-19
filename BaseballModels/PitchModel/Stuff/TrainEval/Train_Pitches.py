@@ -12,7 +12,7 @@ from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
 
 def Train_Pitches(num_variants : int, start_year : int, end_year : int):
     if num_variants < 0:
-        exit(1)
+        raise ValueError(f"num_variants must be positive, got {num_variants}")
         
     cursor = pitch_db.cursor()
     model_ids = cursor.execute("SELECT Id, Name FROM Models_PitchValue ORDER BY id ASC").fetchall()
@@ -44,7 +44,8 @@ def Train_Pitches(num_variants : int, start_year : int, end_year : int):
             
             for i in tqdm(range(num_variants), desc="Model Runs", leave=False):
                 datasets = CreateTestTrainDatasets(
-                    pitch_io_data, 
+                    pitch_io_data,
+                    total_training_runs=num_variants, 
                     train_idx=i)
                 
                 test_losses = []
@@ -64,6 +65,8 @@ def Train_Pitches(num_variants : int, start_year : int, end_year : int):
                         result = TrainAndGraph(
                             network=network,
                             datasets=datasets,
+                            batch_size=args.batch_size,
+                            num_epochs=args.num_epochs,
                             model_name=f'PitchModel/Models/{model_name_pt}',
                             should_output=False,
                         )

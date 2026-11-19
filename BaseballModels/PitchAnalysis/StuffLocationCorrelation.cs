@@ -81,12 +81,16 @@ namespace PitchAnalysis
             foreach (var pva in outputPitchStream)
             {
                 PitchInfo pitch = pitchInfoDict[(pva.GameId, pva.PitchId)];
+                if (pitch.PitchClass is DbEnums.PitchClass.Other or DbEnums.PitchClass.Changeup)
+                    continue;
+
                 GroupKey key = new(pva.Model, pva.Year, pva.MlbId, pitch.PitchType);
                 if (!groups.TryGetValue(key, out var stats))
                 {
                     stats = (new RunningStatistics(), new RunningStatistics());
                     groups[key] = stats;
                 }
+
                 stats.Loc.Push(pva.LocBinRuns!.Value);
                 if (pva.StuffBinRuns.HasValue)
                 {
@@ -96,6 +100,7 @@ namespace PitchAnalysis
                         pitchList = new();
                         competitivePitches[key] = pitchList;
                     }
+
                     // Prior-year bin this competitive pitch was valued with; must exist or OPVA is out of sync with the bin
                     if (bin.GetZone(pitch.PlateX, pitch.PlateZ, pitch.ZoneTop, pitch.ZoneBot) is not PitchZone zone)
                         throw new InvalidOperationException(

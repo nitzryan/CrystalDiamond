@@ -19,13 +19,15 @@ namespace PitchAnalysis.PitchZoneBinNS
             OutsideColumns = 7,
             OutsideRows = 7,
             Kernel = PitchZoneKernel.Gaussian(2, 1.0),
-            OutZoneNeighborCap = null,
             SeparateBorderRing = true,
+            InZoneNeighborCap = null,
+            OutZoneNeighborCap = null,
             NeighborCountRatio = 1,
             YearsPerBin = 4,
             YearDecay = 0.75,
             SplitMiddleRow = true,
-            SeparateMiddle = true
+            SeparateMiddle = true,
+            UseFittedK = true
         });
 
         // Pitches from one bin split by cell; NoZone holds everything that fell off the grid.
