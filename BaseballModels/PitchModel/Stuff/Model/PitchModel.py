@@ -89,14 +89,14 @@ DEFAULT_STUFF_INPLAY_ARGS = PitchModelArgs(
 DEFAULT_COMBINED_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Combined,
     model_output_type=ModelOutputType.Result,
-    learning_rate=3.2e-4,
+    learning_rate=1.24e-4,
     block_size=126,
     num_blocks=10,
-    dropout=0.122,
-    weight_decay=1.4e-8,
+    dropout=0.056,
+    weight_decay=5.1e-7,
     activation_function=F.relu,
-    num_epochs=141,
-    batch_size=17000
+    num_epochs=217,
+    batch_size=18700
 )
         
 DEFAULT_COMBINED_SWINGRESULTS_ARGS = PitchModelArgs(
