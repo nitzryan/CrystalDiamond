@@ -10,12 +10,7 @@ import os
 import dill
 from PitchModel.Stuff.DataPrep.PitchIO import PitchIOData
         
-_OVERVIEW_STRING = "overview"
-_LOC_STRING = "loc"
-_HITZONE_STRING = "hitzone"
 _STUFF_STRING = "stuff"
-_GAME_STRING = "game"
-_AVG_STRING = "avg"
 _COMB_STRING = "combined"
         
 _T = TypeVar('T')
@@ -195,37 +190,3 @@ class DataPrep:
             validation_data = self._PitchesToIO(val_pitches)
         
         return PitchIOData(data=data, validation_data=validation_data)
-    
-    # TODO This needs to be rewritten
-    # def DbPitchesToModelPitches(self, pitches : list[DB_PitchStatcast]) -> tuple[torch.Tensor, ...]:
-    #     data_overview, data_loc, data_stuff, data_combined = self.Transform_PitchStats(pitches)
-    #     year = pitches[0].Year
-    #     month = pitches[0].Month
-    #     if month < 4:
-    #         month = 4
-    #     elif month > 9:
-    #         month = 9
-        
-    #     # Hitter zone for the year
-    #     cursor = db.cursor()
-    #     hitter_zone = DB_HitterYearZoneData.Select_From_DB(
-    #         cursor=cursor,
-    #         conditional="WHERE Year=? AND MlbId=?",
-    #         values=(year, pitches[0].HitterId)
-    #     )[0]
-    #     hitter_zone_mapped = self.Transform_HitterZones([hitter_zone])
-    #     data_loc = torch.cat((data_loc, hitter_zone_mapped.repeat(data_loc.shape[0], 1)), dim=-1)
-    #     # MLB average for the month
-        
-    #     pitch_avg = DB_PitchDateAverages.Select_From_DB(
-    #         cursor=cursor,
-    #         conditional="WHERE Year=? AND Month=?",
-    #         values=(year,month)
-    #     )[0]
-    #     data_pitch_averages = self.Transform_PitchAverage(pitch_avg)
-    #     return data_overview,\
-    #         data_loc,\
-    #         data_stuff,\
-    #         data_combined,\
-    #         torch.zeros(1, 1),\
-    #         data_pitch_averages.repeat(data_loc.shape[0], 1)

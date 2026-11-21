@@ -52,6 +52,7 @@ __map_pitch_combined : Callable[[DB_PitchData], list[float]] = \
             p.PitIsR,
             p.PlateX,
             p.PlateZ,
+            # TODO: test adding height relative to the zone, (PlateZ - ZoneBot) / (ZoneTop - ZoneBot),
             p.ZoneTop,
             p.ZoneBot
     ]

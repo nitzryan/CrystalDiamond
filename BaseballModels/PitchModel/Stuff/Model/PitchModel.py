@@ -2,13 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from PitchModel.DBTypes import *
-from PitchModel.PitchDBTypes import *
+from PitchModel.PitchTrackingDBTypes import DB_PitchData
+from PitchModel.PitchDBTypes import DB_Output_PitchValueAggregation
+from PitchModel.Shared import GetBinaryName
 from PitchModel.Stuff.Model.ResnetBlock import ResnetBlock
 from PitchModel.Stuff.Model.Utilities import *
+from PitchModel.Stuff.Model.PitchModelCache import pitch_model_cache, training_data_cache, GetDatabaseSignature
 from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
-from PitchModel.Constants import pitch_db, BUCKET_INPLAY_VALUE
-import warnings
+from PitchModel.Stuff.Model.Initialization import InitializeNetwork
+from PitchModel.Constants import pitch_db, BUCKET_INPLAY_VALUE, device
 from PitchModel.Stuff.Model.ModelOutputType import *
         
 def GetParameters(layers):
@@ -28,7 +30,8 @@ class PitchModelArgs:
                 num_blocks : int,
                 dropout : float,
                 weight_decay : float,
-                activation_function : Callable[[torch.Tensor], torch.Tensor] = F.leaky_relu):
+                activation_function : Callable[[torch.Tensor], torch.Tensor] = F.leaky_relu,
+                custom_init : bool = True):
         
         self.model_variant_type = model_variant_type
         self.model_output_type = model_output_type
@@ -42,6 +45,7 @@ class PitchModelArgs:
         self.dropout = dropout
         self.weight_decay = weight_decay
         self.activation_function = activation_function
+        self.custom_init = custom_init
         
 DEFAULT_STUFF_RESULT_ARGS = PitchModelArgs(
     model_variant_type=ModelVariantType.Stuff,
@@ -162,6 +166,9 @@ class PitchModel(nn.Module):
             [nn.Linear(args.block_size, output_size)]
         )
         
+        if args.custom_init:
+            InitializeNetwork(self.layers, args.activation_function, args.model_output_type)
+        
         self.optimizer = torch.optim.AdamW(params=self.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
         
     def forward(self, data : torch.Tensor) -> torch.Tensor:
@@ -171,106 +178,79 @@ class PitchModel(nn.Module):
         return data
         
     @staticmethod
-    def GetPitchOutput(data_prep : DataPrep, filedir : str, pitches : list[DB_PitchStatcast], run_device : str = 'cuda') -> list[DB_Output_PitchValueAggregation]:
+    def GetPitchOutput(
+            pitches : list[DB_PitchData],
+            model_id : int,
+            filedir : str,
+            binaries_dir : str | None = None,
+            model_year : int | None = None,
+            run_device : torch.device | str | None = None) -> list[DB_Output_PitchValueAggregation]:
+        
+        # Deferred: Eval_Pitches imports this module
+        from PitchModel.Stuff.TrainEval.Eval_Pitches import GetModelFilePath, LoadNetwork, GetTrainPitchers, GetModelYearRuns, GetModelYearOutput
+        
         if len(pitches) == 0:
             return []
+        if run_device is None:
+            run_device = device
         
-        mlbId = pitches[0].PitcherId
-        league = pitches[0].LeagueId
-        year = pitches[0].Year
-        month = pitches[0].Month
-        for p in pitches:
-            if p.PitcherId != mlbId:
-                raise Exception("Not all pitches in GetPitchOutput have the same MlbId")
-            if p.LeagueId != league:
-                raise Exception("Not all pitches in GetPitchOutput have the same LeagueId")
-            if p.Year != year:
-                raise Exception("Not all pitches in GetPitchOutput have the same Year")
-            if p.Month != month:
-                raise Exception("Not all pitches in GetPitchOutput have the same Month")
-            
-        # Convert pitches to form required by model
-        model_pitches_tuple = data_prep.DbPitchesToModelPitches(pitches)
-        data_ovr, data_loc, data_stuff, data_comb, data_game, data_league = tuple(d.to(run_device, non_blocking=True) for d in model_pitches_tuple)
+        cursor = pitch_db.cursor()
+        name_rows = cursor.execute("SELECT Name FROM Models_PitchValue WHERE Id=?", (model_id,)).fetchall()
+        if len(name_rows) == 0:
+            raise ValueError(f"model_id {model_id} is not in Models_PitchValue")
+        model_name = name_rows[0][0]
+        database_signature = GetDatabaseSignature(cursor)
         
-        # Get Models that do not have that player
-        pitch_cursor = pitch_db.cursor()
-        model_runs = [x[0] for x in pitch_cursor.execute("SELECT modelRun FROM PlayersInTrainingData WHERE mlbId=? AND modelId=? AND isTrain=?", (mlbId, 1, 0)).fetchall()]
-        if len(model_runs) == 0:
-            model_runs = [x[0] for x in pitch_cursor.execute("SELECT DISTINCT modelRun FROM PlayersInTrainingData WHERE modelId=? AND isTrain=?", (1, 0)).fetchall()]
-            
-        model_name = pitch_cursor.execute("SELECT Name FROM Models_PitchValue WHERE Id=?", (1,)).fetchall()[0][0]
+        # Different model years use different models and normalization, so each is scored together
+        indices_by_model_year : dict[int, list[int]] = {}
+        for i, pitch in enumerate(pitches):
+            year_to_use = pitch.Year - 1 if model_year is None else model_year
+            indices_by_model_year.setdefault(year_to_use, []).append(i)
         
-        # Get Output_PitchValue for each model/pitch
-        opv_list : list[list[DB_Output_PitchValue]] = []
-        for mr in model_runs:
-            output_list = []
-            for model_variant in [ModelVariantType.Stuff, ModelVariantType.Combined]:
-                for model_output in [ModelOutputType.Result, ModelOutputType.SwingResults, ModelOutputType.InPlay]:
-                    model = PitchModel(args=DEFAULT_ARGS_MAP[(model_variant, model_output)], data_prep=data_prep)
-                    model = model.to(run_device)
-                    
-                    with warnings.catch_warnings(action='ignore', category=FutureWarning): # Warning about loading models, irrelevant here
-                        model.load_state_dict(torch.load(f"{filedir}/{model_name}_{mr}_{model_variant.name}_{model_output.name}.pt"))
-                    model.eval()
-                    
-                    match model_variant:
-                        case ModelVariantType.Stuff:
-                            model_data = torch.cat((data_ovr, data_stuff, data_league), dim=-1)
-                        case ModelVariantType.Combined:
-                            model_data = torch.cat((data_ovr, data_loc, data_stuff, data_comb, data_league), dim=-1)
-                    
-                    output = model(model_data)
-                    result = F.softmax(output, dim=-1)
-                    
-                    if model_output == ModelOutputType.InPlay:
-                        # Get expected value of in-play
-                        inplay_expected = data_prep.ip_bucket_value.to(result.device)
-                        inplay_expected_output = (result * inplay_expected).sum(dim=1, keepdim=True)
-                        output_list.append(inplay_expected_output.cpu())
-                    else:
-                        output_list.append(result.cpu())
+        results : list[DB_Output_PitchValueAggregation | None] = [None] * len(pitches)
+        for year_to_use, indices in indices_by_model_year.items():
+            year_pitches = [pitches[i] for i in indices]
             
+            def get_train_pitchers(run):
+                return training_data_cache.Get(
+                    (model_id, year_to_use, run),
+                    database_signature,
+                    lambda: GetTrainPitchers(cursor, model_id, year_to_use, run))
+            runs, train_pitchers_by_run = GetModelYearRuns(cursor, model_id, year_to_use, get_train_pitchers)
             
-            run_data = [tuple(row.tolist()) for row in torch.cat((\
-                torch.tensor([1 for _ in pitches]).unsqueeze(-1),
-                torch.tensor([p.GameId for p in pitches]).unsqueeze(-1),
-                torch.tensor([p.PitchId for p in pitches]).unsqueeze(-1),
-                torch.tensor([mr for _ in pitches]).unsqueeze(-1),
-                torch.tensor([p.Year for p in pitches]).unsqueeze(-1),
-                torch.tensor([p.LevelId for p in pitches]).unsqueeze(-1),
-                torch.tensor([p.PitcherId for p in pitches]).unsqueeze(-1),
-                output_list[0],
-                output_list[1],
-                output_list[2],
-                output_list[3],
-                output_list[4],
-                output_list[5]), dim=-1)]
+            pairing = (model_id, year_to_use)
             
-            run_pitches = [DB_Output_PitchValue(rd) for rd in run_data]
-            opv_list.append(run_pitches)
-                
-        opva_list : list[DB_Output_PitchValueAggregation] = []
-        for i in range(len(pitches)):
-            l = len(model_runs)
-            agg = DB_Output_PitchValueAggregation((0,0,0,year,0,0,pitches[i].CountBalls,pitches[i].CountStrike,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
-            for j in range(len(model_runs)):
-                agg.stuffCalledStrike += opv_list[j][i].stuffCalledStrike / l
-                agg.stuffBall += opv_list[j][i].stuffBall / l
-                agg.stuffHBP += opv_list[j][i].stuffHBP / l
-                agg.stuffSwing += opv_list[j][i].stuffSwing / l
-                agg.stuffWhiff += opv_list[j][i].stuffWhiff / l
-                agg.stuffFoul += opv_list[j][i].stuffFoul / l
-                agg.stuffInPlay += opv_list[j][i].stuffInPlay / l
-                agg.stuffInPlayExpected += opv_list[j][i].stuffInPlayExpected / l
-                agg.combinedCalledStrike += opv_list[j][i].combinedCalledStrike / l
-                agg.combinedBall += opv_list[j][i].combinedBall / l
-                agg.combinedHBP += opv_list[j][i].combinedHBP / l
-                agg.combinedSwing += opv_list[j][i].combinedSwing / l
-                agg.combinedWhiff += opv_list[j][i].combinedWhiff / l
-                agg.combinedFoul += opv_list[j][i].combinedFoul / l
-                agg.combinedInPlay += opv_list[j][i].combinedInPlay / l
-                agg.combinedInPlayExpected += opv_list[j][i].combinedInPlayExpected / l
+            data_prep_path = GetBinaryName(model_id, year_to_use) if binaries_dir is None \
+                else GetBinaryName(model_id, year_to_use, binaries_dir)
+            data_prep = pitch_model_cache.Get(data_prep_path, lambda: DataPrep.Load_From_File(data_prep_path))
             
-            opva_list.append(agg)
-        return opva_list
+            def get_network(run, model_variant_type, model_output_type):
+                model_path = GetModelFilePath(filedir, model_name, year_to_use, run, model_variant_type, model_output_type)
+                return pitch_model_cache.Get(
+                    pairing,
+                    model_path,
+                    lambda: LoadNetwork(data_prep, model_path, model_variant_type, model_output_type, run_device),
+                    discriminator=str(run_device))
+            
+            with torch.no_grad():
+                data_stuff, data_comb = data_prep.Transform_PitchStats(year_pitches)
+                year_output = GetModelYearOutput(
+                    data_prep=data_prep,
+                    runs=runs,
+                    train_pitchers_by_run=train_pitchers_by_run,
+                    data_stuff=data_stuff.to(run_device),
+                    data_comb=data_comb.to(run_device),
+                    pitcher_ids=torch.tensor([p.PitcherId for p in year_pitches], dtype=torch.int64),
+                    get_network=get_network,
+                    run_device=run_device,
+                    model_description=f"Model {model_id} year {year_to_use}")
+            
+            for output_row, i in zip(year_output.tolist(), indices):
+                pitch = pitches[i]
+                results[i] = DB_Output_PitchValueAggregation((
+                    model_id, pitch.GameId, pitch.PitchId, year_to_use,
+                    pitch.Year, pitch.LevelId, pitch.PitcherId,
+                    *output_row,
+                    -1000, -1000, None, None))
+        
+        return results

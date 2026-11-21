@@ -14,8 +14,10 @@ def GetModelYears(model_id : int) -> int:
         return 2
     raise ValueError("Invalid Model")
 
-def GetBinaryName(model_id : int, year : int) -> str:
-    return f"PitchModel/Binaries/model{model_id}_year{year}.pkl"
+DEFAULT_BINARIES_DIR = "PitchModel/Binaries"
 
-def GetDataPrep(model_id : int, model_year : int) -> DataPrep:
-    return DataPrep.Load_From_File(GetBinaryName(model_id, model_year))
+def GetBinaryName(model_id : int, year : int, binaries_dir : str = DEFAULT_BINARIES_DIR) -> str:
+    return f"{binaries_dir}/model{model_id}_year{year}.pkl"
+
+def GetDataPrep(model_id : int, model_year : int, binaries_dir : str = DEFAULT_BINARIES_DIR) -> DataPrep:
+    return DataPrep.Load_From_File(GetBinaryName(model_id, model_year, binaries_dir))
