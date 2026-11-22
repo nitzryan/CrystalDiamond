@@ -5,6 +5,7 @@ using PitchTrackingDb;
 using ShellProgressBar;
 using Db;
 using PitchAnalysis.PitchZoneBinNS;
+using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
@@ -109,8 +110,7 @@ namespace PitchAnalysis
                 }
             }
 
-            // Load aggregated pitches (probabilities already averaged over eligible runs by Eval_Pitches;
-            // StuffRuns/CombinedRuns are -1000 placeholders at this point)
+            // Load aggregated pitches, StuffRuns/CombinedRuns are -1000 placeholders at this point)
             List<Output_PitchValueAggregation> pvaList = pitchDb.Output_PitchValueAggregation
                 .AsNoTracking()
                 .ToList();
@@ -136,6 +136,22 @@ namespace PitchAnalysis
                     // Bin value depends only on the pitch, not the model, so compute once per pitch
                     var (pzcDict, pzncDict) = LoadBinYear(ptDb, bin, year - 1);
                     Dictionary<(int, int), float?> binCache = new();
+
+                    // Need to track total value of each pitch type in MLB for year to adjust
+                    Dictionary<DbEnums.PitchClass, (double Value, int Count)> stuffValueDict = new()
+                    {
+                        [DbEnums.PitchClass.Fastball] = (0, 0),
+                        [DbEnums.PitchClass.Breaking] = (0, 0),
+                        [DbEnums.PitchClass.Changeup] = (0, 0),
+                        [DbEnums.PitchClass.Other] = (0, 0)
+                    };
+                    Dictionary<DbEnums.PitchClass, (double Value, int Count)> locValueDict = new()
+                    {
+                        [DbEnums.PitchClass.Fastball] = (0, 0),
+                        [DbEnums.PitchClass.Breaking] = (0, 0),
+                        [DbEnums.PitchClass.Changeup] = (0, 0),
+                        [DbEnums.PitchClass.Other] = (0, 0)
+                    };
 
                     // Iterate through pitches in the year
                     foreach (var pva in yearGroup)
@@ -194,7 +210,41 @@ namespace PitchAnalysis
                                 ? poolValue : null;
                         }
 
+                        // Track total value for MLB pitches
+                        if (pva.LevelId == 1)
+                        {
+                            if (pva.StuffBinRuns != null)
+                            {
+                                (double value, int count) = stuffValueDict[pitch.PitchClass];
+                                stuffValueDict[pitch.PitchClass] = (value + pva.StuffBinRuns.Value, count + 1);
+                            }
+                            if (pva.LocBinRuns != null)
+                            {
+                                (double value, int count) = locValueDict[pitch.PitchClass];
+                                locValueDict[pitch.PitchClass] = (value + pva.LocBinRuns.Value, count + 1);
+                            }
+                        }
+
                         progressBar.Tick();
+                    }
+
+                    // Since bins are computed from previous years and used on a different year, the average
+                    // values for the year will not be 0.  Adjust so that they are
+                    foreach (var pva in yearGroup.Where(f => f.LocBinRuns != null))
+                    {
+                        var pitchKey = (pva.GameId, pva.PitchId);
+                        PitchInfo pitch = pitchInfoDict[pitchKey];
+
+                        // Get average value for the pitch class
+                        (double stuffValue, int stuffCount) = stuffValueDict[pitch.PitchClass];
+                        double stuffAvg = stuffValue / stuffCount;
+
+                        (double locValue, int locCount) = locValueDict[pitch.PitchClass];
+                        double locAvg = locValue / locCount;
+
+                        pva.LocBinRuns -= (float)locAvg;
+                        if (pva.StuffBinRuns != null)
+                            pva.StuffBinRuns -= (float)stuffAvg;
                     }
                 }
             }
