@@ -53,7 +53,7 @@ _SEARCH_SPACE : dict[TuneGroup, dict[str, _FloatParameter | _IntParameter | _Cat
     },
     TuneGroup.Architecture: {
         "block_size": _IntParameter(16, 300),
-        "num_blocks": _IntParameter(6, 16),
+        "num_blocks": _IntParameter(6, 32),
         "activation": _CategoricalParameter(tuple(_ACTIVATION_MAP)),
     },
     TuneGroup.Regularization: {
