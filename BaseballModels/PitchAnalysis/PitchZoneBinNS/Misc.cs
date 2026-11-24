@@ -21,6 +21,7 @@ namespace PitchAnalysis.PitchZoneBinNS
         public double[,] Swings { get; } = new double[rows, columns];
         public double[,] ValueSum { get; } = new double[rows, columns];
         public double[,] ValueSumSq { get; } = new double[rows, columns];
+        public double[,] Hbps { get; } = new double[rows, columns];
         public double NoZonePitches { get; set; }
         public double NoZoneValue { get; set; }
     }

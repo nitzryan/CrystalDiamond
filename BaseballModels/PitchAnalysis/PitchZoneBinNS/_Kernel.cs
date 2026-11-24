@@ -33,6 +33,7 @@ namespace PitchAnalysis.PitchZoneBinNS
             return Math.Pow(args.YearDecay, targetYear - pitchYear);
         }
 
+        // TODO : Delete this, change plots to not call it
         private CellTotals SumCells(ZoneBuckets buckets, int targetYear)
         {
             double[,] pitches = new double[gridRows, gridColumns];

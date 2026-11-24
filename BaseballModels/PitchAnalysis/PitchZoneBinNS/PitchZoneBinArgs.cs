@@ -9,6 +9,8 @@
         public int OutsideRows { get; init; } = 7;
         public int MinPitches { get; init; } = 10;
         public double MinSwingRate { get; init; } = 0.15;
+        public double MaxHbpRate { get; init; } = 0.003;
+
         public int YearsPerBin { get; init; } = 1;
         public double YearDecay { get; init; } = 1.0;
         public PitchZoneKernel? Kernel { get; init; } = PitchZoneKernel.Gaussian(2, 1.0);

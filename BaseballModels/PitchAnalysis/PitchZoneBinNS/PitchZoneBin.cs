@@ -77,6 +77,10 @@ namespace PitchAnalysis.PitchZoneBinNS
             {
                 throw new ArgumentOutOfRangeException(nameof(args), $"KEdgeFraction must be in (0, 0.5), was {args.KEdgeFraction}.");
             }
+            if (args.MaxHbpRate is < 0 or > 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(args), $"MaxHbpRate must be in [0, 1], was {args.MaxHbpRate}.");
+            }
 
             this.args = args;
             cellSize = 2 * BaseballConstants.ZoneHalfWidth / args.ZoneColumns;
@@ -124,9 +128,10 @@ namespace PitchAnalysis.PitchZoneBinNS
         }
 
         ///////////////////////////////////////// Rules for Zone Validity /////////////////////////////
-        private bool IsCompetitive(double pitchCount, double swingCount)
+        private bool IsCompetitive(double pitchCount, double swingCount, double hbpRate)
         {
-            return swingCount >= args.MinSwingRate * pitchCount;
+            return swingCount >= args.MinSwingRate * pitchCount
+                && hbpRate <= args.MaxHbpRate;
         }
 
         private bool HasValidSampleSize(double pitchCount)

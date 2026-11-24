@@ -24,6 +24,12 @@ namespace PitchAnalysis
         private const int MAX_DISPLAY_POINTS = 50000;     // location-response scatter is subsampled for drawing only
         private const int MIN_BIN_YEAR = 2022;
 
+        private const int CALIBRATION_BIN_COUNT = 40;          // equal-width x slices for conditional mean/median
+        private const int MIN_CALIBRATION_BIN_PITCHES = 100;
+        private const int MAX_TRIM_ITERATIONS = 50;
+        private const double TRIM_TOLERANCE = 1e-6;
+        private static readonly double[] CORE_FRACTIONS = [0.5, 0.75, 0.9, 0.95, 0.99];
+
         private readonly record struct GroupKey(int Model, int Year, int MlbId, Db.DbEnums.PitchType PitchType);
         private record DataPoint(GroupKey Key, string Label, double Stuff, double Location, long StuffCount);
 
@@ -313,6 +319,16 @@ namespace PitchAnalysis
             reference.LineStyle.Width = 1.5f;
             reference.LineStyle.Pattern = ScottPlot.LinePattern.Dashed;
 
+            reference.LegendText = "k = 1";
+            fit.LegendText = $"Regression ({slope:F3})";
+            
+            AddConditionalCurves(plot, xs, ys);
+            
+            string coreText = string.Join("\n", CORE_FRACTIONS
+                            .Select(f => $"Core {f:P0}: k = {CoreSlope(xs, ys, f):F3}"));
+            plot.Add.Annotation($"{coreText}\nAll: k = {slope:F3}", ScottPlot.Alignment.LowerRight);
+            plot.ShowLegend(ScottPlot.Alignment.UpperLeft);
+
             plot.Title($"{title} | Location Response k={slope:F3} (dashed = 1) | R²={r * r:F3} | pitches={xs.Length:N0}");
             plot.XLabel("Bin value − group mean (hitter runs / pitch)");
             plot.YLabel("CombinedRuns − group mean (hitter runs / pitch)");
@@ -428,6 +444,108 @@ namespace PitchAnalysis
                 CreateBinCountResponsePlot(points, competitivePitches, $"{title} | {name}",
                     $"{pathPrefix}_BinCount_{name}.png", include);
             }
+        }
+
+        // Mean and median of y within equal-width x slices. Calibration is judged on the means.
+        private static void AddConditionalCurves(ScottPlot.Plot plot, double[] xs, double[] ys)
+        {
+            double xMin = xs.Min();
+            double width = (xs.Max() - xMin) / CALIBRATION_BIN_COUNT;
+            List<double>[] binXs = Enumerable.Range(0, CALIBRATION_BIN_COUNT).Select(_ => new List<double>()).ToArray();
+            List<double>[] binYs = Enumerable.Range(0, CALIBRATION_BIN_COUNT).Select(_ => new List<double>()).ToArray();
+            for (int i = 0; i < xs.Length; i++)
+            {
+                int b = Math.Min((int)((xs[i] - xMin) / width), CALIBRATION_BIN_COUNT - 1);
+                binXs[b].Add(xs[i]);
+                binYs[b].Add(ys[i]);
+            }
+
+            List<double> centers = new();
+            List<double> means = new();
+            List<double> medians = new();
+            List<double> errors = new();
+            for (int b = 0; b < CALIBRATION_BIN_COUNT; b++)
+            {
+                if (binXs[b].Count < MIN_CALIBRATION_BIN_PITCHES)
+                    continue;
+
+                var (mean, sd) = binYs[b].MeanStandardDeviation();
+                centers.Add(binXs[b].Average());
+                means.Add(mean);
+                medians.Add(binYs[b].Median());
+                errors.Add(2 * sd / Math.Sqrt(binYs[b].Count));
+            }
+
+            var errorBars = plot.Add.ErrorBar(centers.ToArray(), means.ToArray(), errors.ToArray());
+            errorBars.Color = ScottPlot.Colors.Black;
+
+            var meanPoints = plot.Add.ScatterPoints(centers.ToArray(), means.ToArray());
+            meanPoints.Color = ScottPlot.Colors.Black;
+            meanPoints.MarkerSize = 7;
+            meanPoints.LegendText = "Slice mean (±2 SE)";
+
+            var medianPoints = plot.Add.ScatterPoints(centers.ToArray(), medians.ToArray());
+            medianPoints.Color = ScottPlot.Colors.Orange;
+            medianPoints.MarkerSize = 6;
+            medianPoints.LegendText = "Slice median";
+        }
+
+        // Regression slope of the densest `fraction` of points. The ellipse is repeatedly refit to the retained
+        // points so that points outside the core stop influencing its shape.
+        private static double CoreSlope(double[] xs, double[] ys, double fraction)
+        {
+            double xMean = xs.Average();
+            double yMean = ys.Average();
+            double xVar = xs.Variance();
+            double yVar = ys.Variance();
+            double cov = xs.Covariance(ys);
+            double slope = cov / xVar;
+
+            double[] distances = new double[xs.Length];
+            double[] sorted = new double[xs.Length];
+            for (int iteration = 0; iteration < MAX_TRIM_ITERATIONS; iteration++)
+            {
+                // Squared Mahalanobis distance from the current ellipse
+                double det = (xVar * yVar) - (cov * cov);
+                for (int i = 0; i < xs.Length; i++)
+                {
+                    double dx = xs[i] - xMean;
+                    double dy = ys[i] - yMean;
+                    distances[i] = ((yVar * dx * dx) - (2 * cov * dx * dy) + (xVar * dy * dy)) / det;
+                }
+
+                Array.Copy(distances, sorted, distances.Length);
+                Array.Sort(sorted);
+                double threshold = sorted[(int)(fraction * (sorted.Length - 1))];
+
+                double n = 0, sumX = 0, sumY = 0, sumXX = 0, sumYY = 0, sumXY = 0;
+                for (int i = 0; i < xs.Length; i++)
+                {
+                    if (distances[i] > threshold)
+                        continue;
+
+                    n++;
+                    sumX += xs[i];
+                    sumY += ys[i];
+                    sumXX += xs[i] * xs[i];
+                    sumYY += ys[i] * ys[i];
+                    sumXY += xs[i] * ys[i];
+                }
+
+                xMean = sumX / n;
+                yMean = sumY / n;
+                xVar = (sumXX / n) - (xMean * xMean);
+                yVar = (sumYY / n) - (yMean * yMean);
+                cov = (sumXY / n) - (xMean * yMean);
+
+                double newSlope = cov / xVar;
+                bool converged = Math.Abs(newSlope - slope) < TRIM_TOLERANCE;
+                slope = newSlope;
+                if (converged)
+                    break;
+            }
+
+            return slope;
         }
     }
 }

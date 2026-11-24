@@ -86,7 +86,9 @@ namespace PitchAnalysis.PitchZoneBinNS
                     // Color depending on competitiveness and percentage of pitches
                     double effectivePitches = effective.Pitches[row, column];
                     double effectiveSwings = effective.Swings[row, column];
-                    bool competitive = IsCompetitive(effectivePitches, effectiveSwings)
+
+                    // TODO : HBP Rate is hard-coded 0 to make this work, doesn't match current logic
+                    bool competitive = IsCompetitive(effectivePitches, effectiveSwings, 0)
                         && HasValidSampleSize(effectivePitches);
                     cell.FillStyle.Color = competitive
                         ? ScottPlot.Colors.SteelBlue.WithAlpha(0.15 + (0.7 * share))

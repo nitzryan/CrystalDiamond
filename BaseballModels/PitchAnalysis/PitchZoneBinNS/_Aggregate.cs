@@ -1,4 +1,5 @@
 ﻿using PitchTrackingDb;
+using System.Collections.Generic;
 
 namespace PitchAnalysis.PitchZoneBinNS
 {
@@ -17,7 +18,9 @@ namespace PitchAnalysis.PitchZoneBinNS
             List<PitchZoneNonCompetitive> nonCompetitiveRows = [];
             Dictionary<int, Dictionary<KFitKey, Dictionary<KGroup, double>>> kByYear = [];
 
-            foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in GetScenarioData(pitches))
+            Dictionary<(ScenarioKey Pooled, int Year), double[,]> hbpRatesCache = [];
+            Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> scenarioData = GetScenarioData(pitches);
+            foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in scenarioData)
             {
                 // Years below minOutputYear are only history for later windows
                 foreach (int year in years.Keys.Where(y => y >= minOutputYear))
@@ -25,6 +28,14 @@ namespace PitchAnalysis.PitchZoneBinNS
                     WindowTotals window = SumWindow(years, year);
                     Dictionary<KGroup, double> ? groupK = args.UseFittedK ? GroupKFor(pitches, scenario, year, kByYear) : null;
                     CellTotals effective = ApplyKernel(window.Cells, args.SeparateBorderRing, groupK);
+
+                    // Get HBP Count, with different counts pooled together
+                    ScenarioKey pooledKey = scenario with { CountBalls = 0, CountStrike = 0 };
+                    if (!hbpRatesCache.TryGetValue((pooledKey, year), out double[,]? hbpRates))
+                    {
+                        hbpRates = PooledHbpRates(scenarioData, pooledKey, year);
+                        hbpRatesCache[(pooledKey, year)] = hbpRates;
+                    }
 
                     // Pitches that will NOT be valued by a competitive bin: off the grid, or in a bin failing either rule
                     double fallbackCount = window.NoZonePitches;
@@ -36,7 +47,7 @@ namespace PitchAnalysis.PitchZoneBinNS
                     {
                         for (int column = 0; column < gridColumns; column++)
                         {
-                            PitchZoneCompetitive cellRow = CreateCompetitiveRow(scenario, year, row, column, effective);
+                            PitchZoneCompetitive cellRow = CreateCompetitiveRow(scenario, year, row, column, effective, hbpRates[row, column]);
                             competitiveRows.Add(cellRow);
 
                             if (!cellRow.IsCompetitive || !cellRow.HasEnoughSample)
@@ -91,7 +102,7 @@ namespace PitchAnalysis.PitchZoneBinNS
 
             return new WindowTotals(new CellTotals(pitches, swings, valueSum), rawCounts, noZonePitches, noZoneWeighted, noZoneValue);
         }
-        private PitchZoneCompetitive CreateCompetitiveRow(ScenarioKey scenario, int year, int row, int column, CellTotals effective)
+        private PitchZoneCompetitive CreateCompetitiveRow(ScenarioKey scenario, int year, int row, int column, CellTotals effective, double hbpRate)
         {
             double pitches = effective.Pitches[row, column];
             double swings = effective.Swings[row, column];
@@ -108,7 +119,7 @@ namespace PitchAnalysis.PitchZoneBinNS
                 ZoneCol = column,
                 PitchCount = (float)pitches,
                 SwingCount = (float)swings,
-                IsCompetitive = IsCompetitive(pitches, swings),
+                IsCompetitive = IsCompetitive(pitches, swings, hbpRate),
                 HasEnoughSample = HasValidSampleSize(pitches),
                 ExpectedValueHitter = pitches > 0
                     ? (float)(effective.ValueSum[row, column] / pitches)
@@ -167,6 +178,11 @@ namespace PitchAnalysis.PitchZoneBinNS
                         {
                             cells.Swings[zone.Row, zone.Column]++;
                         }
+                        if (p.Result == Db.DbEnums.PitchResult.HBP)
+                        {
+                            cells.Hbps[zone.Row, zone.Column]++;
+                        }
+
                         cells.ValueSum[zone.Row, zone.Column] += value;
                         cells.ValueSumSq[zone.Row, zone.Column] += value * value;
                     }
@@ -241,6 +257,62 @@ namespace PitchAnalysis.PitchZoneBinNS
                 }
             }
             return rows;
+        }
+
+        // HBP rate per cell over the bin window, pooled across counts. Smoothed without the run-value caps or region rules,
+        // since the chance of hitting the batter depends on location, not on the count or zone region.
+        private double[,] PooledHbpRates(Dictionary<ScenarioKey, SortedDictionary<int, YearCells>> scenarios, ScenarioKey pooledKey, int targetYear)
+        {
+            double[,] pitches = new double[gridRows, gridColumns];
+            double[,] hbps = new double[gridRows, gridColumns];
+            foreach ((ScenarioKey scenario, SortedDictionary<int, YearCells> years) in scenarios)
+            {
+                if (scenario.PitchClass != pooledKey.PitchClass || scenario.PitIsR != pooledKey.PitIsR || scenario.HitIsR != pooledKey.HitIsR)
+                {
+                    continue;
+                }
+
+                for (int age = 0; age < args.YearsPerBin; age++)
+                {
+                    if (!years.TryGetValue(targetYear - age, out YearCells? yearCells))
+                    {
+                        continue;
+                    }
+
+                    double weight = YearWeight(targetYear, targetYear - age);
+                    for (int row = 0; row < gridRows; row++)
+                    {
+                        for (int column = 0; column < gridColumns; column++)
+                        {
+                            pitches[row, column] += weight * yearCells.Pitches[row, column];
+                            hbps[row, column] += weight * yearCells.Hbps[row, column];
+                        }
+                    }
+                }
+            }
+
+            int radius = args.Kernel?.Radius ?? 0;
+            double[,] rates = new double[gridRows, gridColumns];
+            for (int row = 0; row < gridRows; row++)
+            {
+                for (int column = 0; column < gridColumns; column++)
+                {
+                    double pitchSum = 0, hbpSum = 0;
+                    for (int sourceRow = Math.Max(0, row - radius); sourceRow <= Math.Min(gridRows - 1, row + radius); sourceRow++)
+                    {
+                        for (int sourceColumn = Math.Max(0, column - radius); sourceColumn <= Math.Min(gridColumns - 1, column + radius); sourceColumn++)
+                        {
+                            double weight = args.Kernel?.Weight(sourceRow - row, sourceColumn - column) ?? 1;
+                            pitchSum += weight * pitches[sourceRow, sourceColumn];
+                            hbpSum += weight * hbps[sourceRow, sourceColumn];
+                        }
+                    }
+
+                    rates[row, column] = pitchSum > 0 ? hbpSum / pitchSum : 0;
+                }
+            }
+
+            return rates;
         }
     }
 }
