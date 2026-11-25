@@ -22,20 +22,45 @@ class DataPrep:
         save_name : str | None = None
     ):
         
-        self.prep_map = prep_map
-    
-        cursor = tracking_db.cursor()
-        pitches = DB_PitchData.Select_From_DB(
-            cursor=cursor,
-            conditional="WHERE Year>=? AND Year<=? AND LevelId=?",
-            values=(start_year, end_year, MLB_LEVEL_ID)
-        )
-        
+        pitches = DataPrep.Select_Pitches(start_year, end_year, mlb_only=True)
         if len(pitches) == 0:
             raise ValueError(f"No MLB pitches found for years {start_year}-{end_year}")
         
-        self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING, self.prep_map.pitch_stuff_size)
-        self.__Create_PCA_Norms(self.prep_map.pitch_combined_map, pitches, _COMB_STRING, self.prep_map.pitch_combined_size)
+        self._Fit(prep_map, pitches)
+       
+        if save_name is not None:
+            save_dir = os.path.dirname(save_name)
+            if save_dir != "":
+                os.makedirs(save_dir, exist_ok=True)
+            with open(save_name, 'wb') as file:
+                dill.dump(self, file)
+       
+    @staticmethod
+    def From_Pitches(prep_map : Prep_Map, pitches : list[DB_PitchData]) -> DataPrep:
+        """Fit to pitches that are already loaded (e.g. so tuning can try many Prep_Maps without re-querying the DB)"""
+        if len(pitches) == 0:
+            raise ValueError("No pitches provided to fit DataPrep")
+        data_prep = DataPrep.__new__(DataPrep)
+        data_prep._Fit(prep_map, pitches)
+        return data_prep
+    
+    @staticmethod
+    def Select_Pitches(start_year : int, end_year : int, mlb_only : bool = True) -> list[DB_PitchData]:
+        level_cond = "AND LevelId=?" if mlb_only else ""
+        level_values = (MLB_LEVEL_ID,) if mlb_only else ()
+        return DB_PitchData.Select_From_DB(
+            cursor=tracking_db.cursor(),
+            conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
+            values=(start_year, end_year) + level_values
+        )
+    
+    def _Fit(self, prep_map : Prep_Map, pitches : list[DB_PitchData]) -> None:
+        self.prep_map = prep_map
+        
+        self.__Create_PCA_Norms(self.prep_map.pitch_stuff_map, pitches, _STUFF_STRING,
+                                self.prep_map.pitch_stuff_size, self.prep_map.pitch_stuff_pca_size)
+        self.__Create_PCA_Norms(self.prep_map.pitch_combined_map, pitches, _COMB_STRING,
+                                self.prep_map.pitch_combined_size, self.prep_map.pitch_combined_pca_size)
        
         # Get average result for each bucket
         num_buckets = BUCKET_INPLAY_VALUE.size(0) + 1
@@ -48,28 +73,28 @@ class DataPrep:
                 value_in_bucket[bucket] += pitch.RunValueInPlay
         self.ip_bucket_value = value_in_bucket / entries_in_bucket
        
-        if save_name is not None:
-            save_dir = os.path.dirname(save_name)
-            if save_dir != "":
-                os.makedirs(save_dir, exist_ok=True)
-            with open(save_name, 'wb') as file:
-                dill.dump(self, file)
-       
     @staticmethod
     def Load_From_File(filename : str) -> DataPrep:
         with open(filename, 'rb') as file:
             return dill.load(file)
         
     def GetStuffInputSize(self) -> int:
-        return self.prep_map.pitch_stuff_size
+        return int(getattr(self, f"__{_STUFF_STRING}_pca").n_components_)
     
     def GetCombinedInputSize(self) -> int:
-        return self.prep_map.pitch_combined_size
+        return int(getattr(self, f"__{_COMB_STRING}_pca").n_components_)
         
     def Get_ZScore(self, stats : torch.Tensor, name : str) -> torch.Tensor:
         means : torch.Tensor = getattr(self, f"__{name}_means")
         devs : torch.Tensor = getattr(self, f"__{name}_devs")
         return (stats - means) / devs
+    
+    # Fraction of the z-scored variance that survives the PCA (1.0 when nothing is dropped)
+    def GetStuffVarianceKept(self) -> float:
+        return float(getattr(self, f"__{_STUFF_STRING}_pca").explained_variance_ratio_.sum())
+    
+    def GetCombinedVarianceKept(self) -> float:
+        return float(getattr(self, f"__{_COMB_STRING}_pca").explained_variance_ratio_.sum())
     
     def Get_PCA_Transform(self, stats: torch.Tensor, name : str) -> torch.Tensor:
         z_score = self.Get_ZScore(stats, name)
@@ -77,9 +102,11 @@ class DataPrep:
         
         return torch.from_numpy(pca.transform(z_score)).float()
     
-    def __Create_PCA_Norms(self, map : Callable[[_T], list[float]], stats : list[_T], name : str, num_pca : int) -> None:
+    def __Create_PCA_Norms(self, map : Callable[[_T], list[float]], stats : list[_T], name : str, num_features : int, num_pca : int) -> None:
         # Get means, deviation of stats
         total = torch.tensor([map(h) for h in stats], dtype=DTYPE).float()
+        if total.size(1) != num_features:
+            raise ValueError(f"{name} map returned {total.size(1)} values but its size is {num_features}")
         means = torch.mean(total, dim=0, keepdim=False)
         devs = torch.std(total, dim=0, keepdim=False)
         devs = torch.clamp(devs, min=1e-10) # Prevent divide by 0 for constant value
@@ -90,7 +117,6 @@ class DataPrep:
         normalized = (total - means) / devs
         pca = PCA(num_pca)
         pca.fit(normalized)
-        #print([round(x, 3) for x in pca.explained_variance_ratio_])
         setattr(self, "__" + name + "_pca", pca)
         
     def Transform_PitchStats(self, stats : list[DB_PitchData]) -> tuple[torch.Tensor, torch.Tensor]:
@@ -167,26 +193,17 @@ class DataPrep:
                           mlb_only : bool = True) -> PitchIOData:
         
         
-        cursor = tracking_db.cursor()
+        pitches = DataPrep.Select_Pitches(start_year, end_year, mlb_only)
         
-        # Training passes mlb_only=True (MLB pitches only); evaluation passes False (all levels).
-        level_cond = "AND LevelId=?" if mlb_only else ""
-        level_values = (MLB_LEVEL_ID,) if mlb_only else ()
-        pitches = DB_PitchData.Select_From_DB(
-            cursor=cursor,
-            conditional=f"WHERE Year>=? AND Year<=? {level_cond}",
-            values=(start_year, end_year) + level_values
-        )
-        
-        data = self._PitchesToIO(pitches)
-           
-        validation_data : list[list[PitchIO]] | None = None
+        val_pitches : list[DB_PitchData] | None = None
         if validation_year is not None:
-            val_pitches = DB_PitchData.Select_From_DB(
-                cursor=cursor,
-                conditional=f"WHERE Year=? {level_cond}",
-                values=(validation_year,) + level_values
-            )
-            validation_data = self._PitchesToIO(val_pitches)
+            val_pitches = DataPrep.Select_Pitches(validation_year, validation_year, mlb_only)
         
+        return self.GenerateIOFromPitches(pitches, val_pitches)
+
+    def GenerateIOFromPitches(self,
+                              pitches : list[DB_PitchData],
+                              validation_pitches : list[DB_PitchData] | None = None) -> PitchIOData:
+        data = self._PitchesToIO(pitches)
+        validation_data = self._PitchesToIO(validation_pitches) if validation_pitches is not None else None
         return PitchIOData(data=data, validation_data=validation_data)

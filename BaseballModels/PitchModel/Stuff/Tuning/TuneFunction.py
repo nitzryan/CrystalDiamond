@@ -3,6 +3,7 @@ import gc
 import copy
 import torch
 import torch.nn.functional as F
+import dataclasses
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Iterable
@@ -10,17 +11,25 @@ from typing import Callable, Iterable
 from PitchModel.Stuff.Model.PitchModel import PitchModelArgs, PitchModel, DEFAULT_ARGS_MAP
 from PitchModel.Stuff.DataPrep.DataPrep import DataPrep
 from PitchModel.Stuff.DataPrep.PitchIO import PitchIOData
+from PitchModel.Stuff.DataPrep.PrepMap import PrepMapConfig, SpinAxisEncoding, ZoneHeightEncoding, STANDARD_PREP_MAP_CONFIG
+from PitchModel.Stuff.Tuning.TuningData import TuningData
 from PitchModel.Stuff.Model.ModelOutputType import ModelVariantType, ModelOutputType
 from PitchModel.Stuff.DataPrep.PitchDataset import CreateTestTrainDatasets
 from PitchModel.Stuff.DataPrep.FoldGeneration import GetDisjointTrainIndices
 from PitchModel.Stuff.Model.ModelTrain import TrainAndGraph
 from PitchModel.Constants import device
 
-_ACTIVATION_FUNCTIONS = ["ReLU", "LeakyReLU", "GELU", "SiLU", "Tanh"]
 class TuneGroup(Enum):
+    # Alter PitchModelArgs
     Optimization = 0
     Architecture = 1
     Regularization = 2
+    # Alter the PrepMap rather than PitchModelArgs
+    SpinAxis = 3
+    ZoneHeight = 4  # Combined only
+    PcaDrop = 5
+
+PREP_MAP_GROUPS = (TuneGroup.SpinAxis, TuneGroup.ZoneHeight, TuneGroup.PcaDrop)
 
 @dataclass(frozen=True)
 class _FloatParameter:
@@ -60,6 +69,15 @@ _SEARCH_SPACE : dict[TuneGroup, dict[str, _FloatParameter | _IntParameter | _Cat
         "dropout": _FloatParameter(0, 0.4),
         "weight_decay": _FloatParameter(1e-9, 1e-1, log=True),
     },
+    TuneGroup.SpinAxis: {
+        "spin_axis": _CategoricalParameter(tuple(e.value for e in SpinAxisEncoding)),
+    },
+    TuneGroup.ZoneHeight: {
+        "zone_height": _CategoricalParameter(tuple(e.value for e in ZoneHeightEncoding)),
+    },
+    TuneGroup.PcaDrop: {
+        "pca_drop": _IntParameter(0, 1), # Lowest-variance PCA components thrown away for the variant being tuned
+    },
 }
 
 def GetTunedParameterNames(groups : list[TuneGroup]) -> list[str]:
@@ -92,6 +110,8 @@ def BuildTrialArgs(
     
     tuned_names : list[str] = []
     for group in groups:
+        if group in PREP_MAP_GROUPS:
+            continue
         for name, spec in _SEARCH_SPACE[group].items():
             tuned_names.append(name)
             match spec:
@@ -109,19 +129,60 @@ def BuildTrialArgs(
     
     return args
 
+def BuildTrialPrepMapConfig(
+        trial : optuna.trial.Trial,
+        model_variant_type : ModelVariantType,
+        groups : Iterable[TuneGroup],
+        base_config : PrepMapConfig | None = None) -> PrepMapConfig:
+    
+    # Anything not being tuned keeps its base value
+    config = base_config if base_config is not None else STANDARD_PREP_MAP_CONFIG
+    for group in groups:
+        if group not in PREP_MAP_GROUPS:
+            continue
+        for name, spec in _SEARCH_SPACE[group].items():
+            match spec:
+                case _IntParameter():
+                    value = trial.suggest_int(name, spec.low, spec.high)
+                case _CategoricalParameter():
+                    value = trial.suggest_categorical(name, list(spec.choices))
+            
+            match name:
+                case "spin_axis":
+                    config = dataclasses.replace(config, spin_axis=SpinAxisEncoding(value))
+                case "zone_height":
+                    config = dataclasses.replace(config, zone_height=ZoneHeightEncoding(value))
+                case "pca_drop" if model_variant_type == ModelVariantType.Stuff:
+                    config = dataclasses.replace(config, stuff_pca_drop=value)
+                case "pca_drop":
+                    config = dataclasses.replace(config, combined_pca_drop=value)
+    
+    return config
+
 def RunEvaluation(
             trial : optuna.trial.Trial,
-            io_data : PitchIOData,
-            data_prep : DataPrep,
+            tuning_data : TuningData,
             model_variant_type : ModelVariantType,
             model_output_type : ModelOutputType,
             max_repeats : int,
             groups : list[TuneGroup],
-            base_args : PitchModelArgs | None = None) -> float:
+            base_args : PitchModelArgs | None = None,
+            base_prep_config : PrepMapConfig | None = None) -> float:
     
     args = BuildTrialArgs(trial, model_variant_type, model_output_type, groups, base_args)
+    prep_config = BuildTrialPrepMapConfig(trial, model_variant_type, groups, base_prep_config)
+    data_prep, io_data = tuning_data.Get(prep_config)
     
-    sum_loss = 0
+    return sum(TrainFolds(args, data_prep, io_data, model_output_type, max_repeats))
+
+def TrainFolds(
+            args : PitchModelArgs,
+            data_prep : DataPrep,
+            io_data : PitchIOData,
+            model_output_type : ModelOutputType,
+            max_repeats : int) -> list[float]:
+    
+    fold_losses : list[float] = []
     # Repeats use folds whose test sets share no pitchers, so they are independent samples
     for train_idx in GetDisjointTrainIndices(max_repeats):
         datasets = CreateTestTrainDatasets(
@@ -141,11 +202,11 @@ def RunEvaluation(
             batch_size=args.batch_size,
             save_model=False
         )
-        sum_loss += result.test_loss
+        fold_losses.append(result.test_loss)
         
         del datasets
         del network
         torch.cuda.empty_cache()
         gc.collect()
         
-    return sum_loss
+    return fold_losses
