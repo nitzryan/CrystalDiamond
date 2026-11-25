@@ -17,23 +17,24 @@ namespace PitchAnalysis
             public int strikes { get; init; }
             public int year { get; init; }
         }
-        private enum PitchResult
+        private enum PitchResult_Agg
         {
             Strike,
             Ball,
             HBP,
             Foul
         }
-        private record PitchScenarioResult(PitchScenario scenario, PitchResult result);
-        private readonly record struct PzcKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
+        private readonly record struct SituationModelKey(int Model, PitchClass PitchClass, int Balls, int Strikes);
+        private record PitchScenarioResult(PitchScenario scenario, PitchResult_Agg result);
+        private readonly record struct PzcKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes, int Row, int Col);
-        private readonly record struct PitchInfo(Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
+        private readonly record struct PitchInfo(PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes, float PlateX, float PlateZ, float ZoneTop, float ZoneBot);
-        private readonly record struct PzncKey(int Year, Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR,
+        private readonly record struct PzncKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes);
 
         // Need to make sure that scenarios without enough pitches aren't graded.
-        private readonly record struct ScenarioKey(Db.DbEnums.PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
+        private readonly record struct ScenarioKey(PitchClass PitchClass, bool PitIsR, bool HitIsR, int Balls, int Strikes);
         private const int MIN_SCENARIO_YEAR = 2022;
         private const int MAX_SCENARIO_YEAR = 2026;
         private const int MIN_SCENARIO_PITCHES = 2000;
@@ -44,7 +45,7 @@ namespace PitchAnalysis
             return ptDb.PitchData
                 .AsNoTracking()
                 .Where(f => f.LevelId == 1 && f.Year >= MIN_SCENARIO_YEAR && f.Year <= MAX_SCENARIO_YEAR
-                    && f.PitchClass != Db.DbEnums.PitchClass.Other)
+                    && f.PitchClass != PitchClass.Other)
                 .GroupBy(f => new { f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrike })
                 .Where(g => g.Count() >= MIN_SCENARIO_PITCHES)
                 .Select(g => new { g.Key.PitchClass, g.Key.PitIsR, g.Key.HitIsR, g.Key.CountBalls, g.Key.CountStrike })
@@ -84,27 +85,27 @@ namespace PitchAnalysis
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        f.Result == Db.DbEnums.PitchResult.Ball)
+                        f.Result == PitchResult.Ball)
                         .Average(f => f.RunValueSmoothedHitter);
 
                     float strikeValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        (f.Result == Db.DbEnums.PitchResult.CalledStrike || f.Result == Db.DbEnums.PitchResult.SwingingStrike))
+                        (f.Result == PitchResult.CalledStrike || f.Result == PitchResult.SwingingStrike))
                         .Average(f => f.RunValueSmoothedHitter);
 
                     float hbpValue = pitchScenarioPitches.Where(
                         f => f.Year == scenario.year &&
                         f.CountBalls == scenario.balls &&
                         f.CountStrike == scenario.strikes &&
-                        f.Result == Db.DbEnums.PitchResult.HBP)
+                        f.Result == PitchResult.HBP)
                         .Average(f => f.RunValueSmoothedHitter);
 
-                    psrDict[new PitchScenarioResult(scenario, PitchResult.Ball)] = ballValue;
-                    psrDict[new PitchScenarioResult(scenario, PitchResult.Strike)] = strikeValue;
-                    psrDict[new PitchScenarioResult(scenario, PitchResult.HBP)] = hbpValue;
-                    psrDict[new PitchScenarioResult(scenario, PitchResult.Foul)] = scenario.strikes == 2 ? 0 : strikeValue;
+                    psrDict[new PitchScenarioResult(scenario, PitchResult_Agg.Ball)] = ballValue;
+                    psrDict[new PitchScenarioResult(scenario, PitchResult_Agg.Strike)] = strikeValue;
+                    psrDict[new PitchScenarioResult(scenario, PitchResult_Agg.HBP)] = hbpValue;
+                    psrDict[new PitchScenarioResult(scenario, PitchResult_Agg.Foul)] = scenario.strikes == 2 ? 0 : strikeValue;
 
                     progressBar.Tick();
                 }
@@ -137,21 +138,9 @@ namespace PitchAnalysis
                     var (pzcDict, pzncDict) = LoadBinYear(ptDb, bin, year - 1);
                     Dictionary<(int, int), float?> binCache = new();
 
-                    // Need to track total value of each pitch type in MLB for year to adjust
-                    Dictionary<DbEnums.PitchClass, (double Value, int Count)> stuffValueDict = new()
-                    {
-                        [DbEnums.PitchClass.Fastball] = (0, 0),
-                        [DbEnums.PitchClass.Breaking] = (0, 0),
-                        [DbEnums.PitchClass.Changeup] = (0, 0),
-                        [DbEnums.PitchClass.Other] = (0, 0)
-                    };
-                    Dictionary<DbEnums.PitchClass, (double Value, int Count)> locValueDict = new()
-                    {
-                        [DbEnums.PitchClass.Fastball] = (0, 0),
-                        [DbEnums.PitchClass.Breaking] = (0, 0),
-                        [DbEnums.PitchClass.Changeup] = (0, 0),
-                        [DbEnums.PitchClass.Other] = (0, 0)
-                    };
+                    // Need to track total MLB values for the year to adjust: stuff per model/class/count, location per class
+                    Dictionary<SituationModelKey, (double Value, int Count)> stuffValueDict = new();
+                    Dictionary<SituationModelKey, (double Value, int Count)> locValueDict = new();
 
                     // Iterate through pitches in the year
                     foreach (var pva in yearGroup)
@@ -167,10 +156,10 @@ namespace PitchAnalysis
                             year = pva.Year
                         };
 
-                        float valueBall = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.Ball)];
-                        float valueStrike = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.Strike)];
-                        float valueFoul = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.Foul)];
-                        float valueHBP = psrDict[new PitchScenarioResult(pitchScenario, PitchResult.HBP)];
+                        float valueBall = psrDict[new PitchScenarioResult(pitchScenario, PitchResult_Agg.Ball)];
+                        float valueStrike = psrDict[new PitchScenarioResult(pitchScenario, PitchResult_Agg.Strike)];
+                        float valueFoul = psrDict[new PitchScenarioResult(pitchScenario, PitchResult_Agg.Foul)];
+                        float valueHBP = psrDict[new PitchScenarioResult(pitchScenario, PitchResult_Agg.HBP)];
 
                         // Combine probabilities to expected values
                         pva.StuffRuns = ExpectedRuns(valueBall, valueStrike, valueFoul, valueHBP,
@@ -215,13 +204,15 @@ namespace PitchAnalysis
                         {
                             if (pva.StuffBinRuns != null)
                             {
-                                (double value, int count) = stuffValueDict[pitch.PitchClass];
-                                stuffValueDict[pitch.PitchClass] = (value + pva.StuffBinRuns.Value, count + 1);
+                                SituationModelKey stuffKey = new(pva.Model, pitch.PitchClass, pitch.Balls, pitch.Strikes);
+                                (double value, int count) = stuffValueDict.GetValueOrDefault(stuffKey);
+                                stuffValueDict[stuffKey] = (value + pva.StuffBinRuns.Value, count + 1);
                             }
                             if (pva.LocBinRuns != null)
                             {
-                                (double value, int count) = locValueDict[pitch.PitchClass];
-                                locValueDict[pitch.PitchClass] = (value + pva.LocBinRuns.Value, count + 1);
+                                SituationModelKey locKey = new(pva.Model, pitch.PitchClass, pitch.Balls, pitch.Strikes);
+                                (double value, int count) = locValueDict.GetValueOrDefault(locKey);
+                                locValueDict[locKey] = (value + pva.LocBinRuns.Value, count + 1);
                             }
                         }
 
@@ -235,16 +226,17 @@ namespace PitchAnalysis
                         var pitchKey = (pva.GameId, pva.PitchId);
                         PitchInfo pitch = pitchInfoDict[pitchKey];
 
-                        // Get average value for the pitch class
-                        (double stuffValue, int stuffCount) = stuffValueDict[pitch.PitchClass];
-                        double stuffAvg = stuffValue / stuffCount;
+                        SituationModelKey stuffKey = new(pva.Model, pitch.PitchClass, pitch.Balls, pitch.Strikes);
+                        var locValueCount = locValueDict[stuffKey];
 
-                        (double locValue, int locCount) = locValueDict[pitch.PitchClass];
-                        double locAvg = locValue / locCount;
-
-                        pva.LocBinRuns -= (float)locAvg;
+                        pva.LocBinRuns -= (float)locValueCount.Value / locValueCount.Count;
                         if (pva.StuffBinRuns != null)
-                            pva.StuffBinRuns -= (float)stuffAvg;
+                        {
+                            // With no MLB pitches in this group there is no baseline, so the pitch gets no stuff value
+                            pva.StuffBinRuns = stuffValueDict.TryGetValue(stuffKey, out var mlb)
+                                ? pva.StuffBinRuns.Value - (float)(mlb.Value / mlb.Count)
+                                : null;
+                        }
                     }
                 }
             }
@@ -292,7 +284,7 @@ namespace PitchAnalysis
             List<PitchData> binPitches = [];
             binPitches = ptDb.PitchData
                 .AsNoTracking()
-                .Where(f => f.Year == binYear && f.LevelId == 1 && f.PitchClass != Db.DbEnums.PitchClass.Other)
+                .Where(f => f.Year == binYear && f.LevelId == 1 && f.PitchClass != PitchClass.Other)
                 .ToList();
 
             var (competitiveRows, nonCompetitiveRows) = bin.BuildCompetitiveRows(binPitches);

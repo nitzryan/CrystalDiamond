@@ -1,92 +1,94 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PitchDb;
+using PitchTrackingDb;
 using ShellProgressBar;
 
 namespace PitchAnalysis
 {
     internal class YearDeviations
     {
-        const float PITCH_CAP = 0.1f;
-
-        public static void Update(int endYear)
+        public static void Update()
         {
-            //using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
+            using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
+            using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
+            pitchDb.YearLeagueDeviations.ExecuteDelete();
 
-            //pitchDb.YearLeagueDeviations.Where(f => f.Year >= endYear).ExecuteDelete();
+            List<int> years = pitchDb.Output_PitchValueAggregation
+                .Select(f => f.Year)
+                .Distinct()
+                .ToList()
+                .OrderBy(f => f)
+                .ToList();
+            List<int> models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct().ToList();
+            List<int> balls = [0, 1, 2, 3];
+            List<int> strikes = [0, 1, 2];
 
-            //var years = pitchDb.Output_PitchValueAggregation.Select(f => f.Year).Distinct();
-            //years = years.Where(f => !pitchDb.YearLeagueDeviations.Select(f => f.Year).Contains(f));
-            //var models = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct();
+            List<string> missing = [];
+            using (ProgressBar progressBar = new ProgressBar(years.Count * models.Count * balls.Count * strikes.Count, "Calculating Year Deviations"))
+            {
+                foreach (int year in years)
+                {
+                    // MLB pitches only, so every level is later scaled against the same distribution
+                    var yearPitches = pitchDb.Output_PitchValueAggregation
+                        .AsNoTracking()
+                        .Where(f => f.Year == year && f.LevelId == 1 && f.StuffBinRuns != null)
+                        .Select(f => new { f.GameId, f.PitchId, f.Model, f.StuffBinRuns })
+                        .ToList();
 
-            //List<int> balls = [0, 1, 2, 3];
-            //List<int> strikes = [0, 1, 2];
+                    Dictionary<(int, int), (int Balls, int Strikes)> countDict = ptDb.PitchData
+                        .AsNoTracking()
+                        .Where(f => f.Year == year && f.LevelId == 1)
+                        .Select(f => new { f.GameId, f.PitchId, f.CountBalls, f.CountStrike })
+                        .ToDictionary(
+                            f => (f.GameId, f.PitchId),
+                            f => (f.CountBalls, f.CountStrike));
 
-            //using (ProgressBar progressBar = new ProgressBar(years.Count() * models.Count() * balls.Count * strikes.Count, "Calculating Year Deviations"))
-            //{
-            //    foreach (int year in years)
-            //    {
-            //        var yearPitches = pitchDb.Output_PitchValueAggregation
-            //            .Where(f => f.Year == year && f.LevelId == 1)
-            //            .Select(f => new { f.GameId, f.PitchId, f.StuffRuns, f.CombinedRuns, f.CountBalls, f.CountStrikes, f.Model })
-            //            .AsEnumerable()
-            //            .GroupBy(f => f.Model)
-            //            .ToDictionary(f => f.Key, f => f.ToList());
-            //        foreach (int modelId in models)
-            //        {
-            //            // Make sure model has data for this year.
-            //            if (!yearPitches.ContainsKey(modelId))
-            //            {
-            //                for (int i = 0; i < balls.Count * strikes.Count; i++)
-            //                    progressBar.Tick();
-            //                continue;
-            //            }
+                    // Root mean square of StuffBinRuns for each model and count
+                    Dictionary<(int Model, int Balls, int Strikes), double> deviations = yearPitches
+                        .GroupBy(f =>
+                        {
+                            var count = countDict[(f.GameId, f.PitchId)];
+                            return (f.Model, count.Balls, count.Strikes);
+                        })
+                        .ToDictionary(
+                            g => g.Key,
+                            g => Math.Sqrt(g.Average(f => (double)f.StuffBinRuns!.Value * f.StuffBinRuns.Value)));
 
-            //            var yearModelPitches = yearPitches[modelId];
+                    foreach (int modelId in models)
+                    {
+                        // A model/year with no graded MLB pitches at all is expected (e.g. no prior-year bins)
+                        bool hasData = yearPitches.Any(f => f.Model == modelId);
+                        foreach (int ball in balls)
+                        {
+                            foreach (int strike in strikes)
+                            {
+                                if (deviations.TryGetValue((modelId, ball, strike), out double stuffDev))
+                                {
+                                    pitchDb.YearLeagueDeviations.Add(new YearLeagueDeviations
+                                    {
+                                        Year = year,
+                                        ModelId = modelId,
+                                        Balls = ball,
+                                        Strikes = strike,
+                                        StuffDev = (float)stuffDev
+                                    });
+                                }
+                                else if (hasData)
+                                {
+                                    missing.Add($"Model {modelId}, {year}, {ball}-{strike}");
+                                }
 
-            //            foreach (int ball in balls)
-            //            {
-            //                var yearModelBallPitches = yearModelPitches
-            //                    .Where(f => f.CountBalls == ball)
-            //                    .ToList();
+                                progressBar.Tick();
+                            }
+                        }
+                    }
+                }
+            }
 
-            //                foreach (int strike in strikes)
-            //                {
-            //                    var yearModelCountPitches = yearModelPitches
-            //                        .Where(f => f.CountStrikes == strike)
-            //                        .ToArray();
+            foreach (string entry in missing)
+                Console.WriteLine($"No graded MLB pitches, no deviation written: {entry}");
 
-            //                    double stuffDev = Math.Sqrt(yearModelCountPitches
-            //                        .Select(f => f.StuffRuns)
-            //                        .AsEnumerable()
-            //                        .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-            //                        .Select(v => v * v)
-            //                        .Average());
-            //                    double pitchDev = Math.Sqrt(yearModelCountPitches
-            //                        .Select(f => f.CombinedRuns)
-            //                        .AsEnumerable()
-            //                        .Select(v => Math.Clamp(v, -PITCH_CAP, PITCH_CAP))
-            //                        .Select(v => v * v)
-            //                        .Average());
-
-            //                    pitchDb.YearLeagueDeviations.Add(new YearLeagueDeviations
-            //                    {
-            //                        Year = year,
-            //                        ModelId = modelId,
-            //                        Balls=ball,
-            //                        Strikes=strike,
-            //                        StuffDev = (float)stuffDev,
-            //                        PitchDev = (float)pitchDev
-            //                    });
-
-            //                    progressBar.Tick();
-            //                }
-            //            }
-                        
-            //        }
-            //    }
-            //}
-
-            //pitchDb.SaveChanges();
+            pitchDb.SaveChanges();
         }
     }
 }

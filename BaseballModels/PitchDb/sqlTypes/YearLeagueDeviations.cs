@@ -7,7 +7,6 @@ namespace PitchDb
 		public required int Balls {get; set;}
 		public required int Strikes {get; set;}
 		public required float StuffDev {get; set;}
-		public required float PitchDev {get; set;}
 
 		public YearLeagueDeviations Clone()
 		{
@@ -18,7 +17,6 @@ namespace PitchDb
 				Balls = this.Balls,
 				Strikes = this.Strikes,
 				StuffDev = this.StuffDev,
-				PitchDev = this.PitchDev,
 			};
 		}
 	}

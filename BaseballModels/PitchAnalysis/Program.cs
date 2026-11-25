@@ -26,19 +26,27 @@ namespace PitchAnalysis
 
             PitchZoneBin bin = PitchZoneBin.DEFAULT;
             //Plots.High_HBP_PitchTest.PlotHighHbpPitches(bin);
-            //PitchAggregation.Update(bin);
+            PitchAggregation.Update(bin);
             StuffLocationCorrelation.GeneratePlots(bin);
             //BinEvaluation.Evaluate();
             //Plots.PitchValueSurface.GeneratePlots(2025, new PitchZoneBinArgs());
+
+            
+
+            YearDeviations.Update();
             return;
 
-            int startYear = pitchDb.Output_PitchValueAggregation.Min(f => f.Year);
-            int endYear = pitchDb.Output_PitchValueAggregation.Max(f => f.Year);
+            List<int> years = pitchDb.Output_PitchValueAggregation
+                .Where(f => f.StuffBinRuns != null)
+                .Select(f => f.Year)
+                .Distinct()
+                .ToList();
+            int startYear = years.Max();
+            int endYear = years.Min();
             int endMonth = Math.Min(ptDb.PitchData
                 .Where(f => f.Year == endYear)
                 .Max(f => f.Month), 9);
 
-            YearDeviations.Update(endYear);
             PitchStatcastOutput.Update();
             PitcherAggregator.CreateStats(endYear, FORCE_REFRESH);
             for (int year = startYear; year <= endYear; year++)

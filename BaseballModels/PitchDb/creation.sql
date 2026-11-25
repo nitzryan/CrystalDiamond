@@ -100,7 +100,6 @@ CREATE TABLE YearLeagueDeviations
 	"Strikes" INTEGER NOT NULL,
 
 	"StuffDev" REAL NOT NULL,
-	"PitchDev" REAL NOT NULL,
 
 	PRIMARY KEY("ModelId", "Year", "Balls", "Strikes")
 );
