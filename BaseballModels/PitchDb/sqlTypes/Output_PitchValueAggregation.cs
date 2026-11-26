@@ -29,6 +29,7 @@ namespace PitchDb
 		public required float CombinedRuns {get; set;}
 		public float? StuffBinRuns {get; set;}
 		public float? LocBinRuns {get; set;}
+		public float? SitBinRuns {get; set;}
 
 		public Output_PitchValueAggregation Clone()
 		{
@@ -61,6 +62,7 @@ namespace PitchDb
 				CombinedRuns = this.CombinedRuns,
 				StuffBinRuns = this.StuffBinRuns,
 				LocBinRuns = this.LocBinRuns,
+				SitBinRuns = this.SitBinRuns,
 			};
 		}
 	}

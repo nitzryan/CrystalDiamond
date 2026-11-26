@@ -1,21 +1,33 @@
-﻿using Db;
-using EFCore.BulkExtensions;
+﻿using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
+using PitchAnalysis.PitchDecomp;
 using PitchDb;
 using PitchTrackingDb;
 using ShellProgressBar;
+using System.Diagnostics.Metrics;
 using static Db.DbEnums;
 
 namespace PitchAnalysis
 {
-    // TODO: Adding RunValueSmoothedHitter and Month to PitchData allows for PitchStatcast to not be needed
-
     internal class PitcherAggregator
     {
         private record YearLeagueDevationKey(int modelId, int year, int balls, int strikes);
         private record PitchValueKey(int gameId, int pitchId);
-        private record ModelPitchValueKey(int modelId, int gameId, int pitchId);
         private static Dictionary<YearLeagueDevationKey, YearLeagueDeviations> yldDict = new();
+
+        private sealed class ScenarioTotals
+        {
+            public int NumPitches;
+            public int NumStuffPitches;
+            public double Dev;
+            public double Actual;
+            public double Stuff;
+            public double Location;
+            public double Situation;
+            public double Vel;
+            public double BreakHoriz;
+            public double BreakVert;
+        }
 
         private static PitchScenario GetScenario(PitchData p)
         {
@@ -39,108 +51,86 @@ namespace PitchAnalysis
 
         private static List<PitcherStuff> GetPitcherYearMonthStuffByScenarios(
             IEnumerable<PitchData> pitches,
-            Dictionary<PitchValueKey, PitchValue> pvDict,
+            Dictionary<PitchValueKey, Output_PitchValueAggregation> pvaDict,
+            YearPitcherDeviations scale,
             int model,
             bool isFullYear,
             bool isSingleGame,
             IEnumerable<PitchScenario> scenarios)
         {
-            List<PitcherStuff> pitchSideBreakdowns = new();
+            List<PitcherStuff> results = new();
 
-            // Group by PitchType
-            var pitchGroupings = pitches.GroupBy(f => f.PitchType);
-
-            foreach (var pitchGroup in pitchGroupings)
+            foreach (var pitchGroup in pitches.GroupBy(f => f.PitchType))
             {
                 var firstPitch = pitchGroup.First();
+                Dictionary<PitchScenario, ScenarioTotals> totals = scenarios.ToDictionary(s => s, _ => new ScenarioTotals());
 
-                var scenarioStats = scenarios.ToDictionary(
-                    s => s,
-                    s => (
-                        0f,
-                        new PitcherStuff
-                        {
-                            MlbId = firstPitch.PitcherId,
-                            Year = isSingleGame ? -1 : firstPitch.Year,
-                            Month = isSingleGame ? -1 :
-                                isFullYear ? 13 : firstPitch.Month,
-                            GameId = isSingleGame ? firstPitch.GameId : -1,
-                            ModelId = model,
-
-                            PitchType = firstPitch.PitchType,
-                            Scenario = s,
-
-                            NumPitches = 0,
-                            ValueActual = 0f,
-                            ValueStuff = 0f,
-                            ValueCombined = 0f,
-
-                            ActualPlus = 0f,
-                            StuffPlus = 0f,
-                            PitchPlus = 0f,
-
-                            Vel = 0,
-                            BreakHoriz = 0,
-                            BreakVert = 0,
-                        })
-                );
-
-                // Accumulate values
                 foreach (var p in pitchGroup)
                 {
-                    PitchValueKey key = new(p.GameId, p.PitchId);
-                    PitchValue pv = pvDict[key];
-                    YearLeagueDevationKey yldKey = new(model, p.Year, p.CountBalls, p.CountStrike);
-                    YearLeagueDeviations yld = yldDict[yldKey];
+                    Output_PitchValueAggregation pva = pvaDict[new PitchValueKey(p.GameId, p.PitchId)];
+                    float stuffDev = yldDict[new YearLeagueDevationKey(model, p.Year, p.CountBalls, p.CountStrike)].StuffDev;
                     PitchScenario pitchScenario = GetScenario(p);
-                    foreach (var scen in scenarios)
+
+                    foreach (var (scenario, t) in totals)
                     {
-                        if (pitchScenario.HasFlag(scen) || scen == PitchScenario.All)
+                        // All is 0, so every pitch has that flag
+                        if (!pitchScenario.HasFlag(scenario))
+                            continue;
+
+                        t.NumPitches++;
+                        t.Actual += p.RunValueHitter;
+                        t.Location += pva.LocBinRuns!.Value;
+                        t.Situation += pva.SitBinRuns!.Value;
+
+                        if (pva.StuffBinRuns.HasValue)
                         {
-                            var (count, stats) = scenarioStats[scen];
-                            count += yld.StuffDev;
-                            stats.NumPitches++;
-                            stats.ValueActual += firstPitch.RunValueHitter;
-                            stats.ValueStuff += pv.StuffRuns;
-                            stats.ValueCombined += pv.PitchRuns;
-                            stats.Vel += p.Vel;
-                            stats.BreakHoriz += p.BreakHorizontal;
-                            stats.BreakVert += p.BreakInduced;
-                            scenarioStats[scen] = (count, stats);
+                            t.NumStuffPitches++;
+                            t.Stuff += pva.StuffBinRuns.Value;
                         }
+
+                        t.Dev += stuffDev;
+                        t.Vel += p.Vel;
+                        t.BreakHoriz += p.BreakHorizontal;
+                        t.BreakVert += p.BreakInduced;
                     }
                 }
 
-                // Convert sums to per-pitch averages
-                foreach (var s in scenarioStats.Values)
+                foreach (var (scenario, t) in totals)
                 {
-                    var stats = s.Item2;
-                    
-                    if (stats.NumPitches > 0)
+                    if (t.NumPitches == 0)
+                        continue;
+
+                    double countDev = t.Dev / t.NumPitches;
+                    double avgDev = countDev * scale.ScoreDev;
+
+                    results.Add(new PitcherStuff
                     {
-                        float avgDev = s.Item1 / stats.NumPitches;
-
-                        // Value Per Pitch
-                        stats.ValueActual /= stats.NumPitches;
-                        stats.ValueStuff /= stats.NumPitches;
-                        stats.ValueCombined /= stats.NumPitches;
-
-                        // Pitch Metrics
-                        stats.Vel /= stats.NumPitches;
-                        stats.BreakHoriz /= stats.NumPitches;
-                        stats.BreakVert /= stats.NumPitches;
-
-                        // Normalize to Pitch+
-                        stats.ActualPlus = 100 - (10 * stats.ValueActual / avgDev);
-                        stats.StuffPlus = 100 - (10 * stats.ValueStuff / avgDev);
-                        stats.PitchPlus = 100 - (10 * stats.ValueCombined / avgDev);
-
-                        pitchSideBreakdowns.Add(stats);
-                    }
+                        MlbId = firstPitch.PitcherId,
+                        Year = isSingleGame ? -1 : firstPitch.Year,
+                        Month = isSingleGame ? -1 :
+                            isFullYear ? 13 : firstPitch.Month,
+                        GameId = isSingleGame ? firstPitch.GameId : -1,
+                        ModelId = model,
+                        PitchType = firstPitch.PitchType,
+                        Scenario = scenario,
+                        NumPitches = t.NumPitches,
+                        NumStuffPitches = t.NumStuffPitches,
+                        CountLeverage = (float)(countDev / scale.MeanCountDev),
+                        ActualPlus = Utility.CalculatePitchPlus(t.Actual / t.NumPitches, avgDev),
+                        PitchPlus = Utility.CalculatePitchPlus((t.Stuff + t.Location + t.Situation) / t.NumPitches, avgDev),
+                        StuffPlus = t.NumStuffPitches > 0
+                            ? Utility.CalculatePitchPlus(t.Stuff / t.NumStuffPitches, avgDev)
+                            : Utility.CalculatePitchPlus(0, avgDev),
+                        LocationPlus = Utility.CalculatePitchPlus(t.Location / t.NumPitches, avgDev),
+                        SituationPlus = Utility.CalculatePitchPlus(t.Situation / t.NumPitches, avgDev),
+                        Vel = (float)(t.Vel / t.NumPitches),
+                        BreakHoriz = (float)(t.BreakHoriz / t.NumPitches),
+                        BreakVert = (float)(t.BreakVert / t.NumPitches),
+                    });
                 }
             }
 
-            return pitchSideBreakdowns;
+            return results;
         }
 
         public static void CreateStats(int endYear, bool fullUpdate)
@@ -148,108 +138,93 @@ namespace PitchAnalysis
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using PitchTrackingDbContext trackingDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
 
-            // Preload dictionary
             yldDict = pitchDb.YearLeagueDeviations
                 .AsNoTracking()
-                .ToDictionary(
-                    f => new YearLeagueDevationKey(f.ModelId, f.Year, f.Balls, f.Strikes),
-                    f => f
-                );
-            Console.WriteLine("Loaded YearLeagueDeviations");
+                .ToDictionary(f => new YearLeagueDevationKey(f.ModelId, f.Year, f.Balls, f.Strikes));
 
-            var pvDict = pitchDb.PitchValue
-                .AsNoTracking()
-                .ToDictionary(f => new ModelPitchValueKey(f.ModelId, f.GameId, f.PitchId), f => f);
-            Console.WriteLine("Loaded PitchValue Data");
-
-            // Prepare variants
             List<PitchScenario> scenarios = [
                 PitchScenario.All,
                 PitchScenario.SameSide, PitchScenario.OppSide,
                 PitchScenario.NotTwoStrikes, PitchScenario.TwoStrikes,
                 PitchScenario.AheadCount, PitchScenario.EvenCount, PitchScenario.BehindCount
-                ];
+            ];
 
-            // Get Pitches
-            var pvKeys = pvDict.Select(f => (f.Key.gameId, f.Key.pitchId)).ToHashSet();
             int startYear = pitchDb.YearLeagueDeviations.Min(f => f.Year);
-            var pitchDataByYear = trackingDb.PitchData
-                .AsNoTracking()
+            List<int> years = trackingDb.PitchData
                 .Where(f => (fullUpdate || f.Year == endYear) && f.Year >= startYear)
-                .AsEnumerable()
-                .Where(f => !pvKeys.Contains(new ValueTuple<int, int>(f.GameId, f.PitchId)))
-                .ToList()
-                .GroupBy(f => f.Year);
-            Console.WriteLine("Loaded PitchData");
+                .Select(f => f.Year)
+                .Distinct()
+                .OrderBy(f => f)
+                .ToList();
+            List<int> modelIds = pitchDb.Output_PitchValueAggregation.Select(f => f.Model).Distinct().ToList();
 
-            // Get year stats
-            List<PitcherStuff> stuffList = new();
-            List<int> modelIds = pitchDb.PitchValue.Select(f => f.ModelId).Distinct().ToList();
-            int totalTicks = modelIds.Count * pitchDataByYear.Count();
-
-            using (ProgressBar progressBar = new ProgressBar(totalTicks, "Creating Pitcher Pitch Stats"))
+            using (ProgressBar progressBar = new ProgressBar(years.Count * modelIds.Count, "Creating Pitcher Pitch Stats"))
             {
-                foreach (int modelId in modelIds)
+                foreach (int year in years)
                 {
-                    var modelPvDict = pvDict
-                        .Where(f => f.Key.modelId == modelId)
-                        .ToDictionary(f => new PitchValueKey(f.Key.gameId, f.Key.pitchId), f => f.Value);
+                    List<PitchData> yearPitches = trackingDb.PitchData
+                        .AsNoTracking()
+                        .Where(f => f.Year == year)
+                        .ToList();
 
-                    foreach (var pdy in pitchDataByYear)
+                    // Single-game rows have Year = -1, so they have to be found by game
+                    List<int> gameIds = yearPitches.Select(f => f.GameId).Distinct().ToList();
+                    pitchDb.PitcherStuff
+                        .Where(f => f.Year == year || gameIds.Contains(f.GameId))
+                        .ExecuteDelete();
+
+                    foreach (int modelId in modelIds)
                     {
-                        var yearPitchers = pdy.GroupBy(f => f.PitcherId).ToList();
-                        foreach (var pitcher in yearPitchers)
+                        Dictionary<PitchValueKey, Output_PitchValueAggregation> pvaDict = pitchDb.Output_PitchValueAggregation
+                            .AsNoTracking()
+                            .Where(f => f.Year == year && f.Model == modelId && f.LocBinRuns != null)
+                            .ToDictionary(f => new PitchValueKey(f.GameId, f.PitchId));
+
+                        // A model may have no graded pitches in a year
+                        if (pvaDict.Count == 0)
+                        {
+                            progressBar.Tick();
+                            continue;
+                        }
+
+
+                        // Only graded pitches contribute
+                        List<PitchData> gradedPitches = yearPitches
+                            .Where(f => pvaDict.ContainsKey(new PitchValueKey(f.GameId, f.PitchId)))
+                            .ToList();
+
+                        YearPitcherDeviations scale = PitcherScale.CalculateAndSave(
+                            pitchDb, year, modelId, gradedPitches,
+                            p => pvaDict[new PitchValueKey(p.GameId, p.PitchId)].StuffBinRuns,
+                            p => yldDict[new YearLeagueDevationKey(modelId, p.Year, p.CountBalls, p.CountStrike)].StuffDev);
+
+                        List<PitcherStuff> stuffList = new();
+                        foreach (var pitcher in gradedPitches.GroupBy(f => f.PitcherId))
                         {
                             // Year Stats
-                            stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
-                                (
-                                    pitcher,
-                                    modelPvDict,
-                                    modelId,
-                                    true,
-                                    false,
-                                    scenarios
-                                )
-                            );
+                            stuffList.AddRange(GetPitcherYearMonthStuffByScenarios(
+                                pitcher, pvaDict, scale, modelId, true, false, scenarios));
 
                             // Month Stats
-                            var monthPitcher = pitcher.GroupBy(f => f.Month);
-                            foreach (var mp in monthPitcher)
+                            foreach (var mp in pitcher.GroupBy(f => f.Month))
                             {
-                                stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
-                                    (
-                                        mp,
-                                        modelPvDict,
-                                        modelId,
-                                        false,
-                                        false,
-                                        scenarios
-                                    )
-                                );
+                                stuffList.AddRange(GetPitcherYearMonthStuffByScenarios(
+                                    mp, pvaDict, scale, modelId, false, false, scenarios));
                             }
 
                             // Game stats
-                            var gamePitcher = pitcher.GroupBy(f => f.GameId);
-                            foreach (var gp in gamePitcher)
+                            foreach (var gp in pitcher.GroupBy(f => f.GameId))
                             {
-                                stuffList.AddRange(GetPitcherYearMonthStuffByScenarios
-                                    (
-                                        gp,
-                                        modelPvDict,
-                                        modelId,
-                                        false,
-                                        true,
-                                        scenarios
-                                    )
-                                );
+                                stuffList.AddRange(GetPitcherYearMonthStuffByScenarios(
+                                    gp, pvaDict, scale, modelId, false, true, scenarios));
                             }
                         }
+
+                        pitchDb.BulkInsert(stuffList);
                         progressBar.Tick();
                     }
                 }
             }
-
-            pitchDb.BulkInsert(stuffList);
         }
     }
 }

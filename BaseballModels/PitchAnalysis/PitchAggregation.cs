@@ -24,12 +24,13 @@ namespace PitchAnalysis
             HBP,
             Foul
         }
+
         private readonly record struct SituationModelKey(int Model, PitchClass PitchClass, int Balls, int Strikes);
         private record PitchScenarioResult(PitchScenario scenario, PitchResult_Agg result);
         private readonly record struct PzcKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes, int Row, int Col);
         private readonly record struct PitchInfo(PitchClass PitchClass, bool PitIsR, bool HitIsR,
-            int Balls, int Strikes, float PlateX, float PlateZ, float ZoneTop, float ZoneBot);
+            int Balls, int Strikes, float PlateX, float PlateZ, float ZoneTop, float ZoneBot, float RunValueSmoothedHitter);
         private readonly record struct PzncKey(int Year, PitchClass PitchClass, bool PitIsR, bool HitIsR,
             int Balls, int Strikes);
 
@@ -59,6 +60,8 @@ namespace PitchAnalysis
             using PitchDbContext pitchDb = new(Constants.PITCHDB_OPTIONS);
             using PitchTrackingDbContext ptDb = new(PitchTrackingDb.Connection.PITCHTRACK_DB_READONLY_OPTIONS);
             using SqliteDbContext db = new(Constants.DB_OPTIONS);
+
+            pitchDb.SituationValues.ExecuteDelete();
 
             // Get expected run values for each scenario each year
             Dictionary<PitchScenarioResult, float> psrDict = new();
@@ -116,6 +119,7 @@ namespace PitchAnalysis
                 .AsNoTracking()
                 .ToList();
 
+            List<SituationValues> situationValues = new();
             using (ProgressBar progressBar = new ProgressBar(pvaList.Count, "Calculating Pitch Run Values"))
             {
                 // One year of PitchData in memory at a time; only years that have OPVA rows are loaded
@@ -127,12 +131,12 @@ namespace PitchAnalysis
                         .Where(f => f.Year == year)
                         .Select(f => new {
                             f.GameId, f.PitchId, f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrike,
-                            f.PlateX, f.PlateZ, f.ZoneTop, f.ZoneBot
+                            f.PlateX, f.PlateZ, f.ZoneTop, f.ZoneBot, f.RunValueSmoothedHitter
                         })
                         .ToDictionary(
                             f => (f.GameId, f.PitchId),
                             f => new PitchInfo(f.PitchClass, f.PitIsR, f.HitIsR, f.CountBalls, f.CountStrike,
-                                               f.PlateX, f.PlateZ, f.ZoneTop, f.ZoneBot));
+                                               f.PlateX, f.PlateZ, f.ZoneTop, f.ZoneBot, f.RunValueSmoothedHitter));
 
                     // Bin value depends only on the pitch, not the model, so compute once per pitch
                     var (pzcDict, pzncDict) = LoadBinYear(ptDb, bin, year - 1);
@@ -141,12 +145,14 @@ namespace PitchAnalysis
                     // Need to track total MLB values for the year to adjust: stuff per model/class/count, location per class
                     Dictionary<SituationModelKey, (double Value, int Count)> stuffValueDict = new();
                     Dictionary<SituationModelKey, (double Value, int Count)> locValueDict = new();
+                    Dictionary<SituationModelKey, (double Model, double Actual)> runValueDict = new();
 
                     // Iterate through pitches in the year
                     foreach (var pva in yearGroup)
                     {
                         var pitchKey = (pva.GameId, pva.PitchId);
                         PitchInfo pitch = pitchInfoDict[pitchKey];
+                        pva.SitBinRuns = null;
 
                         // Get value of different results in this scenario
                         PitchScenario pitchScenario = new PitchScenario
@@ -213,10 +219,37 @@ namespace PitchAnalysis
                                 SituationModelKey locKey = new(pva.Model, pitch.PitchClass, pitch.Balls, pitch.Strikes);
                                 (double value, int count) = locValueDict.GetValueOrDefault(locKey);
                                 locValueDict[locKey] = (value + pva.LocBinRuns.Value, count + 1);
+
+                                (double modelRuns, double actualRuns) = runValueDict.GetValueOrDefault(locKey);
+                                runValueDict[locKey] = (modelRuns + pva.CombinedRuns, actualRuns + pitch.RunValueSmoothedHitter);
                             }
                         }
 
                         progressBar.Tick();
+                    }
+
+                    foreach (var (key, loc) in locValueDict)
+                    {
+                        var stuff = stuffValueDict.GetValueOrDefault(key);
+                        var runs = runValueDict[key];
+                        float locMean = (float)(loc.Value / loc.Count);
+                        float stuffMean = stuff.Count > 0 ? (float)(stuff.Value / stuff.Count) : 0;
+
+                        situationValues.Add(new SituationValues
+                        {
+                            ModelId = key.Model,
+                            Year = year,
+                            PitchClass = key.PitchClass,
+                            Balls = key.Balls,
+                            Strikes = key.Strikes,
+                            NumPitches = loc.Count,
+                            NumStuffPitches = stuff.Count,
+                            LocMean = locMean,
+                            StuffMean = stuffMean,
+                            SitRuns = locMean + stuffMean,
+                            ModelRuns = (float)(runs.Model / loc.Count),
+                            ActualRuns = (float)(runs.Actual / loc.Count)
+                        });
                     }
 
                     // Since bins are computed from previous years and used on a different year, the average
@@ -227,16 +260,22 @@ namespace PitchAnalysis
                         PitchInfo pitch = pitchInfoDict[pitchKey];
 
                         SituationModelKey stuffKey = new(pva.Model, pitch.PitchClass, pitch.Balls, pitch.Strikes);
-                        var locValueCount = locValueDict[stuffKey];
 
-                        pva.LocBinRuns -= (float)locValueCount.Value / locValueCount.Count;
-                        if (pva.StuffBinRuns != null)
+                        // With no MLB pitches in this group there is no baseline, so the pitch isn't graded
+                        if (!locValueDict.TryGetValue(stuffKey, out var mlbLoc))
                         {
-                            // With no MLB pitches in this group there is no baseline, so the pitch gets no stuff value
-                            pva.StuffBinRuns = stuffValueDict.TryGetValue(stuffKey, out var mlb)
-                                ? pva.StuffBinRuns.Value - (float)(mlb.Value / mlb.Count)
-                                : null;
+                            pva.LocBinRuns = null;
+                            pva.StuffBinRuns = null;
+                            continue;
                         }
+
+                        float locMean = (float)(mlbLoc.Value / mlbLoc.Count);
+                        bool hasStuffBaseline = stuffValueDict.TryGetValue(stuffKey, out var mlbStuff);
+                        float stuffMean = hasStuffBaseline ? (float)(mlbStuff.Value / mlbStuff.Count) : 0;
+
+                        pva.LocBinRuns -= locMean;
+                        pva.SitBinRuns = locMean + stuffMean;
+                        pva.StuffBinRuns = hasStuffBaseline ? pva.StuffBinRuns - stuffMean : null;
                     }
                 }
             }
@@ -244,13 +283,15 @@ namespace PitchAnalysis
             pitchDb.BulkUpdate(pvaList, new BulkConfig
             {
                 PropertiesToInclude = new List<string>
-            {
-                nameof(Output_PitchValueAggregation.StuffRuns),
-                nameof(Output_PitchValueAggregation.CombinedRuns),
-                nameof(Output_PitchValueAggregation.StuffBinRuns),
-                nameof(Output_PitchValueAggregation.LocBinRuns),
-            }
+                {
+                    nameof(Output_PitchValueAggregation.StuffRuns),
+                    nameof(Output_PitchValueAggregation.CombinedRuns),
+                    nameof(Output_PitchValueAggregation.StuffBinRuns),
+                    nameof(Output_PitchValueAggregation.LocBinRuns),
+                    nameof(Output_PitchValueAggregation.SitBinRuns),
+                }
             });
+            pitchDb.BulkInsert(situationValues);
         }
 
         private static float ExpectedRuns(float valueBall, float valueStrike, float valueFoul, float valueHBP,

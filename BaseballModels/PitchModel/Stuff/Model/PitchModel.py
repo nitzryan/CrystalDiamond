@@ -251,6 +251,6 @@ class PitchModel(nn.Module):
                     model_id, pitch.GameId, pitch.PitchId, year_to_use,
                     pitch.Year, pitch.LevelId, pitch.PitcherId,
                     *output_row,
-                    -1000, -1000, None, None))
+                    -1000, -1000, None, None, None))
         
         return results

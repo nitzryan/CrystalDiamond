@@ -10,6 +10,7 @@ type_overrides = [
     TypeOverride("PitcherStuff", "Scenario", "Db.DbEnums.PitchScenario"), 
     TypeOverride("PitcherStuff", "PitchType", "Db.DbEnums.PitchType"), 
     TypeOverride("PitchModelResultBasis", "OutputType", "Db.DbEnums.PitchModelOutputType"),
+    TypeOverride("SituationValues", "PitchClass", "Db.DbEnums.PitchClass"),
                 ]
 
 boolean_types = [

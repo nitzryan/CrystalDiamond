@@ -231,7 +231,7 @@ def Eval_Pitches(end_year : int):
                         mapping_pitcher_ids), dim=-1).tolist()
                     db_data = [tuple(ids) + tuple(outputs) for ids, outputs in zip(id_rows, output_avg.tolist())]
                             
-                    cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000,NULL,NULL)", db_data)
+                    cursor.executemany(f"INSERT INTO Output_PitchValueAggregation VALUES({model_id},?,?,{model_year},{year},?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,-1000,-1000,NULL,NULL,NULL)", db_data)
                         
                     # Clear Memory
                     del data

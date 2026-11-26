@@ -35,6 +35,7 @@ CREATE TABLE Output_PitchValueAggregation (
 	"combinedRuns" REAL NOT NULL,
 	"stuffBinRuns" REAL,
 	"locBinRuns" REAL,
+	"sitBinRuns" REAL,
 
 	PRIMARY KEY("model", "gameId", "pitchId", "ModelYear")
 );
@@ -104,6 +105,18 @@ CREATE TABLE YearLeagueDeviations
 	PRIMARY KEY("ModelId", "Year", "Balls", "Strikes")
 );
 
+CREATE TABLE YearPitcherDeviations
+(
+    "ModelId" INTEGER NOT NULL,
+    "Year" INTEGER NOT NULL,
+
+    "ScoreDev" REAL NOT NULL,
+    "MeanCountDev" REAL NOT NULL,
+    "NumQualified" INTEGER NOT NULL,
+
+    PRIMARY KEY("ModelId", "Year")
+);
+
 -- Pitcher/Game Model Runs
 CREATE TABLE PitcherStuff
 (
@@ -116,13 +129,14 @@ CREATE TABLE PitcherStuff
 	"Scenario" INTEGER NOT NULL,
 
 	"NumPitches" INTEGER NOT NULL,
-	"ValueActual" REAL NOT NULL,
-	"ValueStuff" REAL NOT NULL,
-	"ValueCombined" REAL NOT NULL,
+	"NumStuffPitches" INTEGER NOT NULL,
+	"CountLeverage" REAL NOT NULL,
 
+	"PitchPlus" REAL NOT NULL,
 	"ActualPlus" REAL NOT NULL,
 	"StuffPlus" REAL NOT NULL,
-	"PitchPlus" REAL NOT NULL,
+    "LocationPlus" REAL NOT NULL,
+    "SituationPlus" REAL NOT NULL,
 
 	"Vel" REAL NOT NULL,
 	"BreakHoriz" REAL NOT NULL,
@@ -214,4 +228,24 @@ CREATE TABLE PitchModelResultBasis
 	"Max" REAL NOT NULL,
 
 	PRIMARY KEY("Year", "ModelId", "CountBalls", "CountStrikes", "OutputType")
+);
+
+CREATE TABLE SituationValues
+(
+    "ModelId" INTEGER NOT NULL,
+    "Year" INTEGER NOT NULL,
+    "PitchClass" INTEGER NOT NULL,
+    "Balls" INTEGER NOT NULL,
+    "Strikes" INTEGER NOT NULL,
+
+    "NumPitches" INTEGER NOT NULL,
+    "NumStuffPitches" INTEGER NOT NULL,
+
+    "LocMean" REAL NOT NULL,
+    "StuffMean" REAL NOT NULL,
+    "SitRuns" REAL NOT NULL,
+    "ModelRuns" REAL NOT NULL,
+    "ActualRuns" REAL NOT NULL,
+
+    PRIMARY KEY("ModelId", "Year", "PitchClass", "Balls", "Strikes")
 );
